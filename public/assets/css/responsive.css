@@ -1,0 +1,8 @@
+/*
+ * responsive.css
+ *
+ * All responsive styles are included in style.css via @media queries.
+ * This file exists to prevent a 404 error from the <link> tag in head.blade.php.
+ *
+ * Add any additional responsive overrides here if needed in future.
+ */
