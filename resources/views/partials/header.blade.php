@@ -5,21 +5,25 @@
             <!-- Logo -->
             <div class="logo">
                 <a href="{{ url('/') }}">
-                    <img src="{{ asset('assets/images/logo-white.png') }}" alt="TYT Luxe">
+                    <img src="{{ asset('assets/images/tyt-logo.png') }}" alt="TYT Luxe">
                 </a>
             </div>
 
             <!-- Navigation -->
             <nav class="nav-menu">
+                <div class="mobile-menu-header">
+                    <img src="{{ asset('assets/images/tyt-logo.png') }}" alt="TYT Luxe">
+                    <button class="menu-close"><i class="fa-solid fa-xmark"></i></button>
+                </div>
                 <ul>
-                    <li><a href="{{ url('/') }}">Home</a></li>
-                    <li><a href="{{ url('/about') }}">About Us</a></li>
-                    <li><a href="{{ url('/hotels') }}">Hotels</a></li>
-                    <li><a href="{{ url('/flights') }}">Flights</a></li>
-                    <li><a href="{{ url('/cruises') }}">Cruises</a></li>
-                    <li><a href="{{ url('/staycation') }}">Staycation</a></li>
-                    <li><a href="{{ url('/offers') }}">Offers</a></li>
-                    <li><a href="{{ url('/contact') }}">Contact Us</a></li>
+                    <li><a href="{{ url('/') }}" class="{{ request()->is('/') ? 'active' : '' }}">Home</a></li>
+                    <li><a href="{{ url('/about') }}" class="{{ request()->is('about') ? 'active' : '' }}">About Us</a></li>
+                    <li><a href="{{ url('/hotels') }}" class="{{ request()->is('hotels') ? 'active' : '' }}">Hotels</a></li>
+                    <li><a href="{{ url('/flights') }}" class="{{ request()->is('flights') ? 'active' : '' }}">Flights</a></li>
+                    <li><a href="{{ url('/cruises') }}" class="{{ request()->is('cruises') ? 'active' : '' }}">Cruises</a></li>
+                    <li><a href="{{ url('/staycation') }}" class="{{ request()->is('staycation') ? 'active' : '' }}">Staycation</a></li>
+                    <li><a href="{{ url('/offers') }}" class="{{ request()->is('offers') ? 'active' : '' }}">Offers</a></li>
+                    <li><a href="{{ url('/contact') }}" class="{{ request()->is('contact') ? 'active' : '' }}">Contact Us</a></li>
                 </ul>
             </nav>
 
@@ -29,14 +33,14 @@
                 <a class="header-cta header-cta-call"
                    href="tel:+919875073788">
                     <i class="fa-solid fa-phone"></i>
-                    Call Now
+                    <span>Call Now</span>
                 </a>
 
                 <a class="header-cta header-cta-wa"
                    href="https://wa.me/919875073788"
                    target="_blank">
                     <i class="fa-brands fa-whatsapp"></i>
-                    WhatsApp
+                    <span>WhatsApp</span>
                 </a>
 
                 <a href="#" class="mobile-toggle">

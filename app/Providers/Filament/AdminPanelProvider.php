@@ -29,7 +29,25 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->login()
             ->colors([
-                'primary' => Color::Amber,
+                'primary' => Color::Slate,
+                'danger' => Color::Rose,
+                'info' => Color::Blue,
+                'success' => Color::Emerald,
+                'warning' => Color::Orange,
+            ])
+            ->brandName('TYT Luxe')
+            ->font('Inter')
+            ->navigationGroups([
+                \Filament\Navigation\NavigationGroup::make()
+                     ->label('Operations')
+                     ->icon('heroicon-o-briefcase'),
+                \Filament\Navigation\NavigationGroup::make()
+                     ->label('Catalog')
+                     ->icon('heroicon-o-globe-alt'),
+                \Filament\Navigation\NavigationGroup::make()
+                     ->label('System')
+                     ->icon('heroicon-o-cog-6-tooth')
+                     ->collapsed(),
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')

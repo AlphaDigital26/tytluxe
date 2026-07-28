@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.frontend')
 
 @push('styles')
 <style>
@@ -13,30 +13,7 @@
 }
 .tyt-cruises *, .tyt-cruises *::before, .tyt-cruises *::after { box-sizing:border-box; margin:0; padding:0; }
 
-/* ── HERO ── */
-.tc-hero {
-  position:relative;
-  width:100%;
-  min-height:100vh;
-  height:100svh;
-  margin-top:-120px;
-  padding-top:120px;
-  background:url('https://images.unsplash.com/photo-1548438294-1ad5d5f4f063?w=1800&q=85') center 40%/cover no-repeat;
-  display:flex; align-items:center; justify-content:center; text-align:center; overflow:hidden;
-}
-.tc-hero-overlay { position:absolute; inset:0; background:linear-gradient(170deg,rgba(8,6,4,.75) 0%,rgba(15,10,5,.5) 60%,rgba(184,147,90,.15) 100%); }
-.tc-hero-content { position:relative; z-index:3; max-width:820px; padding:0 28px; animation:tcFadeUp 1s ease both; }
-@keyframes tcFadeUp { from{opacity:0;transform:translateY(40px)} to{opacity:1;transform:translateY(0)} }
-.tc-eyebrow { font-size:.75rem; font-weight:600; letter-spacing:.32em; text-transform:uppercase; color:#b8935a; margin-bottom:18px; }
-.tc-hero-title { font-family:'Playfair Display',serif; font-size:clamp(2.8rem,6.5vw,5.2rem); font-weight:700; color:#f5f0e8; line-height:1.1; margin-bottom:22px; text-shadow:0 2px 30px rgba(0,0,0,.45); }
-.tc-hero-title em { font-style:italic; color:#b8935a; }
-.tc-hero-sub { font-size:1rem; color:rgba(245,240,232,.75); letter-spacing:.06em; margin-bottom:38px; }
-.tc-hero-stats { display:flex; justify-content:center; gap:48px; margin-bottom:40px; }
-.tc-stat { text-align:center; }
-.tc-stat-num { font-family:'Playfair Display',serif; font-size:2rem; font-weight:700; color:#b8935a; display:block; }
-.tc-stat-lbl { font-size:.72rem; letter-spacing:.14em; text-transform:uppercase; color:rgba(245,240,232,.6); }
-.tc-hero-cta { display:inline-block; font-size:.82rem; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:#0a0806; background:#b8935a; padding:16px 48px; text-decoration:none; transition:all .25s; }
-.tc-hero-cta:hover { background:#f5f0e8; transform:translateY(-2px); color:#0a0806; }
+
 
 /* ── UTIL ── */
 .tc-section {
@@ -140,24 +117,7 @@
 .tc-trust-desc { font-size:.82rem; color:rgba(245,240,232,.55); line-height:1.6; max-width:160px; }
 .tc-trust-icon { font-size:1.5rem; margin-bottom:12px; display:block; }
 
-/* ── HERO SLIDESHOW ── */
-.tc-slide {
-  position:absolute; inset:0;
-  background-size:cover; background-position:center;
-  opacity:0; transition:opacity 1.4s ease;
-  z-index:0;
-}
-.tc-slide-active { opacity:1; z-index:1; }
-.tc-slide-dots {
-  position:absolute; bottom:28px; left:50%; transform:translateX(-50%);
-  display:flex; gap:10px; z-index:4;
-}
-.tc-dot {
-  width:8px; height:8px; border-radius:50%;
-  background:rgba(245,240,232,0.35); cursor:pointer;
-  transition:background .3s, transform .3s;
-}
-.tc-dot-active { background:#b8935a; transform:scale(1.3); }
+
 
 @media(max-width:768px) {
   .tc-dest-grid { grid-template-columns:1fr 1fr; }
@@ -179,34 +139,20 @@
 <div class="tyt-cruises">
 
 <!-- HERO with brochure images slideshow -->
-<section class="tc-hero" id="tc-hero-root">
-  <!-- Slideshow backgrounds -->
-  <div class="tc-slide tc-slide-active" style="background-image:url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1800&q=80')"></div>
-  <div class="tc-slide" style="background-image:url('https://images.unsplash.com/photo-1512100356356-de1b84283e18?auto=format&fit=crop&w=1800&q=80')"></div>
-  <div class="tc-slide" style="background-image:url('https://images.unsplash.com/photo-1500375592092-40eb2168fd21?auto=format&fit=crop&w=1800&q=80')"></div>
-  <div class="tc-slide" style="background-image:url('https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=1800&q=80')"></div>
-  <!-- Dark gradient overlay -->
-  <div class="tc-hero-overlay"></div>
-  <div class="tc-hero-content">
-    <p class="tc-eyebrow">Cordelia Cruises &middot; India's Premium Cruise Line</p>
-    <h1 class="tc-hero-title">Destination of<br><em>Your Dreams</em></h1>
-    <p class="tc-hero-sub">Mumbai &bull; Goa &bull; Kochi &bull; Lakshadweep &bull; Chennai &bull; Sri Lanka</p>
-    <div class="tc-hero-stats">
-      <div class="tc-stat"><span class="tc-stat-num">1910</span><span class="tc-stat-lbl">Guests</span></div>
-      <div class="tc-stat"><span class="tc-stat-num">796</span><span class="tc-stat-lbl">Cabins</span></div>
-      <div class="tc-stat"><span class="tc-stat-num">11</span><span class="tc-stat-lbl">Decks</span></div>
-      <div class="tc-stat"><span class="tc-stat-num">692ft</span><span class="tc-stat-lbl">Length</span></div>
-    </div>
-    <a href="#tc-booking" class="tc-hero-cta">Enquire Now</a>
-  </div>
-  <!-- Slide dots -->
-  <div class="tc-slide-dots">
-    <span class="tc-dot tc-dot-active" onclick="tcGoSlide(0)"></span>
-    <span class="tc-dot" onclick="tcGoSlide(1)"></span>
-    <span class="tc-dot" onclick="tcGoSlide(2)"></span>
-    <span class="tc-dot" onclick="tcGoSlide(3)"></span>
-  </div>
-</section>
+<!-- HERO with brochure images slideshow -->
+<x-hero-carousel 
+  :slides="[
+    'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1800&q=80',
+    'https://images.unsplash.com/photo-1512100356356-de1b84283e18?auto=format&fit=crop&w=1800&q=80',
+    'https://images.unsplash.com/photo-1500375592092-40eb2168fd21?auto=format&fit=crop&w=1800&q=80',
+    'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=1800&q=80'
+  ]"
+  eyebrow="Cordelia Cruises · India's Premium Cruise Line"
+  title="Destination of<br><em>Your Dreams</em>"
+  subtitle="Mumbai &bull; Goa &bull; Kochi &bull; Lakshadweep &bull; Chennai &bull; Sri Lanka"
+  ctaText="Enquire Now"
+  ctaLink="#tc-booking"
+/>
 
 <!-- SHIP STATS BAND -->
 <div class="tc-ship-band">
@@ -539,17 +485,6 @@ function tcSubmit() {
   else alert('Please fill in your name, phone and email to continue.');
 }
 
-// Slideshow
-var tcSlideIdx = 0;
-var tcSlides = document.querySelectorAll('.tc-slide');
-var tcDots = document.querySelectorAll('.tc-dot');
-function tcGoSlide(n) {
-  tcSlides[tcSlideIdx].classList.remove('tc-slide-active');
-  tcDots[tcSlideIdx].classList.remove('tc-dot-active');
-  tcSlideIdx = n % tcSlides.length;
-  tcSlides[tcSlideIdx].classList.add('tc-slide-active');
-  tcDots[tcSlideIdx].classList.add('tc-dot-active');
-}
-setInterval(function(){ tcGoSlide(tcSlideIdx + 1); }, 5000);
+
 </script>
 @endpush

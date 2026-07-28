@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.frontend')
 
 @push('styles')
 <style>
@@ -24,89 +24,7 @@ body {
   overflow-x: hidden;
 }
 
-/* ── HERO ── */
-.ta-hero {
-  position: relative;
-  width: 100%;
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  overflow: hidden;
-}
 
-.ta-slide {
-  position: absolute; inset: 0;
-  background-size: cover; background-position: center;
-  opacity: 0; transition: opacity 1.4s ease; z-index: 0;
-}
-.ta-slide-active { opacity: 1; z-index: 1; }
-
-.ta-hero-overlay {
-  position: absolute; inset: 0; z-index: 2;
-  background: linear-gradient(
-    to bottom,
-    rgba(5,3,2,0.6) 0%,
-    rgba(5,3,2,0.45) 40%,
-    rgba(5,3,2,0.75) 80%,
-    rgba(5,3,2,0.9) 100%
-  );
-}
-
-.ta-hero-content {
-  position: relative; z-index: 3;
-  max-width: 860px; padding: 0 28px;
-  animation: taFadeUp 1s ease both;
-}
-
-@keyframes taFadeUp {
-  from { opacity: 0; transform: translateY(40px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.ta-eyebrow {
-  font-size: .75rem; font-weight: 600;
-  letter-spacing: .32em; text-transform: uppercase;
-  color: var(--gold); margin-bottom: 18px;
-}
-
-.ta-hero-title {
-  font-family: 'Playfair Display', serif;
-  font-size: clamp(2.8rem, 6.5vw, 5rem);
-  font-weight: 700; color: var(--cream);
-  line-height: 1.1; margin-bottom: 22px;
-  text-shadow: 0 2px 30px rgba(0,0,0,.45);
-}
-.ta-hero-title em { font-style: italic; color: var(--gold); }
-
-.ta-hero-sub {
-  font-size: 1rem;
-  color: rgba(245,240,232,.75);
-  letter-spacing: .06em; margin-bottom: 38px;
-  line-height: 1.8;
-}
-
-.ta-hero-cta {
-  display: inline-block;
-  font-size: .82rem; font-weight: 600;
-  letter-spacing: .18em; text-transform: uppercase;
-  color: #0a0806; background: var(--gold);
-  padding: 16px 48px; text-decoration: none;
-  transition: all .25s;
-}
-.ta-hero-cta:hover { background: var(--cream); transform: translateY(-2px); }
-
-.ta-slide-dots {
-  position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%);
-  display: flex; gap: 10px; z-index: 4;
-}
-.ta-dot {
-  width: 8px; height: 8px; border-radius: 50%;
-  background: rgba(245,240,232,0.35); cursor: pointer;
-  transition: background .3s, transform .3s;
-}
-.ta-dot-active { background: var(--gold); transform: scale(1.3); }
 
 /* ── STATS BAND ── */
 .ta-stats-band {
@@ -425,23 +343,18 @@ body {
 <!-- ══════════════════════════════════
      HERO
 ══════════════════════════════════ -->
-<section class="ta-hero" id="ta-hero-root">
-  <div class="ta-slide ta-slide-active" style="background-image:url('https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=1800&q=80')"></div>
-  <div class="ta-slide" style="background-image:url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1800&q=80')"></div>
-  <div class="ta-slide" style="background-image:url('https://images.unsplash.com/photo-1500375592092-40eb2168fd21?auto=format&fit=crop&w=1800&q=80')"></div>
-  <div class="ta-hero-overlay"></div>
-  <div class="ta-hero-content">
-    <p class="ta-eyebrow">About Take Your Trip &middot; Our Story</p>
-    <h1 class="ta-hero-title">We Craft Journeys,<br>Not Just <em>Itineraries</em></h1>
-    <p class="ta-hero-sub">Born from a passion for travel, built on trust.<br>Take Your Trip is your personal gateway to the world's finest hotels and cruises.</p>
-    <a href="{{ url('/contact') }}" class="ta-hero-cta">Get In Touch</a>
-  </div>
-  <div class="ta-slide-dots">
-    <span class="ta-dot ta-dot-active" onclick="taGoSlide(0)"></span>
-    <span class="ta-dot" onclick="taGoSlide(1)"></span>
-    <span class="ta-dot" onclick="taGoSlide(2)"></span>
-  </div>
-</section>
+<x-hero-carousel 
+  :slides="[
+    'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=1800&q=80',
+    'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1800&q=80',
+    'https://images.unsplash.com/photo-1500375592092-40eb2168fd21?auto=format&fit=crop&w=1800&q=80'
+  ]"
+  eyebrow="About Take Your Trip &middot; Our Story"
+  title="We Craft Journeys,<br>Not Just <em>Itineraries</em>"
+  subtitle="Born from a passion for travel, built on trust.<br>Take Your Trip is your personal gateway to the world's finest hotels and cruises."
+  ctaText="Get In Touch"
+  ctaLink="{{ url('/contact') }}"
+/>
 
 <!-- ══════════════════════════════════
      STATS BAND
@@ -704,18 +617,3 @@ body {
 @endsection
 
 @push('scripts')
-<script>
-// Slideshow
-var taSlideIdx = 0;
-var taSlides = document.querySelectorAll('.ta-slide');
-var taDots = document.querySelectorAll('.ta-dot');
-function taGoSlide(n) {
-  taSlides[taSlideIdx].classList.remove('ta-slide-active');
-  taDots[taSlideIdx].classList.remove('ta-dot-active');
-  taSlideIdx = n % taSlides.length;
-  taSlides[taSlideIdx].classList.add('ta-slide-active');
-  taDots[taSlideIdx].classList.add('ta-dot-active');
-}
-setInterval(function(){ taGoSlide(taSlideIdx + 1); }, 5000);
-</script>
-@endpush

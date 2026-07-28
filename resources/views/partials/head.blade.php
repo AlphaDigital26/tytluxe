@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <title>TYT Luxe</title>
+<link rel="icon" type="image/png" href="{{ asset('assets/images/favicon.png') }}">
 
 {{-- Google Fonts: Required by the theme (Outfit for body, Playfair Display for headings) --}}
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -20,7 +21,7 @@
 <link rel="stylesheet" href="{{ asset('assets/css/style.css') }}">
 <link rel="stylesheet" href="{{ asset('assets/css/responsive.css') }}">
 
-{{-- Vite (app.js only — provides axios; app.css is intentionally excluded to avoid Tailwind reset conflicts) --}}
 @vite(['resources/js/app.js'])
 
+@stack('styles')
 </head>
