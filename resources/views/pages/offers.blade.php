@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.frontend')
 
 @push('styles')
 <style>
@@ -21,50 +21,7 @@
 
   body { font-family: 'Poppins', sans-serif; background: var(--black); color: var(--white); }
 
-  /* HERO */
-  .hero {
-    position: relative; overflow: hidden;
-    height: 520px; text-align: center;
-    border-bottom: 1px solid var(--border);
-    display: flex; align-items: center; justify-content: center;
-  }
-  .hero-slides { position: absolute; inset: 0; z-index: 0; }
-  .hero-slide {
-    position: absolute; inset: 0;
-    background-size: cover; background-position: center;
-    opacity: 0; transition: opacity 1.2s ease;
-  }
-  .hero-slide.active { opacity: 1; }
-  .hero-slide::after {
-    content: ''; position: absolute; inset: 0;
-    background: linear-gradient(to bottom, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.55) 50%, rgba(0,0,0,0.75) 100%);
-  }
-  .hero-content { position: relative; z-index: 2; padding: 0 2rem; }
-  .hero-tag { font-size: 10px; font-weight: 600; letter-spacing: .25em; text-transform: uppercase; color: var(--gold); display: block; margin-bottom: 1rem; }
-  .hero h1 { font-family: 'Playfair Display', serif; font-size: clamp(2.2rem,4.5vw,3.5rem); font-weight: 400; color: var(--white); line-height: 1.2; margin-bottom: .75rem; }
-  .hero h1 em { font-style: italic; color: var(--gold-light); }
-  .hero p { font-size: 14px; color: rgba(255,255,255,0.72); font-weight: 300; }
-  .gold-line { width: 50px; height: 2px; background: var(--gold); margin: 1.5rem auto 0; opacity: .7; }
-  .hero-dots { position: absolute; bottom: 1.25rem; left: 50%; transform: translateX(-50%); z-index: 3; display: flex; gap: 7px; }
-  .hero-dot {
-    width: 7px; height: 7px; border-radius: 50%;
-    background: rgba(255,255,255,0.35); border: 1px solid rgba(255,255,255,0.5);
-    cursor: pointer; transition: all .3s;
-  }
-  .hero-dot.active { background: var(--gold); border-color: var(--gold); width: 22px; border-radius: 3px; }
 
-  /* hero side arrows */
-  .hero-arrow {
-    position: absolute; top: 50%; transform: translateY(-50%);
-    z-index: 3; width: 40px; height: 40px; border-radius: 50%;
-    border: 1px solid rgba(255,255,255,0.3); background: rgba(0,0,0,0.35);
-    color: rgba(255,255,255,0.8); font-size: 18px; cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    transition: all .2s; backdrop-filter: blur(4px);
-  }
-  .hero-arrow:hover { border-color: var(--gold); color: var(--gold); background: rgba(0,0,0,0.6); }
-  .hero-arrow.prev { left: 1.5rem; }
-  .hero-arrow.next { right: 1.5rem; }
 
   /* ── FILTER TABS ── */
   .filter-bar { display: flex; align-items: center; justify-content: center; gap: .6rem; padding: 2.5rem 2rem 0; flex-wrap: wrap; }
@@ -218,39 +175,21 @@
 @section('content')
 
 <!-- HERO -->
-<section class="hero">
-
-  <!-- Background image slides -->
-  <div class="hero-slides">
-    <div class="hero-slide active" style="background-image:url('https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=1400&q=85')"></div>
-    <div class="hero-slide" style="background-image:url('https://images.unsplash.com/photo-1548574505-5e239809ee19?w=1400&q=85')"></div>
-    <div class="hero-slide" style="background-image:url('https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=1400&q=85')"></div>
-    <div class="hero-slide" style="background-image:url('https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=1400&q=85')"></div>
-    <div class="hero-slide" style="background-image:url('https://images.unsplash.com/photo-1590490360182-c33d57733427?w=1400&q=85')"></div>
-  </div>
-
-  <!-- Arrow controls -->
-  <button class="hero-arrow prev" onclick="heroSlide(-1)">&#8592;</button>
-  <button class="hero-arrow next" onclick="heroSlide(1)">&#8594;</button>
-
-  <!-- Text content -->
-  <div class="hero-content">
-    <span class="hero-tag">Limited Time Deals</span>
-    <h1>Exclusive Deals. <em>Unforgettable</em> Experiences.</h1>
-    <p>Handpicked offers on hotels, cruises &amp; flights — updated regularly</p>
-    <div class="gold-line"></div>
-  </div>
-
-  <!-- Dot indicators -->
-  <div class="hero-dots">
-    <div class="hero-dot active" onclick="goToHeroSlide(0)"></div>
-    <div class="hero-dot" onclick="goToHeroSlide(1)"></div>
-    <div class="hero-dot" onclick="goToHeroSlide(2)"></div>
-    <div class="hero-dot" onclick="goToHeroSlide(3)"></div>
-    <div class="hero-dot" onclick="goToHeroSlide(4)"></div>
-  </div>
-
-</section>
+<!-- HERO -->
+<x-hero-carousel 
+  :slides="[
+    'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=1400&q=85',
+    'https://images.unsplash.com/photo-1548574505-5e239809ee19?w=1400&q=85',
+    'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=1400&q=85',
+    'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=1400&q=85',
+    'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=1400&q=85'
+  ]"
+  eyebrow="Limited Time Deals"
+  title="Exclusive Deals. <em>Unforgettable</em> Experiences."
+  subtitle="Handpicked offers on hotels, cruises &amp; flights — updated regularly"
+  ctaText=""
+  ctaLink=""
+/>
 
 <!-- FILTER -->
 <div class="filter-bar">
@@ -729,19 +668,7 @@
 
 @push('scripts')
 <script>
-  // Hero image slider
-  let heroIdx = 0;
-  const heroSlides = document.querySelectorAll('.hero-slide');
-  const heroDots   = document.querySelectorAll('.hero-dot');
-  function goToHeroSlide(n) {
-    heroSlides[heroIdx].classList.remove('active');
-    heroDots[heroIdx].classList.remove('active');
-    heroIdx = (n + heroSlides.length) % heroSlides.length;
-    heroSlides[heroIdx].classList.add('active');
-    heroDots[heroIdx].classList.add('active');
-  }
-  function heroSlide(dir) { goToHeroSlide(heroIdx + dir); }
-  setInterval(() => heroSlide(1), 4500);
+
 
   function slide(id, dir) {
     const t = document.getElementById(id);

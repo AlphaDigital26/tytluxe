@@ -10,7 +10,7 @@
 
                 <div class="footer-logo">
 
-                    <img src="{{ asset('assets/images/logo-white.png') }}"
+                    <img src="{{ asset('assets/images/tyt-logo.png') }}"
                          alt="TYT Luxe">
 
                 </div>

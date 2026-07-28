@@ -1,78 +1,10 @@
-@extends('layouts.app')
+@extends('layouts.frontend')
 
 @push('styles')
 <style>
 *{box-sizing:border-box;}
 .tyt-flights{font-family:'Poppins',sans-serif;width:100%;background:#0a0a0a}
 
-/* HERO SLIDER */
-.tyt-slider{position:relative;width:100%;min-height:520px;overflow:hidden}
-.tyt-slide{
-  position:absolute;inset:0;
-  background-size:cover;background-position:center;
-  opacity:0;transition:opacity 1s ease;
-  display:flex;align-items:center;justify-content:center;text-align:center;
-}
-.tyt-slide::after{
-  content:'';position:absolute;inset:0;
-  background:linear-gradient(rgba(0,0,0,0.45),rgba(0,0,0,0.68));
-}
-.tyt-slide.active{opacity:1;position:relative;min-height:520px}
-.tyt-flights-hero-inner{
-  position:relative;z-index:2;
-  max-width:700px;padding:120px 48px 100px;
-}
-.tyt-hero-tag{
-  display:inline-block;font-size:10px;font-weight:600;
-  letter-spacing:0.25em;text-transform:uppercase;
-  color:#C9A84C;margin-bottom:1.2rem;
-}
-.tyt-slider h1{
-  font-family:'Playfair Display',serif;
-  font-size:clamp(2.4rem,5vw,4rem);
-  font-weight:800;color:#fff;
-  line-height:1.15;margin-bottom:1rem;
-}
-.tyt-slider h1 em{font-style:italic;color:#C9A84C}
-.tyt-slider p.tyt-hero-sub{
-  font-size:15px;color:rgba(255,255,255,0.65);
-  font-weight:300;margin-bottom:2rem;line-height:1.7;
-}
-.tyt-hero-gold-line{width:50px;height:2px;background:#C9A84C;margin:0 auto 2rem;opacity:0.6}
-.tyt-hero-cta{
-  display:inline-flex;align-items:center;gap:10px;
-  background:#C9A84C;color:#0a0a0a;
-  padding:14px 32px;
-  font-family:'Poppins',sans-serif;
-  font-size:11px;font-weight:700;
-  letter-spacing:2.5px;text-transform:uppercase;
-  text-decoration:none;transition:background .2s;
-}
-.tyt-hero-cta:hover{background:#b8935a;color:#0a0a0a;}
-/* ARROWS */
-.tyt-arrow{
-  position:absolute;top:50%;transform:translateY(-50%);
-  z-index:10;background:rgba(0,0,0,0.45);
-  border:1px solid rgba(201,168,76,0.4);
-  color:#C9A84C;font-size:20px;
-  width:48px;height:48px;
-  display:flex;align-items:center;justify-content:center;
-  cursor:pointer;transition:background .2s,border-color .2s;user-select:none;
-}
-.tyt-arrow:hover{background:rgba(201,168,76,0.2);border-color:#C9A84C}
-.tyt-arrow-left{left:24px}
-.tyt-arrow-right{right:24px}
-/* DOTS */
-.tyt-dots{
-  position:absolute;bottom:28px;left:50%;transform:translateX(-50%);
-  z-index:10;display:flex;gap:8px;
-}
-.tyt-dot{
-  width:8px;height:8px;border-radius:50%;
-  background:rgba(255,255,255,0.35);border:1px solid rgba(201,168,76,0.4);
-  cursor:pointer;transition:background .2s,transform .2s;
-}
-.tyt-dot.active{background:#C9A84C;transform:scale(1.25);border-color:#C9A84C}
 
 /* SECTIONS */
 .tyt-dark{background:#111111;padding:64px 48px}
@@ -165,61 +97,19 @@ input[type="date"].tyt-finput::-webkit-calendar-picker-indicator{filter:invert(0
 <div class="tyt-flights">
 
   <!-- HERO SLIDER -->
-  <div class="tyt-slider" id="tytSlider">
-
-    <div class="tyt-slide active" style="background-image:url('https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=1600&q=80')">
-      <div class="tyt-flights-hero-inner">
-        <p class="tyt-hero-tag">Flight Experiences</p>
-        <h1>Fly the <em>Right Way</em></h1>
-        <div class="tyt-hero-gold-line"></div>
-        <p class="tyt-hero-sub">Domestic &amp; international flights, business class and beyond —<br>curated by real travel experts, not bots.</p>
-        <a href="#tyt-book-flight" class="tyt-hero-cta">Book a Flight →</a>
-      </div>
-    </div>
-
-    <div class="tyt-slide" style="background-image:url('https://images.unsplash.com/photo-1540339832862-474599807836?w=1600&q=80')">
-      <div class="tyt-flights-hero-inner">
-        <p class="tyt-hero-tag">Business &amp; First Class</p>
-        <h1>Travel in <em>Pure Luxury</em></h1>
-        <div class="tyt-hero-gold-line"></div>
-        <p class="tyt-hero-sub">Lie-flat beds, premium lounges, and concierge service —<br>we book the best seats on every flight.</p>
-        <a href="#tyt-book-flight" class="tyt-hero-cta">Book a Flight →</a>
-      </div>
-    </div>
-
-    <div class="tyt-slide" style="background-image:url('https://images.unsplash.com/photo-1503221043305-f7498f8b7888?w=1600&q=80')">
-      <div class="tyt-flights-hero-inner">
-        <p class="tyt-hero-tag">International Flights</p>
-        <h1>The World is <em>Waiting</em></h1>
-        <div class="tyt-hero-gold-line"></div>
-        <p class="tyt-hero-sub">Global destinations, seamless connections —<br>one call and we handle everything.</p>
-        <a href="#tyt-book-flight" class="tyt-hero-cta">Book a Flight →</a>
-      </div>
-    </div>
-
-    <div class="tyt-slide" style="background-image:url('https://images.unsplash.com/photo-1464037866556-6812c9d1c72e?w=1600&q=80')">
-      <div class="tyt-flights-hero-inner">
-        <p class="tyt-hero-tag">Charter Flights</p>
-        <h1>Your Sky, <em>Your Rules</em></h1>
-        <div class="tyt-hero-gold-line"></div>
-        <p class="tyt-hero-sub">Private and group charters for those who prefer<br>travel on their own terms.</p>
-        <a href="#tyt-book-flight" class="tyt-hero-cta">Book a Flight →</a>
-      </div>
-    </div>
-
-    <!-- Arrows -->
-    <div class="tyt-arrow tyt-arrow-left" onclick="tytSlide(-1)">&#8592;</div>
-    <div class="tyt-arrow tyt-arrow-right" onclick="tytSlide(1)">&#8594;</div>
-
-    <!-- Dots -->
-    <div class="tyt-dots" id="tytDots">
-      <div class="tyt-dot active" onclick="tytGoTo(0)"></div>
-      <div class="tyt-dot" onclick="tytGoTo(1)"></div>
-      <div class="tyt-dot" onclick="tytGoTo(2)"></div>
-      <div class="tyt-dot" onclick="tytGoTo(3)"></div>
-    </div>
-
-  </div>
+  <x-hero-carousel 
+    :slides="[
+      'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=1600&q=80',
+      'https://images.unsplash.com/photo-1540339832862-474599807836?w=1600&q=80',
+      'https://images.unsplash.com/photo-1503221043305-f7498f8b7888?w=1600&q=80',
+      'https://images.unsplash.com/photo-1464037866556-6812c9d1c72e?w=1600&q=80'
+    ]"
+    eyebrow="Flight Experiences"
+    title="Fly the <em>Right Way</em>"
+    subtitle="Domestic &amp; international flights, business class and beyond —<br>curated by real travel experts, not bots."
+    ctaText="Book a Flight →"
+    ctaLink="#tyt-book-flight"
+  />
 
   <!-- FLIGHT CATEGORIES -->
   <div class="tyt-dark">
@@ -370,21 +260,6 @@ input[type="date"].tyt-finput::-webkit-calendar-picker-indicator{filter:invert(0
 
 @push('scripts')
 <script>
-// SLIDER
-var tytCurrent=0;
-var tytSlides=document.querySelectorAll('.tyt-slide');
-var tytDotEls=document.querySelectorAll('.tyt-dot');
-var tytTimer;
-function tytGoTo(n){
-  tytSlides[tytCurrent].classList.remove('active');
-  tytDotEls[tytCurrent].classList.remove('active');
-  tytCurrent=(n+tytSlides.length)%tytSlides.length;
-  tytSlides[tytCurrent].classList.add('active');
-  tytDotEls[tytCurrent].classList.add('active');
-}
-function tytSlide(dir){clearInterval(tytTimer);tytGoTo(tytCurrent+dir);tytAutoPlay();}
-function tytAutoPlay(){tytTimer=setInterval(function(){tytGoTo(tytCurrent+1);},5000);}
-tytAutoPlay();
 
 function tytSetTrip(t,b){
   document.querySelectorAll('.tyt-trip-btn').forEach(function(x){x.classList.remove('active')});

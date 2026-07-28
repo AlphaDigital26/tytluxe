@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.frontend')
 
 @push('styles')
 <style>
@@ -21,45 +21,7 @@
 
   body { font-family: 'Poppins', sans-serif; background: var(--black); color: var(--white); }
 
-  /* HERO */
-  .hero {
-    position: relative; overflow: hidden;
-    height: 520px; display: flex; align-items: center;
-    justify-content: center; text-align: center;
-    border-bottom: 1px solid var(--border);
-  }
-  .hero-slides { position: absolute; inset: 0; z-index: 0; }
-  .hero-slide {
-    position: absolute; inset: 0;
-    background-size: cover; background-position: center;
-    opacity: 0; transition: opacity 1.2s ease;
-  }
-  .hero-slide.active { opacity: 1; }
-  .hero-slide::after {
-    content: ''; position: absolute; inset: 0;
-    background: linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.6) 50%, rgba(0,0,0,0.82) 100%);
-  }
-  .hero-content { position: relative; z-index: 2; padding: 0 2rem; }
-  .hero-tag { font-size: 10px; font-weight: 600; letter-spacing: .25em; text-transform: uppercase; color: var(--gold); display: block; margin-bottom: 1rem; }
-  .hero h1 { font-family: 'Playfair Display', serif; font-size: clamp(2.2rem,4.5vw,3.5rem); font-weight: 400; color: var(--white); line-height: 1.2; margin-bottom: .75rem; }
-  .hero h1 em { font-style: italic; color: var(--gold-light); }
-  .hero p { font-size: 14px; color: rgba(255,255,255,0.72); font-weight: 300; max-width: 520px; margin: 0 auto; }
-  .gold-line { width: 50px; height: 2px; background: var(--gold); margin: 1.5rem auto 0; opacity: .7; }
 
-  .hero-arrow {
-    position: absolute; top: 50%; transform: translateY(-50%);
-    z-index: 3; width: 40px; height: 40px; border-radius: 50%;
-    border: 1px solid rgba(255,255,255,0.3); background: rgba(0,0,0,0.35);
-    color: rgba(255,255,255,0.8); font-size: 18px; cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    transition: all .2s; backdrop-filter: blur(4px);
-  }
-  .hero-arrow:hover { border-color: var(--gold); color: var(--gold); }
-  .hero-arrow.prev { left: 1.5rem; }
-  .hero-arrow.next { right: 1.5rem; }
-  .hero-dots { position: absolute; bottom: 1.25rem; left: 50%; transform: translateX(-50%); z-index: 3; display: flex; gap: 7px; }
-  .hero-dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.35); border: 1px solid rgba(255,255,255,0.5); cursor: pointer; transition: all .3s; }
-  .hero-dot.active { background: var(--gold); border-color: var(--gold); width: 22px; border-radius: 3px; }
 
   /* SECTION HELPERS */
   .s-divider { display: flex; align-items: center; gap: 1rem; max-width: 1100px; margin: 0 auto; padding: 0 3rem; }
@@ -157,30 +119,20 @@
 @section('content')
 
 <!-- HERO -->
-<section class="hero">
-  <div class="hero-slides">
-    <div class="hero-slide active" style="background-image:url('https://meritashotels.com/wp-content/uploads/2023/06/Deluxe-Room.jpg')"></div>
-    <div class="hero-slide" style="background-image:url('https://meritashotels.com/wp-content/uploads/2023/03/DSC_9452-HDR-copy.jpg')"></div>
-    <div class="hero-slide" style="background-image:url('https://meritashotels.com/wp-content/uploads/2023/03/Standard-Room-with-Sit-Out3.png')"></div>
-    <div class="hero-slide" style="background-image:url('https://meritashotels.com/wp-content/uploads/2023/03/Suite-Bed-Room-%40-Picaddle.jpg')"></div>
-    <div class="hero-slide" style="background-image:url('https://meritashotels.com/wp-content/uploads/2023/03/DSC_9476-HDR-copy.jpg')"></div>
-  </div>
-  <button class="hero-arrow prev" onclick="heroSlide(-1)">&#8592;</button>
-  <button class="hero-arrow next" onclick="heroSlide(1)">&#8594;</button>
-  <div class="hero-content">
-    <span class="hero-tag">Curated Staycations</span>
-    <h1>Escape the Ordinary. <em>Stay Extraordinary.</em></h1>
-    <p>Handpicked resort stays near Mumbai &amp; Pune - perfect for weekends, honeymoons &amp; family getaways.</p>
-    <div class="gold-line"></div>
-  </div>
-  <div class="hero-dots">
-    <div class="hero-dot active" onclick="goToHeroSlide(0)"></div>
-    <div class="hero-dot" onclick="goToHeroSlide(1)"></div>
-    <div class="hero-dot" onclick="goToHeroSlide(2)"></div>
-    <div class="hero-dot" onclick="goToHeroSlide(3)"></div>
-    <div class="hero-dot" onclick="goToHeroSlide(4)"></div>
-  </div>
-</section>
+<x-hero-carousel 
+  :slides="[
+    'https://meritashotels.com/wp-content/uploads/2023/06/Deluxe-Room.jpg',
+    'https://meritashotels.com/wp-content/uploads/2023/03/DSC_9452-HDR-copy.jpg',
+    'https://meritashotels.com/wp-content/uploads/2023/03/Standard-Room-with-Sit-Out3.png',
+    'https://meritashotels.com/wp-content/uploads/2023/03/Suite-Bed-Room-%40-Picaddle.jpg',
+    'https://meritashotels.com/wp-content/uploads/2023/03/DSC_9476-HDR-copy.jpg'
+  ]"
+  eyebrow="Curated Staycations"
+  title="Escape the Ordinary. <em>Stay Extraordinary.</em>"
+  subtitle="Handpicked resort stays near Mumbai &amp; Pune - perfect for weekends, honeymoons &amp; family getaways."
+  ctaText=""
+  ctaLink=""
+/>
 
 
 <!-- RESORT 1: MERITAS PICADDLE -->
@@ -624,15 +576,6 @@
 
 @push('scripts')
 <script>
-  let heroIdx = 0;
-  const heroSlides = document.querySelectorAll('.hero-slide');
-  const heroDots   = document.querySelectorAll('.hero-dot');
-  function goToHeroSlide(n) {
-    heroSlides[heroIdx].classList.remove('active'); heroDots[heroIdx].classList.remove('active');
-    heroIdx = (n + heroSlides.length) % heroSlides.length;
-    heroSlides[heroIdx].classList.add('active'); heroDots[heroIdx].classList.add('active');
-  }
-  function heroSlide(dir) { goToHeroSlide(heroIdx + dir); }
-  setInterval(() => heroSlide(1), 4500);
+
 </script>
 @endpush

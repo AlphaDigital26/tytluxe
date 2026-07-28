@@ -12,11 +12,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Close mobile menu when clicking outside
     document.addEventListener('click', function(e) {
-        if (!e.target.closest('.header-inner')) {
+        if (!e.target.closest('.header-inner') && navMenu.classList.contains('active')) {
             navMenu.classList.remove('active');
             mobileToggle.classList.remove('active');
         }
     });
+
+    const menuClose = document.querySelector('.menu-close');
+    if (menuClose) {
+        menuClose.addEventListener('click', function(e) {
+            e.preventDefault();
+            navMenu.classList.remove('active');
+            mobileToggle.classList.remove('active');
+        });
+    }
 
     // Sticky header logic
     const header = document.querySelector('header');
@@ -29,4 +38,38 @@ document.addEventListener('DOMContentLoaded', function() {
             header.style.padding = '20px 0';
         }
     });
+
+    /* ===== SHARED HERO SLIDER ===== */
+    const sharedSlides = document.querySelectorAll('.shared-slide');
+    if (sharedSlides.length > 1) {
+        const sharedDots   = document.querySelectorAll('.shared-dot');
+        let sharedCurrent  = 0, sharedTimer;
+
+        function goSharedTo(n) {
+            sharedSlides[sharedCurrent].classList.remove('active');
+            if (sharedDots.length) sharedDots[sharedCurrent].classList.remove('active');
+            sharedCurrent = (n + sharedSlides.length) % sharedSlides.length;
+            sharedSlides[sharedCurrent].classList.add('active');
+            if (sharedDots.length) sharedDots[sharedCurrent].classList.add('active');
+        }
+
+        function startSharedAuto() { 
+            clearInterval(sharedTimer); 
+            sharedTimer = setInterval(() => goSharedTo(sharedCurrent + 1), 5000); 
+        }
+
+        if (sharedDots.length) {
+            sharedDots.forEach(dot => dot.addEventListener('click', () => { 
+                goSharedTo(+dot.dataset.slide); 
+                startSharedAuto(); 
+            }));
+        }
+
+        const prevBtn = document.querySelector('.shared-arrow-prev');
+        const nextBtn = document.querySelector('.shared-arrow-next');
+        if (prevBtn) prevBtn.addEventListener('click', () => { goSharedTo(sharedCurrent - 1); startSharedAuto(); });
+        if (nextBtn) nextBtn.addEventListener('click', () => { goSharedTo(sharedCurrent + 1); startSharedAuto(); });
+
+        startSharedAuto();
+    }
 });

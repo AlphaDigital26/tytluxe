@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.frontend')
 
 @push('styles')
 <style>
@@ -25,44 +25,6 @@
     min-height: 100vh;
   }
 
-  /* HERO BANNER */
-  .contact-hero {
-    background: var(--dark);
-    border-bottom: 1px solid var(--border);
-    padding: 4rem 3rem 3.5rem;
-    text-align: center;
-  }
-  .contact-hero-tag {
-    display: inline-block;
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.25em;
-    text-transform: uppercase;
-    color: var(--gold);
-    margin-bottom: 1rem;
-  }
-  .contact-hero h1 {
-    font-family: 'Playfair Display', serif;
-    font-size: clamp(2rem, 4vw, 3.2rem);
-    font-weight: 400;
-    color: var(--white);
-    line-height: 1.2;
-    margin-bottom: 0.75rem;
-  }
-  .contact-hero h1 em { font-style: italic; color: var(--gold-light); }
-  .contact-hero p {
-    font-size: 14px;
-    color: var(--white-40);
-    font-weight: 300;
-    letter-spacing: 0.02em;
-  }
-  .gold-line {
-    width: 50px;
-    height: 2px;
-    background: var(--gold);
-    margin: 1.5rem auto 0;
-    opacity: 0.5;
-  }
 
   /* MAIN GRID */
   .contact-main {
@@ -257,7 +219,6 @@
   }
 
   @media (max-width: 768px) {
-    .contact-hero { padding: 3rem 1.5rem; }
     .contact-main { grid-template-columns: 1fr; padding: 2rem 1rem 4rem; }
     .form-grid { grid-template-columns: 1fr; }
   }
@@ -267,12 +228,18 @@
 @section('content')
 
 <!-- HERO -->
-<section class="contact-hero">
-  <span class="contact-hero-tag">Get in Touch</span>
-  <h1>We're Here to Help You <em>Travel Better</em></h1>
-  <p>Reach out and our travel experts will get back to you within 2 hours</p>
-  <div class="gold-line"></div>
-</section>
+<x-hero-carousel 
+  :slides="[
+    'https://images.unsplash.com/photo-1423666639041-f56000c27a9a?w=1600&q=80',
+    'https://images.unsplash.com/photo-1516738901171-8eb4fc13bd20?w=1600&q=80',
+    'https://images.unsplash.com/photo-1510414842594-a61c69b5ae57?w=1600&q=80'
+  ]"
+  eyebrow="Get in Touch"
+  title="We're Here to Help You <em>Travel Better</em>"
+  subtitle="Reach out and our travel experts will get back to you within 2 hours"
+  ctaText=""
+  ctaLink=""
+/>
 
 <!-- MAIN -->
 <div class="contact-main">
