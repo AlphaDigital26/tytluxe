@@ -10,5 +10,7 @@ class CruiseItineraryDay extends Model
     /** @use HasFactory<\Database\Factories\CruiseItineraryDayFactory> */
     use HasFactory;
 
+    protected $guarded = [];
+
     public function cruise() { return $this->belongsTo(Cruise::class); }
 }

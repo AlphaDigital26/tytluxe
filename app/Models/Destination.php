@@ -10,6 +10,8 @@ class Destination extends Model
     /** @use HasFactory<\Database\Factories\DestinationFactory> */
     use HasFactory;
 
+    protected $guarded = [];
+
     public function hotels() { return $this->hasMany(Hotel::class); }
     public function cruises() { return $this->hasMany(Cruise::class); }
     public function staycations() { return $this->hasMany(Staycation::class); }

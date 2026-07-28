@@ -10,6 +10,8 @@ class Booking extends Model
     /** @use HasFactory<\Database\Factories\BookingFactory> */
     use HasFactory;
 
+    protected $guarded = [];
+
     public function user() { return $this->belongsTo(User::class); }
     public function agent() { return $this->belongsTo(User::class, 'agent_id'); }
     public function travelers() { return $this->hasMany(BookingTraveler::class); }

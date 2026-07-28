@@ -10,5 +10,7 @@ class CruiseImage extends Model
     /** @use HasFactory<\Database\Factories\CruiseImageFactory> */
     use HasFactory;
 
+    protected $guarded = [];
+
     public function cruise() { return $this->belongsTo(Cruise::class); }
 }

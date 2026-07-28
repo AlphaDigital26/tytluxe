@@ -10,5 +10,7 @@ class HotelImage extends Model
     /** @use HasFactory<\Database\Factories\HotelImageFactory> */
     use HasFactory;
 
+    protected $guarded = [];
+
     public function hotel() { return $this->belongsTo(Hotel::class); }
 }

@@ -210,11 +210,37 @@
 }
 .htl-modal-backdrop.open .htl-modal { transform: translateY(0) scale(1); }
 
-.htl-modal-img {
-  width: 100%; height: 300px; object-fit: cover;
-  border-radius: 16px 16px 0 0; display: block;
+.htl-modal-slider-wrap {
+  position: relative; width: 100%; height: 300px;
+  border-radius: 16px 16px 0 0; overflow: hidden;
 }
-
+.htl-modal-img {
+  width: 100%; height: 100%; object-fit: cover;
+  display: block; transition: opacity 0.4s ease;
+}
+.htl-modal-nav {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  background: rgba(13,13,13,0.5); backdrop-filter: blur(4px);
+  border: 1px solid rgba(255,255,255,0.15); color: #fff;
+  width: 34px; height: 34px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all var(--transition);
+  font-size: 14px; opacity: 0; pointer-events: none; z-index: 2;
+}
+.htl-modal-slider-wrap:hover .htl-modal-nav { opacity: 1; pointer-events: all; }
+.htl-modal-nav:hover { background: var(--gold); color: var(--dark); border-color: var(--gold); }
+.htl-modal-prev { left: 16px; }
+.htl-modal-next { right: 16px; }
+.htl-modal-dots {
+  position: absolute; bottom: 12px; left: 0; right: 0;
+  display: flex; justify-content: center; gap: 6px; z-index: 2;
+}
+.htl-modal-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: rgba(255,255,255,0.4); cursor: pointer;
+  transition: all 0.3s ease;
+}
+.htl-modal-dot.active { background: var(--gold); width: 16px; border-radius: 10px; }
 .htl-modal-close {
   position: absolute; top: 16px; right: 16px;
   width: 38px; height: 38px; border-radius: 50%;
@@ -250,6 +276,7 @@
 .htl-modal-details {
   display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-bottom: 28px;
 }
+.htl-modal-overview { grid-row: span 2; }
 .htl-modal-detail-item {
   background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);
   border-radius: 10px; padding: 14px 18px;
@@ -576,14 +603,15 @@
         data-name="{{ $hotel->title }}"
         data-badge="{{ ucfirst(str_replace('_', ' ', $hotel->category)) }}"
         data-location="{{ $hotel->destination->name }}"
-        data-img="placeholder.jpg"
+        data-images="{{ $hotel->images->count() ? json_encode($hotel->images->map(fn($img) => Storage::url($img->path))->toArray()) : json_encode(['placeholder.jpg']) }}"
         data-desc="{{ $hotel->description }}"
-        data-checkin="2:00 PM" data-checkout="11:00 AM"
+        data-checkin="{{ $hotel->check_in_time ?? '2:00 PM' }}" data-checkout="{{ $hotel->check_out_time ?? '11:00 AM' }}"
         data-features="{{ $hotel->amenities->pluck('name')->implode(',') }}"
-        data-rooms="Standard Room; Deluxe Room; Executive Room; Suite. Exact availability and occupancy can be confirmed on enquiry."
+        data-rooms="{{ $hotel->room_categories ?? 'Standard Room; Deluxe Room; Executive Room; Suite. Exact availability and occupancy can be confirmed on enquiry.' }}"
+        data-attractions="{{ $hotel->nearby_attractions ?? 'Nearby attractions can be confirmed on enquiry.' }}"
         data-wa="I'm interested in {{ $hotel->title }}, {{ $hotel->destination->name }}. Please share availability and rates.">
         <div class="htl-card-img">
-          <img src="placeholder.jpg" alt="{{ $hotel->title }}, {{ $hotel->destination->name }}" loading="lazy" />
+          <img src="{{ $hotel->images->first() ? Storage::url($hotel->images->first()->path) : 'placeholder.jpg' }}" alt="{{ $hotel->title }}, {{ $hotel->destination->name }}" loading="lazy" />
           <span class="htl-badge">{{ ucfirst(str_replace('_', ' ', $hotel->category)) }}</span>
           <span class="htl-loc-badge">&#128205; {{ $hotel->destination->name }}</span>
         </div>
@@ -596,7 +624,7 @@
             @endforeach
           </div>
           <div class="htl-card-footer">
-            <span class="htl-card-timing">Check-in 2:00 PM &middot; Check-out 11:00 AM</span>
+            <span class="htl-card-timing">Check-in {{ $hotel->check_in_time ?? '2:00 PM' }} &middot; Check-out {{ $hotel->check_out_time ?? '11:00 AM' }}</span>
             <button class="htl-book-btn">View Details <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg></button>
           </div>
         </div>
@@ -611,7 +639,12 @@
 <div class="htl-modal-backdrop" id="htlModalBackdrop" role="dialog" aria-modal="true" aria-labelledby="htlModalName">
   <div class="htl-modal" id="htlModal">
     <button class="htl-modal-close" id="htlModalClose" aria-label="Close">X</button>
-    <img class="htl-modal-img" id="htlModalImg" src="" alt="" />
+    <div class="htl-modal-slider-wrap">
+      <img class="htl-modal-img" id="htlModalImg" src="" alt="" />
+      <button class="htl-modal-nav htl-modal-prev" id="htlModalPrev" style="display:none;">❮</button>
+      <button class="htl-modal-nav htl-modal-next" id="htlModalNext" style="display:none;">❯</button>
+      <div class="htl-modal-dots" id="htlModalDots"></div>
+    </div>
     <div class="htl-modal-body">
       <div class="htl-modal-top">
         <span class="htl-modal-badge" id="htlModalBadge"></span>
@@ -620,7 +653,7 @@
       <h2 class="htl-modal-name" id="htlModalName"></h2>
       <p class="htl-modal-desc" id="htlModalDesc"></p>
       <div class="htl-modal-details">
-                <div class="htl-modal-detail-item">
+                <div class="htl-modal-detail-item htl-modal-overview">
           <label>Property Overview</label>
           <span id="htlModalLocationDetail"></span>
         </div>
@@ -787,6 +820,13 @@
 
 @push('scripts')
 <script>
+(function () {
+
+  /* ===== FILTER TABS ===== */
+  const tabs  = document.querySelectorAll('.htl-tab');
+  const cards = document.querySelectorAll('.htl-card');
+  const destinationSearch = document.getElementById('htlDestinationSearch');
+
   function applyHotelFilters(activeFilter) {
     const search = destinationSearch ? destinationSearch.value.trim().toLowerCase() : '';
     let delay = 0;
@@ -860,7 +900,7 @@
 
   function renderRoomCategories(value) {
     const raw = value || 'Room details available on enquiry.';
-    const parts = raw.split(';').map(item => item.trim()).filter(Boolean);
+    const parts = raw.split(/[;\n,]/).map(item => item.trim()).filter(Boolean);
     const noteParts = [];
     const categories = parts.filter(item => {
       if (/enquiry|availability|occupancy/i.test(item)) {
@@ -894,10 +934,63 @@
     }
   }
 
+  let currentImages = [];
+  let currentImageIndex = 0;
+
+  const modalImgWrap = document.querySelector('.htl-modal-slider-wrap');
+  const modalPrev = document.getElementById('htlModalPrev');
+  const modalNext = document.getElementById('htlModalNext');
+  const modalDots = document.getElementById('htlModalDots');
+
+  function updateSlider() {
+    modalImg.style.opacity = '0';
+    setTimeout(() => {
+      modalImg.src = currentImages[currentImageIndex];
+      modalImg.style.opacity = '1';
+    }, 200);
+
+    Array.from(modalDots.children).forEach((dot, idx) => {
+      dot.className = idx === currentImageIndex ? 'htl-modal-dot active' : 'htl-modal-dot';
+    });
+  }
+
+  modalPrev.addEventListener('click', () => {
+    currentImageIndex = (currentImageIndex - 1 + currentImages.length) % currentImages.length;
+    updateSlider();
+  });
+
+  modalNext.addEventListener('click', () => {
+    currentImageIndex = (currentImageIndex + 1) % currentImages.length;
+    updateSlider();
+  });
+
   function openModal(card) {
     const d = card.dataset;
-    modalImg.src    = d.img;
-    modalImg.alt    = d.name;
+    currentImages = JSON.parse(d.images || '["placeholder.jpg"]');
+    currentImageIndex = 0;
+
+    modalImg.src = currentImages[0];
+    modalImg.style.opacity = '1';
+    modalImg.alt = d.name;
+
+    modalDots.innerHTML = '';
+    if (currentImages.length > 1) {
+      modalPrev.style.display = 'flex';
+      modalNext.style.display = 'flex';
+      currentImages.forEach((_, idx) => {
+        const dot = document.createElement('div');
+        dot.className = idx === 0 ? 'htl-modal-dot active' : 'htl-modal-dot';
+        dot.addEventListener('click', () => {
+          currentImageIndex = idx;
+          updateSlider();
+        });
+        modalDots.appendChild(dot);
+      });
+    } else {
+      modalPrev.style.display = 'none';
+      modalNext.style.display = 'none';
+    }
+
     modalBadge.textContent = d.badge;
     modalLoc.textContent   = d.location;
     modalName.textContent  = d.name;
@@ -906,7 +999,7 @@
     modalCi.textContent    = d.checkin;
     modalCo.textContent    = d.checkout;
     renderRoomCategories(d.rooms);
-    modalBestFor.textContent = d.location ? `${d.location} sightseeing, local markets, scenic viewpoints and key leisure experiences near the property.` : 'Nearby attractions can be confirmed on enquiry.';
+    modalBestFor.textContent = d.attractions;
 
     modalFeat.innerHTML = '';
     d.features.split(',').forEach(f => {
@@ -943,7 +1036,20 @@
   }
 
   cards.forEach(card => {
-    card.addEventListener('click', () => openModal(card));
+    const btn = card.querySelector('.htl-book-btn');
+    if (btn) {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        openModal(card);
+      });
+    }
+    card.addEventListener('click', (e) => {
+      // Don't trigger again if the click was on the button (handled above)
+      if (!e.target.closest('.htl-book-btn')) {
+        openModal(card);
+      }
+    });
   });
 
   modalClose.addEventListener('click', closeModal);

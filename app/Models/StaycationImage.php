@@ -10,5 +10,7 @@ class StaycationImage extends Model
     /** @use HasFactory<\Database\Factories\StaycationImageFactory> */
     use HasFactory;
 
+    protected $guarded = [];
+
     public function staycation() { return $this->belongsTo(Staycation::class); }
 }
