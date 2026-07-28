@@ -10,5 +10,7 @@ class PackageImage extends Model
     /** @use HasFactory<\Database\Factories\PackageImageFactory> */
     use HasFactory;
 
+    protected $guarded = [];
+
     public function packageModel() { return $this->belongsTo(Package::class, 'package_id'); }
 }

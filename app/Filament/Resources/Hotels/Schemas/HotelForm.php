@@ -5,6 +5,8 @@ namespace App\Filament\Resources\Hotels\Schemas;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Schema;
 
@@ -57,6 +59,37 @@ class HotelForm
                     ->required(),
                 Toggle::make('is_featured')
                     ->required(),
+                TextInput::make('check_in_time')
+                    ->default('2:00 PM')
+                    ->required(),
+                TextInput::make('check_out_time')
+                    ->default('11:00 AM')
+                    ->required(),
+                Textarea::make('nearby_attractions')
+                    ->columnSpanFull()
+                    ->nullable(),
+                Textarea::make('room_categories')
+                    ->columnSpanFull()
+                    ->nullable(),
+                Select::make('amenities')
+                    ->relationship('amenities', 'name')
+                    ->multiple()
+                    ->preload()
+                    ->columnSpanFull(),
+                Repeater::make('images')
+                    ->relationship('images')
+                    ->schema([
+                        FileUpload::make('path')
+                            ->image()
+                            ->directory('hotels')
+                            ->required(),
+                        TextInput::make('alt_text')
+                            ->label('Alt Text')
+                            ->nullable(),
+                    ])
+                    ->columnSpanFull()
+                    ->defaultItems(0)
+                    ->reorderableWithDragAndDrop(false),
             ]);
     }
 }

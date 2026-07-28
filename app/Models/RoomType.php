@@ -10,5 +10,7 @@ class RoomType extends Model
     /** @use HasFactory<\Database\Factories\RoomTypeFactory> */
     use HasFactory;
 
+    protected $guarded = [];
+
     public function hotel() { return $this->belongsTo(Hotel::class); }
 }

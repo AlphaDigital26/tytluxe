@@ -10,6 +10,8 @@ class Hotel extends Model
     /** @use HasFactory<\Database\Factories\HotelFactory> */
     use HasFactory;
 
+    protected $guarded = [];
+
     public function destination() { return $this->belongsTo(Destination::class); }
     public function roomTypes() { return $this->hasMany(RoomType::class); }
     public function images() { return $this->hasMany(HotelImage::class); }
