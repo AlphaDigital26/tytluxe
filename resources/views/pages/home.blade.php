@@ -7,7 +7,7 @@
 ============================ -->
 
 <section class="hero"
-    style="background-image: url('{{ asset('assets/images/hero-bg.png') }}');">
+    style="background-image: url('{{ asset('assets/images/Carousel.jpeg') }}');">
 
     <div class="container">
 
@@ -97,7 +97,7 @@
             <a href="{{ url('/hotels') }}"
                 class="cat-card">
 
-                <img src="{{ asset('assets/images/hotel-cat.png') }}"
+                <img src="{{ asset('assets/images/29788-15-hotel_carousel_large.jpg') }}"
                     alt="Hotels">
 
                 <div class="cat-overlay">
@@ -117,7 +117,7 @@
             <a href="{{ url('/cruises') }}"
                 class="cat-card">
 
-                <img src="{{ asset('assets/images/cruise-cat.png') }}"
+                <img src="{{ asset('assets/images/cruise-ship-is-docked-night-with-word-cruise-side_916191-10755.jpg') }}"
                     alt="Cruises">
 
                 <div class="cat-overlay">
@@ -239,19 +239,19 @@
         </div>
         <div class="items-grid">
             <a href="{{ url('/hotels') }}" class="item-card">
-                <img src="{{ asset('assets/images/hotel-1.png') }}" alt="Beach Resorts">
+                <img src="{{ asset('assets/images/Hotel Collections 1.webp') }}" alt="Beach Resorts">
                 <div class="item-info"><h4>Beach Resorts</h4></div>
             </a>
             <a href="{{ url('/hotels') }}" class="item-card">
-                <img src="{{ asset('assets/images/hotel-2.png') }}" alt="City Luxury Hotels">
+                <img src="{{ asset('assets/images/Hotel Collections 2.jpg') }}" alt="City Luxury Hotels">
                 <div class="item-info"><h4>City Luxury Hotels</h4></div>
             </a>
             <a href="{{ url('/hotels') }}" class="item-card">
-                <img src="{{ asset('assets/images/hotel-3.png') }}" alt="Honeymoon Stays">
+                <img src="{{ asset('assets/images/Hotel Collections 3.jpg') }}" alt="Honeymoon Stays">
                 <div class="item-info"><h4>Honeymoon Stays</h4></div>
             </a>
             <a href="{{ url('/hotels') }}" class="item-card">
-                <img src="{{ asset('assets/images/hotel-1.png') }}" alt="Family Friendly">
+                <img src="{{ asset('assets/images/Hotel Collections 4.png') }}" alt="Family Friendly">
                 <div class="item-info"><h4>Family Friendly</h4></div>
             </a>
         </div>
@@ -270,15 +270,15 @@
         </div>
         <div class="items-grid cruise-grid">
             <a href="{{ url('/cruises') }}" class="item-card cruise-card">
-                <img src="{{ asset('assets/images/cruise-cat.png') }}" alt="Scenic Getaways">
+                <img src="{{ asset('assets/images/Cruise Experiences 1.webp') }}" alt="Scenic Getaways">
                 <div class="item-info"><h4>Scenic Getaways</h4></div>
             </a>
             <a href="{{ url('/cruises') }}" class="item-card cruise-card">
-                <img src="{{ asset('assets/images/cruise-cat.png') }}" alt="Luxury Cruises">
+                <img src="{{ asset('assets/images/Cruise Experiences 2.png') }}" alt="Luxury Cruises">
                 <div class="item-info"><h4>Luxury Cruises</h4></div>
             </a>
             <a href="{{ url('/cruises') }}" class="item-card cruise-card">
-                <img src="{{ asset('assets/images/cruise-cat.png') }}" alt="International Cruises">
+                <img src="{{ asset('assets/images/Cruise Experiences 3.webp') }}" alt="International Cruises">
                 <div class="item-info"><h4>International Cruises</h4></div>
             </a>
         </div>
@@ -326,7 +326,7 @@
 </section>
 
 <!-- CTA Banner -->
-<section class="cta-banner" style="background-image: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('{{ asset('assets/images/hero-bg.png') }}'); background-size: cover; background-position: center;">
+<section class="cta-banner" style="background-image: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('{{ asset('assets/images/Carousel.jpeg') }}'); background-size: cover; background-position: center;">
     <div class="container">
         <div class="cta-banner-inner">
             <div>

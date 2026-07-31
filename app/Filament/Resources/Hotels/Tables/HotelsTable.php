@@ -15,9 +15,10 @@ class HotelsTable
     {
         return $table
             ->columns([
-                TextColumn::make('destination_id')
-                    ->numeric()
-                    ->sortable(),
+                TextColumn::make('destination.name')
+                    ->label('Destination')
+                    ->sortable()
+                    ->searchable(),
                 TextColumn::make('title')
                     ->searchable(),
                 TextColumn::make('slug')

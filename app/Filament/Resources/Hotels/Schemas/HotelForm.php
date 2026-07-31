@@ -16,9 +16,15 @@ class HotelForm
     {
         return $schema
             ->components([
-                TextInput::make('destination_id')
+                Select::make('destination_id')
+                    ->relationship(
+                        'destination', 
+                        'name', 
+                        fn ($query) => $query->orderBy('name')
+                    )
                     ->required()
-                    ->numeric(),
+                    ->searchable()
+                    ->preload(),
                 TextInput::make('title')
                     ->required(),
                 TextInput::make('slug')
