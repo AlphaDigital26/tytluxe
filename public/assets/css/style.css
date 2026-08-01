@@ -1157,7 +1157,8 @@ main {
   text-align: center;
   overflow: hidden;
   width: 100%;
-  padding-top: 90px;
+  padding-top: 140px;
+  padding-bottom: 80px; /* added padding to shift content up and prevent overlap with dots */
 }
 
 .shared-slide {
@@ -1181,6 +1182,12 @@ main {
   position: relative; z-index: 3;
   max-width: 860px; padding: 0 28px;
   animation: sharedFadeUp 1s ease both;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  width: 100%;
 }
 
 @keyframes sharedFadeUp {
@@ -1192,20 +1199,22 @@ main {
   display: inline-block;
   font-size: 11px; font-weight: 600;
   letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold, #c9a84c);
-  border: 1px solid var(--gold, #c9a84c); padding: 10px 28px; border-radius: 100px; margin-bottom: 24px;
+  border: none; padding: 0; margin-bottom: 24px;
   line-height: 1.6;
 }
 .shared-hero-title {
   font-family: 'Playfair Display', serif;
-  font-size: clamp(2.8rem, 6.5vw, 5.5rem); font-weight: 700; color: #f5f0e8;
+  font-size: clamp(2.4rem, 5.5vw, 4.5rem); font-weight: 700; color: #f5f0e8;
   line-height: 1.1; margin-bottom: 22px; letter-spacing: -0.01em;
   text-shadow: 0 2px 30px rgba(0,0,0,.45);
+  text-align: center;
 }
 .shared-hero-title em { font-style: italic; color: var(--gold, #c9a84c); }
 .shared-hero-sub {
   font-size: 15px; font-weight: 300;
   color: rgba(245,240,232,.75); letter-spacing: 0.04em; margin-bottom: 36px;
   max-width: 500px; margin-left: auto; margin-right: auto; line-height: 1.8;
+  text-align: center;
 }
 
 .shared-hero-pills { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 25px; }
@@ -1222,7 +1231,7 @@ main {
   letter-spacing: .18em; text-transform: uppercase;
   color: #0a0806; background: var(--gold, #c9a84c);
   padding: 16px 48px; text-decoration: none;
-  transition: all .25s; border-radius: 4px;
+  transition: all .25s; border-radius: 0;
 }
 .shared-hero-cta:hover { background: #fff; transform: translateY(-2px); color: #000; }
 
@@ -1249,7 +1258,53 @@ main {
 .shared-arrow-next { right: 24px; }
 
 @media (max-width: 768px) {
-  .shared-hero-title { font-size: 36px; }
-  .shared-hero { min-height: 480px; height: 60vh; }
+  .shared-hero { min-height: 100vh; height: 100vh; padding-top: 0; padding-bottom: 80px; }
+  .shared-hero-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    justify-content: center;
+    width: 100%;
+  }
+  .shared-hero-label { 
+    border: none; 
+    padding: 0; 
+    font-size: 11px; 
+    letter-spacing: 0.15em; 
+    margin-bottom: 20px;
+    text-align: center;
+  }
+  .shared-hero-title { 
+    font-size: clamp(32px, 11vw, 46px); 
+    line-height: 1.1; 
+    margin-bottom: 24px;
+    text-align: center;
+  }
+  .shared-hero-sub {
+    font-size: 15px;
+    line-height: 1.6;
+    max-width: 95%;
+    margin: 0 auto 36px auto;
+    text-align: center;
+  }
+  .shared-hero-cta {
+    border-radius: 0;
+    font-size: 13px;
+    padding: 16px 40px;
+  }
   .shared-arrow { display: none; }
+  
+  .shared-slider-dots {
+    bottom: 40px;
+    gap: 10px;
+  }
+  .shared-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+  .shared-dot.active {
+    width: 8px;
+  }
 }

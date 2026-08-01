@@ -349,7 +349,7 @@ body {
     'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1800&q=80',
     'https://images.unsplash.com/photo-1500375592092-40eb2168fd21?auto=format&fit=crop&w=1800&q=80'
   ]"
-  eyebrow="About Take Your Trip &middot; Our Story"
+  eyebrow="About Take Your Trip · Our Story"
   title="We Craft Journeys,<br>Not Just <em>Itineraries</em>"
   subtitle="Born from a passion for travel, built on trust.<br>Take Your Trip is your personal gateway to the world's finest hotels and cruises."
   ctaText="Get In Touch"

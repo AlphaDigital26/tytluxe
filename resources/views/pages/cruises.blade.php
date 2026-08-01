@@ -11,7 +11,7 @@
   color:#1a1108;
   overflow:hidden;
 }
-.tyt-cruises *, .tyt-cruises *::before, .tyt-cruises *::after { box-sizing:border-box; margin:0; padding:0; }
+.tyt-cruises *, .tyt-cruises *::before, .tyt-cruises *::after { box-sizing:border-box; }
 
 
 
