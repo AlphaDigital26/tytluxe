@@ -33,13 +33,18 @@
         </div>
 
         <div class="flex items-center justify-between mt-6">
-            @if (Route::has('password.request'))
-                <a class="btn-text" href="{{ route('password.request') }}" style="font-size:14px;">
-                    {{ __('Forgot your password?') }}
-                </a>
-            @else
-                <div></div>
-            @endif
+            <div style="display: flex; gap: 1rem;">
+                @if (Route::has('register'))
+                    <a class="btn-text" href="{{ route('register') }}" style="font-size:14px;">
+                        {{ __('Sign up') }}
+                    </a>
+                @endif
+                @if (Route::has('password.request'))
+                    <a class="btn-text" href="{{ route('password.request') }}" style="font-size:14px;">
+                        {{ __('Forgot password?') }}
+                    </a>
+                @endif
+            </div>
 
             <x-primary-button>
                 {{ __('Log in') }}

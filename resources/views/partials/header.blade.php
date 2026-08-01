@@ -31,18 +31,33 @@
             <!-- Header Buttons -->
             <div class="header-contact">
 
-                <a class="header-cta header-cta-call"
-                   href="tel:+919875073788">
-                    <i class="fa-solid fa-phone"></i>
-                    <span>Call Now</span>
-                </a>
 
-                <a class="header-cta header-cta-wa"
-                   href="https://wa.me/919875073788"
-                   target="_blank">
-                    <i class="fa-brands fa-whatsapp"></i>
-                    <span>WhatsApp</span>
-                </a>
+
+                @auth
+                    @if(in_array(auth()->user()->role, ['admin', 'agent']))
+                        <a class="header-cta" style="border: 1px solid var(--primary); color: var(--primary); padding: 10px 14px;" href="{{ url('/admin') }}" title="Admin">
+                            <i class="fa-solid fa-gauge"></i>
+                        </a>
+                    @endif
+                    <div class="header-dropdown">
+                        <button class="header-cta" onclick="toggleProfileDropdown(event)" style="background: transparent; border: 1px solid var(--primary); color: var(--primary); cursor: pointer; padding: 10px 14px;">
+                            <i class="fa-solid fa-user"></i>
+                        </button>
+                        <div class="header-dropdown-menu" id="profileDropdown">
+                            <a href="{{ route('profile.edit') }}"><i class="fa-solid fa-user"></i> Profile</a>
+                            <a href="#"><i class="fa-solid fa-suitcase"></i> Booking History</a>
+                            <form method="POST" action="{{ route('logout') }}" style="margin: 0;">
+                                @csrf
+                                <button type="submit"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+                            </form>
+                        </div>
+                    </div>
+                @else
+                    <a class="header-cta" style="border: 1px solid rgba(255,255,255,0.25); color: var(--text-light); padding: 10px 16px;" href="javascript:void(0)" onclick="openAuthModal('login')" title="Login / Sign Up">
+                        <i class="fa-solid fa-user"></i>
+                        <span class="hidden-mobile">Login</span>
+                    </a>
+                @endauth
 
                 <a href="#" class="mobile-toggle">
                     <i class="fa-solid fa-bars"></i>
@@ -53,3 +68,18 @@
         </div>
     </div>
 </header>
+
+<script>
+    function toggleProfileDropdown(e) {
+        e.stopPropagation();
+        document.getElementById('profileDropdown').classList.toggle('show');
+    }
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        let dropdown = document.getElementById('profileDropdown');
+        if (dropdown && dropdown.classList.contains('show')) {
+            dropdown.classList.remove('show');
+        }
+    });
+</script>

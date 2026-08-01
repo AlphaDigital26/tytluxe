@@ -9,6 +9,8 @@
 
     @include('partials.footer')
     
+    @include('partials.auth-modal')
+    
     @include('partials.scripts')
     @stack('scripts')
 </body>
