@@ -1,122 +1,115 @@
-<!-- Profile Modal Overlay -->
-<div class="auth-modal-overlay" id="profileModalOverlay">
-    <div class="auth-modal-box">
-        <button class="auth-modal-close" onclick="closeProfileModal()">
+<!-- Traveller Modal Overlay -->
+<div class="auth-modal-overlay" id="travellerModalOverlay">
+    <div class="auth-modal-box" style="max-width: 600px;">
+        <button class="auth-modal-close" onclick="closeTravellerModal()">
             <i class="fa-solid fa-xmark"></i>
         </button>
 
-        <!-- Edit Details Form -->
-        <div class="auth-modal-content" id="profileDetailsFormContent" style="display: none;">
-            <h2 class="auth-modal-title">Edit Details</h2>
-            <p class="auth-modal-subtitle">Update your personal contact information.</p>
+        <div class="auth-modal-content">
+            <h2 class="auth-modal-title" id="travellerModalTitle">Add Traveller</h2>
+            <p class="auth-modal-subtitle">Enter traveller details to save for quick bookings.</p>
 
-            <form method="POST" action="{{ route('profile.update') }}">
+            <form id="travellerForm" method="POST" action="{{ route('profile.traveller.store') }}">
                 @csrf
-                @method('patch')
+                <input type="hidden" name="_method" id="travellerMethod" value="POST">
                 
-                <div class="auth-form-group">
-                    <label>FULL NAME</label>
-                    <input type="text" name="name" placeholder="Enter your full name" required value="{{ old('name', auth()->user()->name) }}">
-                    @error('name')
-                        <span class="auth-error-msg">{{ $message }}</span>
-                    @enderror
+                <div class="form-grid">
+                    <div class="form-group full-width">
+                        <label>Relation / Type</label>
+                        <select name="type" id="travellerType" required>
+                            <option value="self">Self</option>
+                            <option value="spouse">Spouse</option>
+                            <option value="child">Child</option>
+                            <option value="parent">Parent</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label>Full Name</label>
+                        <input type="text" name="name" id="travellerName" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Date of Birth</label>
+                        <input type="date" name="dob" id="travellerDob">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Gender</label>
+                        <select name="gender" id="travellerGender">
+                            <option value="">Select Gender</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Nationality</label>
+                        <input type="text" name="nationality" id="travellerNationality">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Passport Number</label>
+                        <input type="text" name="passport_number" id="travellerPassportNumber">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Passport Expiry</label>
+                        <input type="date" name="passport_expiry" id="travellerPassportExpiry">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Issuing Country</label>
+                        <input type="text" name="passport_issuing_country" id="travellerPassportCountry">
+                    </div>
                 </div>
 
-                <div class="auth-form-group">
-                    <label>EMAIL ADDRESS</label>
-                    <input type="email" name="email" placeholder="Enter your email" required value="{{ old('email', auth()->user()->email) }}">
-                    @error('email')
-                        <span class="auth-error-msg">{{ $message }}</span>
-                    @enderror
-                </div>
-
-                <div class="auth-form-group">
-                    <label>PHONE NUMBER</label>
-                    <input type="text" name="phone" placeholder="Enter your phone number" value="{{ old('phone', auth()->user()->phone) }}">
-                    @error('phone')
-                        <span class="auth-error-msg">{{ $message }}</span>
-                    @enderror
-                </div>
-
-                <button type="submit" class="auth-submit-btn">SAVE CHANGES</button>
-            </form>
-        </div>
-
-        <!-- Update Password Form -->
-        <div class="auth-modal-content" id="profilePasswordFormContent" style="display: none;">
-            <h2 class="auth-modal-title">Update Password</h2>
-            <p class="auth-modal-subtitle">Ensure your account is using a long, random password to stay secure.</p>
-
-            <form method="POST" action="{{ route('password.update') }}">
-                @csrf
-                @method('put')
-                
-                <div class="auth-form-group">
-                    <label>CURRENT PASSWORD</label>
-                    <input type="password" name="current_password" placeholder="Enter current password" required>
-                    @error('current_password', 'updatePassword')
-                        <span class="auth-error-msg">{{ $message }}</span>
-                    @enderror
-                </div>
-
-                <div class="auth-form-group">
-                    <label>NEW PASSWORD</label>
-                    <input type="password" name="password" placeholder="Enter new password" required>
-                    @error('password', 'updatePassword')
-                        <span class="auth-error-msg">{{ $message }}</span>
-                    @enderror
-                </div>
-
-                <div class="auth-form-group">
-                    <label>CONFIRM NEW PASSWORD</label>
-                    <input type="password" name="password_confirmation" placeholder="Confirm new password" required>
-                </div>
-
-                <button type="submit" class="auth-submit-btn">UPDATE PASSWORD</button>
+                <button type="submit" class="auth-submit-btn mt-4">Save Traveller</button>
             </form>
         </div>
     </div>
 </div>
 
 <script>
-    function openProfileModal(view) {
-        document.getElementById('profileModalOverlay').classList.add('show');
-        
-        if (view === 'details') {
-            document.getElementById('profileDetailsFormContent').style.display = 'block';
-            document.getElementById('profilePasswordFormContent').style.display = 'none';
-        } else {
-            document.getElementById('profileDetailsFormContent').style.display = 'none';
-            document.getElementById('profilePasswordFormContent').style.display = 'block';
-        }
-        
+    function openTravellerModal() {
+        document.getElementById('travellerModalOverlay').classList.add('show');
         document.body.style.overflow = 'hidden';
+        
+        // Reset form for "New"
+        document.getElementById('travellerForm').reset();
+        document.getElementById('travellerForm').action = "{{ route('profile.traveller.store') }}";
+        document.getElementById('travellerMethod').value = 'POST';
+        document.getElementById('travellerModalTitle').innerText = 'Add Traveller';
     }
 
-    function closeProfileModal() {
-        document.getElementById('profileModalOverlay').classList.remove('show');
+    function editTraveller(id, data) {
+        document.getElementById('travellerModalOverlay').classList.add('show');
+        document.body.style.overflow = 'hidden';
+        
+        document.getElementById('travellerForm').action = `/profile/traveller/${id}`;
+        document.getElementById('travellerMethod').value = 'PATCH';
+        document.getElementById('travellerModalTitle').innerText = 'Edit Traveller';
+
+        document.getElementById('travellerType').value = data.type || 'self';
+        document.getElementById('travellerName').value = data.name || '';
+        document.getElementById('travellerDob').value = data.dob ? data.dob.split('T')[0] : '';
+        document.getElementById('travellerGender').value = data.gender || '';
+        document.getElementById('travellerNationality').value = data.nationality || '';
+        document.getElementById('travellerPassportNumber').value = data.passport_number || '';
+        document.getElementById('travellerPassportExpiry').value = data.passport_expiry ? data.passport_expiry.split('T')[0] : '';
+        document.getElementById('travellerPassportCountry').value = data.passport_issuing_country || '';
+    }
+
+    function closeTravellerModal() {
+        document.getElementById('travellerModalOverlay').classList.remove('show');
         document.body.style.overflow = '';
     }
 
-    // Close on outside click (mousedown to prevent closing when dragging to select text)
-    document.getElementById('profileModalOverlay').addEventListener('mousedown', function(e) {
+    document.getElementById('travellerModalOverlay').addEventListener('mousedown', function(e) {
         if(e.target === this) {
-            closeProfileModal();
+            closeTravellerModal();
         }
-    });
-
-    // Auto open modal if there are validation errors
-    document.addEventListener('DOMContentLoaded', function() {
-        @if($errors->updatePassword->any())
-            openProfileModal('password');
-        @elseif($errors->any() && !request()->routeIs('login') && !request()->routeIs('register'))
-            // Only open details modal if we are on the profile page and there are generic errors
-            openProfileModal('details');
-        @endif
-        
-        @if (session('status') === 'profile-updated' || session('status') === 'password-updated')
-            // Optional: You could show a toast notification here
-            // alert('Update successful');
-        @endif
     });
 </script>

@@ -67,4 +67,66 @@ class ProfileController extends Controller
 
         return Redirect::to('/');
     }
+
+    public function storeTraveller(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'type' => 'required|string',
+            'name' => 'required|string|max:255',
+            'dob' => 'nullable|date',
+            'gender' => 'nullable|string',
+            'nationality' => 'nullable|string',
+            'passport_number' => 'nullable|string',
+            'passport_expiry' => 'nullable|date',
+            'passport_issuing_country' => 'nullable|string',
+        ]);
+
+        $request->user()->savedTravellers()->create($validated);
+
+        return Redirect::route('profile.edit')->with('status', 'traveller-saved');
+    }
+
+    public function updateTraveller(Request $request, \App\Models\UserTraveller $traveller): RedirectResponse
+    {
+        if ($traveller->user_id !== $request->user()->id) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'type' => 'required|string',
+            'name' => 'required|string|max:255',
+            'dob' => 'nullable|date',
+            'gender' => 'nullable|string',
+            'nationality' => 'nullable|string',
+            'passport_number' => 'nullable|string',
+            'passport_expiry' => 'nullable|date',
+            'passport_issuing_country' => 'nullable|string',
+        ]);
+
+        $traveller->update($validated);
+
+        return Redirect::route('profile.edit')->with('status', 'traveller-updated');
+    }
+
+    public function deleteTraveller(Request $request, \App\Models\UserTraveller $traveller): RedirectResponse
+    {
+        if ($traveller->user_id !== $request->user()->id) {
+            abort(403);
+        }
+        
+        $traveller->delete();
+
+        return Redirect::route('profile.edit')->with('status', 'traveller-deleted');
+    }
+
+    public function logoutOtherDevices(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'password' => ['required', 'current_password'],
+        ]);
+
+        Auth::logoutOtherDevices($request->password);
+
+        return Redirect::route('profile.edit')->with('status', 'logged-out-other-devices');
+    }
 }

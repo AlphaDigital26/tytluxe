@@ -29,6 +29,11 @@ class User extends Authenticatable implements FilamentUser
         'is_active',
         'two_factor_secret',
         'two_factor_recovery_codes',
+        'dob',
+        'gender',
+        'address',
+        'preferences',
+        'notifications',
     ];
 
     /**
@@ -54,9 +59,14 @@ class User extends Authenticatable implements FilamentUser
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
+            'address' => 'array',
+            'preferences' => 'array',
+            'notifications' => 'array',
+            'dob' => 'date',
         ];
     }
 
+    public function savedTravellers() { return $this->hasMany(UserTraveller::class); }
     public function enquiries() { return $this->hasMany(Enquiry::class); }
     public function assignedEnquiries() { return $this->hasMany(Enquiry::class, 'agent_id'); }
     public function offers() { return $this->hasMany(Offer::class, 'agent_id'); }
