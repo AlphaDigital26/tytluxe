@@ -18,7 +18,7 @@ class ReviewResource extends Resource
 {
     protected static ?string $model = Review::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-star';
 
     protected static ?string $recordTitleAttribute = 'id';
 
@@ -48,3 +48,4 @@ class ReviewResource extends Resource
         ];
     }
 }
+

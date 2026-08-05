@@ -139,28 +139,24 @@
 <div class="tyt-cruises">
 
 <!-- HERO with brochure images slideshow -->
-<!-- HERO with brochure images slideshow -->
 <x-hero-carousel 
-  :slides="[
-    'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1800&q=80',
-    'https://images.unsplash.com/photo-1512100356356-de1b84283e18?auto=format&fit=crop&w=1800&q=80',
-    'https://images.unsplash.com/photo-1500375592092-40eb2168fd21?auto=format&fit=crop&w=1800&q=80',
-    'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=1800&q=80'
-  ]"
-  eyebrow="Cordelia Cruises · India's Premium Cruise Line"
-  title="Destination of<br><em>Your Dreams</em>"
-  subtitle="Mumbai &bull; Goa &bull; Kochi &bull; Lakshadweep &bull; Chennai &bull; Sri Lanka"
-  ctaText="Enquire Now"
+  :slides="$heroImages"
+  eyebrow="{{ $heroEyebrow }}"
+  :title="$heroTitle"
+  subtitle="{{ $heroSubtitle }}"
+  ctaText="{{ $heroCtaText }}"
   ctaLink="#tc-booking"
 />
 
 <!-- SHIP STATS BAND -->
 <div class="tc-ship-band">
   <div class="tc-ship-stats">
-    <div class="tc-ship-stat"><span class="tc-ship-stat-num">All-Inclusive</span><span class="tc-ship-stat-lbl">Dining &amp; Entertainment</span></div>
-    <div class="tc-ship-stat"><span class="tc-ship-stat-num">48,563 GT</span><span class="tc-ship-stat-lbl">Gross Tonnage</span></div>
-    <div class="tc-ship-stat"><span class="tc-ship-stat-num">6 Ports</span><span class="tc-ship-stat-lbl">Mumbai to Sri Lanka</span></div>
-    <div class="tc-ship-stat"><span class="tc-ship-stat-num">24/7</span><span class="tc-ship-stat-lbl">Onboard Support</span></div>
+    @foreach($shipStats as $stat)
+    <div class="tc-ship-stat">
+      <span class="tc-ship-stat-num">{{ $stat['value'] }}</span>
+      <span class="tc-ship-stat-lbl">{{ $stat['label'] }}</span>
+    </div>
+    @endforeach
   </div>
 </div>
 
@@ -168,42 +164,24 @@
 <section class="tc-section-full tc-dark">
   <div class="tc-inner" style="padding-top:0;padding-bottom:0;">
     <div class="tc-section" style="padding-bottom:40px;">
-      <p class="tc-label" style="color:#b8935a;">Where We Sail</p>
-      <h2 class="tc-h2 tc-h2-light">Six Stunning Destinations</h2>
+      <p class="tc-label" style="color:#b8935a;">{{ $destinationsLabel }}</p>
+      <h2 class="tc-h2 tc-h2-light">{{ $destinationsHeading }}</h2>
       <div class="tc-divider"></div>
     </div>
   </div>
   <div class="tc-dest-grid">
+    @foreach($destinationCards as $card)
     <div class="tc-dest-card">
-      <img src="https://images.unsplash.com/photo-1595658658481-d53d3f999875?w=700&q=80" alt="Mumbai" loading="lazy">
+      @if(!empty($card['resolved_image']))
+        <img src="{{ $card['resolved_image'] }}" alt="{{ $card['city'] }}" loading="lazy">
+      @endif
       <div class="tc-dest-overlay"></div>
-      <div class="tc-dest-info"><span class="tc-dest-city">Mumbai</span><span class="tc-dest-tag">Enjoy Unlimited Experiences</span></div>
+      <div class="tc-dest-info">
+        <span class="tc-dest-city">{{ $card['city'] }}</span>
+        <span class="tc-dest-tag">{{ $card['tag'] }}</span>
+      </div>
     </div>
-    <div class="tc-dest-card">
-      <img src="https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=700&q=80" alt="Goa" loading="lazy">
-      <div class="tc-dest-overlay"></div>
-      <div class="tc-dest-info"><span class="tc-dest-city">Goa</span><span class="tc-dest-tag">Party Capital of India</span></div>
-    </div>
-    <div class="tc-dest-card">
-      <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=700&q=80" alt="Lakshadweep" loading="lazy">
-      <div class="tc-dest-overlay"></div>
-      <div class="tc-dest-info"><span class="tc-dest-city">Lakshadweep</span><span class="tc-dest-tag">India's Best Kept Secret</span></div>
-    </div>
-    <div class="tc-dest-card">
-      <img src="https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&w=700&q=80" alt="Kochi" loading="lazy">
-      <div class="tc-dest-overlay"></div>
-      <div class="tc-dest-info"><span class="tc-dest-city">Kochi</span><span class="tc-dest-tag">Queen of the Arabian Sea</span></div>
-    </div>
-    <div class="tc-dest-card">
-      <img src="https://images.unsplash.com/photo-1582510003544-4d00b7f74220?auto=format&fit=crop&w=700&q=80" alt="Chennai" loading="lazy">
-      <div class="tc-dest-overlay"></div>
-      <div class="tc-dest-info"><span class="tc-dest-city">Chennai</span><span class="tc-dest-tag">The Cultural Capital of India</span></div>
-    </div>
-    <div class="tc-dest-card">
-      <img src="https://images.unsplash.com/photo-1588411393236-d2524cca1196?auto=format&fit=crop&w=700&q=80" alt="Sri Lanka" loading="lazy">
-      <div class="tc-dest-overlay"></div>
-      <div class="tc-dest-info"><span class="tc-dest-city">Sri Lanka</span><span class="tc-dest-tag">Island of Wonder</span></div>
-    </div>
+    @endforeach
   </div>
 </section>
 
@@ -223,128 +201,114 @@
 
   <!-- DINING -->
   <div class="tc-exp-panel active" id="tc-panel-dining">
-    <p style="font-size:.9rem;color:#777;line-height:1.8;margin-bottom:36px;max-width:720px;">From premium restaurants and world-class dining to street food favourites — all food preferences are taken care of onboard The Empress. Pure vegetarian &amp; Jain options available throughout.</p>
+    @if($diningIntro)
+    <p style="font-size:.9rem;color:#777;line-height:1.8;margin-bottom:36px;max-width:720px;">{{ $diningIntro }}</p>
+    @endif
     <div class="tc-dining-grid">
+      @foreach($diningItems as $item)
       <div class="tc-dining-card">
-        <img src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=500&q=80" alt="Starlight" loading="lazy">
-        <div class="tc-dining-card-body"><h3>Starlight</h3><p>Experience waterfront dining at Starlight, a two-level restaurant onboard.</p></div>
+        @if(!empty($item['resolved_image']))
+          <img src="{{ $item['resolved_image'] }}" alt="{{ $item['name'] }}" loading="lazy">
+        @endif
+        <div class="tc-dining-card-body"><h3>{{ $item['name'] }}</h3><p>{{ $item['description'] }}</p></div>
       </div>
-      <div class="tc-dining-card">
-        <img src="https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=500&q=80" alt="Chopstix" loading="lazy">
-        <div class="tc-dining-card-body"><h3>Chopstix</h3><p>A culinary tour of exotic Pan-Asian cuisines at this speciality restaurant.</p></div>
-      </div>
-      <div class="tc-dining-card">
-        <img src="https://images.unsplash.com/photo-1559339352-11d035aa65de?w=500&q=80" alt="Chef's Table" loading="lazy">
-        <div class="tc-dining-card-body"><h3>Chef's Table</h3><p>A global culinary pavilion with delectable delicacies from a specially curated menu.</p></div>
-      </div>
-      <div class="tc-dining-card">
-        <img src="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=500&q=80" alt="Food Pavilions" loading="lazy">
-        <div class="tc-dining-card-body"><h3>Food Pavilions</h3><p>Essence of India · Far Eastern Kadhai · Hot Clay Tandoor · International Grill · Kettle &amp; Bun · Street Food · Frozen desserts · The Cafe.</p></div>
-      </div>
+      @endforeach
     </div>
   </div>
 
   <!-- ENTERTAINMENT -->
   <div class="tc-exp-panel" id="tc-panel-entertainment">
-    <p style="font-size:.9rem;color:#777;line-height:1.8;margin-bottom:36px;max-width:720px;">From India's most popular entertainment shows at the Marquee Theatre to live music, magic shows, outdoor movie nights and professional theatre performances.</p>
+    @if($entertainmentIntro)
+    <p style="font-size:.9rem;color:#777;line-height:1.8;margin-bottom:36px;max-width:720px;">{{ $entertainmentIntro }}</p>
+    @endif
     <div class="tc-exp-grid">
-      <div class="tc-exp-card"><div class="tc-exp-card-icon">🎭</div><h3>Balle Balle Show</h3><p>A modern Bollywood musical comedy exploring love, arranged marriages and weddings. A heartwarming must-see for all fans of family-friendly musicals.</p></div>
-      <div class="tc-exp-card"><div class="tc-exp-card-icon">🎵</div><h3>Live Entertainment</h3><p>From yesteryear's hits to contemporary music — relax your senses with soothing live tunes performed across the ship every evening.</p></div>
-      <div class="tc-exp-card"><div class="tc-exp-card-icon">🎬</div><h3>Movies Under the Stars</h3><p>Catch the latest Bollywood &amp; Hollywood blockbusters with your loved ones under the open starry night sky on deck.</p></div>
-      <div class="tc-exp-card"><div class="tc-exp-card-icon">🎧</div><h3>DJ Parties</h3><p>Dance to the lively tunes of our resident DJ until the wee hours of the night. Open for after-hours parties on the high seas.</p></div>
-      <div class="tc-exp-card"><div class="tc-exp-card-icon">✨</div><h3>The Burlesque Experience</h3><p>An adults-only bold &amp; mesmerising performance on the high sea — perfect for those seeking a little extra spice to their evening.</p></div>
-      <div class="tc-exp-card"><div class="tc-exp-card-icon">🎪</div><h3>All-Day Entertainment</h3><p>Entertainment options for everyone, wherever you go onboard — from morning activities to late-night shows, every hour is filled.</p></div>
+      @foreach($entertainmentItems as $item)
+      <div class="tc-exp-card">
+        <div class="tc-exp-card-icon">{{ $item['icon'] ?? '' }}</div>
+        <h3>{{ $item['name'] }}</h3>
+        <p>{{ $item['description'] }}</p>
+      </div>
+      @endforeach
     </div>
   </div>
 
   <!-- BARS -->
   <div class="tc-exp-panel" id="tc-panel-bars">
-    <p style="font-size:.9rem;color:#777;line-height:1.8;margin-bottom:36px;max-width:720px;">Toast to the good life. Take your pick from our range of speciality creations, classic &amp; premium beverages. Lounge in style as you raise a glass to your getaway on the high seas.</p>
+    @if($barsIntro)
+    <p style="font-size:.9rem;color:#777;line-height:1.8;margin-bottom:36px;max-width:720px;">{{ $barsIntro }}</p>
+    @endif
     <div class="tc-exp-grid">
-      <div class="tc-exp-card"><div class="tc-exp-card-icon">🥂</div><h3>The Chairman's Club</h3><p>Savour the finest premium and super-premium beverages served in a modern chic setting that truly sets itself apart.</p></div>
-      <div class="tc-exp-card"><div class="tc-exp-card-icon">🎶</div><h3>Connexions Bar</h3><p>Celebrate moments and life at the vibrant Connexions Bar. Get grooving to the music as you enjoy a selection of beverages served just the way you like it.</p></div>
-      <div class="tc-exp-card"><div class="tc-exp-card-icon">🌅</div><h3>The Pool Bar</h3><p>Watch the sun melt into the waves as you relax by the Pool Bar on deck and sip on a perfect sundowner.</p></div>
-      <div class="tc-exp-card"><div class="tc-exp-card-icon">🌙</div><h3>The Dome</h3><p>Savour the night at our late-night bar offering the finest selection of beverages in a private, exclusive space to enjoy your drink.</p></div>
+      @foreach($barsItems as $item)
+      <div class="tc-exp-card">
+        <div class="tc-exp-card-icon">{{ $item['icon'] ?? '' }}</div>
+        <h3>{{ $item['name'] }}</h3>
+        <p>{{ $item['description'] }}</p>
+      </div>
+      @endforeach
     </div>
   </div>
 
   <!-- INDULGENCE -->
   <div class="tc-exp-panel" id="tc-panel-indulgence">
-    <p style="font-size:.9rem;color:#777;line-height:1.8;margin-bottom:36px;max-width:720px;">Step aboard and discover a ship that has everything. From wellness retreats to adventure activities — Cordelia Cruises brings the 'ALL' in all-inclusive.</p>
+    @if($indulgenceIntro)
+    <p style="font-size:.9rem;color:#777;line-height:1.8;margin-bottom:36px;max-width:720px;">{{ $indulgenceIntro }}</p>
+    @endif
     <div class="tc-exp-grid">
-      <div class="tc-exp-card"><div class="tc-exp-card-icon">💆</div><h3>Spa &amp; Salon</h3><p>Experience wellness with an unbeatable view of the sea to refresh and rejuvenate your mind and body. Numerous beauty, hair &amp; body treatments available.</p></div>
-      <div class="tc-exp-card"><div class="tc-exp-card-icon">💪</div><h3>Fitness Centre</h3><p>Power up with a 180-degree ocean view providing the perfect backdrop for an invigorating workout or a relaxing yoga session.</p></div>
-      <div class="tc-exp-card"><div class="tc-exp-card-icon">🧗</div><h3>Rock Climbing</h3><p>Choose to elevate your day on the rock climbing wall in the middle of the ocean. Challenge a friend or just enjoy the stunning view from the top.</p></div>
-      <div class="tc-exp-card"><div class="tc-exp-card-icon">🛍️</div><h3>Shopping</h3><p>Experience blissful indulgence with exclusive luxury shopping on your cruise holiday — retail therapy to make your vacation complete.</p></div>
-      <div class="tc-exp-card"><div class="tc-exp-card-icon">🚤</div><h3>Shore Excursions</h3><p>Discover exciting new places and enjoy water sports, shopping, and local cuisines through guided shore excursions at every port.</p></div>
-      <div class="tc-exp-card"><div class="tc-exp-card-icon">🎡</div><h3>Cordelia Academy</h3><p>A dedicated area for educational and fun activities for kids of all age groups. Child-care certified crew members take care of your little ones while you enjoy some me-time.</p></div>
+      @foreach($indulgenceItems as $item)
+      <div class="tc-exp-card">
+        <div class="tc-exp-card-icon">{{ $item['icon'] ?? '' }}</div>
+        <h3>{{ $item['name'] }}</h3>
+        <p>{{ $item['description'] }}</p>
+      </div>
+      @endforeach
     </div>
   </div>
 
   <!-- EVENTS -->
   <div class="tc-exp-panel" id="tc-panel-events">
     <div class="tc-exp-grid">
-      <div class="tc-exp-card"><div class="tc-exp-card-icon">💼</div><h3>Corporate Events</h3><p>Decorated venues, spacious lounges, high-end theatres, sound technicians, catering services, live music and entertainment — everything for a grand corporate event at sea.</p></div>
-      <div class="tc-exp-card"><div class="tc-exp-card-icon">💍</div><h3>Weddings at Sea</h3><p>Say 'I Do' on a cruise. From vibrant pre-wedding festivities to solemn nuptials, we offer indoor and on-deck venues with customised décor including Havan-Kund setup.</p></div>
+      @foreach($eventsItems as $item)
+      <div class="tc-exp-card">
+        <div class="tc-exp-card-icon">{{ $item['icon'] ?? '' }}</div>
+        <h3>{{ $item['name'] }}</h3>
+        <p>{{ $item['description'] }}</p>
+      </div>
+      @endforeach
     </div>
   </div>
 </section>
 
-<!-- ACCOMMODATION -->
+<!-- ACCOMMODATION — pulled from DB cruise cabin types -->
+@if($cabinTypes->isNotEmpty())
 <section class="tc-section-full tc-dark" style="padding-top:88px;padding-bottom:88px;">
   <div class="tc-inner">
     <p class="tc-label" style="color:#b8935a;">Your Home at Sea</p>
     <h2 class="tc-h2 tc-h2-light">Choose Your Stateroom</h2>
     <div class="tc-divider"></div>
     <div class="tc-cabin-grid">
+      @foreach($cabinTypes as $cabin)
       <div class="tc-cabin-card">
-        <img src="https://images.unsplash.com/photo-1590490360182-c33d57733427?w=600&q=80" alt="Chairman's Suite" loading="lazy">
+        @if($cabin->resolved_image)
+          <img src="{{ $cabin->resolved_image }}" alt="{{ $cabin->name }}" loading="lazy">
+        @endif
         <div class="tc-cabin-card-body">
-          <div class="tc-cabin-tier">Most Luxurious</div>
-          <h3>The Chairman's Suite</h3>
-          <p>Fine linen, plush settings, and spacious living arrangements — the pinnacle of luxury at sea.</p>
-          <span class="tc-cabin-size">Cabin: 596 Sq. Ft | Balcony: 222 Sq. Ft</span>
+          @if($cabin->tier_label)
+            <div class="tc-cabin-tier">{{ $cabin->tier_label }}</div>
+          @endif
+          <h3>{{ $cabin->name }}</h3>
+          @if($cabin->description)
+            <p>{{ $cabin->description }}</p>
+          @endif
+          @if($cabin->size_info)
+            <span class="tc-cabin-size">{{ $cabin->size_info }}</span>
+          @endif
         </div>
       </div>
-      <div class="tc-cabin-card">
-        <img src="https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=600&q=80" alt="Suite" loading="lazy">
-        <div class="tc-cabin-card-body">
-          <div class="tc-cabin-tier">Premium</div>
-          <h3>Suite</h3>
-          <p>Sail the high seas in the comfort of our luxury Suite with a private balcony overlooking the ocean.</p>
-          <span class="tc-cabin-size">Cabin: 303 Sq. Ft | Balcony: 222 Sq. Ft</span>
-        </div>
-      </div>
-      <div class="tc-cabin-card">
-        <img src="https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=600&q=80" alt="Mini Suite" loading="lazy">
-        <div class="tc-cabin-card-body">
-          <div class="tc-cabin-tier">Balcony</div>
-          <h3>Mini Suite</h3>
-          <p>Wake up to a private view of the sea. Your private screening of the ocean is worth a million words.</p>
-          <span class="tc-cabin-size">Cabin: 194 Sq. Ft | Balcony: 25 Sq. Ft</span>
-        </div>
-      </div>
-      <div class="tc-cabin-card">
-        <img src="https://images.unsplash.com/photo-1584132967334-10e028bd69f7?w=600&q=80" alt="Ocean View" loading="lazy">
-        <div class="tc-cabin-card-body">
-          <div class="tc-cabin-tier">Ocean View</div>
-          <h3>Ocean View Stateroom</h3>
-          <p>A private and cosy cabin of your own amidst the sea — exactly what our ocean view staterooms are all about.</p>
-          <span class="tc-cabin-size">Cabin: 142 Sq. Ft</span>
-        </div>
-      </div>
-      <div class="tc-cabin-card">
-        <img src="https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80" alt="Interior Stateroom" loading="lazy">
-        <div class="tc-cabin-card-body">
-          <div class="tc-cabin-tier">Value</div>
-          <h3>Interior Stateroom</h3>
-          <p>Budget-friendly interior rooms that promise a homely, comfortable feeling at sea — a great value choice.</p>
-          <span class="tc-cabin-size">Cabin: 117 Sq. Ft</span>
-        </div>
-      </div>
+      @endforeach
     </div>
   </div>
 </section>
+@endif
 
 <!-- BOOKING FORM -->
 <section class="tc-section tc-cream" id="tc-booking">
@@ -360,21 +324,18 @@
         <label>Departure Port</label>
         <select>
           <option value="">Select Port</option>
-          <option>Mumbai</option>
-          <option>Chennai</option>
-          <option>Kochi</option>
+          @foreach($bookingPorts as $port)
+            <option>{{ $port }}</option>
+          @endforeach
         </select>
       </div>
       <div class="tc-fg">
         <label>Destination</label>
         <select>
           <option value="">Select Destination</option>
-          <option>Goa</option>
-          <option>Lakshadweep</option>
-          <option>Kochi</option>
-          <option>Chennai</option>
-          <option>Sri Lanka</option>
-          <option>Multi-Port Voyage</option>
+          @foreach($bookingDestinations as $dest)
+            <option>{{ $dest }}</option>
+          @endforeach
         </select>
       </div>
       <div class="tc-fg">
@@ -391,16 +352,16 @@
           <option>7 Nights / 8 Days</option>
         </select>
       </div>
+      @if($cabinTypes->isNotEmpty())
       <div class="tc-fg">
         <label>Cabin Type</label>
         <select>
-          <option>Interior Stateroom</option>
-          <option>Ocean View Stateroom</option>
-          <option>Mini Suite</option>
-          <option>Suite</option>
-          <option>Chairman's Suite</option>
+          @foreach($cabinTypes as $cabin)
+            <option>{{ $cabin->name }}</option>
+          @endforeach
         </select>
       </div>
+      @endif
       <div class="tc-fg">
         <label>No. of Guests</label>
         <select>
@@ -440,30 +401,19 @@
 </section>
 
 <!-- TRUST STRIP -->
+@if(!empty($trustItems))
 <div class="tc-trust">
   <div class="tc-trust-inner">
+    @foreach($trustItems as $item)
     <div class="tc-trust-item">
-      <span class="tc-trust-icon">🚢</span>
-      <div class="tc-trust-title">India's #1 Cruise</div>
-      <div class="tc-trust-desc">Cordelia — the premium cruise line built for Indians</div>
+      <span class="tc-trust-icon">{{ $item['icon'] ?? '' }}</span>
+      <div class="tc-trust-title">{{ $item['title'] }}</div>
+      <div class="tc-trust-desc">{{ $item['desc'] }}</div>
     </div>
-    <div class="tc-trust-item">
-      <span class="tc-trust-icon">🍽️</span>
-      <div class="tc-trust-title">All-Inclusive</div>
-      <div class="tc-trust-desc">Dining, entertainment &amp; activities all included</div>
-    </div>
-    <div class="tc-trust-item">
-      <span class="tc-trust-icon">🙏</span>
-      <div class="tc-trust-title">Jain &amp; Veg Friendly</div>
-      <div class="tc-trust-desc">Dedicated pure veg &amp; Jain counters onboard</div>
-    </div>
-    <div class="tc-trust-item">
-      <span class="tc-trust-icon">📞</span>
-      <div class="tc-trust-title">Expert Support</div>
-      <div class="tc-trust-desc">Our team responds within 2 hours on WhatsApp</div>
-    </div>
+    @endforeach
   </div>
 </div>
+@endif
 
 </div><!-- end .tyt-cruises -->
 
@@ -484,7 +434,5 @@ function tcSubmit() {
   if(ok) alert('Thank you! Our cruise specialist will WhatsApp you within 2 hours with the best options for your voyage.');
   else alert('Please fill in your name, phone and email to continue.');
 }
-
-
 </script>
 @endpush

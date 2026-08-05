@@ -18,7 +18,7 @@ class EnquiryResource extends Resource
 {
     protected static ?string $model = Enquiry::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-chat-bubble-left-ellipsis';
 
     protected static ?string $recordTitleAttribute = 'name';
 
@@ -48,3 +48,4 @@ class EnquiryResource extends Resource
         ];
     }
 }
+

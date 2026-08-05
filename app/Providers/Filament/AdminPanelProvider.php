@@ -42,8 +42,7 @@ class AdminPanelProvider extends PanelProvider
                      ->label('Operations')
                      ->icon('heroicon-o-briefcase'),
                 \Filament\Navigation\NavigationGroup::make()
-                     ->label('Catalog')
-                     ->icon('heroicon-o-globe-alt'),
+                     ->label('Cruise Catalog'),
                 \Filament\Navigation\NavigationGroup::make()
                      ->label('System')
                      ->icon('heroicon-o-cog-6-tooth')

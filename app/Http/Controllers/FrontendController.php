@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Hotel;
 use App\Models\Cruise;
+use App\Models\Setting;
 use App\Models\Staycation;
 use App\Models\Offer;
 use App\Models\Package;
+use Illuminate\Support\Facades\Storage;
 
 class FrontendController extends Controller
 {
@@ -24,14 +26,156 @@ class FrontendController extends Controller
 
     public function cruises()
     {
-        // $cruises = Cruise::with(['destination', 'images'])->where('is_active', true)->get();
-        return view('pages.cruises');
+        // ── Page-level text settings ───────────────────────────────────────
+        $s = function (string $key, mixed $default = '') {
+            return Setting::get($key, $default);
+        };
+        $j = function (string $key, mixed $default = []) {
+            return Setting::getJson($key, $default);
+        };
+
+        // Hero
+        $heroEyebrow  = $s('cruise_page.hero_eyebrow',  "Cordelia Cruises · India's Premium Cruise Line");
+        $heroTitle    = $s('cruise_page.hero_title',    'Destination of <br><em>Your Dreams</em>');
+        $heroSubtitle = $s('cruise_page.hero_subtitle', 'Mumbai &bull; Goa &bull; Kochi &bull; Lakshadweep &bull; Chennai &bull; Sri Lanka');
+        $heroCtaText  = $s('cruise_page.hero_cta_text', 'Enquire Now');
+
+        // Ship stats
+        $shipStats = $j('cruise_page.ship_stats', [
+            ['value' => 'All-Inclusive', 'label' => 'Dining & Entertainment'],
+            ['value' => '48,563 GT',     'label' => 'Gross Tonnage'],
+            ['value' => '6 Ports',       'label' => 'Mumbai to Sri Lanka'],
+            ['value' => '24/7',          'label' => 'Onboard Support'],
+        ]);
+
+        // Destinations
+        $destinationsLabel   = $s('cruise_page.destinations_label',   'Where We Sail');
+        $destinationsHeading = $s('cruise_page.destinations_heading', 'Six Stunning Destinations');
+        $destinationCards    = $j('cruise_page.destination_cards', []);
+
+        // Resolve destination card images (uploaded file takes priority)
+        $destinationCards = array_map(function ($card) {
+            $card['resolved_image'] = (!empty($card['image_path']) && Storage::disk('public')->exists($card['image_path']))
+                ? Storage::disk('public')->url($card['image_path'])
+                : ($card['image_url'] ?? null);
+            return $card;
+        }, $destinationCards);
+
+        // Experience Tabs
+        $diningIntro        = $s('cruise_page.dining_intro');
+        $diningItems        = $j('cruise_page.dining_items', []);
+        $entertainmentIntro = $s('cruise_page.entertainment_intro');
+        $entertainmentItems = $j('cruise_page.entertainment_items', []);
+        $barsIntro          = $s('cruise_page.bars_intro');
+        $barsItems          = $j('cruise_page.bars_items', []);
+        $indulgenceIntro    = $s('cruise_page.indulgence_intro');
+        $indulgenceItems    = $j('cruise_page.indulgence_items', []);
+        $eventsItems        = $j('cruise_page.events_items', []);
+
+        // Resolve dining item images
+        $diningItems = array_map(function ($item) {
+            $item['resolved_image'] = (!empty($item['image_path']) && Storage::disk('public')->exists($item['image_path']))
+                ? Storage::disk('public')->url($item['image_path'])
+                : ($item['image_url'] ?? null);
+            return $item;
+        }, $diningItems);
+
+        // Trust strip
+        $trustItems = $j('cruise_page.trust_items', []);
+
+        // Booking form options
+        $bookingPorts        = array_filter(array_map('trim', explode("\n", $s('cruise_page.booking_ports', "Mumbai\nChennai\nKochi"))));
+        $bookingDestinations = array_filter(array_map('trim', explode("\n", $s('cruise_page.booking_destinations', "Goa\nLakshadweep\nSri Lanka"))));
+
+        // ── Cruise record — cabin types from the featured active cruise ───
+        $cruise    = Cruise::where('is_active', true)->with(['cabinTypes', 'images'])->first();
+        $cabinTypes = $cruise ? $cruise->cabinTypes->map(function ($c) { $c->resolved_image = $c->resolved_image; return $c; }) : collect([]);
+
+        // Hero carousel images from the cruise's images relation
+        $heroImages = [];
+        if ($cruise && $cruise->images->isNotEmpty()) {
+            $heroImages = $cruise->images->sortBy('sort_order')->map(fn($img) => $img->resolved_image)->filter()->values()->toArray();
+        }
+        // Fallback to hardcoded Unsplash images if none set in DB
+        if (empty($heroImages)) {
+            $heroImages = [
+                'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1800&q=80',
+                'https://images.unsplash.com/photo-1512100356356-de1b84283e18?auto=format&fit=crop&w=1800&q=80',
+                'https://images.unsplash.com/photo-1500375592092-40eb2168fd21?auto=format&fit=crop&w=1800&q=80',
+                'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=1800&q=80',
+            ];
+        }
+
+        return view('pages.cruises', compact(
+            'heroEyebrow', 'heroTitle', 'heroSubtitle', 'heroCtaText', 'heroImages',
+            'shipStats',
+            'destinationsLabel', 'destinationsHeading', 'destinationCards',
+            'diningIntro', 'diningItems',
+            'entertainmentIntro', 'entertainmentItems',
+            'barsIntro', 'barsItems',
+            'indulgenceIntro', 'indulgenceItems',
+            'eventsItems',
+            'trustItems',
+            'bookingPorts', 'bookingDestinations',
+            'cabinTypes'
+        ));
     }
 
     public function staycations()
     {
-        // $staycations = Staycation::with(['destination', 'amenities', 'images'])->where('is_active', true)->get();
-        return view('pages.staycation');
+        $s = fn (string $key, mixed $default = '') => Setting::get($key, $default);
+        $j = fn (string $key, mixed $default = []) => Setting::getJson($key, $default);
+
+        // Hero
+        $heroEyebrow  = $s('staycation_page.hero_eyebrow',  'Curated Staycations');
+        $heroTitle    = $s('staycation_page.hero_title',    'Escape the Ordinary. <em>Stay Extraordinary.</em>');
+        $heroSubtitle = $s('staycation_page.hero_subtitle', 'Handpicked resort stays near Mumbai & Pune - perfect for weekends, honeymoons & family getaways.');
+
+        // Hero carousel images
+        $heroImages = array_values(array_filter(array_map(function ($img) {
+            if (!empty($img['image_path']) && Storage::disk('public')->exists($img['image_path'])) {
+                return Storage::disk('public')->url($img['image_path']);
+            }
+            return $img['image_url'] ?? null;
+        }, $j('staycation_page.hero_images', []))));
+
+        // Fallback hero slides
+        if (empty($heroImages)) {
+            $heroImages = [
+                'https://meritashotels.com/wp-content/uploads/2023/06/Deluxe-Room.jpg',
+                'https://meritashotels.com/wp-content/uploads/2023/03/DSC_9452-HDR-copy.jpg',
+                'https://meritashotels.com/wp-content/uploads/2023/03/Standard-Room-with-Sit-Out3.png',
+                'https://meritashotels.com/wp-content/uploads/2023/03/Suite-Bed-Room-%40-Picaddle.jpg',
+                'https://meritashotels.com/wp-content/uploads/2023/03/DSC_9476-HDR-copy.jpg',
+            ];
+        }
+
+        // Resorts — resolve room images
+        $resorts = array_map(function ($resort) {
+            $resort['rooms'] = array_map(function ($room) {
+                if (!empty($room['image_path']) && Storage::disk('public')->exists($room['image_path'])) {
+                    $room['resolved_image'] = Storage::disk('public')->url($room['image_path']);
+                } else {
+                    $room['resolved_image'] = $room['image_url'] ?? null;
+                }
+                // Parse amenities string to array
+                $room['amenity_list'] = array_map('trim', explode(',', $room['amenities'] ?? ''));
+                return $room;
+            }, $resort['rooms'] ?? []);
+            return $resort;
+        }, $j('staycation_page.resorts', []));
+
+        // Bottom CTA
+        $ctaTag      = $s('staycation_page.cta_tag',      'Book Your Staycation');
+        $ctaHeading  = $s('staycation_page.cta_heading',  'Ready for Your <em>Perfect Escape?</em>');
+        $ctaBody     = $s('staycation_page.cta_body',     "WhatsApp us with your dates and preferences - we'll get you the best rates on all Meritas properties instantly.");
+        $ctaWhatsapp = $s('staycation_page.cta_whatsapp', 'https://wa.me/919875073788');
+
+        return view('pages.staycation', compact(
+            'heroEyebrow', 'heroTitle', 'heroSubtitle', 'heroImages',
+            'resorts',
+            'ctaTag', 'ctaHeading', 'ctaBody', 'ctaWhatsapp'
+        ));
     }
 
     public function packages()
@@ -133,7 +277,65 @@ class FrontendController extends Controller
 
     public function offers()
     {
-        $offers = Offer::where('is_active', true)->get();
-        return view('pages.offers', compact('offers'));
+        $s = fn (string $key, mixed $default = '') => Setting::get($key, $default);
+        $j = fn (string $key, mixed $default = []) => Setting::getJson($key, $default);
+
+        // Hero
+        $heroEyebrow  = $s('offers_page.hero_eyebrow',  'Limited Time Deals');
+        $heroTitle    = $s('offers_page.hero_title',    'Exclusive Deals. <em>Unforgettable</em> Experiences.');
+        $heroSubtitle = $s('offers_page.hero_subtitle', 'Handpicked offers on hotels, cruises & flights — updated regularly');
+
+        // Hero carousel images
+        $heroImages = array_values(array_filter(array_map(function ($img) {
+            if (!empty($img['image_path']) && Storage::disk('public')->exists($img['image_path'])) {
+                return Storage::disk('public')->url($img['image_path']);
+            }
+            return $img['image_url'] ?? null;
+        }, $j('offers_page.hero_images', []))));
+
+        if (empty($heroImages)) {
+            $heroImages = [
+                'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=1400&q=85',
+                'https://images.unsplash.com/photo-1548574505-5e239809ee19?w=1400&q=85',
+                'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=1400&q=85',
+            ];
+        }
+
+        // Filter tabs
+        $filterTabs = $j('offers_page.filter_tabs', [
+            ['key' => 'all', 'label' => 'All Offers'],
+            ['key' => 'hotels', 'label' => 'Hotels'],
+            ['key' => 'cruises', 'label' => 'Cruises'],
+            ['key' => 'flights', 'label' => 'Flights'],
+            ['key' => 'honeymoon', 'label' => 'Honeymoon'],
+            ['key' => 'family', 'label' => 'Family'],
+        ]);
+
+        // Categories — resolve card images
+        $categories = array_map(function ($cat) {
+            $cat['cards'] = array_map(function ($card) {
+                if (!empty($card['image_path']) && Storage::disk('public')->exists($card['image_path'])) {
+                    $card['resolved_image'] = Storage::disk('public')->url($card['image_path']);
+                } else {
+                    $card['resolved_image'] = $card['image_url'] ?? null;
+                }
+                return $card;
+            }, $cat['cards'] ?? []);
+            return $cat;
+        }, $j('offers_page.categories', []));
+
+        // Bottom CTA
+        $ctaTag        = $s('offers_page.cta_tag',         'Stay Ahead');
+        $ctaHeading    = $s('offers_page.cta_heading',     'Be the First to <em>Know</em>');
+        $ctaBody       = $s('offers_page.cta_body',        "Drop your WhatsApp number and we'll notify you the moment a new deal goes live — no spam, ever.");
+        $ctaNotifyNote = $s('offers_page.cta_notify_note', "WhatsApp only. We won't call unless you ask.");
+        $ctaWhatsapp   = $s('offers_page.cta_whatsapp',    'https://wa.me/9875073788');
+        $ctaWaLabel    = $s('offers_page.cta_wa_label',    'Ask for Latest Deals on WhatsApp');
+
+        return view('pages.offers', compact(
+            'heroEyebrow', 'heroTitle', 'heroSubtitle', 'heroImages',
+            'filterTabs', 'categories',
+            'ctaTag', 'ctaHeading', 'ctaBody', 'ctaNotifyNote', 'ctaWhatsapp', 'ctaWaLabel'
+        ));
     }
 }

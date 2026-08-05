@@ -2,14 +2,13 @@
 
 namespace App\Filament\Resources\Cruises\RelationManagers;
 
-use Filament\Actions\AssociateAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\DissociateAction;
-use Filament\Actions\DissociateBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\FileUpload;
+use Filament\Schemas\Components\Section;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
@@ -24,14 +23,37 @@ class ImagesRelationManager extends RelationManager
     {
         return $schema
             ->components([
-                TextInput::make('path')
-                    ->required(),
-                TextInput::make('sort_order')
-                    ->required()
-                    ->numeric()
-                    ->default(0),
+                Section::make('Image Source')
+                    ->description('Upload an image file OR paste an external URL — or both. The uploaded file takes priority on the frontend.')
+                    ->columnSpanFull()
+                    ->schema([
+                        FileUpload::make('path')
+                            ->label('Upload Image')
+                            ->image()
+                            ->disk('public')
+                            ->directory('cruise-hero')
+                            ->imagePreviewHeight('220')
+                            ->maxSize(8192)
+                            ->helperText('Upload a high-resolution image (max 8MB, JPG/PNG/WebP). Recommended: 1800×900px or wider.'),
+
+                        TextInput::make('image_url')
+                            ->label('Or: External Image URL')
+                            ->url()
+                            ->placeholder('https://images.unsplash.com/...')
+                            ->default(null)
+                            ->helperText('Used as a fallback when no uploaded file is present.'),
+                    ]),
+
                 TextInput::make('alt_text')
+                    ->label('Alt Text')
+                    ->placeholder('Brief description of the image (e.g. Ocean sunset from deck)')
                     ->default(null),
+
+                TextInput::make('sort_order')
+                    ->label('Sort Order')
+                    ->numeric()
+                    ->default(0)
+                    ->helperText('Lower numbers appear first in the carousel.'),
             ]);
     }
 
@@ -39,12 +61,19 @@ class ImagesRelationManager extends RelationManager
     {
         return $table
             ->recordTitleAttribute('id')
+            ->defaultSort('sort_order')
             ->columns([
-                TextColumn::make('path')
-                    ->searchable(),
                 TextColumn::make('sort_order')
+                    ->label('#')
                     ->numeric()
                     ->sortable(),
+                TextColumn::make('path')
+                    ->label('Uploaded File')
+                    ->limit(50)
+                    ->searchable(),
+                TextColumn::make('image_url')
+                    ->label('External URL')
+                    ->limit(50),
                 TextColumn::make('alt_text')
                     ->searchable(),
                 TextColumn::make('created_at')
@@ -61,16 +90,13 @@ class ImagesRelationManager extends RelationManager
             ])
             ->headerActions([
                 CreateAction::make(),
-                AssociateAction::make(),
             ])
             ->recordActions([
                 EditAction::make(),
-                DissociateAction::make(),
                 DeleteAction::make(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DissociateBulkAction::make(),
                     DeleteBulkAction::make(),
                 ]),
             ]);
