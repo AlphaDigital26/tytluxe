@@ -16,7 +16,12 @@ Route::get('/packages/{id}', [FrontendController::class, 'packageDetails'])->nam
 Route::get('/offers', [FrontendController::class, 'offers'])->name('offers');
 Route::view('/contact', 'pages.contact')->name('contact');
 
-
+Route::view('/terms-and-conditions', 'pages.terms')->name('terms');
+Route::view('/privacy-policy', 'pages.privacy')->name('privacy');
+Route::view('/cancellation-policy', 'pages.cancellation')->name('cancellation');
+Route::view('/travel-guide', 'pages.travel-guide')->name('travel-guide');
+Route::view('/faqs', 'pages.faqs')->name('faqs');
+Route::view('/help-center', 'pages.help')->name('help');
 Route::middleware('auth')->group(function () {
     Route::get('/history', [ProfileController::class, 'history'])->name('history');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
