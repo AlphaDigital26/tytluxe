@@ -34,11 +34,6 @@
 
 
                 @auth
-                    @if(in_array(auth()->user()->role, ['admin', 'agent']))
-                        <a class="header-cta" style="border: 1px solid var(--primary); color: var(--primary); padding: 10px 14px;" href="{{ url('/admin') }}" title="Admin">
-                            <i class="fa-solid fa-gauge"></i>
-                        </a>
-                    @endif
                     <div class="header-dropdown">
                         <button class="header-cta" onclick="toggleProfileDropdown(event)" style="background: transparent; border: 1px solid var(--primary); color: var(--primary); cursor: pointer; padding: 10px 14px;">
                             <i class="fa-solid fa-user"></i>
@@ -53,7 +48,7 @@
                         </div>
                     </div>
                 @else
-                    <a class="header-cta" style="border: 1px solid rgba(255,255,255,0.25); color: var(--text-light); padding: 10px 16px;" href="javascript:void(0)" onclick="openAuthModal('login')" title="Login / Sign Up">
+                    <a class="header-cta" style="border: 1px solid rgba(255,255,255,0.25); color: var(--text-light); padding: 10px 16px;" href="{{ route('login') }}" title="Login / Sign Up">
                         <i class="fa-solid fa-user"></i>
                         <span class="hidden-mobile">Login</span>
                     </a>

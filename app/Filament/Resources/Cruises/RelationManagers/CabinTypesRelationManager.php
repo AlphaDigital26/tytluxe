@@ -2,18 +2,19 @@
 
 namespace App\Filament\Resources\Cruises\RelationManagers;
 
-use Filament\Actions\AssociateAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\DissociateAction;
-use Filament\Actions\DissociateBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Placeholder;
+use Filament\Schemas\Components\Section;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
+use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
@@ -26,13 +27,47 @@ class CabinTypesRelationManager extends RelationManager
         return $schema
             ->components([
                 TextInput::make('name')
-                    ->required(),
+                    ->required()
+                    ->placeholder('e.g. Chairman\'s Suite'),
+
+                TextInput::make('tier_label')
+                    ->placeholder('e.g. Most Luxurious')
+                    ->default(null),
+
                 Textarea::make('description')
                     ->default(null)
                     ->columnSpanFull(),
+
+                TextInput::make('size_info')
+                    ->placeholder('e.g. Cabin: 596 Sq. Ft | Balcony: 222 Sq. Ft')
+                    ->default(null)
+                    ->columnSpanFull(),
+
                 TextInput::make('price_from')
                     ->numeric()
+                    ->prefix('₹')
                     ->default(null),
+
+                Section::make('Cabin Image')
+                    ->description('Upload an image OR provide an external URL — or both. The uploaded file takes priority.')
+                    ->columnSpanFull()
+                    ->schema([
+                        FileUpload::make('image_path')
+                            ->label('Upload Image')
+                            ->image()
+                            ->disk('public')
+                            ->directory('cruise-cabins')
+                            ->imagePreviewHeight('200')
+                            ->maxSize(4096)
+                            ->helperText('Upload a JPG/PNG/WebP (max 4MB). This takes priority over the URL below.'),
+
+                        TextInput::make('image_url')
+                            ->label('Or: External Image URL')
+                            ->url()
+                            ->placeholder('https://images.unsplash.com/...')
+                            ->default(null)
+                            ->helperText('Used only when no uploaded file is present.'),
+                    ]),
             ]);
     }
 
@@ -43,9 +78,16 @@ class CabinTypesRelationManager extends RelationManager
             ->columns([
                 TextColumn::make('name')
                     ->searchable(),
+                TextColumn::make('tier_label')
+                    ->label('Tier')
+                    ->searchable(),
                 TextColumn::make('price_from')
+                    ->label('Price From (₹)')
                     ->numeric()
                     ->sortable(),
+                TextColumn::make('size_info')
+                    ->label('Size')
+                    ->limit(40),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -60,16 +102,13 @@ class CabinTypesRelationManager extends RelationManager
             ])
             ->headerActions([
                 CreateAction::make(),
-                AssociateAction::make(),
             ])
             ->recordActions([
                 EditAction::make(),
-                DissociateAction::make(),
                 DeleteAction::make(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DissociateBulkAction::make(),
                     DeleteBulkAction::make(),
                 ]),
             ]);
