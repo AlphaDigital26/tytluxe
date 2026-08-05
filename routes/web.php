@@ -27,6 +27,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    
+    Route::post('/profile/traveller', [ProfileController::class, 'storeTraveller'])->name('profile.traveller.store');
+    Route::patch('/profile/traveller/{traveller}', [ProfileController::class, 'updateTraveller'])->name('profile.traveller.update');
+    Route::delete('/profile/traveller/{traveller}', [ProfileController::class, 'deleteTraveller'])->name('profile.traveller.destroy');
+    Route::post('/profile/logout-other-devices', [ProfileController::class, 'logoutOtherDevices'])->name('profile.logout-other-devices');
 });
 
 require __DIR__.'/auth.php';

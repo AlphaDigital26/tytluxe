@@ -1903,12 +1903,19 @@ input:checked + .profile-slider:before {
 }
 
 .auth-form-container .auth-form-group input {
-    color: #333;
+    color: #111 !important;
     padding: 8px 0;
 }
 
+.auth-form-container .auth-form-group input:-webkit-autofill,
+.auth-form-container .auth-form-group input:-webkit-autofill:hover, 
+.auth-form-container .auth-form-group input:-webkit-autofill:focus, 
+.auth-form-container .auth-form-group input:-webkit-autofill:active {
+    -webkit-text-fill-color: #111 !important;
+}
+
 .auth-form-container .auth-form-group input::placeholder {
-    color: #aaa;
+    color: #999;
 }
 
 .auth-form-container .auth-submit-btn {
