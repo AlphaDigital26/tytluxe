@@ -3,6 +3,7 @@
 namespace App\Policies;
 
 use App\Models\User;
+use App\Models\Admin;
 use App\Models\Hotel;
 
 class HotelPolicy
@@ -10,7 +11,7 @@ class HotelPolicy
     /**
      * Determine whether the user can view any models.
      */
-    public function viewAny(User $user): bool
+    public function viewAny(Admin $user): bool
     {
         return in_array($user->role, ['admin', 'agent']);
     }
@@ -18,7 +19,7 @@ class HotelPolicy
     /**
      * Determine whether the user can view the model.
      */
-    public function view(User $user, Hotel $model): bool
+    public function view(Admin $user, Hotel $model): bool
     {
         return in_array($user->role, ['admin', 'agent']);
     }
@@ -26,7 +27,7 @@ class HotelPolicy
     /**
      * Determine whether the user can create models.
      */
-    public function create(User $user): bool
+    public function create(Admin $user): bool
     {
         return $user->role === 'admin';
     }
@@ -34,7 +35,7 @@ class HotelPolicy
     /**
      * Determine whether the user can update the model.
      */
-    public function update(User $user, Hotel $model): bool
+    public function update(Admin $user, Hotel $model): bool
     {
         return in_array($user->role, ['admin', 'agent']);
     }
@@ -42,7 +43,7 @@ class HotelPolicy
     /**
      * Determine whether the user can delete the model.
      */
-    public function delete(User $user, Hotel $model): bool
+    public function delete(Admin $user, Hotel $model): bool
     {
         return $user->role === 'admin';
     }
@@ -50,7 +51,7 @@ class HotelPolicy
     /**
      * Determine whether the user can restore the model.
      */
-    public function restore(User $user, Hotel $model): bool
+    public function restore(Admin $user, Hotel $model): bool
     {
         return $user->role === 'admin';
     }
@@ -58,7 +59,7 @@ class HotelPolicy
     /**
      * Determine whether the user can permanently delete the model.
      */
-    public function forceDelete(User $user, Hotel $model): bool
+    public function forceDelete(Admin $user, Hotel $model): bool
     {
         return false; // Never permanently delete from CMS
     }

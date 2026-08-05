@@ -67,13 +67,13 @@
                     </li>
 
                     <li>
-                        <a href="#">
+                        <a href="{{ route('terms') }}">
                             Terms & Conditions
                         </a>
                     </li>
 
                     <li>
-                        <a href="#">
+                        <a href="{{ route('privacy') }}">
                             Privacy Policy
                         </a>
                     </li>
@@ -97,20 +97,26 @@
                     </li>
 
                     <li>
-                        <a href="{{ url('/cruises') }}">
-                            Cruises
-                        </a>
-                    </li>
-
-                    <li>
                         <a href="{{ url('/flights') }}">
                             Flights
                         </a>
                     </li>
 
                     <li>
+                        <a href="{{ url('/cruises') }}">
+                            Cruises
+                        </a>
+                    </li>
+
+                    <li>
                         <a href="{{ url('/staycation') }}">
                             Staycation
+                        </a>
+                    </li>
+
+                    <li>
+                        <a href="{{ url('/packages') }}">
+                            Packages
                         </a>
                     </li>
 
@@ -132,13 +138,13 @@
 
                 <ul>
 
-                    <li><a href="#">Help Center</a></li>
+                    <li><a href="{{ route('help') }}">Help Center</a></li>
 
-                    <li><a href="#">Cancellation Policy</a></li>
+                    <li><a href="{{ route('cancellation') }}">Cancellation Policy</a></li>
 
-                    <li><a href="#">Travel Guide</a></li>
+                    <li><a href="{{ route('travel-guide') }}">Travel Guide</a></li>
 
-                    <li><a href="#">FAQs</a></li>
+                    <li><a href="{{ route('faqs') }}">FAQs</a></li>
 
                 </ul>
 
