@@ -40,7 +40,7 @@
                         </button>
                         <div class="header-dropdown-menu" id="profileDropdown">
                             <a href="{{ route('profile.edit') }}"><i class="fa-solid fa-user"></i> Profile</a>
-                            <a href="#"><i class="fa-solid fa-suitcase"></i> Booking History</a>
+                            <a href="{{ route('history') }}"><i class="fa-solid fa-suitcase"></i> Booking History</a>
                             <form method="POST" action="{{ route('logout') }}" style="margin: 0;">
                                 @csrf
                                 <button type="submit"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
