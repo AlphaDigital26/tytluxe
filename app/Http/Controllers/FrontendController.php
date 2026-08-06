@@ -18,10 +18,13 @@ class FrontendController extends Controller
         return view('pages.home');
     }
 
-    public function hotels()
+    public function hotels(\App\Services\TripjackService $tripjackService)
     {
-        $hotels = Hotel::with(['destination', 'amenities', 'images'])->where('is_active', true)->get();
-        return view('pages.hotels', compact('hotels'));
+        // Fetch hotels from Tripjack API (Defaults to Dubai for next week)
+        $apiResponse = $tripjackService->searchHotels();
+
+        // Pass response to view. We will extract 'searchResult.his' inside the blade template.
+        return view('pages.hotels', compact('apiResponse'));
     }
 
     public function cruises()

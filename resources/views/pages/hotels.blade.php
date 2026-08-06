@@ -598,38 +598,57 @@
     </div>
 
     <div class="htl-grid" id="htlGrid">
-      @foreach($hotels as $hotel)
-      <div class="htl-card" data-category="{{ Str::slug($hotel->destination->name) }}"
-        data-name="{{ $hotel->title }}"
-        data-badge="{{ ucfirst(str_replace('_', ' ', $hotel->category)) }}"
-        data-location="{{ $hotel->destination->name }}"
-        data-images="{{ $hotel->images->count() ? json_encode($hotel->images->map(fn($img) => Storage::url($img->path))->toArray()) : json_encode(['placeholder.jpg']) }}"
-        data-desc="{{ $hotel->description }}"
-        data-checkin="{{ $hotel->check_in_time ?? '2:00 PM' }}" data-checkout="{{ $hotel->check_out_time ?? '11:00 AM' }}"
-        data-features="{{ $hotel->amenities->pluck('name')->implode(',') }}"
-        data-rooms="{{ $hotel->room_categories ?? 'Standard Room; Deluxe Room; Executive Room; Suite. Exact availability and occupancy can be confirmed on enquiry.' }}"
-        data-attractions="{{ $hotel->nearby_attractions ?? 'Nearby attractions can be confirmed on enquiry.' }}"
-        data-wa="I'm interested in {{ $hotel->title }}, {{ $hotel->destination->name }}. Please share availability and rates.">
+      @php
+          // Extract hotels from the API response
+          $hotelsList = $apiResponse['searchResult']['his'] ?? [];
+      @endphp
+      
+      @forelse($hotelsList as $hotel)
+      @php
+          $id = $hotel['id'] ?? '';
+          $name = $hotel['name'] ?? 'Unknown Hotel';
+          $rating = $hotel['rt'] ?? 3;
+          $category = $hotel['pt'] ?? 'Hotel';
+          $location = $hotel['ad']['city']['name'] ?? 'Unknown City';
+          $address = $hotel['ad']['adr'] ?? 'Address on request';
+          $imageUrl = $hotel['img'][0]['url'] ?? 'placeholder.jpg';
+          $price = $hotel['pop'][0]['tpc'] ?? '0';
+      @endphp
+      <div class="htl-card" data-category="{{ Str::slug($location) }}"
+        data-name="{{ $name }}"
+        data-badge="{{ $category }}"
+        data-location="{{ $location }}"
+        data-images="{{ json_encode([$imageUrl]) }}"
+        data-desc="{{ $address }}"
+        data-checkin="2:00 PM" data-checkout="11:00 AM"
+        data-features="Wi-Fi, Parking"
+        data-rooms="Standard Room, Deluxe Room"
+        data-attractions="Local attractions can be confirmed on enquiry."
+        data-wa="I'm interested in {{ $name }}, {{ $location }}. Please share availability and rates.">
         <div class="htl-card-img">
-          <img src="{{ $hotel->images->first() ? Storage::url($hotel->images->first()->path) : 'placeholder.jpg' }}" alt="{{ $hotel->title }}, {{ $hotel->destination->name }}" loading="lazy" />
-          <span class="htl-badge">{{ ucfirst(str_replace('_', ' ', $hotel->category)) }}</span>
-          <span class="htl-loc-badge">&#128205; {{ $hotel->destination->name }}</span>
+          <img src="{{ $imageUrl }}" alt="{{ $name }}, {{ $location }}" loading="lazy" />
+          <span class="htl-badge">{{ $category }}</span>
+          <span class="htl-loc-badge">&#128205; {{ $location }}</span>
         </div>
         <div class="htl-card-body">
-          <h3 class="htl-card-name">{{ $hotel->title }}</h3>
-          <p class="htl-card-desc">{{ Str::limit($hotel->description, 100) }}</p>
+          <h3 class="htl-card-name">{{ Str::limit($name, 40) }}</h3>
+          <p class="htl-card-desc">{{ Str::limit($address, 80) }}</p>
           <div class="htl-card-meta">
-            @foreach($hotel->amenities->take(2) as $amenity)
-              <span>{{ $amenity->name }}</span>
-            @endforeach
+              <span>{{ $rating }} Star</span>
+              <span>₹{{ number_format((float)$price) }}</span>
           </div>
           <div class="htl-card-footer">
-            <span class="htl-card-timing">Check-in {{ $hotel->check_in_time ?? '2:00 PM' }} &middot; Check-out {{ $hotel->check_out_time ?? '11:00 AM' }}</span>
+            <span class="htl-card-timing">Tripjack Live Rate</span>
             <button class="htl-book-btn">View Details <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg></button>
           </div>
         </div>
       </div>
-      @endforeach
+      @empty
+        <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--white-60);">
+            <h3>No hotels found for the selected criteria.</h3>
+            <p>Please try a different destination or date.</p>
+        </div>
+      @endforelse
     </div>
 </section>
 
