@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
+use App\Models\Admin;
 use Illuminate\Database\Seeder;
 
 class AdminSeeder extends Seeder
@@ -12,13 +12,13 @@ class AdminSeeder extends Seeder
      */
     public function run(): void
     {
-        User::updateOrCreate(
+        Admin::updateOrCreate(
             ['email' => 'admin@tytluxe.com'],
             [
-                'name' => 'Admin',
+                'name' => 'Super Admin',
                 'password' => bcrypt('password'),
-                'role' => 'admin',
-                'is_active' => true,
+                'role' => 'Super Admin',
+                'status' => 'Active',
             ]
         );
     }

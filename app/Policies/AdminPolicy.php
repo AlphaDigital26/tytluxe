@@ -2,27 +2,25 @@
 
 namespace App\Policies;
 
-use App\Models\User;
 use App\Models\Admin;
+use Illuminate\Auth\Access\Response;
 
-
-class UserPolicy
+class AdminPolicy
 {
     /**
      * Determine whether the user can view any models.
      */
     public function viewAny(Admin $user): bool
     {
-        return in_array($user->role, ['Super Admin', 'Operations', 'Support', 'Finance', 'Content', 'Analyst']);
+        return $user->role === 'Super Admin';
     }
 
     /**
      * Determine whether the user can view the model.
      */
-    public function view(Admin $user, User $model): bool
+    public function view(Admin $user, Admin $admin): bool
     {
-        if ($user->role === 'Super Admin') return true;
-        return $model->role === 'customer';
+        return $user->role === 'Super Admin';
     }
 
     /**
@@ -36,7 +34,7 @@ class UserPolicy
     /**
      * Determine whether the user can update the model.
      */
-    public function update(Admin $user, User $model): bool
+    public function update(Admin $user, Admin $admin): bool
     {
         return $user->role === 'Super Admin';
     }
@@ -44,7 +42,7 @@ class UserPolicy
     /**
      * Determine whether the user can delete the model.
      */
-    public function delete(Admin $user, User $model): bool
+    public function delete(Admin $user, Admin $admin): bool
     {
         return $user->role === 'Super Admin';
     }
@@ -52,7 +50,7 @@ class UserPolicy
     /**
      * Determine whether the user can restore the model.
      */
-    public function restore(Admin $user, User $model): bool
+    public function restore(Admin $user, Admin $admin): bool
     {
         return $user->role === 'Super Admin';
     }
@@ -60,8 +58,8 @@ class UserPolicy
     /**
      * Determine whether the user can permanently delete the model.
      */
-    public function forceDelete(Admin $user, User $model): bool
+    public function forceDelete(Admin $user, Admin $admin): bool
     {
-        return false; // Never permanently delete from CMS
+        return $user->role === 'Super Admin';
     }
 }
