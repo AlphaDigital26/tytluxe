@@ -9,6 +9,7 @@ Route::get('/', [FrontendController::class, 'index'])->name('home');
 Route::view('/about', 'pages.about')->name('about');
 Route::view('/flights', 'pages.flights')->name('flights');
 Route::get('/hotels', [FrontendController::class, 'hotels'])->name('hotels');
+Route::get('/hotels/{id}', [FrontendController::class, 'hotelDetails'])->name('hotel.details');
 Route::get('/cruises', [FrontendController::class, 'cruises'])->name('cruises');
 Route::get('/staycation', [FrontendController::class, 'staycations'])->name('staycations');
 Route::get('/packages', [FrontendController::class, 'packages'])->name('packages');
@@ -19,7 +20,9 @@ Route::view('/contact', 'pages.contact')->name('contact');
 Route::view('/terms-and-conditions', 'pages.terms')->name('terms');
 Route::view('/privacy-policy', 'pages.privacy')->name('privacy');
 Route::view('/cancellation-policy', 'pages.cancellation')->name('cancellation');
-Route::view('/travel-guide', 'pages.travel-guide')->name('travel-guide');
+Route::view('/blog', 'pages.blog')->name('blog');
+Route::view('/blog/detail', 'pages.blog-details')->name('blog.details');
+Route::view('/blog/jaipur', 'pages.blog-details-jaipur')->name('blog.jaipur');
 Route::view('/faqs', 'pages.faqs')->name('faqs');
 Route::view('/help-center', 'pages.help')->name('help');
 Route::middleware('auth')->group(function () {
