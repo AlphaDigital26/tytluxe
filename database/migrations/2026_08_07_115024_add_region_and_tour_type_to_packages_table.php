@@ -12,9 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('packages', function (Blueprint $table) {
-            $table->foreignId('destination_id')->nullable()->after('id')->constrained()->nullOnDelete();
-            $table->enum('region_type', ['domestic', 'international'])->default('domestic')->after('destination_id');
-            $table->enum('tour_type', ['group', 'custom'])->default('group')->after('region_type');
+            //
         });
     }
 
@@ -24,8 +22,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('packages', function (Blueprint $table) {
-            $table->dropForeign(['destination_id']);
-            $table->dropColumn(['destination_id', 'region_type', 'tour_type']);
+            //
         });
     }
 };

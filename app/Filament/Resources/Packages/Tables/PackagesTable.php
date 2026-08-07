@@ -17,21 +17,8 @@ class PackagesTable
             ->columns([
                 TextColumn::make('title')
                     ->searchable(),
-                TextColumn::make('destination.name')
-                    ->searchable()
-                    ->sortable(),
-                TextColumn::make('region_type')
-                    ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'domestic' => 'success',
-                        'international' => 'info',
-                    }),
-                TextColumn::make('tour_type')
-                    ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'group' => 'warning',
-                        'custom' => 'gray',
-                    }),
+                TextColumn::make('slug')
+                    ->searchable(),
                 TextColumn::make('duration_nights')
                     ->numeric()
                     ->sortable(),
