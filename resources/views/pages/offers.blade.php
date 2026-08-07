@@ -160,10 +160,52 @@
   .wa-btn:hover { opacity: .9; transform: translateY(-1px); }
   .wa-btn svg { width: 18px; height: 18px; fill: #fff; flex-shrink: 0; }
 
+  /* ── VOUCHER CARD ── */
+  .voucher-grid { display: flex; gap: 1.5rem; padding: 0 3rem 2rem; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; scroll-snap-type: x mandatory; }
+  .voucher-grid::-webkit-scrollbar { display: none; }
+  .voucher-card {
+    flex: 0 0 340px; scroll-snap-align: start;
+    display: flex; background: var(--dark-card); border-radius: 12px;
+    border: 1px dashed var(--gold); position: relative; overflow: hidden;
+  }
+  .voucher-left {
+    padding: 1.5rem; flex: 1; border-right: 1px dashed var(--border);
+    display: flex; flex-direction: column; justify-content: center;
+  }
+  .voucher-right {
+    padding: 1.5rem; width: 120px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; background: var(--gold-dim);
+  }
+  .voucher-amount { font-family: 'Playfair Display', serif; font-size: 2rem; color: var(--gold); line-height: 1; margin-bottom: .25rem; }
+  .voucher-type { font-size: 10px; text-transform: uppercase; letter-spacing: .1em; color: var(--w50); margin-bottom: .75rem; }
+  .voucher-desc { font-size: 13px; color: var(--white); line-height: 1.4; }
+  .voucher-code-wrap { text-align: center; margin-bottom: .75rem; }
+  .voucher-code-label { font-size: 9px; text-transform: uppercase; color: var(--w50); letter-spacing: .05em; }
+  .voucher-code { font-family: monospace; font-size: 16px; font-weight: 700; color: var(--white); }
+  .voucher-copy-btn {
+    background: var(--gold); color: var(--black); border: none; padding: .5rem .75rem;
+    border-radius: 4px; font-size: 10px; font-weight: 600; text-transform: uppercase;
+    cursor: pointer; transition: background .2s; width: 100%;
+  }
+  .voucher-copy-btn:hover { background: var(--gold-light); }
+
+  /* ── VOUCHER MODAL ── */
+  .voucher-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 9999; align-items: center; justify-content: center; padding: 1.5rem; }
+  .voucher-modal-content { background: var(--dark-card); border: 1px solid var(--border); border-radius: 12px; padding: 2.5rem; max-width: 500px; width: 100%; position: relative; }
+  .voucher-modal-close { position: absolute; top: 1rem; right: 1.5rem; font-size: 1.5rem; color: var(--w50); cursor: pointer; transition: color .2s; }
+  .voucher-modal-close:hover { color: var(--white); }
+  .vm-amount { font-family: 'Playfair Display', serif; font-size: 2.5rem; color: var(--gold); margin-bottom: .25rem; }
+  .vm-type { font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--w50); margin-bottom: 1.5rem; }
+  .vm-code { display: inline-block; background: var(--gold-dim); color: var(--gold); padding: .5rem 1rem; border-radius: 4px; font-family: monospace; font-size: 1.25rem; font-weight: 700; margin-bottom: 1.5rem; border: 1px dashed var(--gold); }
+  .vm-desc { font-size: 14px; color: var(--white); line-height: 1.6; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
+  .vm-terms-title { font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--w50); margin-bottom: 1rem; }
+  .vm-terms { font-size: 12px; color: var(--w50); line-height: 1.8; margin-bottom: 0; }
+
   @media(max-width:768px){
     .slider-header { padding: 0 1.25rem; }
     .slider-track { padding: 0 1.25rem 1.5rem; }
     .notify-form { flex-direction: column; }
+    .voucher-grid { padding: 0 1.25rem 1.5rem; }
   }
 </style>
 @endpush
@@ -188,6 +230,49 @@
       onclick="filterOffers('{{ $tab['key'] }}', this)"
     >{{ $tab['label'] }}</button>
   @endforeach
+</div>
+
+<!-- FLIGHT VOUCHERS -->
+<div class="slider-section" data-category="flights">
+  <div class="slider-header">
+    <div>
+      <div class="slider-label">Flight Deals</div>
+      <div class="slider-title">Exclusive <em>Flight Vouchers</em></div>
+    </div>
+  </div>
+  <div class="voucher-grid">
+    {{-- Voucher 1 --}}
+    <div class="voucher-card" onclick="openVoucherModal('FLYTYT50', '$50 OFF', 'International Flights', 'Valid on all round-trip international bookings over $500.', '1. Valid until Dec 31, 2026.<br>2. Minimum booking value $500.<br>3. Cannot be combined with other offers.<br>4. Applicable only on international routes.')" style="cursor: pointer;">
+      <div class="voucher-left">
+        <div class="voucher-amount">$50 OFF</div>
+        <div class="voucher-type">International Flights</div>
+        <div class="voucher-desc">Valid on all round-trip international bookings over $500.</div>
+      </div>
+      <div class="voucher-right">
+        <div class="voucher-code-wrap">
+          <div class="voucher-code-label">Use Code</div>
+          <div class="voucher-code">FLYTYT50</div>
+        </div>
+        <button class="voucher-copy-btn" onclick="copyVoucher(event, this, 'FLYTYT50')">Copy Code</button>
+      </div>
+    </div>
+
+    {{-- Voucher 2 --}}
+    <div class="voucher-card" onclick="openVoucherModal('SUMMER20', '20% OFF', 'Domestic Flights', 'Get up to $100 off on any domestic flight booking.', '1. Valid until Aug 31, 2026.<br>2. Maximum discount is $100.<br>3. Valid for domestic flights only.<br>4. One-time use per customer.')" style="cursor: pointer;">
+      <div class="voucher-left">
+        <div class="voucher-amount">20% OFF</div>
+        <div class="voucher-type">Domestic Flights</div>
+        <div class="voucher-desc">Get up to $100 off on any domestic flight booking.</div>
+      </div>
+      <div class="voucher-right">
+        <div class="voucher-code-wrap">
+          <div class="voucher-code-label">Use Code</div>
+          <div class="voucher-code">SUMMER20</div>
+        </div>
+        <button class="voucher-copy-btn" onclick="copyVoucher(event, this, 'SUMMER20')">Copy Code</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 @foreach($categories as $catIndex => $category)
@@ -271,6 +356,20 @@
   </div>
 </div>
 
+<!-- VOUCHER MODAL -->
+<div id="voucherModal" class="voucher-modal" onclick="closeVoucherModal(event)">
+  <div class="voucher-modal-content">
+    <span class="voucher-modal-close" onclick="closeVoucherModal(event)">&times;</span>
+    <h3 class="vm-amount" id="vmAmount"></h3>
+    <div class="vm-type" id="vmType"></div>
+    <div class="vm-code">Code: <span id="vmCode"></span></div>
+    <p class="vm-desc" id="vmDesc"></p>
+    
+    <div class="vm-terms-title">Terms & Conditions</div>
+    <div class="vm-terms" id="vmTerms"></div>
+  </div>
+</div>
+
 @endsection
 
 @push('scripts')
@@ -320,6 +419,36 @@
     const btn = e.target.querySelector('button');
     btn.textContent = 'Done!'; btn.disabled = true;
     document.getElementById('notifySuccess').style.display = 'block';
+  }
+
+  function openVoucherModal(code, amount, type, desc, terms) {
+    document.getElementById('vmAmount').textContent = amount;
+    document.getElementById('vmType').textContent = type;
+    document.getElementById('vmCode').textContent = code;
+    document.getElementById('vmDesc').textContent = desc;
+    document.getElementById('vmTerms').innerHTML = terms;
+    document.getElementById('voucherModal').style.display = 'flex';
+  }
+
+  function closeVoucherModal(e) {
+    if (e.target.id === 'voucherModal' || e.target.classList.contains('voucher-modal-close')) {
+      document.getElementById('voucherModal').style.display = 'none';
+    }
+  }
+
+  function copyVoucher(e, btn, code) {
+    e.stopPropagation();
+    navigator.clipboard.writeText(code).then(() => {
+      const originalText = btn.textContent;
+      btn.textContent = 'Copied!';
+      btn.style.background = '#27ae60';
+      btn.style.color = '#fff';
+      setTimeout(() => {
+        btn.textContent = originalText;
+        btn.style.background = 'var(--gold)';
+        btn.style.color = 'var(--black)';
+      }, 2000);
+    });
   }
 </script>
 @endpush

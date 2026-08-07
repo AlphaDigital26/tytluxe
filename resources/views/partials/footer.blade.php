@@ -142,7 +142,7 @@
 
                     <li><a href="{{ route('cancellation') }}">Cancellation Policy</a></li>
 
-                    <li><a href="{{ route('travel-guide') }}">Travel Guide</a></li>
+                    <li><a href="{{ route('blog') }}">Travel Journal</a></li>
 
                     <li><a href="{{ route('faqs') }}">FAQs</a></li>
 

@@ -614,17 +614,8 @@
           $imageUrl = $hotel['img'][0]['url'] ?? 'placeholder.jpg';
           $price = $hotel['pop'][0]['tpc'] ?? '0';
       @endphp
-      <div class="htl-card" data-category="{{ Str::slug($location) }}"
-        data-name="{{ $name }}"
-        data-badge="{{ $category }}"
-        data-location="{{ $location }}"
-        data-images="{{ json_encode([$imageUrl]) }}"
-        data-desc="{{ $address }}"
-        data-checkin="2:00 PM" data-checkout="11:00 AM"
-        data-features="Wi-Fi, Parking"
-        data-rooms="Standard Room, Deluxe Room"
-        data-attractions="Local attractions can be confirmed on enquiry."
-        data-wa="I'm interested in {{ $name }}, {{ $location }}. Please share availability and rates.">
+      <a href="{{ route('hotel.details', $id) }}" class="htl-card" data-category="{{ Str::slug($location) }}"
+        style="text-decoration: none;">
         <div class="htl-card-img">
           <img src="{{ $imageUrl }}" alt="{{ $name }}, {{ $location }}" loading="lazy" />
           <span class="htl-badge">{{ $category }}</span>
@@ -639,10 +630,10 @@
           </div>
           <div class="htl-card-footer">
             <span class="htl-card-timing">Tripjack Live Rate</span>
-            <button class="htl-book-btn">View Details <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg></button>
+            <span class="htl-book-btn">View Details <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg></span>
           </div>
         </div>
-      </div>
+      </a>
       @empty
         <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--white-60);">
             <h3>No hotels found for the selected criteria.</h3>
@@ -652,61 +643,6 @@
     </div>
 </section>
 
-<!-- ======================================================
-     HOTEL DETAIL MODAL
-====================================================== -->
-<div class="htl-modal-backdrop" id="htlModalBackdrop" role="dialog" aria-modal="true" aria-labelledby="htlModalName">
-  <div class="htl-modal" id="htlModal">
-    <button class="htl-modal-close" id="htlModalClose" aria-label="Close">X</button>
-    <div class="htl-modal-slider-wrap">
-      <img class="htl-modal-img" id="htlModalImg" src="" alt="" />
-      <button class="htl-modal-nav htl-modal-prev" id="htlModalPrev" style="display:none;">❮</button>
-      <button class="htl-modal-nav htl-modal-next" id="htlModalNext" style="display:none;">❯</button>
-      <div class="htl-modal-dots" id="htlModalDots"></div>
-    </div>
-    <div class="htl-modal-body">
-      <div class="htl-modal-top">
-        <span class="htl-modal-badge" id="htlModalBadge"></span>
-        <span class="htl-modal-loc" id="htlModalLoc"></span>
-      </div>
-      <h2 class="htl-modal-name" id="htlModalName"></h2>
-      <p class="htl-modal-desc" id="htlModalDesc"></p>
-      <div class="htl-modal-details">
-                <div class="htl-modal-detail-item htl-modal-overview">
-          <label>Property Overview</label>
-          <span id="htlModalLocationDetail"></span>
-        </div>
-<div class="htl-modal-detail-item">
-          <label>Check-in</label>
-          <span id="htlModalCheckin"></span>
-        </div>
-        <div class="htl-modal-detail-item">
-          <label>Check-out</label>
-          <span id="htlModalCheckout"></span>
-        </div>
-                      <div class="htl-modal-detail-item htl-modal-detail-wide">
-          <label>Nearby Attractions</label>
-          <span id="htlModalBestFor"></span>
-        </div>
-<div class="htl-modal-detail-item htl-modal-detail-wide">
-          <label>Room Categories</label>
-          <span id="htlModalRooms"></span>
-        </div>
-      </div>
-      <div class="htl-modal-features" id="htlModalFeatures"></div>
-      <div class="htl-modal-actions">
-        <a href="#htl-enquiry" class="htl-modal-enquire" id="htlModalEnquire">
-          Send Enquiry
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
-        </a>
-        <a href="#" class="htl-modal-wa" id="htlModalWa" target="_blank">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-          WhatsApp Us
-        </a>
-      </div>
-    </div>
-  </div>
-</div>
 
 <!-- ======================================================
      FEATURED BANNER
@@ -900,180 +836,6 @@
   }, { threshold: 0.08 });
   cards.forEach(c => revealObs.observe(c));
 
-  /* ===== MODAL ===== */
-  const backdrop   = document.getElementById('htlModalBackdrop');
-  const modalClose = document.getElementById('htlModalClose');
-  const modalImg   = document.getElementById('htlModalImg');
-  const modalBadge = document.getElementById('htlModalBadge');
-  const modalLoc   = document.getElementById('htlModalLoc');
-  const modalLocationDetail = document.getElementById('htlModalLocationDetail');
-  const modalName  = document.getElementById('htlModalName');
-  const modalDesc  = document.getElementById('htlModalDesc');
-  const modalCi    = document.getElementById('htlModalCheckin');
-  const modalCo    = document.getElementById('htlModalCheckout');
-  const modalRooms = document.getElementById('htlModalRooms');
-  const modalBestFor = document.getElementById('htlModalBestFor');
-  const modalFeat  = document.getElementById('htlModalFeatures');
-  const modalWa    = document.getElementById('htlModalWa');
-  const modalEnq   = document.getElementById('htlModalEnquire');
-
-  function renderRoomCategories(value) {
-    const raw = value || 'Room details available on enquiry.';
-    const parts = raw.split(/[;\n,]/).map(item => item.trim()).filter(Boolean);
-    const noteParts = [];
-    const categories = parts.filter(item => {
-      if (/enquiry|availability|occupancy/i.test(item)) {
-        noteParts.push(item.replace(/\.$/, ''));
-        return false;
-      }
-      return true;
-    });
-
-    modalRooms.innerHTML = '';
-
-    if (categories.length) {
-      const list = document.createElement('div');
-      list.className = 'htl-room-category-list';
-      categories.forEach(item => {
-        const chip = document.createElement('span');
-        chip.className = 'htl-room-category';
-        chip.textContent = item.replace(/\.$/, '');
-        list.appendChild(chip);
-      });
-      modalRooms.appendChild(list);
-    } else {
-      modalRooms.textContent = raw;
-    }
-
-    if (noteParts.length) {
-      const note = document.createElement('small');
-      note.className = 'htl-room-note';
-      note.textContent = noteParts.join('. ') + '.';
-      modalRooms.appendChild(note);
-    }
-  }
-
-  let currentImages = [];
-  let currentImageIndex = 0;
-
-  const modalImgWrap = document.querySelector('.htl-modal-slider-wrap');
-  const modalPrev = document.getElementById('htlModalPrev');
-  const modalNext = document.getElementById('htlModalNext');
-  const modalDots = document.getElementById('htlModalDots');
-
-  function updateSlider() {
-    modalImg.style.opacity = '0';
-    setTimeout(() => {
-      modalImg.src = currentImages[currentImageIndex];
-      modalImg.style.opacity = '1';
-    }, 200);
-
-    Array.from(modalDots.children).forEach((dot, idx) => {
-      dot.className = idx === currentImageIndex ? 'htl-modal-dot active' : 'htl-modal-dot';
-    });
-  }
-
-  modalPrev.addEventListener('click', () => {
-    currentImageIndex = (currentImageIndex - 1 + currentImages.length) % currentImages.length;
-    updateSlider();
-  });
-
-  modalNext.addEventListener('click', () => {
-    currentImageIndex = (currentImageIndex + 1) % currentImages.length;
-    updateSlider();
-  });
-
-  function openModal(card) {
-    const d = card.dataset;
-    currentImages = JSON.parse(d.images || '["placeholder.jpg"]');
-    currentImageIndex = 0;
-
-    modalImg.src = currentImages[0];
-    modalImg.style.opacity = '1';
-    modalImg.alt = d.name;
-
-    modalDots.innerHTML = '';
-    if (currentImages.length > 1) {
-      modalPrev.style.display = 'flex';
-      modalNext.style.display = 'flex';
-      currentImages.forEach((_, idx) => {
-        const dot = document.createElement('div');
-        dot.className = idx === 0 ? 'htl-modal-dot active' : 'htl-modal-dot';
-        dot.addEventListener('click', () => {
-          currentImageIndex = idx;
-          updateSlider();
-        });
-        modalDots.appendChild(dot);
-      });
-    } else {
-      modalPrev.style.display = 'none';
-      modalNext.style.display = 'none';
-    }
-
-    modalBadge.textContent = d.badge;
-    modalLoc.textContent   = d.location;
-    modalName.textContent  = d.name;
-    modalLocationDetail.textContent = d.desc;
-    modalDesc.textContent  = d.desc;
-    modalCi.textContent    = d.checkin;
-    modalCo.textContent    = d.checkout;
-    renderRoomCategories(d.rooms);
-    modalBestFor.textContent = d.attractions;
-
-    modalFeat.innerHTML = '';
-    d.features.split(',').forEach(f => {
-      const span = document.createElement('span');
-      span.className = 'htl-modal-feature';
-      span.textContent = f.trim();
-      modalFeat.appendChild(span);
-    });
-
-    const msg = encodeURIComponent(d.wa);
-    modalWa.href = 'https://wa.me/919875073788?text=' + msg;
-
-    modalEnq.addEventListener('click', function handler(e) {
-      e.preventDefault();
-      closeModal();
-      const destSel = document.getElementById('htlDestination');
-      if (destSel) {
-        const loc = d.location;
-        for (let opt of destSel.options) {
-          if (opt.value === loc) { opt.selected = true; break; }
-        }
-      }
-      document.getElementById('htl-enquiry').scrollIntoView({ behavior: 'smooth' });
-      modalEnq.removeEventListener('click', handler);
-    }, { once: true });
-
-    backdrop.classList.add('open');
-    document.body.style.overflow = 'hidden';
-  }
-
-  function closeModal() {
-    backdrop.classList.remove('open');
-    document.body.style.overflow = '';
-  }
-
-  cards.forEach(card => {
-    const btn = card.querySelector('.htl-book-btn');
-    if (btn) {
-      btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        openModal(card);
-      });
-    }
-    card.addEventListener('click', (e) => {
-      // Don't trigger again if the click was on the button (handled above)
-      if (!e.target.closest('.htl-book-btn')) {
-        openModal(card);
-      }
-    });
-  });
-
-  modalClose.addEventListener('click', closeModal);
-  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeModal(); });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
 
   /* ===== ENQUIRY FORM ===== */
   const form    = document.getElementById('htlEnquiryForm');
