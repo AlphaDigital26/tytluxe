@@ -615,22 +615,23 @@
           $price = $hotel['pop'][0]['tpc'] ?? '0';
       @endphp
       <a href="{{ route('hotel.details', $id) }}" class="htl-card" data-category="{{ Str::slug($location) }}"
+        data-name="{{ Str::slug($name) }}" data-location="{{ Str::slug($location) }}"
         style="text-decoration: none;">
         <div class="htl-card-img">
-          <img src="placeholder.jpg" alt="{{ $hotel->title }}, {{ $hotel->destination->name }}" loading="lazy" />
-          <span class="htl-badge">{{ ucfirst(str_replace('_', ' ', $hotel->category)) }}</span>
-          <span class="htl-loc-badge">&#128205; {{ $hotel->destination->name }}</span>
+          <img src="{{ $imageUrl }}" alt="{{ $name }}, {{ $location }}" loading="lazy" />
+          <span class="htl-badge">{{ $category }}</span>
+          <span class="htl-loc-badge">&#128205; {{ $location }}</span>
         </div>
         <div class="htl-card-body">
-          <h3 class="htl-card-name">{{ $hotel->title }}</h3>
-          <p class="htl-card-desc">{{ Str::limit($hotel->description, 100) }}</p>
+          <h3 class="htl-card-name">{{ $name }}</h3>
+          <p class="htl-card-desc">{{ $address }}</p>
           <div class="htl-card-meta">
-            @foreach($hotel->amenities->take(2) as $amenity)
-              <span>{{ $amenity->name }}</span>
-            @endforeach
+            @for($i = 0; $i < min($rating, 5); $i++)
+              <span>★</span>
+            @endfor
           </div>
           <div class="htl-card-footer">
-            <span class="htl-card-timing">Tripjack Live Rate</span>
+            <span class="htl-card-timing">From ₹{{ number_format($price) }}</span>
             <span class="htl-book-btn">View Details <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg></span>
           </div>
         </div>
