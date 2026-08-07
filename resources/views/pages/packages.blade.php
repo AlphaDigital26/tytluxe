@@ -244,91 +244,67 @@
       <p class="pkg-desc">Browse our exclusive selection of luxury travel packages, meticulously curated to provide unparalleled experiences in the world's most stunning locations.</p>
     </div>
 
-    <!-- Main Tabs -->
-    <div class="pkg-main-tabs" style="display:flex; justify-content:center; gap:16px; margin-bottom: 40px;">
-      <button class="pkg-tab-btn active" onclick="switchRegion('domestic')">Domestic Packages</button>
-      <button class="pkg-tab-btn" onclick="switchRegion('international')">International Packages</button>
+    <!-- Search -->
+    <div class="pkg-search-wrap">
+      <label for="pkg-search">Search Packages</label>
+      <input type="text" id="pkg-search" placeholder="Search by destination, package name...">
+      <button class="pkg-search-pill"><i class="fa-solid fa-search" style="margin-right:8px;"></i> Search</button>
     </div>
 
-    <!-- DOMESTIC SECTION -->
-    <div id="region-domestic" class="region-content">
-      @forelse($domesticPackages as $city => $cityPackages)
-        <div class="city-section" style="margin-bottom: 64px;">
-          <h2 style="font-family: 'Cormorant Garamond', serif; font-size: 36px; color: #fff; margin-bottom: 24px; border-bottom: 1px solid var(--white-10); padding-bottom: 12px;">{{ $city }}</h2>
+    <!-- Grid -->
+    <div class="pkg-grid">
+      @forelse($packages as $package)
+        <a href="{{ route('package.details', ['id' => $package->id ?? 1]) }}" class="pkg-card">
+          <div class="pkg-card-img">
+            @if($package->images && $package->images->count() > 0)
+              @if(Str::startsWith($package->images->first()->image_path, 'http'))
+                <img src="{{ $package->images->first()->image_path }}" alt="{{ $package->title }}" loading="lazy">
+              @else
+                <img src="{{ asset('storage/' . $package->images->first()->image_path) }}" alt="{{ $package->title }}" loading="lazy">
+              @endif
+            @else
+              <img src="https://images.unsplash.com/photo-1540202404-b71180fb78d1?w=700&q=80" alt="{{ $package->title }}" loading="lazy">
+            @endif
+            <div class="pkg-badge">Featured</div>
+            <div class="pkg-nights">
+              <i class="fa-solid fa-moon"></i> {{ $package->duration_nights }} Nights
+            </div>
+          </div>
           
-          @php
-            $groupTours = $cityPackages->where('tour_type', 'group');
-            $customTours = $cityPackages->where('tour_type', 'custom');
-          @endphp
-
-          @if($groupTours->isNotEmpty())
-            <h3 style="font-family: 'Jost', sans-serif; font-size: 20px; color: var(--gold); margin-bottom: 16px; text-transform:uppercase; letter-spacing:0.1em;">Group Tours</h3>
-            <div class="pkg-grid" style="margin-bottom: 32px;">
-              @foreach($groupTours as $package)
-                @include('components.package-card', ['package' => $package])
+          <div class="pkg-card-body">
+            @if($package->destination)
+            <div class="pkg-location">
+              <i class="fa-solid fa-location-dot"></i> {{ $package->destination->name }}
+            </div>
+            @endif
+            
+            <h3 class="pkg-name">{{ $package->title }}</h3>
+            
+            @if($package->inclusions && $package->inclusions->count() > 0)
+            <div class="pkg-inclusions">
+              @foreach($package->inclusions->take(3) as $inclusion)
+                <div class="pkg-inclusion-badge">
+                  <i class="fa-solid fa-check"></i> {{ $inclusion->name ?? $inclusion->title ?? 'Included' }}
+                </div>
               @endforeach
             </div>
-          @endif
-
-          @if($customTours->isNotEmpty())
-            <h3 style="font-family: 'Jost', sans-serif; font-size: 20px; color: var(--gold); margin-bottom: 16px; text-transform:uppercase; letter-spacing:0.1em;">Custom Packages</h3>
-            <div class="pkg-grid">
-              @foreach($customTours as $package)
-                @include('components.package-card', ['package' => $package])
-              @endforeach
+            @endif
+            
+            <div class="pkg-footer">
+              <div class="pkg-price">
+                <div class="pkg-price-lbl">Starting From</div>
+                <div class="pkg-price-val"><span class="pkg-price-curr">₹</span>{{ number_format($package->price_from, 0) }}</div>
+              </div>
+              <div class="pkg-btn-sm">View Details</div>
             </div>
-          @endif
-        </div>
+          </div>
+        </a>
       @empty
-        <p style="color:#fff; text-align:center;">No domestic packages available at the moment.</p>
-      @endforelse
-    </div>
-
-    <!-- INTERNATIONAL SECTION -->
-    <div id="region-international" class="region-content" style="display: none;">
-      @forelse($internationalPackages as $city => $cityPackages)
-        <div class="city-section" style="margin-bottom: 64px;">
-          <h2 style="font-family: 'Cormorant Garamond', serif; font-size: 36px; color: #fff; margin-bottom: 24px; border-bottom: 1px solid var(--white-10); padding-bottom: 12px;">{{ $city }}</h2>
-          
-          @php
-            $groupTours = $cityPackages->where('tour_type', 'group');
-            $customTours = $cityPackages->where('tour_type', 'custom');
-          @endphp
-
-          @if($groupTours->isNotEmpty())
-            <h3 style="font-family: 'Jost', sans-serif; font-size: 20px; color: var(--gold); margin-bottom: 16px; text-transform:uppercase; letter-spacing:0.1em;">Group Tours</h3>
-            <div class="pkg-grid" style="margin-bottom: 32px;">
-              @foreach($groupTours as $package)
-                @include('components.package-card', ['package' => $package])
-              @endforeach
-            </div>
-          @endif
-
-          @if($customTours->isNotEmpty())
-            <h3 style="font-family: 'Jost', sans-serif; font-size: 20px; color: var(--gold); margin-bottom: 16px; text-transform:uppercase; letter-spacing:0.1em;">Custom Packages</h3>
-            <div class="pkg-grid">
-              @foreach($customTours as $package)
-                @include('components.package-card', ['package' => $package])
-              @endforeach
-            </div>
-          @endif
-        </div>
-      @empty
-        <p style="color:#fff; text-align:center;">No international packages available at the moment.</p>
+        <p style="color:#fff; text-align:center; grid-column:1/-1;">No packages available at the moment. Please check back soon.</p>
       @endforelse
     </div>
     
   </div>
 </section>
-
-<script>
-  function switchRegion(region) {
-    document.querySelectorAll('.region-content').forEach(el => el.style.display = 'none');
-    document.querySelectorAll('.pkg-tab-btn').forEach(el => el.classList.remove('active'));
-    
-    document.getElementById('region-' + region).style.display = 'block';
-    event.target.classList.add('active');
-  }
-</script>
 
 @endsection

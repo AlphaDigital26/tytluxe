@@ -25,24 +25,6 @@ class FrontendController extends Controller
         return view('pages.hotels', compact('hotels'));
     }
 
-    public function hotelDetails($id, \App\Services\TripjackService $tripjackService)
-    {
-        $hotelDetail = $tripjackService->getHotelDetail($id);
-
-        if (isset($hotelDetail['error']) && $hotelDetail['error']) {
-            abort(404, 'Hotel not found or API error.');
-        }
-
-        // We assume the service returns an array structured like ['hotel' => [...]]
-        $hotel = $hotelDetail['hotel'] ?? null;
-
-        if (!$hotel) {
-            abort(404, 'Hotel data missing.');
-        }
-
-        return view('pages.hotel-details', compact('hotel'));
-    }
-
     public function cruises()
     {
         // ── Page-level text settings ───────────────────────────────────────
@@ -199,19 +181,93 @@ class FrontendController extends Controller
 
     public function packages()
     {
-        // Fetch all active packages with their destinations and images
-        $allPackages = Package::with(['destination', 'images', 'inclusions'])->where('is_active', true)->get();
-
-        // Separate into International and Domestic
-        $internationalPackages = $allPackages->where('region_type', 'international')->groupBy(function($package) {
-            return $package->destination ? $package->destination->name : 'Other';
-        });
+        // Dummy data for presentation
+        $packages = collect([
+            (object)[
+                'id' => 1,
+                'title' => 'Maldives Luxury Escape',
+                'duration_nights' => 5,
+                'price_from' => 125000,
+                'destination' => (object)['name' => 'Maldives'],
+                'images' => collect([(object)['image_path' => 'https://images.unsplash.com/photo-1514282401047-d79a71a590e8?w=700&q=80']]),
+                'inclusions' => collect([(object)['name' => 'Overwater Villa'], (object)['name' => 'All-Inclusive'], (object)['name' => 'Seaplane Transfer']])
+            ],
+            (object)[
+                'id' => 2,
+                'title' => 'Swiss Alps Adventure',
+                'duration_nights' => 7,
+                'price_from' => 185000,
+                'destination' => (object)['name' => 'Switzerland'],
+                'images' => collect([(object)['image_path' => 'https://images.unsplash.com/photo-1530122037265-a5f1f91d3b99?w=700&q=80']]),
+                'inclusions' => collect([(object)['name' => 'Ski Pass'], (object)['name' => 'Premium Chalet'], (object)['name' => 'Breakfast']])
+            ],
+            (object)[
+                'id' => 3,
+                'title' => 'Bali Wellness Retreat',
+                'duration_nights' => 6,
+                'price_from' => 95000,
+                'destination' => (object)['name' => 'Indonesia'],
+                'images' => collect([(object)['image_path' => 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=700&q=80']]),
+                'inclusions' => collect([(object)['name' => 'Spa Treatments'], (object)['name' => 'Yoga Classes'], (object)['name' => 'Organic Meals']])
+            ],
+            (object)[
+                'id' => 4,
+                'title' => 'Dubai City Breaks',
+                'duration_nights' => 4,
+                'price_from' => 85000,
+                'destination' => (object)['name' => 'UAE'],
+                'images' => collect([(object)['image_path' => 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=700&q=80']]),
+                'inclusions' => collect([(object)['name' => 'Burj Khalifa Ticket'], (object)['name' => 'Desert Safari'], (object)['name' => '5-Star Hotel']])
+            ],
+            (object)[
+                'id' => 5,
+                'title' => 'Paris Romance Tour',
+                'duration_nights' => 5,
+                'price_from' => 150000,
+                'destination' => (object)['name' => 'France'],
+                'images' => collect([(object)['image_path' => 'https://images.unsplash.com/photo-1502602898657-3e90760b2401?w=700&q=80']]),
+                'inclusions' => collect([(object)['name' => 'Eiffel Tower Tour'], (object)['name' => 'Seine Cruise'], (object)['name' => 'Wine Tasting']])
+            ],
+            (object)[
+                'id' => 6,
+                'title' => 'Santorini Getaway',
+                'duration_nights' => 6,
+                'price_from' => 145000,
+                'destination' => (object)['name' => 'Greece'],
+                'images' => collect([(object)['image_path' => 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=700&q=80']]),
+                'inclusions' => collect([(object)['name' => 'Sunset Cruise'], (object)['name' => 'Cliffside Suite'], (object)['name' => 'Daily Breakfast']])
+            ],
+            // ── NEW: Jibhi Tirthan Valley 2N3D ───────────────────────────────────
+            (object)[
+                'id' => 7,
+                'title' => 'Jibhi Tirthan Valley',
+                'duration_nights' => 2,
+                'price_from' => 6999,
+                'destination' => (object)['name' => 'Himachal Pradesh'],
+                'images' => collect([(object)['image_path' => 'https://images.unsplash.com/photo-1585409677983-0f6c41ca9c3b?w=700&q=80']]),
+                'inclusions' => collect([
+                    (object)['name' => 'Delhi–Delhi Transport'],
+                    (object)['name' => '2 Breakfast + 2 Dinner'],
+                    (object)['name' => 'Hotel Stay'],
+                ])
+            ],
+            // ── NEW: Manali Sisu Kasol 3N4D ──────────────────────────────────────
+            (object)[
+                'id' => 8,
+                'title' => 'Manali Sisu Kasol',
+                'duration_nights' => 3,
+                'price_from' => 9999,
+                'destination' => (object)['name' => 'Himachal Pradesh'],
+                'images' => collect([(object)['image_path' => 'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=700&q=80']]),
+                'inclusions' => collect([
+                    (object)['name' => 'AC Coach Delhi–Delhi'],
+                    (object)['name' => '3 Breakfast + 3 Dinner'],
+                    (object)['name' => 'Hotel + Camp Stay'],
+                ])
+            ],
+        ]);
         
-        $domesticPackages = $allPackages->where('region_type', 'domestic')->groupBy(function($package) {
-            return $package->destination ? $package->destination->name : 'Other';
-        });
-
-        return view('pages.packages', compact('internationalPackages', 'domesticPackages'));
+        return view('pages.packages', compact('packages'));
     }
 
     public function packageDetails($id)
