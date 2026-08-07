@@ -109,30 +109,19 @@
   .wa-btn:hover { opacity: 0.9; transform: translateY(-1px); color: #fff; }
   .wa-btn svg { width: 20px; height: 20px; fill: #fff; flex-shrink: 0; }
 
-  /* MAP PLACEHOLDER */
-  .map-placeholder {
+  /* MAP CONTAINER */
+  .map-container {
     border-radius: 8px;
-    border: 1px dashed rgba(201,168,76,0.25);
+    border: 1px solid var(--border);
     background: var(--dark-card);
     height: 190px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    color: var(--white-40);
-    font-size: 12px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    overflow: hidden;
   }
-  .map-placeholder svg {
-    width: 26px; height: 26px;
-    stroke: var(--gold);
-    fill: none;
-    stroke-width: 1.5;
-    opacity: 0.5;
+  .map-container iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
   }
-  .map-placeholder span.sub { font-size: 10px; text-transform: none; letter-spacing: 0; color: var(--white-40); opacity: 0.6; margin-top: 2px; }
 
   /* DIVIDER */
   .row-divider {
@@ -289,10 +278,8 @@
 
     <div class="row-divider"><span>Our Location</span></div>
 
-    <div class="map-placeholder">
-      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-      <span>Map coming soon</span>
-      <span class="sub">Surana Supremus, 4th Floor, Cabin No - 9, Near Safal Square, Vesu, Surat 394518</span>
+    <div class="map-container">
+      <iframe src="https://maps.google.com/maps?q=Surana%20Supremus,%20Near%20Safal%20Square,%20Vesu,%20Surat%20394518&t=&z=15&ie=UTF8&iwloc=&output=embed" allowfullscreen="" loading="lazy"></iframe>
     </div>
 
   </div>

@@ -27,6 +27,24 @@ class FrontendController extends Controller
         return view('pages.hotels', compact('apiResponse'));
     }
 
+    public function hotelDetails($id, \App\Services\TripjackService $tripjackService)
+    {
+        $hotelDetail = $tripjackService->getHotelDetail($id);
+
+        if (isset($hotelDetail['error']) && $hotelDetail['error']) {
+            abort(404, 'Hotel not found or API error.');
+        }
+
+        // We assume the service returns an array structured like ['hotel' => [...]]
+        $hotel = $hotelDetail['hotel'] ?? null;
+
+        if (!$hotel) {
+            abort(404, 'Hotel data missing.');
+        }
+
+        return view('pages.hotel-details', compact('hotel'));
+    }
+
     public function cruises()
     {
         // ── Page-level text settings ───────────────────────────────────────
