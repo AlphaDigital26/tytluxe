@@ -20,6 +20,10 @@ class AdminResource extends Resource
 {
     protected static ?string $model = Admin::class;
 
+    protected static ?string $modelLabel = 'Admin';
+    protected static ?string $pluralModelLabel = 'Admins';
+    protected static ?string $navigationLabel = 'Admins';
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
     protected static ?string $recordTitleAttribute = 'name';

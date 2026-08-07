@@ -13,7 +13,7 @@ use Filament\Panel;
 class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, \Illuminate\Database\Eloquent\SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
@@ -23,10 +23,11 @@ class User extends Authenticatable implements FilamentUser
     protected $fillable = [
         'name',
         'email',
+        'google_id',
         'phone',
         'password',
-        'role',
-        'is_active',
+        'status',
+        'last_login_at',
         'two_factor_secret',
         'two_factor_recovery_codes',
         'dob',
@@ -57,8 +58,9 @@ class User extends Authenticatable implements FilamentUser
     {
         return [
             'email_verified_at' => 'datetime',
+            'phone_verified_at' => 'datetime',
+            'last_login_at' => 'datetime',
             'password' => 'hashed',
-            'is_active' => 'boolean',
             'address' => 'array',
             'preferences' => 'array',
             'notifications' => 'array',
@@ -74,8 +76,13 @@ class User extends Authenticatable implements FilamentUser
     public function assignedBookings() { return $this->hasMany(Booking::class, 'agent_id'); }
     public function reviews() { return $this->hasMany(Review::class); }
 
+    public function getUserIdAttribute(): string
+    {
+        return 'TYT' . str_pad((string) $this->id, 6, '0', STR_PAD_LEFT);
+    }
+
     public function canAccessPanel(Panel $panel): bool
     {
-        return in_array($this->role, ['agent', 'admin']) && $this->is_active;
+        return false;
     }
 }

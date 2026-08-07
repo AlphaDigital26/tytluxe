@@ -1758,7 +1758,8 @@ input:checked + .profile-slider:before {
 .auth-page-wrapper {
     display: flex;
     flex-direction: row-reverse;
-    min-height: 100vh;
+    height: 100vh;
+    overflow: hidden;
     width: 100%;
     background-color: #fff;
     font-family: 'Inter', sans-serif;
@@ -1844,17 +1845,18 @@ input:checked + .profile-slider:before {
     display: flex;
     flex-direction: column;
     justify-content: center;
-    padding: 30px 40px;
+    padding: 15px 40px;
     position: relative;
+    overflow-y: auto;
 }
 
 .auth-back-btn {
     position: absolute;
-    top: 20px;
+    top: 15px;
     right: 30px;
     color: #666;
     text-decoration: none;
-    font-size: 14px;
+    font-size: 13px;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -1873,15 +1875,15 @@ input:checked + .profile-slider:before {
 
 .auth-logo-center {
     display: block;
-    margin: 0 auto 20px;
-    height: 50px;
+    margin: 0 auto 10px;
+    height: 35px;
 }
 
 .auth-form-container h2 {
     font-family: 'Playfair Display', serif;
-    font-size: 30px;
+    font-size: 26px;
     color: #111;
-    margin-bottom: 5px;
+    margin-bottom: 2px;
     text-align: center;
     font-weight: 700;
 }
@@ -1889,11 +1891,12 @@ input:checked + .profile-slider:before {
 .auth-form-container .auth-modal-subtitle {
     color: #666;
     text-align: center;
-    margin-bottom: 25px;
+    margin-bottom: 15px;
+    font-size: 14px;
 }
 
 .auth-form-container .auth-form-group {
-    margin-bottom: 20px;
+    margin-bottom: 12px;
 }
 
 .auth-form-container .auth-form-group label {
@@ -1910,7 +1913,8 @@ input:checked + .profile-slider:before {
 
 .auth-form-container .auth-form-group input {
     color: #111 !important;
-    padding: 8px 0;
+    padding: 5px 0;
+    font-size: 14px;
 }
 
 .auth-form-container .auth-form-group input:-webkit-autofill,
@@ -1930,7 +1934,8 @@ input:checked + .profile-slider:before {
     border: none;
     margin-top: 5px;
     margin-bottom: 10px;
-    padding: 12px;
+    padding: 10px;
+    font-weight: 600;
 }
 
 .auth-form-container .auth-submit-btn:hover {
@@ -1940,17 +1945,16 @@ input:checked + .profile-slider:before {
 
 .auth-form-container .auth-switch {
     color: #666;
-    margin-top: 15px;
+    margin-top: 10px;
 }
 
 /* Social Buttons */
 .auth-social-divider {
-    display: flex;
-    align-items: center;
     text-align: center;
-    margin: 15px 0;
     color: #999;
     font-size: 12px;
+    margin: 10px 0;
+    position: relative;
 }
 .auth-social-divider::before,
 .auth-social-divider::after {

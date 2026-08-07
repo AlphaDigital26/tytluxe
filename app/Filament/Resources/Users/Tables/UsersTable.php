@@ -15,32 +15,31 @@ class UsersTable
     {
         return $table
             ->columns([
+                TextColumn::make('user_id')
+                    ->label('User ID')
+                    ->searchable(['id']),
                 TextColumn::make('name')
                     ->searchable(),
                 TextColumn::make('email')
-                    ->label('Email address')
                     ->searchable(),
                 TextColumn::make('phone')
                     ->searchable(),
-                TextColumn::make('email_verified_at')
+                TextColumn::make('status')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'Active' => 'success',
+                        'Suspended' => 'warning',
+                        'Blocked' => 'danger',
+                        default => 'gray',
+                    }),
+                TextColumn::make('last_login_at')
                     ->dateTime()
                     ->sortable(),
-                TextColumn::make('phone_verified_at')
-                    ->dateTime()
-                    ->sortable(),
-                TextColumn::make('role')
-                    ->badge(),
-                IconColumn::make('is_active')
-                    ->boolean(),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('deleted_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),

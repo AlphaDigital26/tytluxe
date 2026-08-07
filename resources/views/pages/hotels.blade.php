@@ -617,16 +617,17 @@
       <a href="{{ route('hotel.details', $id) }}" class="htl-card" data-category="{{ Str::slug($location) }}"
         style="text-decoration: none;">
         <div class="htl-card-img">
-          <img src="{{ $imageUrl }}" alt="{{ $name }}, {{ $location }}" loading="lazy" />
-          <span class="htl-badge">{{ $category }}</span>
-          <span class="htl-loc-badge">&#128205; {{ $location }}</span>
+          <img src="placeholder.jpg" alt="{{ $hotel->title }}, {{ $hotel->destination->name }}" loading="lazy" />
+          <span class="htl-badge">{{ ucfirst(str_replace('_', ' ', $hotel->category)) }}</span>
+          <span class="htl-loc-badge">&#128205; {{ $hotel->destination->name }}</span>
         </div>
         <div class="htl-card-body">
-          <h3 class="htl-card-name">{{ Str::limit($name, 40) }}</h3>
-          <p class="htl-card-desc">{{ Str::limit($address, 80) }}</p>
+          <h3 class="htl-card-name">{{ $hotel->title }}</h3>
+          <p class="htl-card-desc">{{ Str::limit($hotel->description, 100) }}</p>
           <div class="htl-card-meta">
-              <span>{{ $rating }} Star</span>
-              <span>₹{{ number_format((float)$price) }}</span>
+            @foreach($hotel->amenities->take(2) as $amenity)
+              <span>{{ $amenity->name }}</span>
+            @endforeach
           </div>
           <div class="htl-card-footer">
             <span class="htl-card-timing">Tripjack Live Rate</span>

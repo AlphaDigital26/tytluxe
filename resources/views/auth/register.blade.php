@@ -12,106 +12,108 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ asset('assets/css/style.css') }}">
+    <style>
+        .auth-grid-scroll {
+            position: absolute;
+            top: -50%;
+            left: -10%;
+            width: 120%;
+            height: 200%;
+            display: flex;
+            gap: 20px;
+            transform: rotate(-15deg);
+            z-index: 1;
+            pointer-events: none;
+            opacity: 0.6;
+        }
+
+        .grid-column {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 50%;
+        }
+
+        .grid-column img {
+            width: 100%;
+            border-radius: 15px;
+            object-fit: cover;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            height: 300px;
+        }
+
+        .col-up {
+            animation: scrollUp 35s linear infinite;
+        }
+
+        .col-down {
+            animation: scrollDown 35s linear infinite;
+        }
+
+        @keyframes scrollUp {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-50%); }
+        }
+
+        @keyframes scrollDown {
+            0% { transform: translateY(-50%); }
+            100% { transform: translateY(0); }
+        }
+
+        .auth-bg-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, rgba(10,10,10,0.5) 0%, rgba(10,10,10,0.95) 100%);
+            z-index: 2;
+        }
+    </style>
 </head>
 <body>
 
 <div class="auth-page-wrapper">
-    <!-- Right Side: Image/SVG -->
-    <div class="auth-image-side">
-        <div class="auth-illustration">
-            <svg viewBox="0 0 500 500" width="100%" height="100%">
-                <defs>
-                    <!-- Glow Filter -->
-                    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-                        <feGaussianBlur stdDeviation="15" result="blur" />
-                        <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                    </filter>
-                    <linearGradient id="planetGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stop-color="#2a2a2a" />
-                        <stop offset="100%" stop-color="#111" />
-                    </linearGradient>
-                </defs>
-
-                <!-- Background Orbital Rings to fill empty space -->
-                <circle cx="250" cy="250" r="240" fill="none" stroke="#ffffff" stroke-width="1" opacity="0.03" stroke-dasharray="4 4" class="svg-pulse" />
-                <circle cx="250" cy="250" r="210" fill="none" stroke="#c9a84c" stroke-width="1" opacity="0.05" />
-                
-                <!-- Crossing abstract flight paths in background -->
-                <path d="M -50 150 Q 250 50 550 250" fill="none" stroke="#fff" stroke-width="1" opacity="0.05" />
-                <path d="M -50 400 Q 250 450 550 300" fill="none" stroke="#c9a84c" stroke-width="1" opacity="0.08" />
-
-                <!-- Main Background Circle (Planet) -->
-                <circle cx="250" cy="250" r="160" fill="url(#planetGrad)" filter="url(#glow)" />
-                <circle cx="250" cy="250" r="160" fill="none" stroke="#333" stroke-width="2" />
-                
-                <!-- Globe / Planet Lines -->
-                <g opacity="0.8">
-                    <circle cx="250" cy="250" r="160" fill="none" stroke="#c9a84c" stroke-width="1" opacity="0.3" />
-                    <ellipse cx="250" cy="250" rx="160" ry="60" fill="none" stroke="#c9a84c" stroke-width="1.5" opacity="0.5" transform="rotate(35 250 250)" class="svg-float" style="transform-origin: center;" />
-                    <ellipse cx="250" cy="250" rx="60" ry="160" fill="none" stroke="#c9a84c" stroke-width="1.5" opacity="0.5" transform="rotate(35 250 250)" class="svg-float" style="transform-origin: center;" />
-                </g>
-                
-                <!-- Airplane Dashed Trail -->
-                <path d="M 120 330 Q 50 220 180 120 T 360 120" fill="none" stroke="#fff" stroke-width="2.5" stroke-dasharray="6 6" opacity="0.5" />
-                
-                <!-- Floating Airplane -->
-                <g class="svg-float-reverse" style="transform-origin: center;">
-                    <g transform="translate(350, 110) rotate(55) scale(0.9)">
-                        <!-- Wings -->
-                        <path d="M 20 25 L -20 10 L 0 5 Z" fill="#eee" />
-                        <path d="M 20 25 L 50 50 L 30 15 Z" fill="#c9a84c" />
-                        <!-- Fuselage -->
-                        <path d="M -30 25 Q 20 25 50 15 L 50 35 Q 20 35 -30 35 Q -40 30 -30 25 Z" fill="#fff" />
-                        <!-- Tail -->
-                        <path d="M -25 25 L -40 10 L -20 20 Z" fill="#eee" />
-                    </g>
-                </g>
-
-                <!-- Floating Location Pin with glow -->
-                <g class="svg-float-delayed" style="transform-origin: center;" filter="url(#glow)">
-                    <g transform="translate(130, 80) scale(0.9)">
-                        <path d="M15,0 C6.7,0 0,6.7 0,15 C0,26.2 15,40 15,40 C15,40 30,26.2 30,15 C30,6.7 23.3,0 15,0 Z" fill="#c9a84c" />
-                        <circle cx="15" cy="14" r="6" fill="#fff" />
-                    </g>
-                </g>
-
-                <!-- Floating Abstract Shapes & Constellations -->
-                <circle cx="70" cy="130" r="14" fill="#333" class="svg-float" />
-                <circle cx="430" cy="380" r="22" fill="#c9a84c" opacity="0.9" class="svg-float-delayed" filter="url(#glow)" />
-                <circle cx="390" cy="90" r="8" fill="#fff" opacity="0.4" class="svg-pulse" />
-                <circle cx="100" cy="400" r="6" fill="#c9a84c" class="svg-pulse" />
-                <circle cx="450" cy="180" r="4" fill="#fff" opacity="0.2" />
-                <circle cx="40" cy="280" r="5" fill="#c9a84c" opacity="0.3" />
-                
-                <!-- Constellation Lines -->
-                <path d="M 390 90 L 450 180 L 430 380" fill="none" stroke="#fff" stroke-width="1" stroke-dasharray="2 4" opacity="0.15" />
-                <path d="M 70 130 L 40 280 L 100 400" fill="none" stroke="#fff" stroke-width="1" stroke-dasharray="2 4" opacity="0.15" />
-
-                <!-- Chat / Idea Bubble -->
-                <g class="svg-float" style="transform-origin: center;">
-                    <g transform="translate(330, 310) scale(1)">
-                        <rect x="0" y="0" width="70" height="45" rx="10" fill="#222" stroke="#c9a84c" stroke-width="1" />
-                        <polygon points="15,45 25,45 15,55" fill="#222" />
-                        <polygon points="15,45 25,45 15,55" fill="none" stroke="#c9a84c" stroke-width="1" />
-                        <!-- Line to cover the border where the triangle meets the rect -->
-                        <line x1="16" y1="45" x2="24" y2="45" stroke="#222" stroke-width="2" />
-                        
-                        <circle cx="20" cy="22.5" r="4" fill="#c9a84c" />
-                        <circle cx="35" cy="22.5" r="4" fill="#c9a84c" />
-                        <circle cx="50" cy="22.5" r="4" fill="#c9a84c" />
-                    </g>
-                </g>
-                
-                <!-- Sparkles -->
-                <path d="M 80 290 Q 90 290 90 280 Q 90 290 100 290 Q 90 290 90 300 Q 90 290 80 290 Z" fill="#fff" opacity="0.6" class="svg-pulse" />
-                <path d="M 400 220 Q 405 220 405 215 Q 405 220 410 220 Q 405 220 405 225 Q 405 220 400 220 Z" fill="#c9a84c" opacity="0.9" class="svg-pulse" />
-
-            </svg>
+    <!-- Right Side: Animated Grid Scroll -->
+    <div class="auth-image-side" style="padding: 0; position: relative; background: #000; overflow: hidden;">
+        <!-- Scrolling image grid -->
+        <div class="auth-grid-scroll">
+            <!-- Column 1 (Scrolls Up) -->
+            <div class="grid-column col-up">
+                <img src="{{ asset('assets/images/Hotel Collections 1.webp') }}" alt="Hotel">
+                <img src="{{ asset('assets/images/Cruise Experiences 1.webp') }}" alt="Cruise">
+                <img src="{{ asset('assets/images/Hotel Collections 3.jpg') }}" alt="Hotel">
+                <img src="{{ asset('assets/images/29788-15-hotel_carousel_large.jpg') }}" alt="Flight">
+                <img src="{{ asset('assets/images/Cruise Experiences 2.png') }}" alt="Cruise">
+                <!-- Duplicate for infinite scroll -->
+                <img src="{{ asset('assets/images/Hotel Collections 1.webp') }}" alt="Hotel">
+                <img src="{{ asset('assets/images/Cruise Experiences 1.webp') }}" alt="Cruise">
+                <img src="{{ asset('assets/images/Hotel Collections 3.jpg') }}" alt="Hotel">
+                <img src="{{ asset('assets/images/29788-15-hotel_carousel_large.jpg') }}" alt="Flight">
+                <img src="{{ asset('assets/images/Cruise Experiences 2.png') }}" alt="Cruise">
+            </div>
+            <!-- Column 2 (Scrolls Down) -->
+            <div class="grid-column col-down">
+                <img src="{{ asset('assets/images/Hotel Collections 2.jpg') }}" alt="Hotel">
+                <img src="{{ asset('assets/images/Carousel.jpeg') }}" alt="Carousel">
+                <img src="{{ asset('assets/images/Cruise Experiences 3.webp') }}" alt="Cruise">
+                <img src="{{ asset('assets/images/Hotel Collections 4.png') }}" alt="Hotel">
+                <img src="{{ asset('assets/images/cruise-ship-is-docked-night-with-word-cruise-side_916191-10755.jpg') }}" alt="Cruise">
+                <!-- Duplicate for infinite scroll -->
+                <img src="{{ asset('assets/images/Hotel Collections 2.jpg') }}" alt="Hotel">
+                <img src="{{ asset('assets/images/Carousel.jpeg') }}" alt="Carousel">
+                <img src="{{ asset('assets/images/Cruise Experiences 3.webp') }}" alt="Cruise">
+                <img src="{{ asset('assets/images/Hotel Collections 4.png') }}" alt="Hotel">
+                <img src="{{ asset('assets/images/cruise-ship-is-docked-night-with-word-cruise-side_916191-10755.jpg') }}" alt="Cruise">
+            </div>
         </div>
+        
+        <!-- Gradient Overlay -->
+        <div class="auth-bg-overlay"></div>
 
-        <div class="auth-image-content">
-            <h2>Experience Travel the Right Way.</h2>
-            <p>Handpicked Hotels & Cruises Curated for Comfort, Luxury & Value.</p>
+        <div class="auth-image-content" style="position: relative; z-index: 10; padding: 40px; text-align: center;">
+            <h2>Elevate Your Journey.</h2>
+            <p>Experience world-class flights, luxury cruises, and exclusive handpicked hotels tailored for you.</p>
         </div>
     </div>
 
@@ -178,7 +180,7 @@
             <div class="auth-social-divider">Or continue with</div>
 
             <div class="auth-social-buttons">
-                <a href="#" class="auth-social-btn">
+                <a href="{{ route('social.google.redirect') }}" class="auth-social-btn">
                     <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" alt="Google"> Google
                 </a>
                 <a href="#" class="auth-social-btn">
