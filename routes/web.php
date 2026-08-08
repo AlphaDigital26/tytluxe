@@ -20,7 +20,7 @@ Route::view('/contact', 'pages.contact')->name('contact');
 Route::view('/terms-and-conditions', 'pages.terms')->name('terms');
 Route::view('/privacy-policy', 'pages.privacy')->name('privacy');
 Route::view('/cancellation-policy', 'pages.cancellation')->name('cancellation');
-Route::view('/blog', 'pages.blog')->name('blog');
+Route::get('/blog', [FrontendController::class, 'blog'])->name('blog');
 Route::view('/blog/detail', 'pages.blog-details')->name('blog.details');
 Route::view('/blog/jaipur', 'pages.blog-details-jaipur')->name('blog.jaipur');
 Route::view('/faqs', 'pages.faqs')->name('faqs');

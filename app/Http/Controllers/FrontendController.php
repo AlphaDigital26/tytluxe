@@ -20,10 +20,9 @@ class FrontendController extends Controller
 
     public function hotels()
     {
-        $tripjack    = new \App\Services\TripjackService();
-        $apiResponse = $tripjack->searchHotels();
+        $hotels = Hotel::with(['destination', 'amenities'])->where('is_active', true)->get();
 
-        return view('pages.hotels', compact('apiResponse'));
+        return view('pages.hotels', compact('hotels'));
     }
 
     public function hotelDetails($id)
