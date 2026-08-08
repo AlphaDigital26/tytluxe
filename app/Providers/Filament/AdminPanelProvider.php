@@ -37,6 +37,7 @@ class AdminPanelProvider extends PanelProvider
                 'warning' => Color::Orange,
             ])
             ->brandName('TYT Luxe')
+            ->favicon(asset('assets/images/favicon.png'))
             ->font('Inter')
             ->navigationGroups([
                 \Filament\Navigation\NavigationGroup::make()
