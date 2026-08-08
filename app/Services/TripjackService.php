@@ -13,7 +13,7 @@ class TripjackService
     public function __construct()
     {
         $this->baseUrl = 'https://apitest-hms.tripjack.com/hms/v3';
-        $this->apiKey  = env('TRIPJACK_API_KEY', '41339895c5de9a-9c33-4558-a139-ccaa3fcf1440');
+        $this->apiKey  = env('TRIPJACK_API_KEY', '4133982984b2ff-40db-4e66-8913-8d64a0a9e001');
     }
 
     /**
