@@ -33,11 +33,12 @@
 }
 .blog-hero-slide {
   flex: 0 0 100%;
+  height: 100%;          /* ← required so align-items:flex-end works */
   position: relative;
   background-size: cover;
   background-position: center;
   display: flex;
-  align-items: flex-end;
+  align-items: flex-end; /* content anchored to bottom */
   padding: 0 0 90px;
 }
 .blog-hero-slide::before {
@@ -45,7 +46,15 @@
   position: absolute;
   inset: 0;
   background-image: linear-gradient(to bottom, rgba(15,12,8,0.2) 0%, rgba(15,12,8,0.9) 100%);
-  z-index: -1;
+  z-index: 0;
+}
+.blog-hero-inner {
+  position: relative;
+  z-index: 1;
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 40px;       /* no top padding — content sits at bottom of slide */
 }
 .blog-slider-controls {
   position: absolute;
@@ -70,12 +79,6 @@
   background: var(--gold);
   transform: scale(1.2);
 }
-.blog-hero-inner {
-  max-width: 1200px;
-  width: 100%;
-  margin: 0 auto;
-  padding: 100px 40px 0; /* top clears fixed navbar; sides give breathing room */
-}
 .blog-hero-badge {
   display: inline-block;
   background: var(--gold);
@@ -90,11 +93,16 @@
 }
 .blog-hero-title {
   font-family: 'Playfair Display', serif;
-  font-size: clamp(2.2rem, 4.5vw, 3.6rem);
+  font-size: clamp(1.6rem, 3.5vw, 2.8rem); /* slightly tighter so long titles fit */
   color: #fff;
-  line-height: 1.2;
+  line-height: 1.25;
   margin-bottom: 16px;
   max-width: 680px;
+  /* Clamp to 3 lines — never overflow upward into the navbar */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 .blog-hero-meta {
   display: flex;
@@ -128,6 +136,19 @@
   background: #a17f4b;
   transform: translateY(-2px);
 }
+
+/* ── No-content placeholders ─────────────────────────── */
+.hero-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(135deg, var(--dark-mid) 0%, #2a1f12 100%);
+}
+.hero-placeholder-inner { text-align: center; padding: 40px; }
+.hero-placeholder-inner h2 { font-family:'Playfair Display',serif; color:#fff; font-size: 2rem; margin-bottom: 12px; }
+.hero-placeholder-inner p { color: rgba(255,255,255,0.6); font-size: 1rem; }
 
 /* ── Filter Bar ────────────────────────────────────────── */
 .filter-bar {
@@ -165,39 +186,6 @@
   border-bottom-color: var(--gold);
   font-weight: 600;
 }
-.filter-dropdown {
-  position: relative;
-  display: inline-block;
-}
-.dropdown-menu {
-  display: none;
-  position: absolute;
-  top: 100%;
-  left: 0;
-  background: var(--white);
-  min-width: 180px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
-  border-radius: 4px;
-  padding: 8px 0;
-  z-index: 200;
-  border: 1px solid var(--border);
-}
-.filter-dropdown:hover .dropdown-menu {
-  display: block;
-}
-.dropdown-menu a {
-  display: block;
-  padding: 10px 20px;
-  color: var(--text-muted);
-  font-size: 0.85rem;
-  text-decoration: none;
-  transition: all var(--transition);
-}
-.dropdown-menu a:hover {
-  background: var(--cream);
-  color: var(--gold);
-  padding-left: 24px;
-}
 .filter-search {
   margin-left: auto;
   flex-shrink: 0;
@@ -225,7 +213,6 @@
   margin: 0 auto;
   padding: 60px 24px 60px;
 }
-
 
 /* ── Section headings ─────────────────────────────── */
 .section-label {
@@ -348,209 +335,15 @@
 }
 .read-link:hover { gap: 10px; }
 
-/* ── Explore More ─────────────────────────────────── */
-.explore-more-wrap {
+/* ── Empty state ──────────────────────────────────── */
+.empty-state {
+  grid-column: 1 / -1;
   text-align: center;
-  padding-top: 20px;
-}
-.explore-more-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  border: 2px solid var(--gold);
-  color: var(--gold);
-  padding: 14px 36px;
-  border-radius: 4px;
-  font-size: 0.88rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  cursor: pointer;
-  background: transparent;
-  font-family: inherit;
-  transition: all var(--transition);
-}
-.explore-more-btn:hover { background: var(--gold); color: #fff; }
-
-/* ── Sidebar ──────────────────────────────────────── */
-.sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: 32px;
-}
-
-/* CTA Widget */
-.cta-widget {
-  background: linear-gradient(135deg, var(--dark-mid) 0%, #2a1f12 100%);
-  border-radius: 10px;
-  padding: 32px;
-  text-align: center;
-  position: relative;
-  overflow: hidden;
-}
-.cta-widget::before {
-  content: '';
-  position: absolute;
-  top: -30px; right: -30px;
-  width: 120px; height: 120px;
-  border-radius: 50%;
-  background: rgba(184,147,90,0.15);
-}
-.cta-widget-icon {
-  font-size: 2rem;
-  margin-bottom: 14px;
-}
-.cta-widget h4 {
-  font-family: 'Playfair Display', serif;
-  font-size: 1.3rem;
-  color: #fff;
-  margin-bottom: 10px;
-}
-.cta-widget p {
-  font-size: 0.88rem;
-  color: rgba(255,255,255,0.7);
-  line-height: 1.6;
-  margin-bottom: 22px;
-}
-.cta-widget-btn {
-  display: block;
-  background: var(--gold);
-  color: #fff;
-  padding: 14px 24px;
-  border-radius: 4px;
-  font-size: 0.88rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  text-decoration: none;
-  transition: background var(--transition);
-}
-.cta-widget-btn:hover { background: #a17f4b; }
-
-/* Newsletter Widget */
-.nl-widget {
-  background: var(--white);
-  border-radius: 10px;
-  padding: 28px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-}
-.nl-widget h4 {
-  font-family: 'Playfair Display', serif;
-  font-size: 1.25rem;
-  color: var(--text-dark);
-  margin-bottom: 8px;
-}
-.nl-widget p {
-  font-size: 0.85rem;
+  padding: 60px 20px;
   color: var(--text-muted);
-  line-height: 1.6;
-  margin-bottom: 18px;
 }
-.nl-widget input {
-  width: 100%;
-  border: 1px solid rgba(184,147,90,0.3);
-  border-radius: 4px;
-  padding: 12px 14px;
-  font-size: 0.88rem;
-  font-family: inherit;
-  margin-bottom: 10px;
-  outline: none;
-  background: var(--cream);
-  transition: border-color var(--transition), box-shadow var(--transition);
-}
-.nl-widget input:focus {
-  border-color: var(--gold);
-  box-shadow: 0 0 0 3px rgba(184,147,90,0.12);
-}
-.nl-widget button {
-  width: 100%;
-  background: linear-gradient(135deg, var(--gold), #d4a96a);
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  padding: 13px;
-  font-size: 0.88rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-family: inherit;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(184,147,90,0.3);
-  transition: all var(--transition);
-}
-.nl-widget button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(184,147,90,0.4);
-}
-
-/* Categories Widget */
-.cat-widget {
-  background: var(--white);
-  border-radius: 10px;
-  padding: 28px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-}
-.cat-widget h4 {
-  font-family: 'Playfair Display', serif;
-  font-size: 1.25rem;
-  color: var(--text-dark);
-  margin-bottom: 20px;
-  padding-bottom: 12px;
-  border-bottom: 2px solid var(--border);
-}
-.cat-list { list-style: none; margin: 0; padding: 0; }
-.cat-list li { margin-bottom: 4px; }
-.cat-list a {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 12px;
-  border-radius: 6px;
-  text-decoration: none;
-  color: var(--text-muted);
-  font-size: 0.9rem;
-  transition: all var(--transition);
-}
-.cat-list a:hover { background: var(--gold-light); color: var(--gold); padding-left: 18px; }
-.cat-count {
-  background: var(--cream);
-  padding: 2px 9px;
-  border-radius: 20px;
-  font-size: 0.78rem;
-  color: var(--text-dark);
-  font-weight: 600;
-}
-
-/* Services Widget */
-.services-widget {
-  background: var(--cream);
-  border-radius: 10px;
-  padding: 28px;
-  border: 1px solid rgba(184,147,90,0.2);
-}
-.services-widget h4 {
-  font-family: 'Playfair Display', serif;
-  font-size: 1.2rem;
-  color: var(--text-dark);
-  margin-bottom: 18px;
-}
-.service-links { display: flex; flex-direction: column; gap: 10px; }
-.service-link {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 14px;
-  background: var(--white);
-  border-radius: 6px;
-  text-decoration: none;
-  color: var(--text-dark);
-  font-size: 0.88rem;
-  font-weight: 500;
-  border: 1px solid var(--border);
-  transition: all var(--transition);
-}
-.service-link:hover { border-color: var(--gold); color: var(--gold); transform: translateX(4px); }
-.service-link-icon { font-size: 1.1rem; }
+.empty-state svg { margin-bottom: 16px; opacity: 0.3; }
+.empty-state p { font-size: 1rem; }
 
 /* ── Popular Destinations ─────────────────────────── */
 .destinations-strip {
@@ -586,6 +379,7 @@
   overflow: hidden;
   height: 180px;
   text-decoration: none;
+  cursor: pointer;
 }
 .dest-card img {
   width: 100%;
@@ -613,216 +407,125 @@
   color: var(--gold);
   display: block;
 }
+.dest-placeholder {
+  text-align: center;
+  color: rgba(255,255,255,0.4);
+  padding: 40px;
+  grid-column: 1 / -1;
+}
 </style>
 @endpush
 
 @section('content')
 
-{{-- ── HERO ────────────────────────────────────────── --}}
+{{-- ── HERO CAROUSEL ────────────────────────────────────────── --}}
 <section class="blog-hero" id="blogHeroSlider">
-  <div class="blog-slider-track">
-    {{-- Slide 1 (Jaipur) --}}
-    <div class="blog-hero-slide" style="background-image: url('https://images.unsplash.com/photo-1605806616949-1e87b487cb2a?auto=format&fit=crop&w=1920&q=80');">
-      <div class="blog-hero-inner">
-        <span class="blog-hero-badge">✦ New Arrival</span>
-        <h1 class="blog-hero-title">Secret Spots in the Pink City: A Detailed Guide to Jaipur's Hidden Wonders</h1>
-        <div class="blog-hero-meta">
-          <span><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Aug 15, 2026</span>
-          <span><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> 10 min read</span>
-          <span>Cultural Journeys</span>
+  @if($trendingPosts->isNotEmpty())
+    <div class="blog-slider-track">
+      @foreach($trendingPosts as $post)
+        <div class="blog-hero-slide" style="background-image: url('{{ $post->cover_image_url ?? 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=1920&q=80' }}');">
+          <div class="blog-hero-inner">
+            <span class="blog-hero-badge">✦ {{ $post->is_trending ? 'Trending' : 'Featured Story' }}</span>
+            <h1 class="blog-hero-title">{{ $post->title }}</h1>
+            <div class="blog-hero-meta">
+              @if($post->published_at)
+                <span>
+                  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                  {{ $post->published_at->format('M j, Y') }}
+                </span>
+              @endif
+              <span>
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                {{ $post->read_time_minutes }} min read
+              </span>
+              @if($post->category)
+                <span>{{ $post->category->name }}</span>
+              @endif
+            </div>
+            <a href="{{ route('blog.details') }}" class="hero-read-btn">
+              Read Article
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </a>
+          </div>
         </div>
-        <a href="{{ route('blog.jaipur') }}" class="hero-read-btn">Read Article <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
-      </div>
+      @endforeach
     </div>
 
-    {{-- Slide 2 (Maldives) --}}
-    <div class="blog-hero-slide" style="background-image: url('https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=1920&q=80');">
-      <div class="blog-hero-inner">
-        <span class="blog-hero-badge">✦ Featured Story</span>
-        <h1 class="blog-hero-title">10 Hidden Gems in the Maldives for Your Next Luxury Staycation</h1>
-        <div class="blog-hero-meta">
-          <span><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Aug 6, 2026</span>
-          <span><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> 6 min read</span>
-          <span>Destination Guide</span>
-        </div>
-        <a href="{{ route('blog.details') }}" class="hero-read-btn">Read Article <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
-      </div>
+    <div class="blog-slider-controls">
+      @foreach($trendingPosts as $i => $post)
+        <button class="blog-dot {{ $i === 0 ? 'active' : '' }}" data-index="{{ $i }}"></button>
+      @endforeach
     </div>
 
-    {{-- Slide 3 (Paris) --}}
-    <div class="blog-hero-slide" style="background-image: url('https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=1920&q=80');">
-      <div class="blog-hero-inner">
-        <span class="blog-hero-badge">✦ Editor's Pick</span>
-        <h1 class="blog-hero-title">A Taste of Elegance: Dining Through the Streets of Paris</h1>
-        <div class="blog-hero-meta">
-          <span><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Jul 28, 2026</span>
-          <span><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> 5 min read</span>
-          <span>Culinary</span>
-        </div>
-        <a href="{{ route('blog.details') }}" class="hero-read-btn">Read Article <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+  @else
+    {{-- Fallback when no trending posts exist --}}
+    <div class="hero-placeholder">
+      <div class="hero-placeholder-inner">
+        <h2>Travel Journal</h2>
+        <p>No trending stories yet — add blog posts and mark them as Trending in the admin panel.</p>
       </div>
     </div>
-  </div>
-
-  <div class="blog-slider-controls">
-    <button class="blog-dot active" data-index="0"></button>
-    <button class="blog-dot" data-index="1"></button>
-    <button class="blog-dot" data-index="2"></button>
-  </div>
+  @endif
 </section>
 
 {{-- ── FILTER BAR ─────────────────────────────────── --}}
 <nav class="filter-bar">
   <div class="filter-bar-inner">
-    <a class="filter-tab active" href="#">All Blogs</a>
-    <div class="filter-dropdown">
-      <div class="filter-tab">Destinations ▾</div>
-      <div class="dropdown-menu">
-        <a href="#">Maldives</a>
-        <a href="#">Paris</a>
-        <a href="#">Dubai</a>
-        <a href="#">Tokyo</a>
-        <a href="#">New York</a>
-      </div>
-    </div>
-    <a class="filter-tab" href="#">Luxury Hotels</a>
-    <a class="filter-tab" href="#">Cruises</a>
-    <a class="filter-tab" href="#">Staycations</a>
-    <a class="filter-tab" href="#">Travel Tips</a>
-    <a class="filter-tab" href="#">Wellness</a>
-    <a class="filter-tab" href="#">Food & Culture</a>
+    <a class="filter-tab active" href="#" data-category="all">All Blogs</a>
+    @foreach($categories as $cat)
+      <a class="filter-tab" href="#" data-category="{{ $cat->slug }}">{{ $cat->name }}</a>
+    @endforeach
     <div class="filter-search">
-      <input type="text" placeholder="🔍 Search blogs...">
+      <input type="text" placeholder="🔍 Search blogs..." id="blogSearchInput">
     </div>
   </div>
 </nav>
 
 {{-- ── MAIN CONTENT ────────────────────────────────── --}}
 <div class="blog-page-wrap">
-
-  {{-- LEFT: Blog Grid --}}
   <main>
     <p class="section-label">Latest Stories</p>
-    <h2 class="section-title">From Our Travel Journal</h2>
+    <h2 class="section-title" id="sectionTitle">From Our Travel Journal</h2>
 
-    <div class="blog-grid">
-    
-      {{-- Card Jaipur --}}
-      <a href="{{ route('blog.jaipur') }}" class="blog-card">
-        <div class="blog-card-img-wrap">
-          <img src="https://images.unsplash.com/photo-1605806616949-1e87b487cb2a?auto=format&fit=crop&w=800&q=80" alt="Jaipur">
-          <span class="card-category-tag">Cultural Journeys</span>
-        </div>
-        <div class="blog-card-body">
-          <div class="blog-card-meta">
-            <span>Aug 15, 2026</span><span class="dot"></span><span>10 min read</span>
+    <div class="blog-grid" id="blogGrid">
+      @forelse($posts as $post)
+        <a href="{{ route('blog.details') }}" class="blog-card" data-category="{{ $post->category?->slug ?? '' }}">
+          <div class="blog-card-img-wrap">
+            <img
+              src="{{ $post->cover_image_url ?? 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=800&q=80' }}"
+              alt="{{ $post->title }}"
+              loading="lazy"
+            >
+            @if($post->category)
+              <span class="card-category-tag">{{ $post->category->name }}</span>
+            @endif
           </div>
-          <h3 class="blog-card-title">Secret Spots in the Pink City: A Detailed Guide to Jaipur's Hidden Wonders</h3>
-          <p class="blog-card-excerpt">Explore the serene stepwells, hidden artisan quarters, and majestic havelis that lie just beyond the typical tourist path.</p>
-          <span class="read-link">Read Article →</span>
-        </div>
-      </a>
-
-      {{-- Card 1 --}}
-      <a href="{{ route('blog.details') }}" class="blog-card">
-        <div class="blog-card-img-wrap">
-          <img src="https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=800&q=80" alt="Paris Streets">
-          <span class="card-category-tag">Culinary</span>
-        </div>
-        <div class="blog-card-body">
-          <div class="blog-card-meta">
-            <span>Jul 28, 2026</span><span class="dot"></span><span>5 min read</span>
+          <div class="blog-card-body">
+            <div class="blog-card-meta">
+              @if($post->published_at)
+                <span>{{ $post->published_at->format('M j, Y') }}</span>
+                <span class="dot"></span>
+              @endif
+              <span>{{ $post->read_time_minutes }} min read</span>
+            </div>
+            <h3 class="blog-card-title">{{ $post->title }}</h3>
+            @if($post->excerpt)
+              <p class="blog-card-excerpt">{{ $post->excerpt }}</p>
+            @endif
+            <span class="read-link">Read Article →</span>
           </div>
-          <h3 class="blog-card-title">A Taste of Elegance: Dining Through the Streets of Paris</h3>
-          <p class="blog-card-excerpt">From hidden Michelin-starred bistros to the finest patisseries in Montmartre, explore the culinary wonders of the French capital.</p>
-          <span class="read-link">Read Article →</span>
+        </a>
+      @empty
+        <div class="empty-state">
+          <svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+            <path d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10l6 6v8a2 2 0 01-2 2z"/>
+            <polyline points="17 21 17 13 7 13 7 21"/>
+            <polyline points="7 3 7 8 15 8"/>
+          </svg>
+          <p>No blog posts yet. Add some from the admin panel!</p>
         </div>
-      </a>
-
-      {{-- Card 2 --}}
-      <a href="{{ route('blog.details') }}" class="blog-card">
-        <div class="blog-card-img-wrap">
-          <img src="https://images.unsplash.com/photo-1599640842225-85d111c60e6b?auto=format&fit=crop&w=800&q=80" alt="Luxury Cruise">
-          <span class="card-category-tag">Cruises</span>
-        </div>
-        <div class="blog-card-body">
-          <div class="blog-card-meta">
-            <span>Jul 20, 2026</span><span class="dot"></span><span>4 min read</span>
-          </div>
-          <h3 class="blog-card-title">The Ultimate Packing List for a Luxury Cruise Voyage</h3>
-          <p class="blog-card-excerpt">Everything you need for a spectacular voyage, from formal evening wear to effortless daytime excursion outfits.</p>
-          <span class="read-link">Read Article →</span>
-        </div>
-      </a>
-
-      {{-- Card 3 --}}
-      <a href="{{ route('blog.details') }}" class="blog-card">
-        <div class="blog-card-img-wrap">
-          <img src="https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=800&q=80" alt="Bali Retreat">
-          <span class="card-category-tag">Wellness</span>
-        </div>
-        <div class="blog-card-body">
-          <div class="blog-card-meta">
-            <span>Jul 15, 2026</span><span class="dot"></span><span>7 min read</span>
-          </div>
-          <h3 class="blog-card-title">Top 5 Wellness Retreats in Bali That Will Rejuvenate Your Soul</h3>
-          <p class="blog-card-excerpt">Find inner peace in these exclusive lush jungle sanctuaries located in the spiritual heart of Bali.</p>
-          <span class="read-link">Read Article →</span>
-        </div>
-      </a>
-
-      {{-- Card 4 --}}
-      <a href="{{ route('blog.details') }}" class="blog-card">
-        <div class="blog-card-img-wrap">
-          <img src="https://images.unsplash.com/photo-1491555103944-7c647fd857e6?auto=format&fit=crop&w=800&q=80" alt="Swiss Alps">
-          <span class="card-category-tag">Adventure</span>
-        </div>
-        <div class="blog-card-body">
-          <div class="blog-card-meta">
-            <span>Jul 10, 2026</span><span class="dot"></span><span>8 min read</span>
-          </div>
-          <h3 class="blog-card-title">Exploring the Swiss Alps: A Complete Winter Luxury Guide</h3>
-          <p class="blog-card-excerpt">Discover the most exclusive ski resorts, cozy chalets, and breathtaking alpine experiences in Switzerland.</p>
-          <span class="read-link">Read Article →</span>
-        </div>
-      </a>
-
-      {{-- Card 5 --}}
-      <a href="{{ route('blog.details') }}" class="blog-card">
-        <div class="blog-card-img-wrap">
-          <img src="https://images.unsplash.com/photo-1528360983277-13d401cdc186?auto=format&fit=crop&w=800&q=80" alt="Dubai">
-          <span class="card-category-tag">Staycation</span>
-        </div>
-        <div class="blog-card-body">
-          <div class="blog-card-meta">
-            <span>Jul 5, 2026</span><span class="dot"></span><span>6 min read</span>
-          </div>
-          <h3 class="blog-card-title">Why Dubai Is the World's Ultimate Luxury Staycation Hub</h3>
-          <p class="blog-card-excerpt">Experience sky-high opulence, iconic architecture, and desert adventures all within one extraordinary city.</p>
-          <span class="read-link">Read Article →</span>
-        </div>
-      </a>
-
-      {{-- Card 6 --}}
-      <a href="{{ route('blog.details') }}" class="blog-card">
-        <div class="blog-card-img-wrap">
-          <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80" alt="Beach">
-          <span class="card-category-tag">Destinations</span>
-        </div>
-        <div class="blog-card-body">
-          <div class="blog-card-meta">
-            <span>Jun 28, 2026</span><span class="dot"></span><span>5 min read</span>
-          </div>
-          <h3 class="blog-card-title">12 Secluded Beaches Around the World That Only Insiders Know</h3>
-          <p class="blog-card-excerpt">Leave the crowds behind and discover pristine shores that still feel untouched by mass tourism.</p>
-          <span class="read-link">Read Article →</span>
-        </div>
-      </a>
-
+      @endforelse
     </div>
-
-  </main>
-
   </main>
 </div>
 
@@ -832,42 +535,25 @@
     <h2>Explore by Destination</h2>
     <p>Find travel stories, tips, and hidden gems across the world's most luxurious destinations.</p>
     <div class="dest-grid">
-      <a href="{{ route('hotels') }}" class="dest-card">
-        <img src="https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&w=600&q=80" alt="Dubai">
-        <div class="dest-card-overlay">
-          <div>
-            <span class="dest-card-name">Dubai</span>
-            <span class="dest-card-count">8 stories</span>
+      @forelse($destinations as $dest)
+        <div class="dest-card" data-dest="{{ $dest->name }}">
+          @if($dest->image_url)
+            <img src="{{ $dest->image_url }}" alt="{{ $dest->name }}" loading="lazy">
+          @else
+            <img src="https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=600&q=80" alt="{{ $dest->name }}" loading="lazy">
+          @endif
+          <div class="dest-card-overlay">
+            <div>
+              <span class="dest-card-name">{{ $dest->name }}</span>
+              <span class="dest-card-count">{{ $dest->story_count }} {{ Str::plural('story', $dest->story_count) }}</span>
+            </div>
           </div>
         </div>
-      </a>
-      <a href="{{ route('hotels') }}" class="dest-card">
-        <img src="https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?auto=format&fit=crop&w=600&q=80" alt="Maldives">
-        <div class="dest-card-overlay">
-          <div>
-            <span class="dest-card-name">Maldives</span>
-            <span class="dest-card-count">11 stories</span>
-          </div>
+      @empty
+        <div class="dest-placeholder">
+          <p>No featured destinations yet. Add some from the admin panel!</p>
         </div>
-      </a>
-      <a href="{{ route('hotels') }}" class="dest-card">
-        <img src="https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=600&q=80" alt="Paris">
-        <div class="dest-card-overlay">
-          <div>
-            <span class="dest-card-name">Paris</span>
-            <span class="dest-card-count">6 stories</span>
-          </div>
-        </div>
-      </a>
-      <a href="{{ route('hotels') }}" class="dest-card">
-        <img src="https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=600&q=80" alt="Bali">
-        <div class="dest-card-overlay">
-          <div>
-            <span class="dest-card-name">Bali</span>
-            <span class="dest-card-count">9 stories</span>
-          </div>
-        </div>
-      </a>
+      @endforelse
     </div>
   </div>
 </section>
@@ -875,156 +561,113 @@
 @push('scripts')
 <script>
   document.addEventListener('DOMContentLoaded', () => {
-    // 1. Filter Tabs
-    const filterTabs = document.querySelectorAll('.filter-tab:not(.dropdown-toggle), .dropdown-menu a');
-    const blogCards = document.querySelectorAll('.blog-card');
-    
-    // Add dropdown toggle class so we can ignore it
-    const dropdownTab = document.querySelector('.filter-dropdown .filter-tab');
-    if(dropdownTab) dropdownTab.classList.add('dropdown-toggle');
+    const filterTabs  = document.querySelectorAll('.filter-tab');
+    const blogCards   = document.querySelectorAll('.blog-card');
+    const sectionTitle = document.getElementById('sectionTitle');
+    const grid        = document.getElementById('blogGrid');
+    const searchInput = document.getElementById('blogSearchInput');
 
+    // ── Filter Tabs ────────────────────────────────────
     filterTabs.forEach(tab => {
       tab.addEventListener('click', (e) => {
         e.preventDefault();
-        
-        // Update active class state
-        document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
-        const parentTab = e.target.closest('.filter-dropdown') ? e.target.closest('.filter-dropdown').querySelector('.filter-tab') : e.target;
-        if(parentTab) parentTab.classList.add('active');
+        filterTabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
 
-        const filterValue = e.target.innerText.trim().toLowerCase();
-        const displayValue = e.target.innerText.trim();
-        
-        // Visual cue
-        const sectionTitle = document.querySelector('.section-title');
-        if(sectionTitle) {
-          sectionTitle.innerText = filterValue === 'all blogs' ? 'From Our Travel Journal' : 'Showing results for: ' + displayValue.replace(' ▾', '');
+        const category = tab.dataset.category;
+        const label    = tab.textContent.trim();
+
+        if (sectionTitle) {
+          sectionTitle.textContent = category === 'all'
+            ? 'From Our Travel Journal'
+            : 'Showing: ' + label;
         }
-        
-        const exploreWrap = document.querySelector('.explore-more-wrap');
-        if (exploreWrap) {
-          exploreWrap.style.display = filterValue === 'all blogs' ? 'block' : 'none';
-        }
-        const grid = document.querySelector('.blog-grid');
-        if(grid) {
-          grid.style.opacity = '0.2';
-          setTimeout(() => { grid.style.opacity = '1'; }, 300);
-        }
-        
-        blogCards.forEach(card => {
-          const textContent = card.innerText.toLowerCase();
-          let matchValue = filterValue;
-          
-          // Map some tab names to actual tags/keywords present in cards
-          if (filterValue === 'food & culture') matchValue = 'culinary';
-          if (filterValue === 'staycations') matchValue = 'staycation';
-          if (filterValue === 'travel tips') matchValue = 'guide';
-          if (filterValue === 'luxury hotels') matchValue = 'luxury';
-          
-          if (filterValue === 'all blogs') {
-            card.style.display = 'flex';
-          } else if (textContent.includes(matchValue) || textContent.includes(filterValue)) {
-            card.style.display = 'flex';
-          } else {
-            card.style.display = 'none';
-          }
+
+        fadeGrid(() => {
+          blogCards.forEach(card => {
+            if (category === 'all') {
+              card.style.display = 'flex';
+            } else {
+              card.style.display = (card.dataset.category === category) ? 'flex' : 'none';
+            }
+          });
         });
       });
     });
 
-    // 2. Search Bar
-    const searchInput = document.querySelector('.filter-search input');
+    // ── Search Bar ──────────────────────────────────────
     if (searchInput) {
       searchInput.addEventListener('input', (e) => {
-        const searchTerm = e.target.value.toLowerCase();
-        
-        const sectionTitle = document.querySelector('.section-title');
-        if(sectionTitle) sectionTitle.innerText = searchTerm ? 'Search Results' : 'From Our Travel Journal';
-        
-        document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
-        
+        const term = e.target.value.toLowerCase().trim();
+        filterTabs.forEach(t => t.classList.remove('active'));
+        if (sectionTitle) {
+          sectionTitle.textContent = term ? 'Search Results' : 'From Our Travel Journal';
+        }
         blogCards.forEach(card => {
-          const textContent = card.innerText.toLowerCase();
-          if (textContent.includes(searchTerm)) {
-            card.style.display = 'flex';
-          } else {
-            card.style.display = 'none';
-          }
+          card.style.display = card.textContent.toLowerCase().includes(term) ? 'flex' : 'none';
         });
       });
     }
 
-    // 4. Destination Strip Cards
-    const destCards = document.querySelectorAll('.dest-card');
-    destCards.forEach(card => {
-      card.addEventListener('click', (e) => {
-        e.preventDefault();
-        
-        const destName = card.querySelector('.dest-card-name').innerText.trim().toLowerCase();
-        
-        // Visual cue: Update title and fade grid
-        const sectionTitle = document.querySelector('.section-title');
-        if(sectionTitle) sectionTitle.innerText = 'Showing results for: ' + card.querySelector('.dest-card-name').innerText.trim();
-        
-        const grid = document.querySelector('.blog-grid');
-        if(grid) {
-          grid.style.opacity = '0.2';
-          setTimeout(() => { grid.style.opacity = '1'; }, 300);
+    // ── Destination Cards ────────────────────────────────
+    document.querySelectorAll('.dest-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const destName = (card.dataset.dest || '').toLowerCase();
+        if (sectionTitle) {
+          sectionTitle.textContent = 'Showing results for: ' + card.dataset.dest;
         }
 
-        // Update active class state (highlight Destinations tab)
-        document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
-        const destTab = document.querySelector('.filter-dropdown .filter-tab');
-        if(destTab) destTab.classList.add('active');
+        filterTabs.forEach(t => t.classList.remove('active'));
 
-        blogCards.forEach(bc => {
-          const textContent = bc.innerText.toLowerCase();
-          if (textContent.includes(destName)) {
-            bc.style.display = 'flex';
-          } else {
-            bc.style.display = 'none';
-          }
+        fadeGrid(() => {
+          blogCards.forEach(bc => {
+            bc.style.display = bc.textContent.toLowerCase().includes(destName) ? 'flex' : 'none';
+          });
         });
 
-        // Scroll up to the title with an offset for sticky headers
-        const titleElement = document.querySelector('.section-label');
-        if (titleElement) {
-          const y = titleElement.getBoundingClientRect().top + window.scrollY - 120;
+        const titleEl = document.querySelector('.section-label');
+        if (titleEl) {
+          const y = titleEl.getBoundingClientRect().top + window.scrollY - 120;
           window.scrollTo({ top: y, behavior: 'smooth' });
         }
       });
     });
 
-    // 5. Hero Slider Logic
-    const track = document.querySelector('.blog-slider-track');
+    // ── Hero Slider ──────────────────────────────────────
+    const track  = document.querySelector('.blog-slider-track');
     const slides = document.querySelectorAll('.blog-hero-slide');
-    const dots = document.querySelectorAll('.blog-dot');
+    const dots   = document.querySelectorAll('.blog-dot');
     let currentSlide = 0;
     let slideInterval;
 
     function goToSlide(n) {
+      if (!dots[currentSlide]) return;
       dots[currentSlide].classList.remove('active');
       currentSlide = (n + slides.length) % slides.length;
-      track.style.transform = `translateX(-${currentSlide * 100}%)`;
-      dots[currentSlide].classList.add('active');
+      if (track) track.style.transform = `translateX(-${currentSlide * 100}%)`;
+      if (dots[currentSlide]) dots[currentSlide].classList.add('active');
     }
 
-    function nextSlide() {
-      goToSlide(currentSlide + 1);
-    }
-
-    if (slides.length > 0) {
-      slideInterval = setInterval(nextSlide, 5000); // Change slide every 5 seconds
-
-      dots.forEach((dot, index) => {
+    if (slides.length > 1) {
+      slideInterval = setInterval(() => goToSlide(currentSlide + 1), 5000);
+      dots.forEach((dot, i) => {
         dot.addEventListener('click', () => {
           clearInterval(slideInterval);
-          goToSlide(index);
-          slideInterval = setInterval(nextSlide, 5000);
+          goToSlide(i);
+          slideInterval = setInterval(() => goToSlide(currentSlide + 1), 5000);
         });
       });
     }
 
+    // ── Helpers ──────────────────────────────────────────
+    function fadeGrid(cb) {
+      if (grid) {
+        grid.style.opacity = '0.2';
+        setTimeout(() => { cb(); grid.style.opacity = '1'; }, 200);
+      } else {
+        cb();
+      }
+    }
   });
 </script>
 @endpush

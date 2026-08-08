@@ -122,7 +122,7 @@
 /* ===== ABOUT ===== */
 .mn-about-text {
   font-family: 'Jost', sans-serif; font-size: 17px; line-height: 1.9;
-  color: var(--white-60); font-weight: 400;
+  color: var(--white-60); font-weight: 400; text-align: justify;
 }
 .mn-about-text p { margin-bottom: 16px; }
 
@@ -180,7 +180,7 @@
   display: inline-block; margin-bottom: 10px;
 }
 .mn-day-title { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 500; color: #fff; margin-bottom: 16px; line-height: 1.2; }
-.mn-day-body { font-family: 'Jost', sans-serif; font-size: 16.5px; color: var(--white-60); line-height: 1.85; font-weight: 400; }
+.mn-day-body { font-family: 'Jost', sans-serif; font-size: 16.5px; color: var(--white-60); line-height: 1.85; font-weight: 400; text-align: justify; }
 .mn-day-body p { margin-bottom: 12px; }
 .mn-day-body p:last-child { margin-bottom: 0; }
 .mn-day-highlights { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }

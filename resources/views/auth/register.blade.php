@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register - TYT Luxe</title>
+    <link rel="icon" type="image/png" href="{{ asset('assets/images/favicon.png') }}">
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -179,12 +180,9 @@
 
             <div class="auth-social-divider">Or continue with</div>
 
-            <div class="auth-social-buttons">
-                <a href="{{ route('social.google.redirect') }}" class="auth-social-btn">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" alt="Google"> Google
-                </a>
-                <a href="#" class="auth-social-btn">
-                    <i class="fa-brands fa-facebook" style="color: #1877F2; font-size: 18px;"></i> Facebook
+            <div class="auth-social-buttons" style="justify-content: center;">
+                <a href="{{ route('social.google.redirect') }}" class="auth-social-btn" style="width: 100%; justify-content: center;">
+                    <img src="{{ asset('assets/images/google-icon.svg') }}" alt="Google" style="width: 20px; height: 20px;"> Google
                 </a>
             </div>
 
