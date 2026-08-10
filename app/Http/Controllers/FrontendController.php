@@ -199,64 +199,78 @@ class FrontendController extends Controller
         $packages = collect([
             (object)[
                 'id' => 1,
+                'category' => 'international',
                 'title' => 'Maldives Luxury Escape',
                 'duration_nights' => 5,
                 'price_from' => 125000,
+                'short_desc' => 'Crystal-clear lagoons, overwater bungalows, and world-class diving in the heart of the Indian Ocean.',
                 'destination' => (object)['name' => 'Maldives'],
                 'images' => collect([(object)['image_path' => 'https://images.unsplash.com/photo-1514282401047-d79a71a590e8?w=700&q=80']]),
                 'inclusions' => collect([(object)['name' => 'Overwater Villa'], (object)['name' => 'All-Inclusive'], (object)['name' => 'Seaplane Transfer']])
             ],
             (object)[
                 'id' => 2,
+                'category' => 'international',
                 'title' => 'Swiss Alps Adventure',
                 'duration_nights' => 7,
                 'price_from' => 185000,
+                'short_desc' => 'Snow-capped peaks, scenic train rides, and alpine villages in the heart of Europe.',
                 'destination' => (object)['name' => 'Switzerland'],
                 'images' => collect([(object)['image_path' => 'https://images.unsplash.com/photo-1530122037265-a5f1f91d3b99?w=700&q=80']]),
                 'inclusions' => collect([(object)['name' => 'Ski Pass'], (object)['name' => 'Premium Chalet'], (object)['name' => 'Breakfast']])
             ],
             (object)[
                 'id' => 3,
+                'category' => 'international',
                 'title' => 'Bali Wellness Retreat',
                 'duration_nights' => 6,
                 'price_from' => 95000,
+                'short_desc' => 'Immerse yourself in ancient temples, terraced rice fields, and world-class spa therapies.',
                 'destination' => (object)['name' => 'Indonesia'],
                 'images' => collect([(object)['image_path' => 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=700&q=80']]),
                 'inclusions' => collect([(object)['name' => 'Spa Treatments'], (object)['name' => 'Yoga Classes'], (object)['name' => 'Organic Meals']])
             ],
             (object)[
                 'id' => 4,
+                'category' => 'international',
                 'title' => 'Dubai City Breaks',
                 'duration_nights' => 4,
                 'price_from' => 85000,
+                'short_desc' => 'From golden desert dunes to glittering skyscrapers — the ultimate modern luxury experience.',
                 'destination' => (object)['name' => 'UAE'],
                 'images' => collect([(object)['image_path' => 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=700&q=80']]),
                 'inclusions' => collect([(object)['name' => 'Burj Khalifa Ticket'], (object)['name' => 'Desert Safari'], (object)['name' => '5-Star Hotel']])
             ],
             (object)[
                 'id' => 5,
+                'category' => 'international',
                 'title' => 'Paris Romance Tour',
                 'duration_nights' => 5,
                 'price_from' => 150000,
+                'short_desc' => 'The Eiffel Tower, Versailles, and candlelit dinners along the Seine — Paris is always a good idea.',
                 'destination' => (object)['name' => 'France'],
                 'images' => collect([(object)['image_path' => 'https://images.unsplash.com/photo-1502602898657-3e90760b2401?w=700&q=80']]),
                 'inclusions' => collect([(object)['name' => 'Eiffel Tower Tour'], (object)['name' => 'Seine Cruise'], (object)['name' => 'Wine Tasting']])
             ],
             (object)[
                 'id' => 6,
+                'category' => 'international',
                 'title' => 'Santorini Getaway',
                 'duration_nights' => 6,
                 'price_from' => 145000,
+                'short_desc' => 'White-washed villages perched on caldera cliffs, iconic blue domes, and Aegean sunsets.',
                 'destination' => (object)['name' => 'Greece'],
                 'images' => collect([(object)['image_path' => 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=700&q=80']]),
                 'inclusions' => collect([(object)['name' => 'Sunset Cruise'], (object)['name' => 'Cliffside Suite'], (object)['name' => 'Daily Breakfast']])
             ],
-            // ── NEW: Jibhi Tirthan Valley 2N3D ───────────────────────────────────
+            // ── Domestic: Jibhi Tirthan Valley 2N3D ─────────────────────────────
             (object)[
                 'id' => 7,
+                'category' => 'domestic',
                 'title' => 'Jibhi Tirthan Valley',
                 'duration_nights' => 2,
                 'price_from' => 6999,
+                'short_desc' => 'An offbeat Himalayan gem with dense pine forests, crystal rivers, Serolsar Lake and Jalori Pass — perfect for a soul-refreshing escape.',
                 'destination' => (object)['name' => 'Himachal Pradesh'],
                 'images' => collect([(object)['image_path' => 'https://images.unsplash.com/photo-1585409677983-0f6c41ca9c3b?w=700&q=80']]),
                 'inclusions' => collect([
@@ -265,12 +279,14 @@ class FrontendController extends Controller
                     (object)['name' => 'Hotel Stay'],
                 ])
             ],
-            // ── NEW: Manali Sisu Kasol 3N4D ──────────────────────────────────────
+            // ── Domestic: Manali Sisu Kasol 3N4D ─────────────────────────────────
             (object)[
                 'id' => 8,
+                'category' => 'domestic',
                 'title' => 'Manali Sisu Kasol',
                 'duration_nights' => 3,
                 'price_from' => 9999,
+                'short_desc' => 'Snow-capped mountains, the Atal Tunnel, Solang Valley adventures and the bohemian riverside vibe of Kasol — a classic Himachal journey.',
                 'destination' => (object)['name' => 'Himachal Pradesh'],
                 'images' => collect([(object)['image_path' => 'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=700&q=80']]),
                 'inclusions' => collect([
