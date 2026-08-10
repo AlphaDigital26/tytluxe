@@ -110,6 +110,22 @@
   gap: 22px; margin-bottom: 60px;
 }
 
+/* ===== STATE FILTER BAR ===== */
+.state-filter-wrap {
+  display: flex; align-items: center; gap: 8px;
+  overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none;
+  margin-bottom: 24px; padding-bottom: 4px;
+}
+.state-filter-wrap::-webkit-scrollbar { display: none; }
+.state-tab {
+  flex-shrink: 0; padding: 6px 16px; font-size: 0.88rem; font-weight: 500;
+  color: var(--white-60); background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06); border-radius: 30px;
+  cursor: pointer; transition: all var(--transition);
+}
+.state-tab:hover { color: #fff; background: rgba(255,255,255,0.1); }
+.state-tab.active { color: #fff; background: var(--gold); border-color: var(--gold); font-weight: 600; }
+
 /* ===== DESTINATION CARD ===== */
 .dest-card {
   position: relative; border-radius: var(--radius); overflow: hidden;
@@ -363,9 +379,22 @@
       <!-- DOMESTIC PANEL -->
       <div class="cat-panel active" id="panel-domestic" role="tabpanel" aria-labelledby="tab-domestic">
         <div class="dest-label"><i class="fa-solid fa-map-pin"></i> Destinations in India</div>
-        <div class="dest-grid">
+        
+        @php
+          $domesticStates = $packages->where('category', 'domestic')->pluck('destination.name')->unique();
+        @endphp
+        @if($domesticStates->count() > 0)
+        <div class="state-filter-wrap">
+          <button class="state-tab active" data-state="all" onclick="filterState('domestic', 'all')">All Destinations</button>
+          @foreach($domesticStates as $state)
+            <button class="state-tab" data-state="{{ Str::slug($state) }}" onclick="filterState('domestic', '{{ Str::slug($state) }}')">{{ $state }}</button>
+          @endforeach
+        </div>
+        @endif
+
+        <div class="dest-grid" id="grid-domestic">
           @foreach($packages->where('category', 'domestic') as $pkg)
-          <div class="dest-card" onclick="openDrawer({{ $pkg->id }})" tabindex="0" role="button"
+          <div class="dest-card" data-state="{{ Str::slug($pkg->destination->name) }}" onclick="openDrawer({{ $pkg->id }})" tabindex="0" role="button"
             aria-label="View {{ $pkg->title }} package details"
             onkeydown="if(event.key==='Enter'||event.key===' ') openDrawer({{ $pkg->id }})">
             <div class="dest-card-img" style="background-image: url('{{ $pkg->images->first()->image_path }}')"></div>
@@ -395,9 +424,22 @@
       <!-- INTERNATIONAL PANEL -->
       <div class="cat-panel" id="panel-international" role="tabpanel" aria-labelledby="tab-international">
         <div class="dest-label"><i class="fa-solid fa-earth-americas"></i> International Destinations</div>
-        <div class="dest-grid">
+        
+        @php
+          $intlStates = $packages->where('category', 'international')->pluck('destination.name')->unique();
+        @endphp
+        @if($intlStates->count() > 0)
+        <div class="state-filter-wrap">
+          <button class="state-tab active" data-state="all" onclick="filterState('international', 'all')">All Destinations</button>
+          @foreach($intlStates as $state)
+            <button class="state-tab" data-state="{{ Str::slug($state) }}" onclick="filterState('international', '{{ Str::slug($state) }}')">{{ $state }}</button>
+          @endforeach
+        </div>
+        @endif
+
+        <div class="dest-grid" id="grid-international">
           @foreach($packages->where('category', 'international') as $pkg)
-          <div class="dest-card" onclick="openDrawer({{ $pkg->id }})" tabindex="0" role="button"
+          <div class="dest-card" data-state="{{ Str::slug($pkg->destination->name) }}" onclick="openDrawer({{ $pkg->id }})" tabindex="0" role="button"
             aria-label="View {{ $pkg->title }} package details"
             onkeydown="if(event.key==='Enter'||event.key===' ') openDrawer({{ $pkg->id }})">
             <div class="dest-card-img" style="background-image: url('{{ $pkg->images->first()->image_path }}')"></div>
@@ -515,6 +557,33 @@ function switchTab(cat) {
   });
 }
 
+// ─── State Filtering ──────────────────────────────────────────────────────────
+function filterState(category, stateSlug) {
+  const panel = document.getElementById('panel-' + category);
+  if (!panel) return;
+
+  // Update tabs
+  panel.querySelectorAll('.state-tab').forEach(tab => {
+    if (tab.dataset.state === stateSlug) {
+      tab.classList.add('active');
+    } else {
+      tab.classList.remove('active');
+    }
+  });
+
+  // Filter cards
+  const grid = document.getElementById('grid-' + category);
+  if (!grid) return;
+
+  grid.querySelectorAll('.dest-card').forEach(card => {
+    if (stateSlug === 'all' || card.dataset.state === stateSlug) {
+      card.style.display = '';
+    } else {
+      card.style.display = 'none';
+    }
+  });
+}
+
 // ─── Drawer Logic ────────────────────────────────────────────────────────────
 function openDrawer(id) {
   const pkg = packages.find(p => p.id == id);
@@ -578,6 +647,35 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(
     switchTab(tab);
   }
 })();
+
+// ─── Drag to Scroll for State Filters ─────────────────────────────────────────
+document.querySelectorAll('.state-filter-wrap').forEach(slider => {
+  let isDown = false;
+  let startX;
+  let scrollLeft;
+
+  slider.addEventListener('mousedown', (e) => {
+    isDown = true;
+    slider.style.cursor = 'grabbing';
+    startX = e.pageX - slider.offsetLeft;
+    scrollLeft = slider.scrollLeft;
+  });
+  slider.addEventListener('mouseleave', () => {
+    isDown = false;
+    slider.style.cursor = '';
+  });
+  slider.addEventListener('mouseup', () => {
+    isDown = false;
+    slider.style.cursor = '';
+  });
+  slider.addEventListener('mousemove', (e) => {
+    if (!isDown) return;
+    e.preventDefault();
+    const x = e.pageX - slider.offsetLeft;
+    const walk = (x - startX) * 2; // scroll speed multiplier
+    slider.scrollLeft = scrollLeft - walk;
+  });
+});
 </script>
 
 @endsection
