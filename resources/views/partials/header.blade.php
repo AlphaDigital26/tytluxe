@@ -22,7 +22,32 @@
                     <li><a href="{{ url('/flights') }}" class="{{ request()->is('flights') ? 'active' : '' }}">Flights</a></li>
                     <li><a href="{{ url('/cruises') }}" class="{{ request()->is('cruises') ? 'active' : '' }}">Cruises</a></li>
                     <li><a href="{{ url('/staycation') }}" class="{{ request()->is('staycation') ? 'active' : '' }}">Staycation</a></li>
-                    <li><a href="{{ url('/packages') }}" class="{{ request()->is('packages') ? 'active' : '' }}">Packages</a></li>
+                    <li class="nav-has-dropdown {{ request()->is('packages') ? 'nav-dropdown-active' : '' }}">
+                        <a href="{{ url('/packages') }}" class="{{ request()->is('packages') ? 'active' : '' }}">
+                            Packages <i class="fa-solid fa-chevron-down nav-arrow"></i>
+                        </a>
+                        <ul class="nav-dropdown-menu">
+                            <li>
+                                <a href="{{ url('/packages') }}?tab=domestic" onclick="setPackageTab('domestic')">
+                                    <span class="nav-dd-icon"><i class="fa-solid fa-map-location-dot"></i></span>
+                                    <span class="nav-dd-text">
+                                        <strong>Domestic</strong>
+                                        <small>Explore India</small>
+                                    </span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{{ url('/packages') }}?tab=international" onclick="setPackageTab('international')">
+                                    <span class="nav-dd-icon"><i class="fa-solid fa-earth-americas"></i></span>
+                                    <span class="nav-dd-text">
+                                        <strong>International</strong>
+                                        <small>World Destinations</small>
+                                    </span>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+
                     <li><a href="{{ url('/offers') }}" class="{{ request()->is('offers') ? 'active' : '' }}">Offers</a></li>
                     <li><a href="{{ url('/contact') }}" class="{{ request()->is('contact') ? 'active' : '' }}">Contact Us</a></li>
                 </ul>
@@ -76,5 +101,28 @@
         if (dropdown && dropdown.classList.contains('show')) {
             dropdown.classList.remove('show');
         }
+    });
+
+    // Store chosen package category tab before navigating
+    function setPackageTab(tab) {
+        sessionStorage.setItem('pkgActiveTab', tab);
+    }
+
+    // Mobile: toggle dropdown accordion for Packages nav item
+    document.addEventListener('DOMContentLoaded', function() {
+        var dropdownLi = document.querySelector('.nav-has-dropdown');
+        if (!dropdownLi) return;
+        var dropdownLink = dropdownLi.querySelector(':scope > a');
+        if (!dropdownLink) return;
+
+        dropdownLink.addEventListener('click', function(e) {
+            // Only intercept on mobile
+            if (window.innerWidth <= 768) {
+                e.preventDefault();
+                dropdownLi.classList.toggle('mobile-open');
+                var arrow = dropdownLi.querySelector('.nav-arrow');
+                if (arrow) arrow.style.transform = dropdownLi.classList.contains('mobile-open') ? 'rotate(180deg)' : '';
+            }
+        });
     });
 </script>
