@@ -21,7 +21,6 @@
                     <li><a href="{{ url('/hotels') }}" class="{{ request()->is('hotels') ? 'active' : '' }}">Hotels</a></li>
                     <li><a href="{{ url('/flights') }}" class="{{ request()->is('flights') ? 'active' : '' }}">Flights</a></li>
                     <li><a href="{{ url('/cruises') }}" class="{{ request()->is('cruises') ? 'active' : '' }}">Cruises</a></li>
-                    <li><a href="{{ url('/staycation') }}" class="{{ request()->is('staycation') ? 'active' : '' }}">Staycation</a></li>
                     <li class="nav-has-dropdown {{ request()->is('packages') ? 'nav-dropdown-active' : '' }}">
                         <a href="{{ url('/packages') }}" class="{{ request()->is('packages') ? 'active' : '' }}">
                             Packages <i class="fa-solid fa-chevron-down nav-arrow"></i>

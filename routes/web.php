@@ -11,7 +11,6 @@ Route::view('/flights', 'pages.flights')->name('flights');
 Route::get('/hotels', [FrontendController::class, 'hotels'])->name('hotels');
 Route::get('/hotels/{id}', [FrontendController::class, 'hotelDetails'])->name('hotel.details');
 Route::get('/cruises', [FrontendController::class, 'cruises'])->name('cruises');
-Route::get('/staycation', [FrontendController::class, 'staycations'])->name('staycations');
 Route::get('/packages', [FrontendController::class, 'packages'])->name('packages');
 Route::get('/packages/{id}', [FrontendController::class, 'packageDetails'])->name('package.details');
 Route::get('/offers', [FrontendController::class, 'offers'])->name('offers');

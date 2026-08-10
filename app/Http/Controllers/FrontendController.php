@@ -6,7 +6,6 @@ use Illuminate\Http\Request;
 use App\Models\Hotel;
 use App\Models\Cruise;
 use App\Models\Setting;
-use App\Models\Staycation;
 use App\Models\Offer;
 use App\Models\Package;
 use Illuminate\Support\Facades\Storage;
@@ -133,63 +132,6 @@ class FrontendController extends Controller
             'trustItems',
             'bookingPorts', 'bookingDestinations',
             'cabinTypes'
-        ));
-    }
-
-    public function staycations()
-    {
-        $s = fn (string $key, mixed $default = '') => Setting::get($key, $default);
-        $j = fn (string $key, mixed $default = []) => Setting::getJson($key, $default);
-
-        // Hero
-        $heroEyebrow  = $s('staycation_page.hero_eyebrow',  'Curated Staycations');
-        $heroTitle    = $s('staycation_page.hero_title',    'Escape the Ordinary. <em>Stay Extraordinary.</em>');
-        $heroSubtitle = $s('staycation_page.hero_subtitle', 'Handpicked resort stays near Mumbai & Pune - perfect for weekends, honeymoons & family getaways.');
-
-        // Hero carousel images
-        $heroImages = array_values(array_filter(array_map(function ($img) {
-            if (!empty($img['image_path']) && Storage::disk('public')->exists($img['image_path'])) {
-                return Storage::disk('public')->url($img['image_path']);
-            }
-            return $img['image_url'] ?? null;
-        }, $j('staycation_page.hero_images', []))));
-
-        // Fallback hero slides
-        if (empty($heroImages)) {
-            $heroImages = [
-                'https://meritashotels.com/wp-content/uploads/2023/06/Deluxe-Room.jpg',
-                'https://meritashotels.com/wp-content/uploads/2023/03/DSC_9452-HDR-copy.jpg',
-                'https://meritashotels.com/wp-content/uploads/2023/03/Standard-Room-with-Sit-Out3.png',
-                'https://meritashotels.com/wp-content/uploads/2023/03/Suite-Bed-Room-%40-Picaddle.jpg',
-                'https://meritashotels.com/wp-content/uploads/2023/03/DSC_9476-HDR-copy.jpg',
-            ];
-        }
-
-        // Resorts — resolve room images
-        $resorts = array_map(function ($resort) {
-            $resort['rooms'] = array_map(function ($room) {
-                if (!empty($room['image_path']) && Storage::disk('public')->exists($room['image_path'])) {
-                    $room['resolved_image'] = Storage::disk('public')->url($room['image_path']);
-                } else {
-                    $room['resolved_image'] = $room['image_url'] ?? null;
-                }
-                // Parse amenities string to array
-                $room['amenity_list'] = array_map('trim', explode(',', $room['amenities'] ?? ''));
-                return $room;
-            }, $resort['rooms'] ?? []);
-            return $resort;
-        }, $j('staycation_page.resorts', []));
-
-        // Bottom CTA
-        $ctaTag      = $s('staycation_page.cta_tag',      'Book Your Staycation');
-        $ctaHeading  = $s('staycation_page.cta_heading',  'Ready for Your <em>Perfect Escape?</em>');
-        $ctaBody     = $s('staycation_page.cta_body',     "WhatsApp us with your dates and preferences - we'll get you the best rates on all Meritas properties instantly.");
-        $ctaWhatsapp = $s('staycation_page.cta_whatsapp', 'https://wa.me/919875073788');
-
-        return view('pages.staycation', compact(
-            'heroEyebrow', 'heroTitle', 'heroSubtitle', 'heroImages',
-            'resorts',
-            'ctaTag', 'ctaHeading', 'ctaBody', 'ctaWhatsapp'
         ));
     }
 
@@ -464,5 +406,15 @@ class FrontendController extends Controller
             'filterTabs', 'categories',
             'ctaTag', 'ctaHeading', 'ctaBody', 'ctaNotifyNote', 'ctaWhatsapp', 'ctaWaLabel'
         ));
+    }
+
+    public function blog()
+    {
+        $categories = \App\Models\BlogCategory::where('is_active', true)->orderBy('sort_order')->get();
+        $trendingPosts = \App\Models\BlogPost::with('category')->where('is_active', true)->where('is_trending', true)->orderBy('sort_order')->get();
+        $posts = \App\Models\BlogPost::with('category')->where('is_active', true)->orderBy('sort_order')->get();
+        $destinations = \App\Models\FeaturedBlogDestination::orderBy('sort_order')->take(4)->get();
+
+        return view('pages.blog', compact('categories', 'trendingPosts', 'posts', 'destinations'));
     }
 }
