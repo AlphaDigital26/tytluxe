@@ -14,6 +14,5 @@ class Destination extends Model
 
     public function hotels() { return $this->hasMany(Hotel::class); }
     public function cruises() { return $this->hasMany(Cruise::class); }
-    public function staycations() { return $this->hasMany(Staycation::class); }
     public function packages() { return $this->hasMany(Package::class); }
 }

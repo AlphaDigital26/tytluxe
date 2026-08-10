@@ -109,12 +109,6 @@
                     </li>
 
                     <li>
-                        <a href="{{ url('/staycation') }}">
-                            Staycation
-                        </a>
-                    </li>
-
-                    <li>
                         <a href="{{ url('/packages') }}">
                             Packages
                         </a>

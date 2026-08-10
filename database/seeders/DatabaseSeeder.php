@@ -19,7 +19,6 @@ class DatabaseSeeder extends Seeder
             AdminSeeder::class,
             HotelSeeder::class,
             CruisePageSettingsSeeder::class,
-            StaycationPageSettingsSeeder::class,
             OffersPageSettingsSeeder::class,
         ]);
     }

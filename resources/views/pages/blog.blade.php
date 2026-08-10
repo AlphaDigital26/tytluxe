@@ -157,7 +157,7 @@
   position: sticky;
   top: 0;
   z-index: 100;
-  box-shadow: 0 2px 20px rgba(0,0,0,0.06);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.04);
 }
 .filter-bar-inner {
   max-width: 1200px;
@@ -165,47 +165,90 @@
   padding: 0 24px;
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 0;
+  justify-content: space-between;
+  gap: 20px;
+  height: 64px;
 }
-.filter-tab {
-  flex-shrink: 0;
-  padding: 18px 20px;
-  font-size: 0.88rem;
-  font-weight: 500;
-  color: var(--text-muted);
-  cursor: pointer;
-  border-bottom: 3px solid transparent;
-  transition: all var(--transition);
-  white-space: nowrap;
-  text-decoration: none;
-}
-.filter-tab:hover { color: var(--gold); }
-.filter-tab.active {
-  color: var(--gold);
-  border-bottom-color: var(--gold);
-  font-weight: 600;
-}
-.filter-search {
-  margin-left: auto;
-  flex-shrink: 0;
+.filter-tabs-container {
   display: flex;
   align-items: center;
   gap: 8px;
-  border-left: 1px solid var(--border);
-  padding: 12px 0 12px 20px;
+  overflow-x: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+  flex-grow: 1;
+}
+.filter-tabs-container::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
+.filter-tab {
+  flex-shrink: 0;
+  padding: 8px 16px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 30px;
+  transition: all var(--transition);
+  white-space: nowrap;
+  text-decoration: none;
+  background: transparent;
+}
+.filter-tab:hover {
+  color: var(--dark);
+  background: rgba(0,0,0,0.04);
+}
+.filter-tab.active {
+  color: #fff;
+  background: var(--gold);
+  font-weight: 500;
+}
+.filter-search {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  background: rgba(0,0,0,0.03);
+  border-radius: 30px;
+  padding: 0 16px;
+  height: 40px;
+  width: 240px;
+  transition: all var(--transition);
+  border: 1px solid transparent;
+}
+.filter-search:focus-within {
+  background: #fff;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px var(--gold-light);
+}
+.filter-search .search-icon {
+  color: var(--text-muted);
+  font-size: 0.85rem;
 }
 .filter-search input {
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 8px 14px;
-  font-size: 0.85rem;
-  width: 180px;
+  border: none;
+  background: transparent;
+  padding: 8px 12px;
+  font-size: 0.9rem;
+  width: 100%;
   outline: none;
   font-family: inherit;
-  transition: border-color var(--transition);
+  color: var(--dark);
 }
-.filter-search input:focus { border-color: var(--gold); }
+.filter-search input::placeholder {
+  color: #999;
+}
+
+@media (max-width: 768px) {
+  .filter-bar-inner {
+    flex-direction: column;
+    height: auto;
+    padding: 12px 24px;
+    gap: 12px;
+  }
+  .filter-search {
+    width: 100%;
+  }
+}
 
 /* ── Page Layout ────────────────────────────────────── */
 .blog-page-wrap {
@@ -471,12 +514,15 @@
 {{-- ── FILTER BAR ─────────────────────────────────── --}}
 <nav class="filter-bar">
   <div class="filter-bar-inner">
-    <a class="filter-tab active" href="#" data-category="all">All Blogs</a>
-    @foreach($categories as $cat)
-      <a class="filter-tab" href="#" data-category="{{ $cat->slug }}">{{ $cat->name }}</a>
-    @endforeach
+    <div class="filter-tabs-container">
+      <a class="filter-tab active" href="#" data-category="all">All Blogs</a>
+      @foreach($categories as $cat)
+        <a class="filter-tab" href="#" data-category="{{ $cat->slug }}">{{ $cat->name }}</a>
+      @endforeach
+    </div>
     <div class="filter-search">
-      <input type="text" placeholder="🔍 Search blogs..." id="blogSearchInput">
+      <i class="fa-solid fa-magnifying-glass search-icon"></i>
+      <input type="text" placeholder="Search blogs..." id="blogSearchInput">
     </div>
   </div>
 </nav>

@@ -13,5 +13,4 @@ class Amenity extends Model
     protected $guarded = [];
 
     public function hotels() { return $this->belongsToMany(Hotel::class, 'hotel_amenity'); }
-    public function staycations() { return $this->belongsToMany(Staycation::class, 'staycation_amenity'); }
 }
