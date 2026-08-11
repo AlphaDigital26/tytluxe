@@ -16,4 +16,5 @@ class Booking extends Model
     public function agent() { return $this->belongsTo(User::class, 'agent_id'); }
     public function travelers() { return $this->hasMany(BookingTraveler::class); }
     public function payments() { return $this->hasMany(Payment::class); }
+    public function package() { return $this->belongsTo(Package::class); }
 }

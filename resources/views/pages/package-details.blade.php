@@ -3,10 +3,9 @@
 @push('styles')
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,600&family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
 
 <style>
-/* ===== RESET & VARIABLES ===== */
 :root {
   --gold: #c9a84c;
   --gold-light: #e8c96b;
@@ -15,190 +14,675 @@
   --dark-2: #141414;
   --dark-3: #1a1a1a;
   --white: #ffffff;
+  --white-80: rgba(255,255,255,0.8);
   --white-60: rgba(255,255,255,0.6);
   --white-30: rgba(255,255,255,0.3);
   --white-10: rgba(255,255,255,0.08);
-  --radius: 12px;
+  --green: #4caf82;
+  --red: #e05c5c;
+  --radius: 14px;
   --transition: 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* ===== HERO ===== */
 .pd-hero {
-  position: relative;
-  height: 60vh;
-  min-height: 400px;
-  background-size: cover;
-  background-position: center;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  position: relative; height: 100vh; min-height: 600px;
+  overflow: hidden; display: flex; align-items: flex-end;
 }
-.pd-hero::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to top, rgba(13,13,13,1) 0%, rgba(13,13,13,0.3) 100%);
+.pd-hero-bg {
+  position: absolute; inset: 0;
+  background-size: cover; background-position: center; background-repeat: no-repeat;
+  transform: scale(1.05); animation: heroZoom 8s ease-out forwards;
+}
+@keyframes heroZoom { to { transform: scale(1); } }
+.pd-hero-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(to top, rgba(13,13,13,1) 0%, rgba(13,13,13,0.55) 50%, rgba(13,13,13,0.15) 100%);
 }
 .pd-hero-content {
-  position: relative;
-  z-index: 2;
-  text-align: center;
-  max-width: 800px;
-  padding: 0 24px;
+  position: relative; z-index: 2;
+  width: 100%; max-width: 1200px;
+  margin: 0 auto; padding: 0 40px 72px;
 }
+.pd-back-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: 'Jost', sans-serif; font-size: 12px; font-weight: 500;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--white-60);
+  text-decoration: none; margin-bottom: 24px; transition: color var(--transition);
+}
+.pd-back-btn:hover { color: var(--gold); }
 .pd-eyebrow {
   font-family: 'Jost', sans-serif; font-size: 11px; font-weight: 600;
-  letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold); margin-bottom: 16px;
-  display: inline-block;
+  letter-spacing: 0.25em; text-transform: uppercase; color: var(--gold);
+  margin-bottom: 16px; display: flex; align-items: center; gap: 10px;
 }
-.pd-title {
+.pd-eyebrow::before { content: ''; display: inline-block; width: 32px; height: 1px; background: var(--gold); }
+.pd-hero-title {
   font-family: 'Cormorant Garamond', serif;
-  font-size: clamp(2.8rem, 5vw, 4.5rem); font-weight: 500;
-  line-height: 1.1; color: #fff; margin-bottom: 24px;
+  font-size: clamp(3rem, 7vw, 6rem); font-weight: 500;
+  color: #fff; line-height: 1.0; margin-bottom: 28px;
 }
-.pd-meta {
-  display: flex; align-items: center; justify-content: center; gap: 24px;
-  font-family: 'Jost', sans-serif; font-size: 14px; color: var(--white-60);
-  text-transform: uppercase; letter-spacing: 0.1em;
+.pd-hero-title em { font-style: italic; color: var(--gold-light); }
+.pd-hero-pills { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 32px; }
+.pd-pill {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+  backdrop-filter: blur(8px); color: #fff;
+  font-family: 'Jost', sans-serif; font-size: 12.5px; font-weight: 500;
+  padding: 8px 16px; border-radius: 100px;
 }
-.pd-meta i { color: var(--gold); }
+.pd-pill i { color: var(--gold); font-size: 11px; }
+.pd-pill.gold-pill { background: var(--gold); color: var(--dark); border-color: var(--gold); font-weight: 700; }
+.pd-pill.gold-pill i { color: var(--dark); }
 
-.pd-section { padding: 80px 40px; background: var(--dark); }
-.pd-section-inner { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: 2fr 1fr; gap: 60px; }
-
-.pd-main { color: var(--white-60); font-family: 'Jost', sans-serif; font-size: 16px; line-height: 1.8; font-weight: 300; }
-.pd-main h2 {
-  font-family: 'Cormorant Garamond', serif; font-size: 32px; font-weight: 500;
-  color: #fff; margin-bottom: 24px; line-height: 1.2; border-bottom: 1px solid var(--white-10); padding-bottom: 16px;
+/* ===== STICKY NAV ===== */
+.pd-sticky-nav {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(13,13,13,0.95);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--gold-dim);
 }
-.pd-desc { margin-bottom: 40px; }
-
-.pd-inclusions { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 40px; }
-.pd-inc-item { display: flex; align-items: center; gap: 12px; }
-.pd-inc-item i { color: var(--gold); font-size: 18px; }
-
-.pd-itinerary { margin-top: 40px; }
-.pd-day { margin-bottom: 32px; position: relative; padding-left: 32px; }
-.pd-day::before {
-  content: ''; position: absolute; left: 0; top: 8px; bottom: -40px; width: 1px; background: var(--white-10);
+.pd-sticky-nav-inner {
+  max-width: 1200px; margin: 0 auto; padding: 0 40px;
+  display: flex; align-items: center; gap: 0;
+  overflow-x: auto; scrollbar-width: none;
 }
-.pd-day:last-child::before { display: none; }
-.pd-day-num {
-  position: absolute; left: -12px; top: 0; width: 25px; height: 25px; background: var(--gold); color: var(--dark);
-  border-radius: 50%; display: flex; align-items: center; justify-content: center;
-  font-size: 10px; font-weight: 700; font-family: 'Jost', sans-serif;
+.pd-sticky-nav-inner::-webkit-scrollbar { display: none; }
+.pd-nav-link {
+  font-family: 'Jost', sans-serif; font-size: 12px; font-weight: 600;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--white-60); text-decoration: none;
+  padding: 20px 22px; display: block;
+  border-bottom: 2px solid transparent;
+  transition: all var(--transition); white-space: nowrap;
 }
-.pd-day-title { font-size: 18px; font-weight: 500; color: #fff; margin-bottom: 8px; }
+.pd-nav-link:hover, .pd-nav-link.active { color: var(--gold); border-bottom-color: var(--gold); }
 
-.pd-sidebar { position: sticky; top: 120px; }
-.pd-box {
-  background: var(--dark-2); border: 1px solid var(--white-10); border-radius: var(--radius);
-  padding: 32px;
+/* ===== PAGE LAYOUT ===== */
+.pd-page { background: var(--dark); }
+.pd-container { max-width: 1200px; margin: 0 auto; padding: 0 40px; }
+.pd-layout { display: grid; grid-template-columns: 1fr 360px; gap: 48px; padding: 64px 0; }
+
+/* ===== SECTIONS ===== */
+.pd-section { padding: 64px 0; border-bottom: 1px solid var(--white-10); }
+.pd-section:last-child { border-bottom: none; }
+.pd-section-label {
+  font-family: 'Jost', sans-serif; font-size: 10px; font-weight: 700;
+  letter-spacing: 0.28em; text-transform: uppercase; color: var(--gold); margin-bottom: 12px;
 }
-.pd-price-lbl { font-family: 'Jost', sans-serif; font-size: 12px; color: var(--white-60); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; }
-.pd-price-val { font-family: 'Jost', sans-serif; font-size: 36px; font-weight: 500; color: #fff; margin-bottom: 24px; }
-.pd-price-val span { font-size: 20px; color: var(--gold); margin-right: 4px; }
+.pd-section-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(2rem, 3.5vw, 2.8rem); font-weight: 500;
+  color: #fff; line-height: 1.1; margin-bottom: 32px;
+}
+.pd-section-title em { font-style: italic; color: var(--gold-light); }
 
+/* ===== ABOUT ===== */
+.pd-about-text {
+  font-family: 'Jost', sans-serif; font-size: 17px; line-height: 1.9;
+  color: var(--white-60); font-weight: 400; text-align: justify;
+}
+
+/* ===== HIGHLIGHTS ===== */
+.pd-highlights { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 32px; }
+.pd-highlight-card {
+  background: var(--dark-3); border: 1px solid var(--white-10);
+  border-radius: var(--radius); padding: 24px; transition: all var(--transition);
+}
+.pd-highlight-card:hover { border-color: var(--gold-dim); transform: translateY(-3px); }
+.pd-highlight-icon {
+  width: 44px; height: 44px; background: var(--gold-dim);
+  border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 14px;
+}
+.pd-highlight-icon i { color: var(--gold); font-size: 18px; }
+.pd-highlight-title { font-family: 'Jost', sans-serif; font-size: 13px; font-weight: 600; color: #fff; margin-bottom: 6px; }
+.pd-highlight-desc { font-family: 'Jost', sans-serif; font-size: 14.5px; color: var(--white-60); line-height: 1.6; }
+
+/* ===== ITINERARY ===== */
+.pd-itinerary { display: flex; flex-direction: column; gap: 0; }
+.pd-day-card { position: relative; display: grid; grid-template-columns: 80px 1fr; gap: 0; }
+.pd-day-left { display: flex; flex-direction: column; align-items: center; padding-top: 4px; }
+.pd-day-num-wrap {
+  width: 48px; height: 48px; background: var(--dark-3); border: 2px solid var(--gold);
+  border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; z-index: 1;
+}
+.pd-day-num-wrap span { font-family: 'Jost', sans-serif; font-size: 11px; font-weight: 700; color: var(--gold); text-align: center; line-height: 1.2; }
+.pd-day-line { width: 2px; background: var(--white-10); flex: 1; margin: 8px 0; min-height: 40px; }
+.pd-day-card:last-child .pd-day-line { display: none; }
+.pd-day-right { padding: 0 0 48px 24px; }
+.pd-day-tag {
+  font-family: 'Jost', sans-serif; font-size: 9.5px; font-weight: 700;
+  letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold);
+  background: var(--gold-dim); padding: 4px 10px; border-radius: 100px;
+  display: inline-block; margin-bottom: 10px;
+}
+.pd-day-title { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 500; color: #fff; margin-bottom: 16px; }
+.pd-day-body { font-family: 'Jost', sans-serif; font-size: 16.5px; color: var(--white-60); line-height: 1.85; text-align: justify; }
+.pd-day-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.pd-day-chip {
+  font-family: 'Jost', sans-serif; font-size: 11px; font-weight: 500;
+  color: var(--white-80); background: var(--white-10); border: 1px solid rgba(255,255,255,0.1);
+  padding: 5px 12px; border-radius: 100px; display: flex; align-items: center; gap: 6px;
+}
+.pd-day-chip i { color: var(--gold); font-size: 10px; }
+
+/* ===== INCLUSIONS / EXCLUSIONS ===== */
+.pd-inc-exc { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.pd-inc-box, .pd-exc-box { background: var(--dark-3); border-radius: var(--radius); padding: 28px; border: 1px solid var(--white-10); }
+.pd-inc-box { border-top: 3px solid var(--green); }
+.pd-exc-box { border-top: 3px solid var(--red); }
+.pd-box-title { font-family: 'Jost', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 20px; }
+.pd-inc-box .pd-box-title { color: var(--green); }
+.pd-exc-box .pd-box-title { color: var(--red); }
+.pd-inc-list, .pd-exc-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+.pd-inc-list li, .pd-exc-list li { display: flex; align-items: flex-start; gap: 12px; font-family: 'Jost', sans-serif; font-size: 15px; color: var(--white-60); line-height: 1.5; }
+.pd-inc-list li i { color: var(--green); font-size: 14px; margin-top: 2px; flex-shrink: 0; }
+.pd-exc-list li i { color: var(--red); font-size: 14px; margin-top: 2px; flex-shrink: 0; }
+
+/* ===== SIDEBAR ===== */
+.pd-sidebar-wrap { position: sticky; top: 80px; display: flex; flex-direction: column; gap: 24px; }
+.pd-sidebar-card { background: var(--dark-3); border: 1px solid var(--white-10); border-radius: var(--radius); overflow: hidden; }
+.pd-price-card-top { background: linear-gradient(135deg, var(--dark-2) 0%, var(--dark-3) 100%); padding: 32px 28px 24px; border-bottom: 1px solid var(--white-10); }
+.pd-price-label { font-family: 'Jost', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold); margin-bottom: 8px; }
+.pd-price-val { font-family: 'Cormorant Garamond', serif; font-size: 3rem; font-weight: 500; color: #fff; line-height: 1; }
+.pd-price-val .curr { font-size: 1.8rem; vertical-align: top; margin-top: 6px; display: inline-block; }
+.pd-price-pp { font-family: 'Jost', sans-serif; font-size: 12px; color: var(--white-60); margin-top: 6px; }
+.pd-price-card-body { padding: 24px 28px; }
+.pd-price-row { display: flex; justify-content: space-between; align-items: center; font-family: 'Jost', sans-serif; font-size: 14px; padding: 10px 0; }
+.pd-price-row span { color: var(--white-60); }
+.pd-price-row strong { color: #fff; font-weight: 600; }
+.pd-price-divider { height: 1px; background: var(--white-10); }
+.pd-booking-badge { background: var(--gold-dim); border: 1px solid var(--gold); border-radius: 8px; padding: 12px 16px; font-family: 'Jost', sans-serif; font-size: 13px; color: var(--gold); margin: 16px 0; line-height: 1.4; }
 .pd-btn {
-  display: block; width: 100%; text-align: center;
-  background: var(--gold); color: var(--dark);
-  font-family: 'Jost', sans-serif; font-size: 13px; font-weight: 600;
-  letter-spacing: 0.15em; text-transform: uppercase; padding: 18px 24px;
-  border-radius: 100px; text-decoration: none; transition: all var(--transition);
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  background: var(--gold); color: var(--dark); border: none; border-radius: 10px;
+  padding: 16px 24px; font-family: 'Jost', sans-serif; font-size: 14px; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; text-decoration: none;
+  transition: all var(--transition); margin-bottom: 12px; width: 100%;
 }
 .pd-btn:hover { background: var(--gold-light); transform: translateY(-2px); }
 .pd-btn-outline {
-  display: block; width: 100%; text-align: center; margin-top: 12px;
-  background: transparent; border: 1px solid var(--white-30); color: #fff;
-  font-family: 'Jost', sans-serif; font-size: 13px; font-weight: 600;
-  letter-spacing: 0.15em; text-transform: uppercase; padding: 18px 24px;
-  border-radius: 100px; text-decoration: none; transition: all var(--transition);
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  background: transparent; color: #fff; border: 1px solid var(--white-30); border-radius: 10px;
+  padding: 14px 24px; font-family: 'Jost', sans-serif; font-size: 14px; font-weight: 600;
+  cursor: pointer; text-decoration: none; transition: all var(--transition); margin-bottom: 12px; width: 100%;
 }
 .pd-btn-outline:hover { border-color: var(--gold); color: var(--gold); }
+.pd-info-list { display: flex; flex-direction: column; gap: 0; }
+.pd-info-row { display: flex; align-items: flex-start; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--white-10); }
+.pd-info-row:last-child { border-bottom: none; }
+.pd-info-icon { width: 36px; height: 36px; background: var(--gold-dim); border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.pd-info-icon i { color: var(--gold); font-size: 14px; }
+.pd-info-label { font-family: 'Jost', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--white-60); margin-bottom: 2px; }
+.pd-info-val { font-family: 'Jost', sans-serif; font-size: 14px; font-weight: 500; color: #fff; }
 
-@media (max-width: 900px) {
-  .pd-section-inner { grid-template-columns: 1fr; gap: 40px; }
-  .pd-inclusions { grid-template-columns: 1fr; }
+/* ===== CONTACT ===== */
+.pd-note { font-family: 'Jost', sans-serif; font-size: 16px; color: var(--white-60); line-height: 1.8; margin-bottom: 24px; }
+.pd-contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.pd-contact-card { background: var(--dark-3); border: 1px solid var(--white-10); border-radius: var(--radius); padding: 28px; }
+.pd-contact-title { font-family: 'Jost', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: var(--gold); margin-bottom: 20px; }
+.pd-contact-item { display: flex; align-items: flex-start; gap: 12px; font-family: 'Jost', sans-serif; font-size: 14px; color: var(--white-60); margin-bottom: 14px; line-height: 1.5; }
+.pd-contact-item:last-child { margin-bottom: 0; }
+.pd-contact-item i { color: var(--gold); font-size: 14px; margin-top: 2px; flex-shrink: 0; }
+
+/* ===== REVIEWS ===== */
+.pd-review-item { border-bottom: 1px solid var(--white-10); padding-bottom: 20px; margin-bottom: 20px; }
+.pd-review-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.pd-review-name { font-family: 'Jost', sans-serif; font-size: 15px; font-weight: 600; color: #fff; }
+.pd-review-stars { color: var(--gold); }
+.pd-review-body { font-family: 'Jost', sans-serif; font-size: 15px; color: var(--white-60); line-height: 1.7; }
+.pd-review-form { background: var(--dark-3); border: 1px solid var(--white-10); border-radius: var(--radius); padding: 28px; margin-bottom: 32px; }
+.pd-review-form h3 { font-family: 'Cormorant Garamond', serif; font-size: 1.6rem; color: #fff; margin-bottom: 20px; }
+.pd-form-group { margin-bottom: 16px; }
+.pd-form-label { font-family: 'Jost', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--white-60); margin-bottom: 8px; display: block; }
+.pd-form-select, .pd-form-textarea {
+  width: 100%; background: var(--dark); border: 1px solid var(--white-10); border-radius: 8px;
+  color: #fff; font-family: 'Jost', sans-serif; font-size: 15px; padding: 12px 16px;
+  transition: border-color var(--transition);
 }
-@media (max-width: 600px) {
-  .pd-section { padding: 60px 20px; }
+.pd-form-select:focus, .pd-form-textarea:focus { outline: none; border-color: var(--gold); }
+.pd-form-textarea { resize: vertical; min-height: 120px; }
+.pd-alert { padding: 14px 20px; border-radius: 8px; margin-bottom: 20px; font-family: 'Jost', sans-serif; font-size: 14px; }
+.pd-alert-success { background: rgba(76,175,130,0.15); border: 1px solid var(--green); color: var(--green); }
+.pd-alert-error { background: rgba(224,92,92,0.15); border: 1px solid var(--red); color: var(--red); }
+.pd-alert-info { padding: 14px 20px; border-left: 4px solid var(--gold); background: var(--gold-dim); color: var(--white-60); border-radius: 0 8px 8px 0; font-family: 'Jost', sans-serif; font-size: 14px; margin-bottom: 20px; }
+.pd-alert-info a { color: var(--gold); }
+
+/* ===== GALLERY ===== */
+.pd-gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px; }
+.pd-gallery-item { height: 250px; overflow: hidden; border-radius: var(--radius); border: 1px solid var(--white-10); }
+.pd-gallery-item img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s ease; display: block; }
+.pd-gallery-item:hover img { transform: scale(1.06); }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 900px) {
+  .pd-layout { grid-template-columns: 1fr; }
+  .pd-sidebar-wrap { position: static; }
+  .pd-inc-exc { grid-template-columns: 1fr; }
+  .pd-contact-grid { grid-template-columns: 1fr; }
+  .pd-highlights { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 640px) {
+  .pd-hero-content { padding: 0 20px 56px; }
+  .pd-container { padding: 0 20px; }
+  .pd-hero-title { font-size: 2.4rem; }
+  .pd-sticky-nav-inner { padding: 0 20px; }
+  .pd-highlights { grid-template-columns: 1fr; }
 }
 </style>
 @endpush
 
 @section('content')
-
 @php
-  $heroImage = 'https://images.unsplash.com/photo-1540202404-b71180fb78d1?w=1800&q=80';
-  if ($package->images && $package->images->count() > 0) {
-      $img = $package->images->first()->image_path;
-      $heroImage = \Illuminate\Support\Str::startsWith($img, 'http') ? $img : asset('storage/' . $img);
-  }
+    $heroImage = null;
+    if ($package->hero_bg_image) {
+        $heroImage = Str::startsWith($package->hero_bg_image, 'http')
+            ? $package->hero_bg_image
+            : Storage::disk('public')->url($package->hero_bg_image);
+    }
+    if (!$heroImage && $package->images && $package->images->count() > 0) {
+        $first = $package->images->first()->image_path;
+        $heroImage = Str::startsWith($first, 'http') ? $first : Storage::disk('public')->url($first);
+    }
+    $heroImage = $heroImage ?? 'https://images.unsplash.com/photo-1585409677983-0f6c41ca9c3b?w=1800&q=85';
+
+    $hasBooked = auth()->check()
+        ? \App\Models\Booking::where('user_id', auth()->id())
+            ->where('vertical', 'package')
+            ->where('package_id', $package->id)
+            ->where('status', 'confirmed')
+            ->exists()
+        : false;
+
+    $publishedReviews = isset($package->reviews)
+        ? $package->reviews->where('is_published', true)
+        : collect();
 @endphp
 
-<!-- HERO -->
-<div class="pd-hero" style="background-image: url('{{ $heroImage }}');">
+{{-- ===== HERO ===== --}}
+<section class="pd-hero" id="overview">
+  <div class="pd-hero-bg" style="background-image: url('{{ $heroImage }}');"></div>
+  <div class="pd-hero-overlay"></div>
   <div class="pd-hero-content">
-    <div class="pd-eyebrow"><i class="fa-solid fa-location-dot"></i> {{ $package->destination->name ?? 'Global' }}</div>
-    <h1 class="pd-title">{{ $package->title }}</h1>
-    <div class="pd-meta">
-      <span><i class="fa-regular fa-moon"></i> {{ $package->duration_nights }} Nights</span>
-      <span><i class="fa-solid fa-tag"></i> Premium Package</span>
+    <a href="{{ route('packages') }}" class="pd-back-btn">
+      <i class="fa-solid fa-arrow-left"></i> All Packages
+    </a>
+    @if($package->hero_eyebrow)
+      <div class="pd-eyebrow">{{ $package->hero_eyebrow }}</div>
+    @elseif($package->destination)
+      <div class="pd-eyebrow">{{ $package->destination->name }}</div>
+    @endif
+    <h1 class="pd-hero-title">{!! nl2br(e($package->title)) !!}</h1>
+    <div class="pd-hero-pills">
+      @if($package->duration_nights)
+        <div class="pd-pill"><i class="fa-regular fa-moon"></i> {{ $package->duration_nights }} Night{{ $package->duration_nights > 1 ? 's' : '' }}</div>
+        <div class="pd-pill"><i class="fa-solid fa-sun"></i> {{ $package->duration_nights + 1 }} Days</div>
+      @endif
+      @if($package->departure_from)
+        <div class="pd-pill"><i class="fa-solid fa-bus"></i> {{ $package->departure_from }} Departure</div>
+      @endif
+      @if($package->meals_info)
+        <div class="pd-pill"><i class="fa-solid fa-utensils"></i> {{ $package->meals_info }}</div>
+      @endif
+      @if($package->price_from)
+        <div class="pd-pill gold-pill"><i class="fa-solid fa-indian-rupee-sign"></i> Starting ₹{{ number_format($package->price_from, 0) }}</div>
+      @endif
     </div>
   </div>
-</div>
+</section>
 
-<!-- DETAILS SECTION -->
-<div class="pd-section">
-  <div class="pd-section-inner">
-    
-    <!-- MAIN CONTENT -->
-    <div class="pd-main">
-      <h2>Overview</h2>
-      <div class="pd-desc">
-        {{ $package->description ?? 'Experience luxury like never before.' }}
-      </div>
+{{-- ===== STICKY NAV ===== --}}
+<nav class="pd-sticky-nav">
+  <div class="pd-sticky-nav-inner">
+    <a href="#overview" class="pd-nav-link active">Overview</a>
+    @if($package->itineraryDays && $package->itineraryDays->count() > 0)
+      <a href="#itinerary" class="pd-nav-link">Itinerary</a>
+    @endif
+    @if($package->inclusions && $package->inclusions->count() > 0)
+      <a href="#inclusions" class="pd-nav-link">Inclusions</a>
+    @endif
+    <a href="#booking" class="pd-nav-link">Booking</a>
+    <a href="#contact" class="pd-nav-link">Contact</a>
+    @if($package->images && $package->images->count() > 0)
+      <a href="#gallery" class="pd-nav-link">Gallery</a>
+    @endif
+  </div>
+</nav>
 
-      <h2>What's Included</h2>
-      <div class="pd-inclusions">
-        @if($package->inclusions && $package->inclusions->count() > 0)
-          @foreach($package->inclusions as $inc)
-            <div class="pd-inc-item">
-              <i class="fa-solid fa-check-circle"></i>
-              <span>{{ $inc->name ?? $inc->title }}</span>
+{{-- ===== MAIN CONTENT ===== --}}
+<div class="pd-page">
+  <div class="pd-container">
+    <div class="pd-layout">
+
+      {{-- ===== LEFT / MAIN ===== --}}
+      <div>
+
+        {{-- ABOUT --}}
+        <div class="pd-section" id="about">
+          <div class="pd-section-label">Discover</div>
+          <h2 class="pd-section-title">About <em>{{ $package->title }}</em></h2>
+          <div class="pd-about-text">
+            {!! nl2br(e($package->description)) !!}
+          </div>
+
+          @if($package->highlights && $package->highlights->count() > 0)
+            <div class="pd-highlights">
+              @foreach($package->highlights as $hl)
+                <div class="pd-highlight-card">
+                  <div class="pd-highlight-icon"><i class="{{ $hl->icon }}"></i></div>
+                  <div class="pd-highlight-title">{{ $hl->title }}</div>
+                  <div class="pd-highlight-desc">{{ $hl->description }}</div>
+                </div>
+              @endforeach
             </div>
-          @endforeach
-        @endif
-      </div>
+          @endif
+        </div>
 
-      <h2>Itinerary</h2>
-      <div class="pd-itinerary">
-        @if($package->itinerary && $package->itinerary->count() > 0)
-          @foreach($package->itinerary as $day)
-            <div class="pd-day">
-              <div class="pd-day-num">{{ $day->day ?? $loop->iteration }}</div>
-              <div class="pd-day-title">{{ $day->title ?? 'Day ' . ($day->day ?? $loop->iteration) }}</div>
-              <p>{{ $day->description ?? 'Exciting activities planned.' }}</p>
+        {{-- ITINERARY --}}
+        @if($package->itineraryDays && $package->itineraryDays->count() > 0)
+          <div class="pd-section" id="itinerary">
+            <div class="pd-section-label">Day by Day</div>
+            <h2 class="pd-section-title">Your <em>Itinerary</em></h2>
+            <div class="pd-itinerary">
+              @foreach($package->itineraryDays as $day)
+                <div class="pd-day-card">
+                  <div class="pd-day-left">
+                    <div class="pd-day-num-wrap">
+                      <span>{{ $day->day_number == 0 ? 'DEP' : 'DAY ' . $day->day_number }}</span>
+                    </div>
+                    <div class="pd-day-line"></div>
+                  </div>
+                  <div class="pd-day-right">
+                    <div class="pd-day-tag">{{ $day->day_number == 0 ? 'Departure' : 'Day ' . $day->day_number }}</div>
+                    <div class="pd-day-title">{{ $day->title }}</div>
+                    <div class="pd-day-body">{{ $day->description }}</div>
+                    @if($day->chips && count($day->chips) > 0)
+                      <div class="pd-day-chips">
+                        @foreach($day->chips as $chip)
+                          <div class="pd-day-chip"><i class="fa-solid fa-location-pin"></i> {{ $chip }}</div>
+                        @endforeach
+                      </div>
+                    @endif
+                  </div>
+                </div>
+              @endforeach
             </div>
-          @endforeach
-        @else
-          <p>Itinerary details will be provided upon enquiry.</p>
+          </div>
         @endif
-      </div>
-    </div>
 
-    <!-- SIDEBAR -->
-    <div>
-      <div class="pd-sidebar">
-        <div class="pd-box">
-          <div class="pd-price-lbl">Starting Price</div>
-          <div class="pd-price-val"><span>₹</span>{{ number_format($package->price_from, 0) }}</div>
-          <a href="#enquire" class="pd-btn">Enquire Now</a>
-          <a href="https://wa.me/919875073788" target="_blank" class="pd-btn-outline"><i class="fa-brands fa-whatsapp"></i> WhatsApp Us</a>
+        {{-- INCLUSIONS & EXCLUSIONS --}}
+        @if(($package->inclusions && $package->inclusions->count() > 0) || ($package->exclusions && $package->exclusions->count() > 0))
+          <div class="pd-section" id="inclusions">
+            <div class="pd-section-label">What's Covered</div>
+            <h2 class="pd-section-title">Inclusions & <em>Exclusions</em></h2>
+            <div class="pd-inc-exc">
+              @if($package->inclusions && $package->inclusions->count() > 0)
+                <div class="pd-inc-box">
+                  <div class="pd-box-title">✓ What's Included</div>
+                  <ul class="pd-inc-list">
+                    @foreach($package->inclusions as $inc)
+                      <li><i class="fa-solid fa-check-circle"></i> <span>{{ $inc->name ?? $inc->title }}</span></li>
+                    @endforeach
+                  </ul>
+                </div>
+              @endif
+              @if($package->exclusions && $package->exclusions->count() > 0)
+                <div class="pd-exc-box">
+                  <div class="pd-box-title">✗ What's Excluded</div>
+                  <ul class="pd-exc-list">
+                    @foreach($package->exclusions as $exc)
+                      <li><i class="fa-solid fa-times-circle"></i> <span>{{ $exc->name }}</span></li>
+                    @endforeach
+                  </ul>
+                </div>
+              @endif
+            </div>
+          </div>
+        @endif
+
+        {{-- BOOKING NOTES --}}
+        <div class="pd-section" id="booking">
+          <div class="pd-section-label">How to Book</div>
+          <h2 class="pd-section-title">Book Your <em>Spot</em></h2>
+          <div class="pd-note">
+            To book this package, simply reach out to us on WhatsApp or call us directly.
+            @if($package->booking_amount)
+              A booking amount of <strong style="color:var(--gold);">₹{{ number_format($package->booking_amount, 0) }} per person</strong> is required to confirm your seat.
+            @endif
+            Our team will then share the full itinerary and payment details with you.
+          </div>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;">
+            <a href="https://wa.me/919875073788?text=Hi!%20I'm%20interested%20in%20the%20{{ urlencode($package->title) }}%20package.%20Please%20share%20details." target="_blank" class="pd-btn" style="max-width:260px;">
+              <i class="fa-solid fa-calendar-check"></i> Book Now
+            </a>
+            <a href="https://wa.me/919875073788" target="_blank" class="pd-btn-outline" style="max-width:260px;">
+              <i class="fa-brands fa-whatsapp"></i> WhatsApp Us
+            </a>
+          </div>
+        </div>
+
+        {{-- CONTACT --}}
+        <div class="pd-section" id="contact" style="border-bottom:none;">
+          <div class="pd-section-label">Get in Touch</div>
+          <h2 class="pd-section-title">Contact <em>TYTLuxe</em></h2>
+          <div class="pd-note">
+            <strong style="color:#fff;">Ready to book?</strong> Reach out to us and our team will get back to you promptly. We specialise in thoughtfully designed tour and travel packages, customised to your unique preferences and pace.
+          </div>
+          <div class="pd-contact-grid">
+            <div class="pd-contact-card">
+              <div class="pd-contact-title">Contact Details</div>
+              <div class="pd-contact-item"><i class="fa-solid fa-phone"></i> +91 9875073788</div>
+              <div class="pd-contact-item"><i class="fa-solid fa-envelope"></i> takeyourtrip7@gmail.com</div>
+              <div class="pd-contact-item"><i class="fa-solid fa-globe"></i> www.tytluxe.in</div>
+              <div class="pd-contact-item"><i class="fa-solid fa-location-dot"></i> 831, Tower C, Bhutani Alphathum, Sector 90, Noida UP-201305</div>
+            </div>
+            <div class="pd-contact-card">
+              <div class="pd-contact-title">Why TYTLuxe?</div>
+              <div class="pd-contact-item"><i class="fa-solid fa-bolt"></i> Seamless &amp; Exciting Travel</div>
+              <div class="pd-contact-item"><i class="fa-solid fa-sliders"></i> Tailored Packages for your pace</div>
+              <div class="pd-contact-item"><i class="fa-solid fa-earth-asia"></i> Versatile Destinations</div>
+              <div class="pd-contact-item"><i class="fa-solid fa-magnifying-glass"></i> Attention to Every Detail</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      {{-- ===== SIDEBAR ===== --}}
+      <div>
+        <div class="pd-sidebar-wrap">
+
+          {{-- Price Card --}}
+          <div class="pd-sidebar-card">
+            <div class="pd-price-card-top">
+              <div class="pd-price-label">Starting From</div>
+              <div class="pd-price-val"><span class="curr">₹</span>{{ number_format($package->price_from, 0) }}</div>
+              <div class="pd-price-pp">per person{{ $package->departure_from ? ' (ex. ' . $package->departure_from . ')' : '' }}</div>
+            </div>
+            <div class="pd-price-card-body">
+              @if($package->duration_nights)
+                <div class="pd-price-row"><span>Duration</span><strong>{{ $package->duration_nights }} Nights / {{ $package->duration_nights + 1 }} Days</strong></div>
+                <div class="pd-price-divider"></div>
+              @endif
+              @if($package->booking_amount)
+                <div class="pd-price-row"><span>Booking Amount</span><strong>₹{{ number_format($package->booking_amount, 0) }} / person</strong></div>
+                <div class="pd-price-divider"></div>
+              @endif
+              @if($package->departure_from)
+                <div class="pd-price-row"><span>Departure</span><strong>{{ $package->departure_from }}</strong></div>
+                <div class="pd-price-divider"></div>
+              @endif
+              @if($package->meals_info)
+                <div class="pd-price-row"><span>Meals</span><strong>{{ $package->meals_info }}</strong></div>
+              @endif
+              @if($package->booking_amount)
+                <div class="pd-booking-badge">
+                  <i class="fa-solid fa-tag" style="margin-right:6px;"></i> Book now for ₹{{ number_format($package->booking_amount, 0) }} to confirm your seat
+                </div>
+              @endif
+              <a href="https://wa.me/919875073788?text=Hi!%20I'm%20interested%20in%20the%20{{ urlencode($package->title) }}%20package." target="_blank" class="pd-btn">
+                <i class="fa-solid fa-calendar-check"></i> Book Now
+              </a>
+              <a href="https://wa.me/919875073788" target="_blank" class="pd-btn-outline">
+                <i class="fa-brands fa-whatsapp"></i> WhatsApp Us
+              </a>
+              @if($package->itinerary_pdf)
+                <a href="{{ route('package.download', ['id' => $package->id]) }}" class="pd-btn-outline">
+                  <i class="fa-solid fa-download"></i> Download Itinerary
+                </a>
+              @endif
+            </div>
+          </div>
+
+          {{-- Quick Info Card --}}
+          @if($package->destination || $package->transport_info || $package->stay_info)
+            <div class="pd-sidebar-card">
+              <div class="pd-price-card-body">
+                <div class="pd-section-label" style="margin-bottom:16px;">Quick Info</div>
+                <div class="pd-info-list">
+                  @if($package->destination)
+                    <div class="pd-info-row">
+                      <div class="pd-info-icon"><i class="fa-solid fa-location-dot"></i></div>
+                      <div><div class="pd-info-label">Destination</div><div class="pd-info-val">{{ $package->destination->name }}</div></div>
+                    </div>
+                  @endif
+                  @if($package->duration_nights)
+                    <div class="pd-info-row">
+                      <div class="pd-info-icon"><i class="fa-solid fa-moon"></i></div>
+                      <div><div class="pd-info-label">Duration</div><div class="pd-info-val">{{ $package->duration_nights }} Nights · {{ $package->duration_nights + 1 }} Days</div></div>
+                    </div>
+                  @endif
+                  @if($package->transport_info)
+                    <div class="pd-info-row">
+                      <div class="pd-info-icon"><i class="fa-solid fa-bus"></i></div>
+                      <div><div class="pd-info-label">Transport</div><div class="pd-info-val">{{ $package->transport_info }}</div></div>
+                    </div>
+                  @endif
+                  @if($package->stay_info)
+                    <div class="pd-info-row">
+                      <div class="pd-info-icon"><i class="fa-solid fa-hotel"></i></div>
+                      <div><div class="pd-info-label">Stay</div><div class="pd-info-val">{{ $package->stay_info }}</div></div>
+                    </div>
+                  @endif
+                  @if($package->meals_info)
+                    <div class="pd-info-row">
+                      <div class="pd-info-icon"><i class="fa-solid fa-utensils"></i></div>
+                      <div><div class="pd-info-label">Meals</div><div class="pd-info-val">{{ $package->meals_info }}</div></div>
+                    </div>
+                  @endif
+                </div>
+              </div>
+            </div>
+          @endif
+
         </div>
       </div>
-    </div>
 
+    </div>
   </div>
 </div>
+
+{{-- ===== GALLERY ===== --}}
+@if($package->images && $package->images->count() > 0)
+<div class="pd-page" style="padding: 80px 0;" id="gallery">
+  <div class="pd-container">
+    <div class="pd-section-label" style="text-align:center;margin-bottom:12px;">Memories</div>
+    <h2 class="pd-section-title" style="text-align:center;margin-bottom:40px;">Gallery</h2>
+    <div class="pd-gallery-grid">
+      @foreach($package->images as $img)
+        <div class="pd-gallery-item">
+          <img src="{{ Str::startsWith($img->image_path, 'http') ? $img->image_path : Storage::disk('public')->url($img->image_path) }}" alt="{{ $img->alt_text ?? $package->title }} - Gallery" loading="lazy">
+        </div>
+      @endforeach
+    </div>
+  </div>
+</div>
+@endif
+
+{{-- ===== REVIEWS ===== --}}
+<div class="pd-page" style="padding: 80px 0; background: var(--dark-3);">
+  <div class="pd-container">
+    <div class="pd-section-label" style="text-align:center;margin-bottom:12px;">Experiences</div>
+    <h2 class="pd-section-title" style="text-align:center;margin-bottom:40px;">Traveller <em>Reviews</em></h2>
+
+    @if(session('success'))
+      <div class="pd-alert pd-alert-success" style="max-width:700px;margin:0 auto 24px;">{{ session('success') }}</div>
+    @endif
+    @if(session('error'))
+      <div class="pd-alert pd-alert-error" style="max-width:700px;margin:0 auto 24px;">{{ session('error') }}</div>
+    @endif
+
+    @if($hasBooked)
+      <div class="pd-review-form" style="max-width:700px;margin:0 auto 40px;">
+        <h3>Write a Review</h3>
+        <form action="{{ route('package.reviews.store', $package->id) }}" method="POST">
+          @csrf
+          <div class="pd-form-group">
+            <label class="pd-form-label">Your Rating</label>
+            <select name="rating" required class="pd-form-select">
+              <option value="5">★★★★★ Excellent</option>
+              <option value="4">★★★★☆ Very Good</option>
+              <option value="3">★★★☆☆ Average</option>
+              <option value="2">★★☆☆☆ Poor</option>
+              <option value="1">★☆☆☆☆ Terrible</option>
+            </select>
+          </div>
+          <div class="pd-form-group">
+            <label class="pd-form-label">Your Review</label>
+            <textarea name="body" rows="4" required class="pd-form-textarea" placeholder="Share your experience..."></textarea>
+          </div>
+          <button type="submit" class="pd-btn" style="max-width:220px;">Submit Review</button>
+        </form>
+      </div>
+    @elseif(auth()->check())
+      <div class="pd-alert-info" style="max-width:700px;margin:0 auto 40px;">
+        Only customers with a confirmed booking for this package can leave a review.
+      </div>
+    @else
+      <div class="pd-alert-info" style="max-width:700px;margin:0 auto 40px;">
+        <a href="{{ route('login') }}">Login</a> to write a review for this package.
+      </div>
+    @endif
+
+    @if($publishedReviews->count() > 0)
+      <div style="max-width:700px;margin:0 auto;">
+        @foreach($publishedReviews as $review)
+          <div class="pd-review-item">
+            <div class="pd-review-header">
+              <span class="pd-review-name">{{ $review->author_name }}</span>
+              <span class="pd-review-stars">
+                @for($i=1; $i<=5; $i++)
+                  <i class="fa-{{ $i <= $review->rating ? 'solid' : 'regular' }} fa-star"></i>
+                @endfor
+              </span>
+            </div>
+            <div class="pd-review-body">{{ $review->body }}</div>
+          </div>
+        @endforeach
+      </div>
+    @else
+      <p style="text-align:center;color:var(--white-60);font-family:'Jost',sans-serif;">
+        No reviews yet. Be the first to share your experience after taking this package!
+      </p>
+    @endif
+  </div>
+</div>
+
+<script>
+// Active nav highlight on scroll
+const pdSections = document.querySelectorAll('[id]');
+const pdNavLinks = document.querySelectorAll('.pd-nav-link');
+const pdObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      pdNavLinks.forEach(l => l.classList.remove('active'));
+      const active = document.querySelector(`.pd-nav-link[href="#${entry.target.id}"]`);
+      if (active) active.classList.add('active');
+    }
+  });
+}, { rootMargin: '-50% 0px -50% 0px' });
+pdSections.forEach(s => pdObserver.observe(s));
+</script>
 
 @endsection

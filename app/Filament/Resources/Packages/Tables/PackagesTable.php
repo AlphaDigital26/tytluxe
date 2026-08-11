@@ -5,8 +5,10 @@ namespace App\Filament\Resources\Packages\Tables;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 
 class PackagesTable
@@ -16,32 +18,51 @@ class PackagesTable
         return $table
             ->columns([
                 TextColumn::make('title')
-                    ->searchable(),
-                TextColumn::make('slug')
-                    ->searchable(),
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('destination.name')
+                    ->label('Destination')
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('region_type')
+                    ->label('Region')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'domestic'      => 'success',
+                        'international' => 'info',
+                        default         => 'gray',
+                    }),
+                TextColumn::make('tour_type')
+                    ->label('Type')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'group'  => 'warning',
+                        'custom' => 'primary',
+                        default  => 'gray',
+                    }),
                 TextColumn::make('duration_nights')
+                    ->label('Nights')
                     ->numeric()
                     ->sortable(),
                 TextColumn::make('price_from')
-                    ->numeric()
+                    ->label('Price From')
+                    ->money('INR')
                     ->sortable(),
                 IconColumn::make('is_active')
+                    ->label('Active')
                     ->boolean(),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('deleted_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                SelectFilter::make('region_type')
+                    ->label('Region')
+                    ->options(['domestic' => 'Domestic', 'international' => 'International']),
+                SelectFilter::make('tour_type')
+                    ->label('Tour Type')
+                    ->options(['group' => 'Group', 'custom' => 'Custom']),
             ])
             ->recordActions([
                 EditAction::make(),

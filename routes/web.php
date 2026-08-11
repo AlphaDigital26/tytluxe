@@ -34,6 +34,9 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile/traveller/{traveller}', [ProfileController::class, 'updateTraveller'])->name('profile.traveller.update');
     Route::delete('/profile/traveller/{traveller}', [ProfileController::class, 'deleteTraveller'])->name('profile.traveller.destroy');
     Route::post('/profile/logout-other-devices', [ProfileController::class, 'logoutOtherDevices'])->name('profile.logout-other-devices');
+    
+    Route::get('/packages/{id}/download-itinerary', [FrontendController::class, 'downloadItinerary'])->name('package.download');
+    Route::post('/packages/{id}/reviews', [FrontendController::class, 'storeReview'])->name('package.reviews.store');
 });
 
 require __DIR__.'/auth.php';
