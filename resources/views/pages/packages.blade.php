@@ -110,6 +110,25 @@
   gap: 22px; margin-bottom: 60px;
 }
 
+/* ===== TOUR TYPE PILL ===== */
+.pkg-tour-type-pill {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background-color: var(--gold);
+  color: var(--dark);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  z-index: 2;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+
+
 /* ===== STATE FILTER BAR ===== */
 .state-filter-wrap {
   display: flex; align-items: center; gap: 8px;
@@ -129,7 +148,7 @@
 /* ===== DESTINATION CARD ===== */
 .dest-card {
   position: relative; border-radius: var(--radius); overflow: hidden;
-  cursor: pointer; height: 320px;
+  cursor: pointer; height: 380px;
   border: 1px solid rgba(255,255,255,0.06);
   transition: all var(--transition);
   flex-shrink: 0;
@@ -378,10 +397,9 @@
 
       <!-- DOMESTIC PANEL -->
       <div class="cat-panel active" id="panel-domestic" role="tabpanel" aria-labelledby="tab-domestic">
-        <div class="dest-label"><i class="fa-solid fa-map-pin"></i> Destinations in India</div>
         
         @php
-          $domesticStates = $packages->where('category', 'domestic')->pluck('destination.name')->unique();
+          $domesticStates = $packages->where('region_type', 'domestic')->pluck('destination.name')->unique();
         @endphp
         @if($domesticStates->count() > 0)
         <div class="state-filter-wrap">
@@ -392,28 +410,41 @@
         </div>
         @endif
 
-        <div class="dest-grid" id="grid-domestic">
-          @foreach($packages->where('category', 'domestic') as $pkg)
-          <div class="dest-card" data-state="{{ Str::slug($pkg->destination->name) }}" onclick="openDrawer({{ $pkg->id }})" tabindex="0" role="button"
-            aria-label="View {{ $pkg->title }} package details"
-            onkeydown="if(event.key==='Enter'||event.key===' ') openDrawer({{ $pkg->id }})">
-            <div class="dest-card-img" style="background-image: url('{{ $pkg->images->first()->image_path }}')"></div>
-            <div class="dest-card-overlay"></div>
-            <div class="dest-card-content">
-              <div class="dest-card-country">
-                <i class="fa-solid fa-location-dot"></i> {{ $pkg->destination->name }}
+        <div id="grid-domestic" data-active-state="all">
+          @foreach(['group' => 'Group Packages', 'custom' => 'Custom Packages', 'all' => 'All Packages'] as $type => $title)
+            @php
+              $typePackages = $type === 'all' 
+                ? $packages->where('region_type', 'domestic') 
+                : $packages->where('region_type', 'domestic')->where('tour_type', $type);
+            @endphp
+            @if($typePackages->isNotEmpty())
+              <h3 class="pkg-title" style="font-size: 1.8rem; margin: 40px 0 20px; text-align: left;">{{ $title }}</h3>
+              <div class="dest-grid type-section-grid" data-tour-type="{{ $type }}">
+                @foreach($typePackages as $pkg)
+                <div class="dest-card" data-state="{{ Str::slug($pkg->destination->name) }}" onclick="openDrawer({{ $pkg->id }})" tabindex="0" role="button"
+                  aria-label="View {{ $pkg->title }} package details"
+                  onkeydown="if(event.key==='Enter'||event.key===' ') openDrawer({{ $pkg->id }})">
+                  <div class="dest-card-img" style="background-image: url('{{ $pkg->images->first()?->image_path ?? 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=700&q=80' }}')"></div>
+                  <div class="pkg-tour-type-pill">{{ ucfirst($pkg->tour_type) }}</div>
+                  <div class="dest-card-overlay"></div>
+                  <div class="dest-card-content">
+                    <div class="dest-card-country">
+                      <i class="fa-solid fa-location-dot"></i> {{ $pkg->destination->name }}
+                    </div>
+                    <div class="dest-card-name">{{ $pkg->title }}</div>
+                    <div class="dest-card-meta">
+                      <span class="dest-meta-pill"><i class="fa-regular fa-moon"></i> {{ $pkg->duration_nights }}N {{ $pkg->duration_nights + 1 }}D</span>
+                      <span class="dest-meta-pill"><i class="fa-solid fa-indian-rupee-sign"></i> from {{ number_format($pkg->price_from) }}</span>
+                    </div>
+                    <div class="dest-card-cta">Explore Package <i class="fa-solid fa-arrow-right"></i></div>
+                  </div>
+                </div>
+                @endforeach
               </div>
-              <div class="dest-card-name">{{ $pkg->title }}</div>
-              <div class="dest-card-meta">
-                <span class="dest-meta-pill"><i class="fa-regular fa-moon"></i> {{ $pkg->duration_nights }}N {{ $pkg->duration_nights + 1 }}D</span>
-                <span class="dest-meta-pill"><i class="fa-solid fa-indian-rupee-sign"></i> from {{ number_format($pkg->price_from) }}</span>
-              </div>
-              <div class="dest-card-cta">Explore Package <i class="fa-solid fa-arrow-right"></i></div>
-            </div>
-          </div>
+            @endif
           @endforeach
 
-          @if($packages->where('category', 'domestic')->isEmpty())
+          @if($packages->where('region_type', 'domestic')->isEmpty())
           <p style="color:var(--white-60); font-family:'Jost',sans-serif; grid-column:1/-1; text-align:center; padding:48px 0;">
             Domestic packages coming soon. Stay tuned!
           </p>
@@ -423,10 +454,9 @@
 
       <!-- INTERNATIONAL PANEL -->
       <div class="cat-panel" id="panel-international" role="tabpanel" aria-labelledby="tab-international">
-        <div class="dest-label"><i class="fa-solid fa-earth-americas"></i> International Destinations</div>
         
         @php
-          $intlStates = $packages->where('category', 'international')->pluck('destination.name')->unique();
+          $intlStates = $packages->where('region_type', 'international')->pluck('destination.name')->unique();
         @endphp
         @if($intlStates->count() > 0)
         <div class="state-filter-wrap">
@@ -437,28 +467,41 @@
         </div>
         @endif
 
-        <div class="dest-grid" id="grid-international">
-          @foreach($packages->where('category', 'international') as $pkg)
-          <div class="dest-card" data-state="{{ Str::slug($pkg->destination->name) }}" onclick="openDrawer({{ $pkg->id }})" tabindex="0" role="button"
-            aria-label="View {{ $pkg->title }} package details"
-            onkeydown="if(event.key==='Enter'||event.key===' ') openDrawer({{ $pkg->id }})">
-            <div class="dest-card-img" style="background-image: url('{{ $pkg->images->first()->image_path }}')"></div>
-            <div class="dest-card-overlay"></div>
-            <div class="dest-card-content">
-              <div class="dest-card-country">
-                <i class="fa-solid fa-location-dot"></i> {{ $pkg->destination->name }}
+        <div id="grid-international" data-active-state="all">
+          @foreach(['group' => 'Group Packages', 'custom' => 'Custom Packages', 'all' => 'All Packages'] as $type => $title)
+            @php
+              $typePackages = $type === 'all' 
+                ? $packages->where('region_type', 'international') 
+                : $packages->where('region_type', 'international')->where('tour_type', $type);
+            @endphp
+            @if($typePackages->isNotEmpty())
+              <h3 class="pkg-title" style="font-size: 1.8rem; margin: 40px 0 20px; text-align: left;">{{ $title }}</h3>
+              <div class="dest-grid type-section-grid" data-tour-type="{{ $type }}">
+                @foreach($typePackages as $pkg)
+                <div class="dest-card" data-state="{{ Str::slug($pkg->destination->name) }}" onclick="openDrawer({{ $pkg->id }})" tabindex="0" role="button"
+                  aria-label="View {{ $pkg->title }} package details"
+                  onkeydown="if(event.key==='Enter'||event.key===' ') openDrawer({{ $pkg->id }})">
+                  <div class="dest-card-img" style="background-image: url('{{ $pkg->images->first()?->image_path ?? 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=700&q=80' }}')"></div>
+                  <div class="pkg-tour-type-pill">{{ ucfirst($pkg->tour_type) }}</div>
+                  <div class="dest-card-overlay"></div>
+                  <div class="dest-card-content">
+                    <div class="dest-card-country">
+                      <i class="fa-solid fa-location-dot"></i> {{ $pkg->destination->name }}
+                    </div>
+                    <div class="dest-card-name">{{ $pkg->title }}</div>
+                    <div class="dest-card-meta">
+                      <span class="dest-meta-pill"><i class="fa-regular fa-moon"></i> {{ $pkg->duration_nights }}N {{ $pkg->duration_nights + 1 }}D</span>
+                      <span class="dest-meta-pill"><i class="fa-solid fa-indian-rupee-sign"></i> from {{ number_format($pkg->price_from) }}</span>
+                    </div>
+                    <div class="dest-card-cta">Explore Package <i class="fa-solid fa-arrow-right"></i></div>
+                  </div>
+                </div>
+                @endforeach
               </div>
-              <div class="dest-card-name">{{ $pkg->title }}</div>
-              <div class="dest-card-meta">
-                <span class="dest-meta-pill"><i class="fa-regular fa-moon"></i> {{ $pkg->duration_nights }}N {{ $pkg->duration_nights + 1 }}D</span>
-                <span class="dest-meta-pill"><i class="fa-solid fa-indian-rupee-sign"></i> from {{ number_format($pkg->price_from) }}</span>
-              </div>
-              <div class="dest-card-cta">Explore Package <i class="fa-solid fa-arrow-right"></i></div>
-            </div>
-          </div>
+            @endif
           @endforeach
 
-          @if($packages->where('category', 'international')->isEmpty())
+          @if($packages->where('region_type', 'international')->isEmpty())
           <p style="color:var(--white-60); font-family:'Jost',sans-serif; grid-column:1/-1; text-align:center; padding:48px 0;">
             International packages coming soon. Stay tuned!
           </p>
@@ -537,7 +580,7 @@ foreach($packages as $p) {
         'price'     => $p->price_from,
         'short_desc'=> $p->short_desc ?? '',
         'country'   => $p->destination->name,
-        'image'     => $p->images->first()->image_path,
+        'image'     => $p->images->first()?->image_path ?? 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=700&q=80',
         'inclusions'=> $p->inclusions->pluck('name')->values()->toArray(),
         'detailUrl' => route('package.details', ['id' => $p->id]),
     ];
@@ -557,29 +600,43 @@ function switchTab(cat) {
   });
 }
 
-// ─── State Filtering ──────────────────────────────────────────────────────────
 function filterState(category, stateSlug) {
   const panel = document.getElementById('panel-' + category);
   if (!panel) return;
+  const gridWrap = document.getElementById('grid-' + category);
 
   // Update tabs
   panel.querySelectorAll('.state-tab').forEach(tab => {
-    if (tab.dataset.state === stateSlug) {
-      tab.classList.add('active');
-    } else {
-      tab.classList.remove('active');
-    }
+    tab.classList.toggle('active', tab.dataset.state === stateSlug);
+  });
+  
+  // Update state
+  gridWrap.dataset.activeState = stateSlug;
+  applyFilters(category);
+}
+
+function applyFilters(category) {
+  const gridWrap = document.getElementById('grid-' + category);
+  if (!gridWrap) return;
+  
+  const activeState = gridWrap.dataset.activeState || 'all';
+  
+  // Filter cards
+  gridWrap.querySelectorAll('.dest-card').forEach(card => {
+    const matchState = (activeState === 'all' || card.dataset.state === activeState);
+    card.style.display = matchState ? '' : 'none';
   });
 
-  // Filter cards
-  const grid = document.getElementById('grid-' + category);
-  if (!grid) return;
-
-  grid.querySelectorAll('.dest-card').forEach(card => {
-    if (stateSlug === 'all' || card.dataset.state === stateSlug) {
-      card.style.display = '';
+  // Hide empty sections
+  gridWrap.querySelectorAll('.type-section-grid').forEach(grid => {
+    const visibleCards = Array.from(grid.querySelectorAll('.dest-card')).filter(card => card.style.display !== 'none');
+    const heading = grid.previousElementSibling;
+    if (visibleCards.length === 0) {
+      grid.style.display = 'none';
+      if (heading) heading.style.display = 'none';
     } else {
-      card.style.display = 'none';
+      grid.style.display = 'grid'; // Restore grid layout
+      if (heading) heading.style.display = '';
     }
   });
 }

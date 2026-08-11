@@ -599,20 +599,36 @@
 
     <div class="htl-grid" id="htlGrid">
       @php
-          // Extract hotels from the API response
-          $hotelsList = $apiResponse['searchResult']['his'] ?? [];
+          // Extract hotels from the API response or fallback to database hotels
+          $apiHotels = $apiResponse['searchResult']['his'] ?? [];
+          $hotelsList = count($apiHotels) > 0 ? $apiHotels : $hotels;
       @endphp
       
       @forelse($hotelsList as $hotel)
       @php
-          $id = $hotel['id'] ?? '';
-          $name = $hotel['name'] ?? 'Unknown Hotel';
-          $rating = $hotel['rt'] ?? 3;
-          $category = $hotel['pt'] ?? 'Hotel';
-          $location = $hotel['ad']['city']['name'] ?? 'Unknown City';
-          $address = $hotel['ad']['adr'] ?? 'Address on request';
-          $imageUrl = $hotel['img'][0]['url'] ?? 'placeholder.jpg';
-          $price = $hotel['pop'][0]['tpc'] ?? '0';
+          $isApi = is_array($hotel);
+          
+          if ($isApi) {
+              $id = $hotel['id'] ?? '';
+              $name = $hotel['name'] ?? 'Unknown Hotel';
+              $rating = $hotel['rt'] ?? 3;
+              $category = $hotel['pt'] ?? 'Hotel';
+              $location = $hotel['ad']['city']['name'] ?? 'Unknown City';
+              $address = $hotel['ad']['adr'] ?? 'Address on request';
+              $imageUrl = $hotel['img'][0]['url'] ?? 'placeholder.jpg';
+              $price = $hotel['pop'][0]['tpc'] ?? '0';
+          } else {
+              $id = $hotel->id;
+              $name = $hotel->name;
+              $rating = $hotel->star_rating ?? 3;
+              $category = $hotel->hotel_type ?? 'Hotel';
+              $location = $hotel->destination ? $hotel->destination->name : 'Unknown City';
+              $address = $hotel->address ?? 'Address on request';
+              $imageUrl = $hotel->images && $hotel->images->count() > 0 
+                          ? Storage::disk('public')->url($hotel->images->first()->image_path)
+                          : 'placeholder.jpg';
+              $price = $hotel->price_from ?? 0;
+          }
       @endphp
       <a href="{{ route('hotel.details', $id) }}" class="htl-card" data-category="{{ Str::slug($location) }}"
         data-name="{{ Str::slug($name) }}" data-location="{{ Str::slug($location) }}"
@@ -624,10 +640,10 @@
         </div>
         <div class="htl-card-body">
           <h3 class="htl-card-name">{{ $name }}</h3>
-          <p class="htl-card-desc">{{ $address }}</p>
+          <p class="htl-card-desc">{{ Str::limit($address, 70) }}</p>
           <div class="htl-card-meta">
             @for($i = 0; $i < min($rating, 5); $i++)
-              <span>★</span>
+              <span style="color: var(--gold); font-size: 14px;">★</span>
             @endfor
           </div>
           <div class="htl-card-footer">

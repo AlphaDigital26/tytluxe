@@ -5,13 +5,17 @@ namespace App\Filament\Resources\Packages;
 use App\Filament\Resources\Packages\Pages\CreatePackage;
 use App\Filament\Resources\Packages\Pages\EditPackage;
 use App\Filament\Resources\Packages\Pages\ListPackages;
+use App\Filament\Resources\Packages\RelationManagers\ExclusionsRelationManager;
+use App\Filament\Resources\Packages\RelationManagers\HighlightsRelationManager;
+use App\Filament\Resources\Packages\RelationManagers\ImagesRelationManager;
+use App\Filament\Resources\Packages\RelationManagers\InclusionsRelationManager;
+use App\Filament\Resources\Packages\RelationManagers\ItineraryDaysRelationManager;
 use App\Filament\Resources\Packages\Schemas\PackageForm;
 use App\Filament\Resources\Packages\Tables\PackagesTable;
 use App\Models\Package;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 
 class PackageResource extends Resource
@@ -20,7 +24,9 @@ class PackageResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-gift';
 
-    protected static ?string $recordTitleAttribute = 'name';
+    protected static ?string $recordTitleAttribute = 'title';
+
+    protected static ?string $navigationLabel = 'Packages';
 
     public static function form(Schema $schema): Schema
     {
@@ -35,17 +41,20 @@ class PackageResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            HighlightsRelationManager::class,
+            ItineraryDaysRelationManager::class,
+            InclusionsRelationManager::class,
+            ExclusionsRelationManager::class,
+            ImagesRelationManager::class,
         ];
     }
 
     public static function getPages(): array
     {
         return [
-            'index' => ListPackages::route('/'),
+            'index'  => ListPackages::route('/'),
             'create' => CreatePackage::route('/create'),
-            'edit' => EditPackage::route('/{record}/edit'),
+            'edit'   => EditPackage::route('/{record}/edit'),
         ];
     }
 }
-

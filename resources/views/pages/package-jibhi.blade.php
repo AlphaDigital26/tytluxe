@@ -840,6 +840,23 @@
           </div>
         </div>
 
+        {{-- GALLERY SECTION --}}
+        <div class="jb-section" id="gallery" style="border-bottom:none;">
+          <div class="jb-section-label">Gallery</div>
+          <h2 class="jb-section-title">Memories of <em>Jibhi</em></h2>
+          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; margin-top: 24px;">
+            @if(isset($package->images) && $package->images->count() > 0)
+              @foreach($package->images as $img)
+                <div style="height: 250px; overflow: hidden; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                  <img src="{{ Str::startsWith($img->image_path, 'http') ? $img->image_path : Storage::disk('public')->url($img->image_path) }}" alt="Gallery Image" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                </div>
+              @endforeach
+            @else
+              <p style="grid-column: 1 / -1;">No images available.</p>
+            @endif
+          </div>
+        </div>
+
       </div>
 
       
