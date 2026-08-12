@@ -2,13 +2,18 @@
 
 namespace App\Filament\Resources\Hotels\Schemas;
 
-use App\Models\Amenity;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Toggle;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Schemas\Components\Grid;
+use Filament\Forms\Set;
+use Illuminate\Support\Str;
 use Filament\Schemas\Schema;
 
 class HotelForm
@@ -17,150 +22,172 @@ class HotelForm
     {
         return $schema
             ->components([
+                Tabs::make('Hotel Details')
+                    ->tabs([
+                        Tab::make('General Information')
+                            ->icon('heroicon-o-information-circle')
+                            ->schema([
+                                Grid::make(2)->schema([
+                                    Select::make('destination_id')
+                                        ->label('Destination')
+                                        ->helperText('City or region where this hotel is located')
+                                        ->relationship('destination', 'name', fn ($query) => $query->orderBy('name'))
+                                        ->required()
+                                        ->searchable()
+                                        ->preload(),
 
-                // ── Basic Info ────────────────────────────────────────────
-                Select::make('destination_id')
-                    ->label('Destination')
-                    ->helperText('City / region where this hotel is located')
-                    ->relationship('destination', 'name', fn ($query) => $query->orderBy('name'))
-                    ->required()
-                    ->searchable()
-                    ->preload(),
+                                    Select::make('category')
+                                        ->label('Hotel Category')
+                                        ->options([
+                                            'beach_resort'    => '🏖️  Beach Resort',
+                                            'city_luxury'     => '🏙️  City Luxury',
+                                            'honeymoon'       => '💑  Honeymoon',
+                                            'family_friendly' => '👨‍👩‍👧  Family Friendly',
+                                        ])
+                                        ->required()
+                                        ->native(false),
 
-                TextInput::make('title')
-                    ->label('Hotel Name')
-                    ->required(),
+                                    TextInput::make('title')
+                                        ->label('Hotel Name')
+                                        ->required()
+                                        ->live(onBlur: true)
+                                        ->afterStateUpdated(fn (Set $set, ?string $state) => $set('slug', Str::slug($state)))
+                                        ->columnSpan(2),
 
-                TextInput::make('slug')
-                    ->label('URL Slug')
-                    ->helperText('Auto-filled — only change if needed')
-                    ->required(),
+                                    TextInput::make('slug')
+                                        ->label('URL Slug')
+                                        ->helperText('This forms the link of the hotel page. Auto-generated from the name.')
+                                        ->required()
+                                        ->columnSpan(2),
 
-                Textarea::make('description')
-                    ->label('Description')
-                    ->helperText('A brief description that appears on the hotel detail page')
-                    ->required()
-                    ->columnSpanFull(),
+                                    Textarea::make('description')
+                                        ->label('Description')
+                                        ->helperText('A brief description that appears on the hotel detail page')
+                                        ->required()
+                                        ->columnSpan(2)
+                                        ->rows(4),
+                                ]),
+                            ]),
 
-                // ── Classification ────────────────────────────────────────
-                Select::make('category')
-                    ->label('Hotel Category')
-                    ->options([
-                        'beach_resort'    => '🏖️  Beach Resort',
-                        'city_luxury'     => '🏙️  City Luxury',
-                        'honeymoon'       => '💑  Honeymoon',
-                        'family_friendly' => '👨‍👩‍👧  Family Friendly',
-                    ])
-                    ->required()
-                    ->native(false),
+                        Tab::make('Pricing & Rating')
+                            ->icon('heroicon-o-currency-rupee')
+                            ->schema([
+                                Grid::make(2)->schema([
+                                    TextInput::make('price_from')
+                                        ->label('Starting Price')
+                                        ->helperText('Leave 0 if price is on request')
+                                        ->numeric()
+                                        ->required()
+                                        ->prefix('₹'),
 
-                TextInput::make('address')
-                    ->label('Address')
-                    ->required(),
+                                    TextInput::make('star_rating')
+                                        ->label('Star Rating')
+                                        ->helperText('Enter a number from 1 to 5')
+                                        ->numeric()
+                                        ->minValue(1)
+                                        ->maxValue(5)
+                                        ->required()
+                                        ->suffix('Stars'),
+                                ]),
+                            ]),
 
-                TextInput::make('star_rating')
-                    ->label('Star Rating')
-                    ->helperText('Enter a number from 1 to 5')
-                    ->numeric()
-                    ->minValue(1)
-                    ->maxValue(5)
-                    ->required(),
+                        Tab::make('Location & Rules')
+                            ->icon('heroicon-o-map-pin')
+                            ->schema([
+                                Grid::make(2)->schema([
+                                    TextInput::make('address')
+                                        ->label('Full Address')
+                                        ->required()
+                                        ->columnSpan(2),
 
-                TextInput::make('price_from')
-                    ->label('Starting Price (₹ per night)')
-                    ->helperText('Leave 0 if price is on request')
-                    ->numeric()
-                    ->required(),
+                                    TextInput::make('check_in_time')
+                                        ->label('Check-in Time')
+                                        ->default('2:00 PM')
+                                        ->required(),
 
-                // ── Status ────────────────────────────────────────────────
-                Toggle::make('is_active')
-                    ->label('Visible on Website')
-                    ->helperText('Turn on to show this hotel to visitors')
-                    ->required(),
+                                    TextInput::make('check_out_time')
+                                        ->label('Check-out Time')
+                                        ->default('11:00 AM')
+                                        ->required(),
 
-                Toggle::make('is_featured')
-                    ->label('Featured Hotel')
-                    ->helperText('Featured hotels appear highlighted on the listing')
-                    ->required(),
+                                    TextInput::make('lat')
+                                        ->label('Latitude (optional)')
+                                        ->numeric()
+                                        ->default(null),
 
-                // ── Check-in / Check-out ──────────────────────────────────
-                TextInput::make('check_in_time')
-                    ->label('Check-in Time')
-                    ->default('2:00 PM')
-                    ->required(),
+                                    TextInput::make('lng')
+                                        ->label('Longitude (optional)')
+                                        ->numeric()
+                                        ->default(null),
+                                ]),
+                            ]),
 
-                TextInput::make('check_out_time')
-                    ->label('Check-out Time')
-                    ->default('11:00 AM')
-                    ->required(),
+                        Tab::make('Content & Amenities')
+                            ->icon('heroicon-o-sparkles')
+                            ->schema([
+                                Select::make('amenities')
+                                    ->label('Hotel Amenities')
+                                    ->helperText('Select amenities this hotel offers.')
+                                    ->relationship('amenities', 'name', fn ($query) => $query->where('type', 'hotel')->orderBy('name'))
+                                    ->multiple()
+                                    ->preload()
+                                    ->searchable()
+                                    ->columnSpanFull(),
 
-                // ── Amenities (filtered to hotel type only) ───────────────
-                Select::make('amenities')
-                    ->label('Hotel Amenities')
-                    ->helperText('Select amenities this hotel offers. Add new ones under Content → Amenities.')
-                    ->relationship('amenities', 'name', fn ($query) => $query->where('type', 'hotel')->orderBy('name'))
-                    ->multiple()
-                    ->preload()
-                    ->searchable()
-                    ->columnSpanFull(),
+                                Textarea::make('room_categories')
+                                    ->label('Room Types')
+                                    ->helperText('Enter one room type per line — e.g. Deluxe Room, Suite, Penthouse')
+                                    ->columnSpanFull()
+                                    ->rows(3)
+                                    ->nullable(),
 
-                // ── Extra Details ─────────────────────────────────────────
-                Textarea::make('room_categories')
-                    ->label('Room Types')
-                    ->helperText('Enter one room type per line — e.g. Deluxe Room, Suite, Penthouse')
-                    ->columnSpanFull()
-                    ->nullable(),
+                                Textarea::make('nearby_attractions')
+                                    ->label('Nearby Attractions')
+                                    ->helperText('Enter one attraction per line — e.g. Shimla Mall Road (1 km)')
+                                    ->columnSpanFull()
+                                    ->rows(3)
+                                    ->nullable(),
+                            ]),
 
-                Textarea::make('nearby_attractions')
-                    ->label('Nearby Attractions')
-                    ->helperText('Enter one attraction per line — e.g. Shimla Mall Road (1 km)')
-                    ->columnSpanFull()
-                    ->nullable(),
+                        Tab::make('Photos')
+                            ->icon('heroicon-o-photo')
+                            ->schema([
+                                Repeater::make('images')
+                                    ->label('Hotel Photos')
+                                    ->helperText('Upload photos of the hotel. The first photo is used as the cover image.')
+                                    ->relationship('images')
+                                    ->schema([
+                                        FileUpload::make('path')
+                                            ->label('Photo')
+                                            ->image()
+                                            ->directory('hotels')
+                                            ->required(),
+                                        TextInput::make('alt_text')
+                                            ->label('Photo Caption (optional)')
+                                            ->nullable(),
+                                    ])
+                                    ->grid(2)
+                                    ->columnSpanFull()
+                                    ->defaultItems(0)
+                                    ->reorderableWithDragAndDrop(true)
+                                    ->addActionLabel('Add Photo'),
+                            ]),
+                    ])->columnSpanFull(),
 
-                // ── Location co-ordinates (optional) ─────────────────────
-                TextInput::make('lat')
-                    ->label('Latitude (optional)')
-                    ->numeric()
-                    ->default(null),
-
-                TextInput::make('lng')
-                    ->label('Longitude (optional)')
-                    ->numeric()
-                    ->default(null),
-
-                // ── Source (internal) ─────────────────────────────────────
-                Select::make('source')
-                    ->label('Data Source')
-                    ->helperText('Leave as Manual unless you know what this means')
-                    ->options(['tripjack' => 'Tripjack API', 'manual' => 'Manual Entry'])
-                    ->default('manual')
-                    ->required()
-                    ->native(false),
-
-                TextInput::make('tripjack_hotel_id')
-                    ->label('Tripjack Hotel ID (optional)')
-                    ->default(null),
-
-                // ── Images ────────────────────────────────────────────────
-                Repeater::make('images')
-                    ->label('Hotel Photos')
-                    ->helperText('Upload photos of the hotel. The first photo appears as the main image.')
-                    ->relationship('images')
+                Section::make('Visibility Settings')
                     ->schema([
-                        FileUpload::make('path')
-                            ->label('Photo')
-                            ->image()
-                            ->directory('hotels')
+                        Toggle::make('is_active')
+                            ->label('Visible on Website')
+                            ->helperText('Turn on to show this hotel to visitors')
+                            ->default(true)
                             ->required(),
-                        TextInput::make('alt_text')
-                            ->label('Photo Caption (optional)')
-                            ->nullable(),
-                    ])
-                    ->columnSpanFull()
-                    ->defaultItems(0)
-                    ->reorderableWithDragAndDrop(true)
-                    ->addActionLabel('Add Photo'),
 
+                        Toggle::make('is_featured')
+                            ->label('Featured Hotel')
+                            ->helperText('Featured hotels appear highlighted on the listing')
+                            ->default(false)
+                            ->required(),
+                    ])->columns(2),
             ]);
     }
 }
