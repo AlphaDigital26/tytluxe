@@ -1,0 +1,151 @@
+/* ===================================================
+   SCRAPBOOK ROW GALLERY
+   =================================================== */
+
+.scrapbook-section {
+  width: 100%;
+  padding: 80px 0 100px;
+  background: var(--dark-3);
+  position: relative;
+  overflow: hidden;
+}
+
+.scrapbook-section-label {
+  text-align: center;
+  font-family: 'Jost', 'Outfit', sans-serif;
+  font-size: 0.75rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--gold, #c9a84c);
+  margin-bottom: 10px;
+}
+
+.scrapbook-section-title {
+  text-align: center;
+  font-family: 'Cormorant Garamond', 'Playfair Display', serif;
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  font-weight: 600;
+  color: var(--white, #fff);
+  margin-bottom: 60px;
+  line-height: 1.2;
+}
+
+.scrapbook-section-title em {
+  font-style: italic;
+  color: var(--gold, #c9a84c);
+}
+
+/* ── Board Container ────────────────────────────── */
+.scrapbook-board {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 40px 20px;
+  perspective: 1000px;
+}
+
+/* ── Common Photo Style ─────────────────────────── */
+.scrapbook-photo {
+  position: relative;
+  width: 280px;
+  height: 360px;
+  background-color: #fff; /* Pure white equal border */
+  padding: 12px;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+  z-index: 10;
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.4s ease, z-index 0s;
+  display: flex;
+  flex: 0 0 auto; /* Prevent shrinking in flex row */
+  /* Slight negative margin for that "stacked/scattered" feel without being messy */
+  margin: 0 -15px; 
+}
+
+.scrapbook-photo:hover {
+  transform: scale(1.08) rotate(0deg) translateZ(30px) !important;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.7);
+  z-index: 100 !important;
+  cursor: pointer;
+}
+
+.scrapbook-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background-color: #333;
+}
+
+/* ── Pins & Tape ────────────────────────────────── */
+
+/* Tape */
+.scrapbook-photo[data-decor="tape"]::after {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  width: 60px;
+  height: 22px;
+  background-color: #929982; /* greenish tape from reference */
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  transform: translateX(-50%) rotate(-3deg);
+  z-index: 100;
+  opacity: 0.9;
+}
+
+/* Realistic Pin (White/Silver domed head) */
+.scrapbook-photo[data-decor="pin"]::after {
+  content: '';
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  width: 16px;
+  height: 16px;
+  background: radial-gradient(circle at 35% 35%, #ffffff 0%, #e0e0e0 40%, #a0a0a0 100%);
+  border-radius: 50%;
+  transform: translateX(-50%);
+  box-shadow: 2px 4px 6px rgba(0,0,0,0.5);
+  z-index: 100;
+}
+
+/* ── Scattered Rotations (Pseudo-random nth-child) ─ */
+/* This gives them a slightly messy, hand-placed look while staying in a neat row */
+.scrapbook-photo:nth-child(even) { transform: rotate(3deg) translateY(10px); z-index: 11; }
+.scrapbook-photo:nth-child(odd) { transform: rotate(-4deg) translateY(-5px); z-index: 12; }
+.scrapbook-photo:nth-child(3n) { transform: rotate(2deg) translateY(-15px); z-index: 13; }
+.scrapbook-photo:nth-child(4n) { transform: rotate(-2deg) translateY(15px); z-index: 14; }
+
+/* ── Responsive ─────────────────────────────────── */
+@media (max-width: 1200px) {
+  .scrapbook-board {
+    margin: 0;
+    padding: 40px 10px;
+    gap: 15px;
+  }
+  .scrapbook-photo {
+    width: 240px;
+    height: 320px;
+    margin: 0 -10px;
+  }
+}
+
+@media (max-width: 768px) {
+  .scrapbook-board {
+    flex-direction: column; /* Stack vertically on small screens */
+    gap: 30px;
+    padding: 20px 10px;
+  }
+  .scrapbook-photo {
+    width: 90% !important;
+    max-width: 400px;
+    height: auto !important;
+    aspect-ratio: 4/5;
+    margin: 0 auto;
+    transform: rotate(0) translateY(0) !important; /* Flatten */
+  }
+  .scrapbook-photo:hover {
+    transform: scale(1.05) rotate(0deg) !important;
+  }
+}

@@ -13,4 +13,9 @@ class HotelImage extends Model
     protected $guarded = [];
 
     public function hotel() { return $this->belongsTo(Hotel::class); }
+
+    public function getImagePathAttribute()
+    {
+        return $this->path;
+    }
 }

@@ -226,6 +226,37 @@
 .pd-contact-item:last-child { margin-bottom: 0; }
 .pd-contact-item i { color: var(--gold); font-size: 14px; margin-top: 2px; flex-shrink: 0; }
 
+/* ===== PAYMENT SECTION ===== */
+.pd-payment-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+.pd-payment-card {
+  background: var(--dark-3); border: 1px solid var(--white-10);
+  border-radius: var(--radius); padding: 20px; text-align: center;
+  transition: all var(--transition);
+}
+.pd-payment-card:hover { border-color: var(--gold-dim); transform: translateY(-3px); }
+.pd-payment-card i { font-size: 28px; color: var(--gold); margin-bottom: 10px; display: block; }
+.pd-payment-card-label { font-family: 'Jost', sans-serif; font-size: 12px; font-weight: 500; color: var(--white-60); }
+
+/* ===== TRAVEL DATES ===== */
+.pd-dates-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.pd-month-card {
+  background: var(--dark-3); border: 1px solid var(--white-10);
+  border-radius: var(--radius); padding: 20px;
+  transition: all var(--transition);
+}
+.pd-month-card:hover { border-color: var(--gold-dim); }
+.pd-month-name {
+  font-family: 'Jost', sans-serif; font-size: 10px; font-weight: 700;
+  letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold);
+  margin-bottom: 12px;
+}
+.pd-date-list { list-style: none; display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; }
+.pd-date-item {
+  font-family: 'Jost', sans-serif; font-size: 14.5px; color: var(--white-60);
+  font-weight: 400; display: flex; align-items: center; gap: 8px; padding: 0; border: none; text-align: left;
+}
+.pd-date-item::before { content: '→'; color: var(--gold); font-size: 11px; }
+
 /* ===== REVIEWS ===== */
 .pd-review-item { border-bottom: 1px solid var(--white-10); padding-bottom: 20px; margin-bottom: 20px; }
 .pd-review-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
@@ -262,6 +293,8 @@
   .pd-inc-exc { grid-template-columns: 1fr; }
   .pd-contact-grid { grid-template-columns: 1fr; }
   .pd-highlights { grid-template-columns: 1fr 1fr; }
+  .pd-payment-grid { grid-template-columns: repeat(3, 1fr); }
+  .pd-dates-grid { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 640px) {
   .pd-hero-content { padding: 0 20px 56px; }
@@ -269,6 +302,8 @@
   .pd-hero-title { font-size: 2.4rem; }
   .pd-sticky-nav-inner { padding: 0 20px; }
   .pd-highlights { grid-template-columns: 1fr; }
+  .pd-payment-grid { grid-template-columns: 1fr 1fr 1fr; }
+  .pd-dates-grid { grid-template-columns: 1fr 1fr; }
 }
 </style>
 @endpush
@@ -338,6 +373,9 @@
     <a href="#overview" class="pd-nav-link active">Overview</a>
     @if($package->itineraryDays && $package->itineraryDays->count() > 0)
       <a href="#itinerary" class="pd-nav-link">Itinerary</a>
+    @endif
+    @if($package->departures && $package->departures->count() > 0)
+      <a href="#dates" class="pd-nav-link">Dates</a>
     @endif
     @if($package->inclusions && $package->inclusions->count() > 0)
       <a href="#inclusions" class="pd-nav-link">Inclusions</a>
@@ -411,6 +449,34 @@
           </div>
         @endif
 
+        {{-- TRAVEL DATES --}}
+        @if($package->departures && $package->departures->count() > 0)
+          @php
+              // Group departures by Year and Month, e.g., "August 2025"
+              $groupedDates = $package->departures->groupBy(function($d) {
+                  return \Carbon\Carbon::parse($d->start_date)->format('F Y');
+              });
+          @endphp
+          <div class="pd-section" id="dates">
+            <div class="pd-section-label">Plan Your Trip</div>
+            <h2 class="pd-section-title">Travel <em>Dates</em></h2>
+            <div class="pd-dates-grid">
+              @foreach($groupedDates as $monthName => $dates)
+                <div class="pd-month-card">
+                  <div class="pd-month-name">{{ $monthName }}</div>
+                  <ul class="pd-date-list">
+                    @foreach($dates as $date)
+                      <li class="pd-date-item">
+                        {{ \Carbon\Carbon::parse($date->start_date)->format('d M') }} – {{ \Carbon\Carbon::parse($date->end_date)->format('d M') }}
+                      </li>
+                    @endforeach
+                  </ul>
+                </div>
+              @endforeach
+            </div>
+          </div>
+        @endif
+
         {{-- INCLUSIONS & EXCLUSIONS --}}
         @if(($package->inclusions && $package->inclusions->count() > 0) || ($package->exclusions && $package->exclusions->count() > 0))
           <div class="pd-section" id="inclusions">
@@ -422,7 +488,7 @@
                   <div class="pd-box-title">✓ What's Included</div>
                   <ul class="pd-inc-list">
                     @foreach($package->inclusions as $inc)
-                      <li><i class="fa-solid fa-check-circle"></i> <span>{{ $inc->name ?? $inc->title }}</span></li>
+                      <li><i class="fa-solid fa-check-circle"></i> <span>{{ $inc->label ?? $inc->name ?? $inc->title }}</span></li>
                     @endforeach
                   </ul>
                 </div>
@@ -432,7 +498,7 @@
                   <div class="pd-box-title">✗ What's Excluded</div>
                   <ul class="pd-exc-list">
                     @foreach($package->exclusions as $exc)
-                      <li><i class="fa-solid fa-times-circle"></i> <span>{{ $exc->name }}</span></li>
+                      <li><i class="fa-solid fa-times-circle"></i> <span>{{ $exc->label ?? $exc->name ?? $exc->title }}</span></li>
                     @endforeach
                   </ul>
                 </div>
@@ -451,6 +517,20 @@
               A booking amount of <strong style="color:var(--gold);">₹{{ number_format($package->booking_amount, 0) }} per person</strong> is required to confirm your seat.
             @endif
             Our team will then share the full itinerary and payment details with you.
+          </div>
+          <div class="pd-payment-grid">
+            <div class="pd-payment-card">
+              <i class="fa-solid fa-building-columns"></i>
+              <div class="pd-payment-card-label">Bank Transfer</div>
+            </div>
+            <div class="pd-payment-card">
+              <i class="fa-brands fa-google-pay"></i>
+              <div class="pd-payment-card-label">GPay / PhonePe</div>
+            </div>
+            <div class="pd-payment-card">
+              <i class="fa-solid fa-mobile-screen-button"></i>
+              <div class="pd-payment-card-label">Paytm / UPI</div>
+            </div>
           </div>
           <div style="display:flex;gap:16px;flex-wrap:wrap;">
             <a href="https://wa.me/919875073788?text=Hi!%20I'm%20interested%20in%20the%20{{ urlencode($package->title) }}%20package.%20Please%20share%20details." target="_blank" class="pd-btn" style="max-width:260px;">
@@ -528,7 +608,7 @@
                 <i class="fa-brands fa-whatsapp"></i> WhatsApp Us
               </a>
               @if($package->itinerary_pdf)
-                <a href="{{ route('package.download', ['id' => $package->id]) }}" class="pd-btn-outline">
+                <a href="{{ route('package.download', ['id' => $package->id]) }}" class="pd-btn-outline" target="_blank" download>
                   <i class="fa-solid fa-download"></i> Download Itinerary
                 </a>
               @endif
@@ -583,20 +663,26 @@
   </div>
 </div>
 
-{{-- ===== GALLERY ===== --}}
+{{-- ===== GALLERY — Scrapbook Style ===== --}}
 @if($package->images && $package->images->count() > 0)
-<div class="pd-page" style="padding: 80px 0;" id="gallery">
-  <div class="pd-container">
-    <div class="pd-section-label" style="text-align:center;margin-bottom:12px;">Memories</div>
-    <h2 class="pd-section-title" style="text-align:center;margin-bottom:40px;">Gallery</h2>
-    <div class="pd-gallery-grid">
-      @foreach($package->images as $img)
-        <div class="pd-gallery-item">
-          <img src="{{ Str::startsWith($img->image_path, 'http') ? $img->image_path : Storage::disk('public')->url($img->image_path) }}" alt="{{ $img->alt_text ?? $package->title }} - Gallery" loading="lazy">
-        </div>
-      @endforeach
-    </div>
-  </div>
+@php
+  $galleryItems = $package->images->map(function($img) use ($package) {
+    return [
+      'image_url' => Str::startsWith($img->image_path, 'http')
+                      ? $img->image_path
+                      : Storage::disk('public')->url($img->image_path),
+      'title'   => $img->alt_text ?? $package->title,
+      'caption' => $img->alt_text ?? 'A beautiful memory',
+    ];
+  });
+@endphp
+<div id="gallery">
+  <x-scrapbook-gallery
+    :items="$galleryItems"
+    label="Memories"
+    heading="Digital"
+    em="Journal"
+  />
 </div>
 @endif
 
@@ -684,5 +770,7 @@ const pdObserver = new IntersectionObserver((entries) => {
 }, { rootMargin: '-50% 0px -50% 0px' });
 pdSections.forEach(s => pdObserver.observe(s));
 </script>
+
+{{-- GSAP carousel is auto-initialised from app.js (DOMContentLoaded listener) --}}
 
 @endsection
