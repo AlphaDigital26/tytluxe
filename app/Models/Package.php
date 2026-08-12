@@ -19,4 +19,5 @@ class Package extends Model
     public function itineraryDays() { return $this->hasMany(PackageItineraryDay::class)->orderBy('sort_order')->orderBy('day_number'); }
     public function highlights() { return $this->hasMany(PackageHighlight::class)->orderBy('sort_order'); }
     public function exclusions() { return $this->hasMany(PackageExclusion::class)->orderBy('sort_order'); }
+    public function departures() { return $this->hasMany(PackageDeparture::class)->orderBy('start_date'); }
 }

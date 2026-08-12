@@ -5,11 +5,6 @@ namespace App\Filament\Resources\Packages;
 use App\Filament\Resources\Packages\Pages\CreatePackage;
 use App\Filament\Resources\Packages\Pages\EditPackage;
 use App\Filament\Resources\Packages\Pages\ListPackages;
-use App\Filament\Resources\Packages\RelationManagers\ExclusionsRelationManager;
-use App\Filament\Resources\Packages\RelationManagers\HighlightsRelationManager;
-use App\Filament\Resources\Packages\RelationManagers\ImagesRelationManager;
-use App\Filament\Resources\Packages\RelationManagers\InclusionsRelationManager;
-use App\Filament\Resources\Packages\RelationManagers\ItineraryDaysRelationManager;
 use App\Filament\Resources\Packages\Schemas\PackageForm;
 use App\Filament\Resources\Packages\Tables\PackagesTable;
 use App\Models\Package;
@@ -40,13 +35,10 @@ class PackageResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            HighlightsRelationManager::class,
-            ItineraryDaysRelationManager::class,
-            InclusionsRelationManager::class,
-            ExclusionsRelationManager::class,
-            ImagesRelationManager::class,
-        ];
+        // All relations (Highlights, Itinerary Days, Inclusions, Exclusions, Images)
+        // are now managed inline within the main form using Repeater components.
+        // No separate relation manager tabs needed.
+        return [];
     }
 
     public static function getPages(): array

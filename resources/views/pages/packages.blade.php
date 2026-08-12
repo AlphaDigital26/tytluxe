@@ -185,16 +185,19 @@
   color: #fff; line-height: 1.15; margin-bottom: 10px;
 }
 .dest-card-meta {
-  display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px;
+  display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px;
 }
-.dest-meta-pill {
-  font-family: 'Jost', sans-serif; font-size: 10.5px; font-weight: 500;
-  color: var(--white-60); background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.12);
-  padding: 4px 10px; border-radius: 100px;
-  display: flex; align-items: center; gap: 5px;
+.dest-meta-row {
+  display: flex; justify-content: space-between; align-items: center;
 }
-.dest-meta-pill i { color: var(--gold); font-size: 9px; }
+.dest-meta-item {
+  font-family: 'Jost', sans-serif; font-size: 11.5px; font-weight: 500;
+  color: var(--white-60); display: flex; align-items: center; gap: 6px;
+}
+.dest-meta-item i { color: var(--gold); font-size: 12px; }
+.dest-meta-price {
+  font-family: 'Jost', sans-serif; font-size: 13px; font-weight: 600; color: #fff;
+}
 .dest-card-cta {
   display: inline-flex; align-items: center; gap: 8px;
   font-family: 'Jost', sans-serif; font-size: 11px; font-weight: 700;
@@ -433,8 +436,27 @@
                     </div>
                     <div class="dest-card-name">{{ $pkg->title }}</div>
                     <div class="dest-card-meta">
-                      <span class="dest-meta-pill"><i class="fa-regular fa-moon"></i> {{ $pkg->duration_nights }}N {{ $pkg->duration_nights + 1 }}D</span>
-                      <span class="dest-meta-pill"><i class="fa-solid fa-indian-rupee-sign"></i> from {{ number_format($pkg->price_from) }}</span>
+                      <div class="dest-meta-row">
+                        <span class="dest-meta-item"><i class="fa-regular fa-clock"></i> {{ $pkg->duration_nights }}N/{{ $pkg->duration_nights + 1 }}D</span>
+                        <span class="dest-meta-item"><i class="fa-solid fa-location-dot"></i> {{ $pkg->departure_from ?? 'Delhi' }} - {{ $pkg->destination->name }}</span>
+                      </div>
+                      <div class="dest-meta-row">
+                        @if($pkg->tour_type == 'custom')
+                          <span class="dest-meta-item"><i class="fa-regular fa-calendar"></i> Any date of your choice</span>
+                        @else
+                          @php
+                             $firstDate = $pkg->departures ? ($pkg->departures->where('start_date', '>=', now()->format('Y-m-d'))->sortBy('start_date')->first() ?? $pkg->departures->first()) : null;
+                          @endphp
+                          @if($firstDate)
+                             <span class="dest-meta-item"><i class="fa-regular fa-calendar"></i> {{ \Carbon\Carbon::parse($firstDate->start_date)->format('d M') }} – {{ \Carbon\Carbon::parse($firstDate->end_date)->format('d M Y') }}</span>
+                          @else
+                             <span class="dest-meta-item"><i class="fa-regular fa-calendar"></i> Specific Dates</span>
+                          @endif
+                        @endif
+                      </div>
+                      <div class="dest-meta-row" style="margin-top: 4px;">
+                        <span class="dest-meta-price" style="color:var(--gold);">From ₹{{ number_format($pkg->price_from) }}</span>
+                      </div>
                     </div>
                     <div class="dest-card-cta">Explore Package <i class="fa-solid fa-arrow-right"></i></div>
                   </div>
@@ -490,8 +512,27 @@
                     </div>
                     <div class="dest-card-name">{{ $pkg->title }}</div>
                     <div class="dest-card-meta">
-                      <span class="dest-meta-pill"><i class="fa-regular fa-moon"></i> {{ $pkg->duration_nights }}N {{ $pkg->duration_nights + 1 }}D</span>
-                      <span class="dest-meta-pill"><i class="fa-solid fa-indian-rupee-sign"></i> from {{ number_format($pkg->price_from) }}</span>
+                      <div class="dest-meta-row">
+                        <span class="dest-meta-item"><i class="fa-regular fa-clock"></i> {{ $pkg->duration_nights }}N/{{ $pkg->duration_nights + 1 }}D</span>
+                        <span class="dest-meta-item"><i class="fa-solid fa-location-dot"></i> {{ $pkg->departure_from ?? 'Delhi' }} - {{ $pkg->destination->name }}</span>
+                      </div>
+                      <div class="dest-meta-row">
+                        @if($pkg->tour_type == 'custom')
+                          <span class="dest-meta-item"><i class="fa-regular fa-calendar"></i> Any date of your choice</span>
+                        @else
+                          @php
+                             $firstDate = $pkg->departures ? ($pkg->departures->where('start_date', '>=', now()->format('Y-m-d'))->sortBy('start_date')->first() ?? $pkg->departures->first()) : null;
+                          @endphp
+                          @if($firstDate)
+                             <span class="dest-meta-item"><i class="fa-regular fa-calendar"></i> {{ \Carbon\Carbon::parse($firstDate->start_date)->format('d M') }} – {{ \Carbon\Carbon::parse($firstDate->end_date)->format('d M Y') }}</span>
+                          @else
+                             <span class="dest-meta-item"><i class="fa-regular fa-calendar"></i> Specific Dates</span>
+                          @endif
+                        @endif
+                      </div>
+                      <div class="dest-meta-row" style="margin-top: 4px;">
+                        <span class="dest-meta-price" style="color:var(--gold);">From ₹{{ number_format($pkg->price_from) }}</span>
+                      </div>
                     </div>
                     <div class="dest-card-cta">Explore Package <i class="fa-solid fa-arrow-right"></i></div>
                   </div>
@@ -581,7 +622,7 @@ foreach($packages as $p) {
         'short_desc'=> $p->short_desc ?? '',
         'country'   => $p->destination->name,
         'image'     => $p->images->first()?->image_path ?? 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=700&q=80',
-        'inclusions'=> $p->inclusions->pluck('name')->values()->toArray(),
+        'inclusions'=> $p->inclusions->map(fn($i) => $i->label ?? $i->name ?? $i->title)->filter()->values()->toArray(),
         'detailUrl' => route('package.details', ['id' => $p->id]),
     ];
 }
