@@ -20,6 +20,12 @@ class AmenityResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-check-badge';
 
+    protected static ?string $navigationLabel = 'Amenities';
+
+    protected static ?string $modelLabel = 'Amenity';
+
+    protected static ?string $pluralModelLabel = 'Amenities';
+
     protected static ?string $recordTitleAttribute = 'name';
 
     public static function form(Schema $schema): Schema
@@ -42,10 +48,9 @@ class AmenityResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => ListAmenities::route('/'),
+            'index'  => ListAmenities::route('/'),
             'create' => CreateAmenity::route('/create'),
-            'edit' => EditAmenity::route('/{record}/edit'),
+            'edit'   => EditAmenity::route('/{record}/edit'),
         ];
     }
 }
-

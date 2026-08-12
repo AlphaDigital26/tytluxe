@@ -12,8 +12,9 @@ class Cruise extends Model
 
     protected $guarded = [];
 
-    public function destination() { return $this->belongsTo(Destination::class); }
+    public function destination()    { return $this->belongsTo(Destination::class); }
     public function itineraryDays() { return $this->hasMany(CruiseItineraryDay::class); }
-    public function cabinTypes() { return $this->hasMany(CruiseCabinType::class); }
-    public function images() { return $this->hasMany(CruiseImage::class); }
+    public function cabinTypes()    { return $this->hasMany(CruiseCabinType::class); }
+    public function images()        { return $this->hasMany(CruiseImage::class); }
+    public function amenities()     { return $this->belongsToMany(Amenity::class, 'amenity_cruise'); }
 }
