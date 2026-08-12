@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Packages\Schemas;
 
+use App\Models\Amenity;
 use App\Models\Destination;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
@@ -416,7 +417,25 @@ class PackageForm
                         ]),
 
                     // ──────────────────────────────────────────────────────────
-                    // TAB 8 — Publishing
+                    // TAB 8 — Amenities
+                    // ──────────────────────────────────────────────────────────
+                    Tab::make('Amenities')
+                        ->icon('heroicon-o-check-badge')
+                        ->schema([
+
+                            Select::make('amenities')
+                                ->label('Package Amenities / What\'s Included')
+                                ->helperText('Pick all amenities that apply to this package. To add a new amenity, go to Content → Amenities in the sidebar.')
+                                ->relationship('amenities', 'name', fn ($query) => $query->where('type', 'package')->orderBy('name'))
+                                ->multiple()
+                                ->preload()
+                                ->searchable()
+                                ->columnSpanFull(),
+
+                        ]),
+
+                    // ──────────────────────────────────────────────────────────
+                    // TAB 9 — Publishing
                     // ──────────────────────────────────────────────────────────
                     Tab::make('Publish')
                         ->icon('heroicon-o-rocket-launch')

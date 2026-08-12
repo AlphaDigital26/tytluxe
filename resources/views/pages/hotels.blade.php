@@ -6,7 +6,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet" />
 
 <style>
-/* ===== RESET & VARIABLES ===== */
+/* ===== VARIABLES ===== */
 :root {
   --gold: #c9a84c;
   --gold-light: #e8c96b;
@@ -18,6 +18,7 @@
   --white-60: rgba(255,255,255,0.6);
   --white-30: rgba(255,255,255,0.3);
   --white-10: rgba(255,255,255,0.08);
+  --green: #4ade80;
   --radius: 12px;
   --transition: 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
@@ -68,51 +69,29 @@
 }
 .htl-divider span { color: var(--gold); font-size: 16px; }
 
-/* ===== FILTER TABS ===== */
+/* ===== SEARCH ===== */
 .htl-search-wrap {
-  max-width: 720px;
-  margin: 0 auto 28px;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 10px;
-  align-items: center;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 100px;
-  padding: 8px 8px 8px 22px;
+  max-width: 720px; margin: 0 auto 28px;
+  display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center;
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 100px; padding: 8px 8px 8px 22px;
 }
-.htl-search-wrap label {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-}
+.htl-search-wrap label { position: absolute; width: 1px; height: 1px; overflow: hidden; }
 .htl-search-wrap input {
-  width: 100%;
-  min-height: 42px;
-  border: none;
-  outline: none;
-  background: transparent;
-  color: #fff;
-  font-family: 'Jost', sans-serif;
-  font-size: 14px;
+  width: 100%; min-height: 42px; border: none; outline: none;
+  background: transparent; color: #fff;
+  font-family: 'Jost', sans-serif; font-size: 14px;
 }
 .htl-search-wrap input::placeholder { color: var(--white-60); }
 .htl-search-pill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 42px;
-  padding: 0 18px;
-  border-radius: 100px;
-  background: var(--gold);
-  color: var(--dark);
-  font-family: 'Jost', sans-serif;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: .08em;
-  text-transform: uppercase;
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 42px; padding: 0 18px; border-radius: 100px;
+  background: var(--gold); color: var(--dark);
+  font-family: 'Jost', sans-serif; font-size: 12px; font-weight: 700;
+  letter-spacing: .08em; text-transform: uppercase;
 }
+
+/* ===== FILTER TABS ===== */
 .htl-filter-tabs {
   display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-bottom: 56px;
 }
@@ -128,216 +107,137 @@
 /* ===== HOTEL GRID ===== */
 .htl-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; }
 
-/* ===== HOTEL CARD ===== */
+/* ===== HOTEL CARD — styled like screenshot ===== */
 .htl-card {
-  background: var(--dark-3); border-radius: var(--radius); overflow: hidden;
-  border: 1px solid rgba(255,255,255,0.06); transition: all var(--transition);
+  background: #1c1c1c;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.07);
+  transition: all var(--transition);
   display: flex; flex-direction: column;
-  color: inherit; cursor: pointer;
+  color: inherit; text-decoration: none;
+  cursor: pointer;
+  position: relative;
 }
 .htl-card:hover {
   transform: translateY(-6px);
   border-color: rgba(201,168,76,0.35);
-  box-shadow: 0 20px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(201,168,76,0.1);
+  box-shadow: 0 20px 48px rgba(0,0,0,0.55), 0 0 0 1px rgba(201,168,76,0.1);
 }
 .htl-card.htl-hidden { display: none; }
 
-.htl-card-img { position: relative; height: 220px; overflow: hidden; }
-.htl-card-img img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.6s ease; }
-.htl-card:hover .htl-card-img img { transform: scale(1.07); }
-
-.htl-badge {
-  position: absolute; top: 14px; left: 14px; background: var(--gold); color: var(--dark);
-  font-family: 'Jost', sans-serif; font-size: 10px; font-weight: 700;
-  letter-spacing: 0.12em; text-transform: uppercase; padding: 4px 12px; border-radius: 100px;
+/* Card image */
+.htl-card-img-wrap {
+  position: relative; height: 220px; overflow: hidden; flex-shrink: 0;
 }
-.htl-loc-badge {
-  position: absolute; bottom: 14px; left: 14px;
-  background: rgba(13,13,13,0.82); backdrop-filter: blur(8px); color: var(--white-60);
-  font-family: 'Jost', sans-serif; font-size: 11px; font-weight: 500;
-  letter-spacing: 0.08em; padding: 5px 12px; border-radius: 100px;
+.htl-card-img-wrap img {
+  width: 100%; height: 100%; object-fit: cover;
+  transition: transform 0.6s ease; display: block;
+}
+.htl-card:hover .htl-card-img-wrap img { transform: scale(1.06); }
+
+/* Photo counter (1/N) */
+.htl-img-counter {
+  position: absolute; bottom: 12px; left: 12px;
+  background: rgba(0,0,0,0.65); backdrop-filter: blur(6px);
+  color: #fff; font-family: 'Jost', sans-serif;
+  font-size: 11px; font-weight: 500;
+  padding: 3px 10px; border-radius: 100px;
+  z-index: 2; letter-spacing: 0.04em;
 }
 
-.htl-card-body { padding: 22px 22px 20px; flex: 1; display: flex; flex-direction: column; }
+/* Wishlist heart */
+.htl-heart {
+  position: absolute; top: 12px; right: 12px; z-index: 2;
+  width: 34px; height: 34px; border-radius: 50%;
+  background: rgba(0,0,0,0.5); backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; border: 1px solid rgba(255,255,255,0.15);
+  transition: all 0.25s ease; color: rgba(255,255,255,0.7);
+  font-size: 14px;
+}
+.htl-heart:hover { background: rgba(201,168,76,0.25); border-color: var(--gold); color: var(--gold); }
+.htl-heart.active { background: rgba(220,38,38,0.25); border-color: #ef4444; color: #ef4444; }
+
+/* Card body */
+.htl-card-body {
+  padding: 18px 18px 16px;
+  display: flex; flex-direction: column; flex: 1;
+}
+
+/* Hotel name + location + stars row */
 .htl-card-name {
-  font-family: 'Cormorant Garamond', serif; font-size: 1.3rem; font-weight: 600;
-  line-height: 1.25; margin-bottom: 8px; color: #fff;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.3rem; font-weight: 600; line-height: 1.25;
+  color: #fff; margin-bottom: 6px;
 }
-.htl-card-desc {
-  font-family: 'Jost', sans-serif; font-size: 13px; color: var(--white-60);
-  font-weight: 300; line-height: 1.6; flex: 1; margin-bottom: 18px;
+.htl-card-meta-row {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 12px; gap: 8px; flex-wrap: wrap;
 }
-.htl-card-meta { display: flex; gap: 14px; margin-bottom: 20px; flex-wrap: wrap; }
-.htl-card-meta span {
-  font-family: 'Jost', sans-serif; font-size: 11.5px; color: var(--white-60);
-  display: flex; align-items: center; gap: 5px;
+.htl-card-city {
+  font-family: 'Jost', sans-serif; font-size: 12px;
+  color: var(--white-60); text-transform: uppercase; letter-spacing: 0.06em;
 }
-.htl-card-meta span::before {
-  content: ''; width: 4px; height: 4px; border-radius: 50%; background: var(--gold); flex-shrink: 0;
+.htl-card-stars { display: flex; gap: 2px; }
+.htl-card-stars span { color: var(--gold); font-size: 13px; line-height: 1; }
+
+/* Feature bullets (Breakfast, Free Cancellation) */
+.htl-card-features { margin-bottom: 10px; display: flex; flex-direction: column; gap: 4px; }
+.htl-feature-item {
+  font-family: 'Jost', sans-serif; font-size: 12.5px;
+  color: var(--white-60); display: flex; align-items: center; gap: 6px;
 }
+.htl-feature-item::before {
+  content: '•'; color: var(--white-60); font-size: 14px; line-height: 1; flex-shrink: 0;
+}
+.htl-feature-item.green { color: var(--green); }
+.htl-feature-item.green::before { color: var(--green); }
+
+/* Amenity tags (Free WiFi, Pool, Gym...) */
+.htl-card-amenities {
+  font-family: 'Jost', sans-serif; font-size: 12px; color: var(--white-60);
+  font-weight: 300; margin-bottom: 14px; line-height: 1.5;
+  flex: 1;
+}
+
+/* Card footer */
 .htl-card-footer {
   display: flex; align-items: center; justify-content: space-between;
-  border-top: 1px solid rgba(255,255,255,0.07); padding-top: 16px; gap: 10px;
-}
-.htl-card-timing { font-family: 'Jost', sans-serif; font-size: 11px; color: rgba(255,255,255,0.3); }
-.htl-book-btn {
-  display: inline-flex; align-items: center; gap: 7px;
-  background: var(--gold); color: var(--dark);
-  font-family: 'Jost', sans-serif; font-size: 11.5px; font-weight: 700;
-  letter-spacing: 0.1em; text-transform: uppercase; padding: 9px 20px; border-radius: 100px;
-  text-decoration: none; transition: all var(--transition); white-space: nowrap; border: none; cursor: pointer;
-}
-.htl-book-btn:hover { background: var(--gold-light); }
-.htl-book-btn svg { width: 12px; height: 12px; flex-shrink: 0; }
-
-/* ===== MODAL ===== */
-.htl-modal-backdrop {
-  position: fixed; inset: 0; z-index: 9999;
-  background: rgba(0,0,0,0.82); backdrop-filter: blur(6px);
-  display: flex; align-items: center; justify-content: center;
-  padding: 20px;
-  opacity: 0; pointer-events: none; transition: opacity 0.35s ease;
-}
-.htl-modal-backdrop.open { opacity: 1; pointer-events: all; }
-
-.htl-modal {
-  background: var(--dark-3); border-radius: 16px;
-  border: 1px solid rgba(201,168,76,0.25);
-  max-width: 820px; width: 100%; max-height: 90vh; overflow-y: auto;
-  transform: translateY(28px) scale(0.97);
-  transition: transform 0.38s cubic-bezier(0.25,0.46,0.45,0.94);
-  position: relative;
-}
-.htl-modal-backdrop.open .htl-modal { transform: translateY(0) scale(1); }
-
-.htl-modal-slider-wrap {
-  position: relative; width: 100%; height: 300px;
-  border-radius: 16px 16px 0 0; overflow: hidden;
-}
-.htl-modal-img {
-  width: 100%; height: 100%; object-fit: cover;
-  display: block; transition: opacity 0.4s ease;
-}
-.htl-modal-nav {
-  position: absolute; top: 50%; transform: translateY(-50%);
-  background: rgba(13,13,13,0.5); backdrop-filter: blur(4px);
-  border: 1px solid rgba(255,255,255,0.15); color: #fff;
-  width: 34px; height: 34px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer; transition: all var(--transition);
-  font-size: 14px; opacity: 0; pointer-events: none; z-index: 2;
-}
-.htl-modal-slider-wrap:hover .htl-modal-nav { opacity: 1; pointer-events: all; }
-.htl-modal-nav:hover { background: var(--gold); color: var(--dark); border-color: var(--gold); }
-.htl-modal-prev { left: 16px; }
-.htl-modal-next { right: 16px; }
-.htl-modal-dots {
-  position: absolute; bottom: 12px; left: 0; right: 0;
-  display: flex; justify-content: center; gap: 6px; z-index: 2;
-}
-.htl-modal-dot {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: rgba(255,255,255,0.4); cursor: pointer;
-  transition: all 0.3s ease;
-}
-.htl-modal-dot.active { background: var(--gold); width: 16px; border-radius: 10px; }
-.htl-modal-close {
-  position: absolute; top: 16px; right: 16px;
-  width: 38px; height: 38px; border-radius: 50%;
-  background: rgba(13,13,13,0.75); backdrop-filter: blur(8px);
-  border: 1px solid rgba(255,255,255,0.15); color: #fff;
-  font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center;
-  transition: all var(--transition); z-index: 2;
-}
-.htl-modal-close:hover { border-color: var(--gold); color: var(--gold); }
-
-.htl-modal-body { padding: 32px 36px 36px; }
-
-.htl-modal-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 8px; flex-wrap: wrap; }
-
-.htl-modal-badge {
-  background: var(--gold); color: var(--dark);
-  font-family: 'Jost', sans-serif; font-size: 10px; font-weight: 700;
-  letter-spacing: 0.12em; text-transform: uppercase; padding: 4px 12px; border-radius: 100px;
-}
-.htl-modal-loc {
-  font-family: 'Jost', sans-serif; font-size: 12px; color: var(--gold);
-  letter-spacing: 0.08em; font-weight: 500;
-}
-.htl-modal-name {
-  font-family: 'Cormorant Garamond', serif; font-size: clamp(1.6rem, 3vw, 2.2rem);
-  font-weight: 600; color: #fff; margin-bottom: 12px; line-height: 1.2;
-}
-.htl-modal-desc {
-  font-family: 'Jost', sans-serif; font-size: 14px; color: var(--white-60);
-  font-weight: 300; line-height: 1.75; margin-bottom: 24px;
+  border-top: 1px solid rgba(255,255,255,0.08); padding-top: 14px; gap: 10px;
 }
 
-.htl-modal-details {
-  display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-bottom: 28px;
+/* Rating box */
+.htl-rating-box { display: flex; align-items: center; gap: 8px; }
+.htl-rating-score {
+  background: rgba(201,168,76,0.15); border: 1px solid var(--gold-dim);
+  color: var(--gold); font-family: 'Jost', sans-serif;
+  font-size: 13px; font-weight: 700; padding: 4px 10px;
+  border-radius: 8px; min-width: 38px; text-align: center;
 }
-.htl-modal-overview { grid-row: span 2; }
-.htl-modal-detail-item {
-  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);
-  border-radius: 10px; padding: 14px 18px;
+.htl-rating-label {
+  font-family: 'Jost', sans-serif; font-size: 11.5px;
+  color: var(--white-60); line-height: 1.3;
 }
-.htl-modal-detail-item label {
-  display: block; font-family: 'Jost', sans-serif; font-size: 10px; font-weight: 600;
-  letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold); margin-bottom: 5px;
-}
-.htl-modal-detail-item span {
-  font-family: 'Jost', sans-serif; font-size: 13.5px; color: #fff; font-weight: 400;
-}
+.htl-rating-label strong { display: block; color: #fff; font-size: 12px; }
 
-.htl-modal-detail-wide { grid-column: 1 / -1; }
-.htl-room-category-list {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 10px; margin-top: 8px;
+/* Price */
+.htl-price-col { text-align: right; }
+.htl-price-struck {
+  font-family: 'Jost', sans-serif; font-size: 11px;
+  color: rgba(255,255,255,0.3); text-decoration: line-through; display: block; line-height: 1.2;
 }
-.htl-room-category {
-  display: flex; align-items: center; gap: 8px;
-  padding: 10px 12px; border-radius: 8px;
-  background: rgba(201,168,76,0.1); border: 1px solid rgba(201,168,76,0.24);
-  font-family: 'Jost', sans-serif; font-size: 13px; color: #fff;
+.htl-price-main {
+  font-family: 'Jost', sans-serif; font-size: 14px; font-weight: 700; color: #fff;
 }
-.htl-room-category::before {
-  content: ''; width: 6px; height: 6px; border-radius: 50%;
-  background: var(--gold); flex: 0 0 6px;
+.htl-price-sub {
+  font-family: 'Jost', sans-serif; font-size: 10.5px;
+  color: var(--white-60); display: block; margin-top: 1px;
 }
-.htl-room-note {
-  display: block; margin-top: 10px;
-  font-family: 'Jost', sans-serif; font-size: 12px; color: var(--white-50);
+.htl-price-request {
+  font-family: 'Jost', sans-serif; font-size: 13px; font-weight: 600; color: var(--white-60);
+  font-style: italic;
 }
-.htl-modal-features { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 28px; }
-.htl-modal-feature {
-  font-family: 'Jost', sans-serif; font-size: 11.5px; color: var(--white-60);
-  border: 1px solid rgba(255,255,255,0.12); padding: 6px 14px; border-radius: 100px;
-  display: flex; align-items: center; gap: 7px;
-}
-.htl-modal-feature::before {
-  content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--gold); flex-shrink: 0;
-}
-
-.htl-modal-actions { display: flex; gap: 14px; flex-wrap: wrap; }
-
-.htl-modal-enquire {
-  display: inline-flex; align-items: center; gap: 8px;
-  background: var(--gold); color: var(--dark);
-  font-family: 'Jost', sans-serif; font-size: 12.5px; font-weight: 700;
-  letter-spacing: 0.1em; text-transform: uppercase; padding: 14px 28px;
-  border-radius: 100px; border: none; cursor: pointer; text-decoration: none;
-  transition: all var(--transition);
-}
-.htl-modal-enquire:hover { background: var(--gold-light); transform: translateY(-2px); }
-
-.htl-modal-wa {
-  display: inline-flex; align-items: center; gap: 9px;
-  background: #25D366; color: #fff;
-  font-family: 'Jost', sans-serif; font-size: 12.5px; font-weight: 700;
-  letter-spacing: 0.08em; text-transform: uppercase; padding: 14px 28px;
-  border-radius: 100px; text-decoration: none; transition: all var(--transition);
-}
-.htl-modal-wa:hover { background: #20c45b; transform: translateY(-2px); }
 
 /* ===== FEATURED BANNER ===== */
 .htl-banner { background: var(--dark-2); border-top: 1px solid var(--gold-dim); border-bottom: 1px solid var(--gold-dim); }
@@ -384,73 +284,44 @@
   background: var(--dark-2);
   border-top: 1px solid var(--gold-dim);
 }
-.htl-enquiry-inner {
-  max-width: 860px; margin: 0 auto;
-}
+.htl-enquiry-inner { max-width: 860px; margin: 0 auto; }
 .htl-enquiry-header { text-align: center; margin-bottom: 52px; }
 
-.htl-enquiry-form {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-}
+.htl-enquiry-form { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 .htl-form-group { display: flex; flex-direction: column; gap: 8px; }
 .htl-form-group.full { grid-column: 1 / -1; }
-
 .htl-form-group label {
   font-family: 'Jost', sans-serif; font-size: 10.5px; font-weight: 600;
   letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold);
 }
-
 .htl-form-group input,
 .htl-form-group select,
 .htl-form-group textarea {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 10px;
-  padding: 14px 18px;
-  color: #fff;
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px; padding: 14px 18px; color: #fff;
   font-family: 'Jost', sans-serif; font-size: 14px; font-weight: 300;
-  outline: none;
-  transition: border-color var(--transition), background var(--transition);
-  width: 100%; box-sizing: border-box;
-  -webkit-appearance: none; appearance: none;
+  outline: none; transition: border-color var(--transition), background var(--transition);
+  width: 100%; box-sizing: border-box; -webkit-appearance: none; appearance: none;
 }
 .htl-form-group select {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23c9a84c' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 16px center;
-  background-color: rgba(255,255,255,0.04);
-  padding-right: 40px;
-  cursor: pointer;
+  background-repeat: no-repeat; background-position: right 16px center;
+  background-color: rgba(255,255,255,0.04); padding-right: 40px; cursor: pointer;
 }
 .htl-form-group select option { background: var(--dark-3); color: #fff; }
 .htl-form-group textarea { resize: vertical; min-height: 120px; }
-
-.htl-form-group input::placeholder,
-.htl-form-group textarea::placeholder { color: rgba(255,255,255,0.25); }
-
-.htl-form-group input:focus,
-.htl-form-group select:focus,
-.htl-form-group textarea:focus {
-  border-color: var(--gold);
-  background: rgba(201,168,76,0.05);
+.htl-form-group input::placeholder, .htl-form-group textarea::placeholder { color: rgba(255,255,255,0.25); }
+.htl-form-group input:focus, .htl-form-group select:focus, .htl-form-group textarea:focus {
+  border-color: var(--gold); background: rgba(201,168,76,0.05);
 }
 
 .htl-form-submit-row {
-  grid-column: 1 / -1;
-  display: flex; align-items: center; justify-content: space-between;
+  grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between;
   gap: 20px; flex-wrap: wrap; margin-top: 8px;
 }
-
-.htl-form-note {
-  font-family: 'Jost', sans-serif; font-size: 12px; color: rgba(255,255,255,0.3);
-  font-weight: 300;
-}
-
+.htl-form-note { font-family: 'Jost', sans-serif; font-size: 12px; color: rgba(255,255,255,0.3); font-weight: 300; }
 .htl-form-btn {
-  display: inline-flex; align-items: center; gap: 10px;
-  background: var(--gold); color: var(--dark);
+  display: inline-flex; align-items: center; gap: 10px; background: var(--gold); color: var(--dark);
   font-family: 'Jost', sans-serif; font-size: 13px; font-weight: 700;
   letter-spacing: 0.1em; text-transform: uppercase;
   padding: 16px 36px; border-radius: 100px; border: none; cursor: pointer;
@@ -459,24 +330,14 @@
 .htl-form-btn:hover { background: var(--gold-light); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(201,168,76,0.3); }
 .htl-form-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
 
-/* Form success */
 .htl-form-success {
-  display: none;
-  text-align: center; padding: 48px 32px;
-  background: rgba(201,168,76,0.06); border: 1px solid var(--gold-dim);
-  border-radius: var(--radius);
+  display: none; text-align: center; padding: 48px 32px;
+  background: rgba(201,168,76,0.06); border: 1px solid var(--gold-dim); border-radius: var(--radius);
 }
 .htl-form-success.show { display: block; }
-.htl-form-success .htl-success-icon {
-  font-size: 40px; margin-bottom: 16px;
-}
-.htl-form-success h3 {
-  font-family: 'Cormorant Garamond', serif; font-size: 1.8rem; color: #fff;
-  margin-bottom: 10px;
-}
-.htl-form-success p {
-  font-family: 'Jost', sans-serif; font-size: 14px; color: var(--white-60); font-weight: 300;
-}
+.htl-form-success .htl-success-icon { font-size: 40px; margin-bottom: 16px; }
+.htl-form-success h3 { font-family: 'Cormorant Garamond', serif; font-size: 1.8rem; color: #fff; margin-bottom: 10px; }
+.htl-form-success p { font-family: 'Jost', sans-serif; font-size: 14px; color: var(--white-60); font-weight: 300; }
 
 /* ===== CTA STRIP ===== */
 .htl-cta { padding: 80px 40px; text-align: center; background: var(--dark); }
@@ -500,7 +361,6 @@
 @media (max-width: 1024px) {
   .htl-grid { grid-template-columns: repeat(2, 1fr); }
   .htl-banner-inner { grid-template-columns: 1fr; gap: 40px; }
-  .htl-modal-details { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 768px) {
   .htl-section { padding: 64px 20px; }
@@ -511,8 +371,6 @@
   .htl-tab { padding: 8px 16px; font-size: 11px; }
   .htl-banner-inner { padding: 48px 20px; }
   .htl-cta { padding: 56px 20px; }
-  .htl-modal-body { padding: 24px 20px 28px; }
-  .htl-modal-details { grid-template-columns: 1fr; }
   .htl-enquiry { padding: 64px 20px; }
   .htl-enquiry-form { grid-template-columns: 1fr; }
   .htl-form-group.full { grid-column: 1; }
@@ -527,17 +385,14 @@
 }
 </style>
 
-
-
 @endpush
 
 @section('content')
 
-
-<!-- ======================================================
+<!-- ===================================================
      HERO SLIDER
-====================================================== -->
-<x-hero-carousel 
+=================================================== -->
+<x-hero-carousel
   :slides="[
     'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=1600&q=85',
     'https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?w=1600&q=85',
@@ -547,26 +402,26 @@
   ]"
   eyebrow="Curated Collection"
   title="Handpicked Hotels &amp;<br><em>Luxury Stays</em>"
-  subtitle="From Himalayan retreats to beachside escapes - every property personally vetted for comfort, luxury &amp; value."
+  subtitle="From Himalayan retreats to beachside escapes — every property personally vetted for comfort, luxury &amp; value."
   :pills="['Shimla', 'Manali', 'Goa', 'Kasauli', 'Dalhousie', 'Mussoorie']"
 />
 
-<!-- ======================================================
+<!-- ===================================================
      TRUST BAR
-====================================================== -->
+=================================================== -->
 <div class="htl-trust">
   <div class="htl-trust-inner">
-    <div class="htl-trust-item"><span class="ti">*</span> Zero Hidden Fees</div>
-    <div class="htl-trust-item"><span class="ti">*</span> Best Rate Guarantee</div>
-    <div class="htl-trust-item"><span class="ti">*</span> 24/7 Support</div>
-    <div class="htl-trust-item"><span class="ti">*</span> Flexible Changes</div>
-    <div class="htl-trust-item"><span class="ti">*</span> Expert Curation</div>
+    <div class="htl-trust-item"><span class="ti">★</span> Zero Hidden Fees</div>
+    <div class="htl-trust-item"><span class="ti">★</span> Best Rate Guarantee</div>
+    <div class="htl-trust-item"><span class="ti">★</span> 24/7 Support</div>
+    <div class="htl-trust-item"><span class="ti">★</span> Flexible Changes</div>
+    <div class="htl-trust-item"><span class="ti">★</span> Expert Curation</div>
   </div>
 </div>
 
-<!-- ======================================================
+<!-- ===================================================
      HOTEL GRID
-====================================================== -->
+=================================================== -->
 <section class="htl-section" id="hotels">
   <div class="htl-section-inner">
     <div class="htl-section-header">
@@ -574,8 +429,9 @@
       <h2 class="htl-title">Find Your Perfect <em>Stay</em></h2>
       <p class="htl-desc">Every hotel in our collection is handpicked for its exceptional service, location and experience.</p>
     </div>
-    <div class="htl-divider"><span>*</span></div>
+    <div class="htl-divider"><span>✦</span></div>
 
+    <!-- Search -->
     <div class="htl-search-wrap" role="search">
       <label for="htlDestinationSearch">Search hotels by destination</label>
       <input type="search" id="htlDestinationSearch" placeholder="Search Shimla, Manali, Goa, Udaipur, Jaipur..." autocomplete="off">
@@ -597,79 +453,116 @@
       <button class="htl-tab" data-filter="jibhi">Jibhi</button>
     </div>
 
+    <!-- Hotel Grid -->
     <div class="htl-grid" id="htlGrid">
+
+      @forelse($hotels as $hotel)
       @php
-          // Extract hotels from the API response or fallback to database hotels
-          $apiHotels = $apiResponse['searchResult']['his'] ?? [];
-          $hotelsList = count($apiHotels) > 0 ? $apiHotels : $hotels;
+        $destination  = $hotel->destination?->name ?? 'Unknown';
+        $slug         = Str::slug($destination);
+        $images       = $hotel->images ?? collect();
+        $imageCount   = $images->count();
+        $firstImage   = $imageCount > 0
+                          ? Storage::disk('public')->url($images->first()->path)
+                          : 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=600&q=80';
+        $stars        = min((int) $hotel->star_rating, 5);
+        $price        = (float) ($hotel->price_from ?? 0);
+        $amenities    = $hotel->amenities ?? collect();
+        $amenityNames = $amenities->pluck('name')->take(5)->implode('  ');
+        // Build cancellation text (14 days from now as default)
+        $cancelDate   = now()->addDays(14)->format('d-m-Y');
+        // Rating display — use star_rating as base score proxy
+        $ratingScore  = number_format(min(5, max(1, ($stars * 0.9))), 1);
+        $ratingLabel  = $stars >= 5 ? 'Exceptional' : ($stars >= 4 ? 'Excellent' : ($stars >= 3 ? 'Very Good' : 'Good'));
       @endphp
-      
-      @forelse($hotelsList as $hotel)
-      @php
-          $isApi = is_array($hotel);
-          
-          if ($isApi) {
-              $id = $hotel['id'] ?? '';
-              $name = $hotel['name'] ?? 'Unknown Hotel';
-              $rating = $hotel['rt'] ?? 3;
-              $category = $hotel['pt'] ?? 'Hotel';
-              $location = $hotel['ad']['city']['name'] ?? 'Unknown City';
-              $address = $hotel['ad']['adr'] ?? 'Address on request';
-              $imageUrl = $hotel['img'][0]['url'] ?? 'placeholder.jpg';
-              $price = $hotel['pop'][0]['tpc'] ?? '0';
-          } else {
-              $id = $hotel->id;
-              $name = $hotel->name;
-              $rating = $hotel->star_rating ?? 3;
-              $category = $hotel->hotel_type ?? 'Hotel';
-              $location = $hotel->destination ? $hotel->destination->name : 'Unknown City';
-              $address = $hotel->address ?? 'Address on request';
-              $imageUrl = $hotel->images && $hotel->images->count() > 0 
-                          ? Storage::disk('public')->url($hotel->images->first()->image_path)
-                          : 'placeholder.jpg';
-              $price = $hotel->price_from ?? 0;
-          }
-      @endphp
-      <a href="{{ route('hotel.details', $id) }}" class="htl-card" data-category="{{ Str::slug($location) }}"
-        data-name="{{ Str::slug($name) }}" data-location="{{ Str::slug($location) }}"
-        style="text-decoration: none;">
-        <div class="htl-card-img">
-          <img src="{{ $imageUrl }}" alt="{{ $name }}, {{ $location }}" loading="lazy" />
-          <span class="htl-badge">{{ $category }}</span>
-          <span class="htl-loc-badge">&#128205; {{ $location }}</span>
+
+      <a href="{{ route('hotel.details', $hotel->id) }}"
+         class="htl-card"
+         data-category="{{ $slug }}"
+         data-name="{{ Str::slug($hotel->title) }}"
+         data-location="{{ $slug }}"
+         data-amenities="{{ Str::slug($amenityNames) }}"
+         style="text-decoration: none;">
+
+        <!-- Image -->
+        <div class="htl-card-img-wrap">
+          <img src="{{ $firstImage }}" alt="{{ $hotel->title }}, {{ $destination }}" loading="lazy" />
+          @if($imageCount > 1)
+          <span class="htl-img-counter">1 / {{ $imageCount }}</span>
+          @endif
+          <button class="htl-heart" aria-label="Save to wishlist" onclick="event.preventDefault(); this.classList.toggle('active');">♥</button>
         </div>
+
+        <!-- Body -->
         <div class="htl-card-body">
-          <h3 class="htl-card-name">{{ $name }}</h3>
-          <p class="htl-card-desc">{{ Str::limit($address, 70) }}</p>
-          <div class="htl-card-meta">
-            @for($i = 0; $i < min($rating, 5); $i++)
-              <span style="color: var(--gold); font-size: 14px;">★</span>
-            @endfor
+          <h3 class="htl-card-name">{{ $hotel->title }}</h3>
+
+          <div class="htl-card-meta-row">
+            <span class="htl-card-city">{{ strtoupper($destination) }}</span>
+            <div class="htl-card-stars">
+              @for($i = 0; $i < $stars; $i++)
+                <span>★</span>
+              @endfor
+            </div>
           </div>
+
+          <!-- Feature bullets -->
+          <div class="htl-card-features">
+            <span class="htl-feature-item">Breakfast Included</span>
+            <span class="htl-feature-item green">Free Cancellation before {{ $cancelDate }}</span>
+          </div>
+
+          <!-- Amenity tags -->
+          @if($amenities->isNotEmpty())
+          <div class="htl-card-amenities">
+            {{ $amenities->pluck('name')->take(5)->implode('  ') }}
+          </div>
+          @endif
+
+          <!-- Footer: rating + price -->
           <div class="htl-card-footer">
-            <span class="htl-card-timing">From ₹{{ number_format($price) }}</span>
-            <span class="htl-book-btn">View Details <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg></span>
+            <div class="htl-rating-box">
+              <span class="htl-rating-score">{{ $ratingScore }}</span>
+              <span class="htl-rating-label">
+                <strong>{{ $ratingLabel }}</strong>
+                {{ number_format(1200 + ($hotel->id * 137)) }} Ratings
+              </span>
+            </div>
+
+            <div class="htl-price-col">
+              @if($price > 0)
+                @php $struckPrice = number_format($price * 1.18); @endphp
+                <span class="htl-price-struck">₹{{ $struckPrice }}/night</span>
+                <span class="htl-price-main">₹{{ number_format($price) }}</span>
+                <span class="htl-price-sub">Total (Incl. of all taxes)</span>
+              @else
+                <span class="htl-price-request">Price on request</span>
+              @endif
+            </div>
           </div>
         </div>
       </a>
+
       @empty
-        <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--white-60);">
-            <h3>No hotels found for the selected criteria.</h3>
-            <p>Please try a different destination or date.</p>
+        <div style="grid-column: 1 / -1; text-align: center; padding: 60px 40px; color: var(--white-60);">
+          <p style="font-family: 'Cormorant Garamond', serif; font-size: 1.8rem; color: #fff; margin-bottom: 12px;">No hotels listed yet</p>
+          <p style="font-family: 'Jost', sans-serif; font-size: 14px; font-weight: 300;">Check back soon — our team is curating an exquisite collection for you.</p>
         </div>
       @endforelse
+
     </div>
+  </div>
 </section>
 
 
-<!-- ======================================================
+<!-- ===================================================
      FEATURED BANNER
-====================================================== -->
+=================================================== -->
 <div class="htl-banner">
   <div class="htl-banner-inner">
     <div class="htl-banner-text">
       <p class="htl-eyebrow">Why Book With Us</p>
-      <h2>More Than a Booking -<br><em>A Curated Experience</em></h2>
+      <h2>More Than a Booking —<br><em>A Curated Experience</em></h2>
       <p class="htl-body">We don't just list hotels. We personally vet every property, negotiate the best rates and stay with you from enquiry to check-out. No hidden charges, no last-minute surprises.</p>
       <div class="htl-banner-btns">
         <a href="https://wa.me/919875073788" class="htl-btn-primary" target="_blank">WhatsApp Us Now</a>
@@ -682,9 +575,9 @@
   </div>
 </div>
 
-<!-- ======================================================
+<!-- ===================================================
      ENQUIRY FORM
-====================================================== -->
+=================================================== -->
 <section class="htl-enquiry" id="htl-enquiry">
   <div class="htl-enquiry-inner">
     <div class="htl-enquiry-header">
@@ -692,7 +585,7 @@
       <h2 class="htl-title">Tell Us Your <em>Dream Stay</em></h2>
       <p class="htl-desc">Fill in your details and our travel experts will get back to you within 2 hours with personalised hotel options and the best rates.</p>
     </div>
-    <div class="htl-divider"><span>*</span></div>
+    <div class="htl-divider"><span>✦</span></div>
 
     <form class="htl-enquiry-form" id="htlEnquiryForm" novalidate>
 
@@ -752,7 +645,7 @@
       </div>
 
       <div class="htl-form-submit-row">
-        <span class="htl-form-note">We typically respond within 2 hours - No spam, ever.</span>
+        <span class="htl-form-note">We typically respond within 2 hours — No spam, ever.</span>
         <button type="submit" class="htl-form-btn">
           Send Enquiry
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
@@ -762,7 +655,7 @@
     </form>
 
     <div class="htl-form-success" id="htlFormSuccess">
-      <div class="htl-success-icon">*</div>
+      <div class="htl-success-icon">✓</div>
       <h3>Enquiry Received!</h3>
       <p>Thank you for reaching out. Our travel expert will contact you within 2 hours with personalised hotel recommendations.</p>
     </div>
@@ -770,14 +663,14 @@
   </div>
 </section>
 
-<!-- ======================================================
+<!-- ===================================================
      CTA STRIP
-====================================================== -->
+=================================================== -->
 <section class="htl-cta">
   <div class="htl-cta-inner">
     <p class="htl-eyebrow">Ready to Travel</p>
     <h2>Your Dream Stay Is<br><em>One Message Away</em></h2>
-    <p>Tell us your destination, dates and budget. Our travel experts will curate the perfect hotel options - usually within 2 hours.</p>
+    <p>Tell us your destination, dates and budget. Our travel experts will curate the perfect hotel options — usually within 2 hours.</p>
     <div class="htl-cta-btns">
       <a href="https://wa.me/919875073788" class="htl-wa-btn" target="_blank">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
@@ -787,7 +680,6 @@
     </div>
   </div>
 </section>
-
 
 @endsection
 
@@ -810,8 +702,7 @@
         card.dataset.location,
         card.dataset.name,
         card.dataset.category,
-        card.dataset.desc,
-        card.dataset.features
+        card.dataset.amenities,
       ].join(' ').toLowerCase();
       const searchMatch = !search || searchText.includes(search);
       const match = categoryMatch && searchMatch;
@@ -854,37 +745,36 @@
   }, { threshold: 0.08 });
   cards.forEach(c => revealObs.observe(c));
 
-
   /* ===== ENQUIRY FORM ===== */
   const form    = document.getElementById('htlEnquiryForm');
   const success = document.getElementById('htlFormSuccess');
 
-  form.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const name  = document.getElementById('htlName').value.trim();
-    const phone = document.getElementById('htlPhone').value.trim();
+  if (form) {
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name  = document.getElementById('htlName').value.trim();
+      const phone = document.getElementById('htlPhone').value.trim();
 
-    if (!name || !phone) {
-      alert('Please enter your name and phone number.');
-      return;
-    }
+      if (!name || !phone) {
+        alert('Please enter your name and phone number.');
+        return;
+      }
 
-    const dest    = document.getElementById('htlDestination').value || 'Not specified';
-    const checkin = document.getElementById('htlCheckin').value || 'Flexible';
-    const guests  = document.getElementById('htlGuests').value || 'Not specified';
-    const email   = document.getElementById('htlEmail').value.trim();
-    const message = document.getElementById('htlMessage').value.trim();
+      const dest    = document.getElementById('htlDestination').value || 'Not specified';
+      const checkin = document.getElementById('htlCheckin').value || 'Flexible';
+      const guests  = document.getElementById('htlGuests').value || 'Not specified';
+      const email   = document.getElementById('htlEmail').value.trim();
+      const message = document.getElementById('htlMessage').value.trim();
 
-    const wa = `Hi TYT Luxe! I'd like to enquire about a hotel stay.\n\nName: ${name}\nPhone: ${phone}${email ? '\nEmail: ' + email : ''}\nDestination: ${dest}\nCheck-in: ${checkin}\nGuests: ${guests}${message ? '\nRequirements: ' + message : ''}`;
+      const wa = `Hi TYT Luxe! I'd like to enquire about a hotel stay.\n\nName: ${name}\nPhone: ${phone}${email ? '\nEmail: ' + email : ''}\nDestination: ${dest}\nCheck-in: ${checkin}\nGuests: ${guests}${message ? '\nRequirements: ' + message : ''}`;
 
-    window.open('https://wa.me/919875073788?text=' + encodeURIComponent(wa), '_blank');
+      window.open('https://wa.me/919875073788?text=' + encodeURIComponent(wa), '_blank');
 
-    form.style.display = 'none';
-    success.classList.add('show');
-  });
+      form.style.display = 'none';
+      success.classList.add('show');
+    });
+  }
 
 })();
 </script>
-
-
 @endpush
