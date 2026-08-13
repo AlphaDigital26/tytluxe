@@ -80,8 +80,9 @@ class PackageForm
 
                             Select::make('destination_id')
                                 ->label('Destination')
-                                ->options(fn () => Destination::orderBy('name')->pluck('name', 'id'))
+                                ->relationship('destination', 'name', fn ($query) => $query->where('for', 'package')->where('is_active', true)->orderBy('name'))
                                 ->searchable()
+                                ->preload()
                                 ->nullable()
                                 ->helperText('Choose the main destination for this package.'),
 

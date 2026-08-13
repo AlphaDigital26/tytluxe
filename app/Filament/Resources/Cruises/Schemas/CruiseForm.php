@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Cruises\Schemas;
 
 use App\Models\Amenity;
+use App\Models\Destination;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
@@ -19,6 +20,14 @@ class CruiseForm
                 TextInput::make('title')
                     ->label('Cruise Name')
                     ->required(),
+
+                Select::make('destination_id')
+                    ->label('Destination')
+                    ->helperText('Select the main destination for this cruise. Add new ones under Content → Destinations → Cruises tab.')
+                    ->relationship('destination', 'name', fn ($query) => $query->where('for', 'cruise')->where('is_active', true)->orderBy('name'))
+                    ->searchable()
+                    ->preload()
+                    ->nullable(),
 
                 TextInput::make('slug')
                     ->label('URL Slug')

@@ -16,27 +16,65 @@ class DestinationsTable
         return $table
             ->columns([
                 TextColumn::make('name')
-                    ->searchable(),
-                TextColumn::make('slug')
-                    ->searchable(),
+                    ->label('Destination')
+                    ->searchable()
+                    ->sortable()
+                    ->weight('bold'),
+
                 TextColumn::make('country')
-                    ->searchable(),
+                    ->label('Country')
+                    ->searchable()
+                    ->sortable()
+                    ->badge()
+                    ->color('gray'),
+
                 TextColumn::make('type')
-                    ->badge(),
-                TextColumn::make('lat')
-                    ->numeric()
-                    ->sortable(),
-                TextColumn::make('lng')
-                    ->numeric()
-                    ->sortable(),
+                    ->label('Type')
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                        'city'   => '🏙️ City',
+                        'region' => '🗺️ Region',
+                        'island' => '🏝️ Island',
+                        default  => '📍 Other',
+                    })
+                    ->badge()
+                    ->color('info'),
+
+                TextColumn::make('for')
+                    ->label('Used For')
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                        'hotel'   => '🏨 Hotels',
+                        'cruise'  => '🚢 Cruises',
+                        'package' => '📦 Packages',
+                        default   => ucfirst($state),
+                    })
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'hotel'   => 'info',
+                        'cruise'  => 'success',
+                        'package' => 'warning',
+                        default   => 'gray',
+                    }),
+
                 IconColumn::make('is_active')
-                    ->boolean(),
-                TextColumn::make('created_at')
-                    ->dateTime()
+                    ->label('Visible')
+                    ->boolean()
+                    ->sortable(),
+
+                TextColumn::make('lat')
+                    ->label('Latitude')
+                    ->numeric()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('updated_at')
-                    ->dateTime()
+
+                TextColumn::make('lng')
+                    ->label('Longitude')
+                    ->numeric()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('created_at')
+                    ->label('Added On')
+                    ->date('d M Y')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
@@ -50,6 +88,11 @@ class DestinationsTable
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
                 ]),
-            ]);
+            ])
+            ->defaultSort('name', 'asc')
+            ->striped()
+            ->emptyStateHeading('No destinations yet')
+            ->emptyStateDescription('Click "Add Destination" to add one.')
+            ->emptyStateIcon('heroicon-o-map-pin');
     }
 }

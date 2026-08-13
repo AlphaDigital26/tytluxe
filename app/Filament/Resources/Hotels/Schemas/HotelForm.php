@@ -31,7 +31,7 @@ class HotelForm
                                     Select::make('destination_id')
                                         ->label('Destination')
                                         ->helperText('City or region where this hotel is located')
-                                        ->relationship('destination', 'name', fn ($query) => $query->orderBy('name'))
+                                        ->relationship('destination', 'name', fn ($query) => $query->where('for', 'hotel')->where('is_active', true)->orderBy('name'))
                                         ->required()
                                         ->searchable()
                                         ->preload(),
