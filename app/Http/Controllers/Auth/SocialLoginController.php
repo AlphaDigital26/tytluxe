@@ -36,6 +36,11 @@ class SocialLoginController extends Controller
             $user = User::where('email', $googleUser->getEmail())->first();
 
             if ($user) {
+                // If user exists, check if they are suspended
+                if ($user->status === 'Suspended') {
+                    return redirect()->route('login')->withErrors(['email' => 'Your account has been suspended. Please contact support.']);
+                }
+
                 // If user exists, update their google_id if it's not set
                 if (!$user->google_id) {
                     $user->update(['google_id' => $googleUser->getId()]);

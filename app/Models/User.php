@@ -22,6 +22,7 @@ class User extends Authenticatable implements FilamentUser
      */
     protected $fillable = [
         'name',
+        'last_name',
         'email',
         'google_id',
         'phone',
@@ -32,6 +33,13 @@ class User extends Authenticatable implements FilamentUser
         'two_factor_recovery_codes',
         'dob',
         'gender',
+        'nationality',
+        'marital_status',
+        'anniversary',
+        'passport_no',
+        'passport_expiry',
+        'passport_issuing_country',
+        'govt_ids',
         'address',
         'preferences',
         'notifications',
@@ -65,6 +73,9 @@ class User extends Authenticatable implements FilamentUser
             'preferences' => 'array',
             'notifications' => 'array',
             'dob' => 'date',
+            'anniversary' => 'date',
+            'passport_expiry' => 'date',
+            'govt_ids' => 'array',
         ];
     }
 

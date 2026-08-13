@@ -71,14 +71,22 @@ class ProfileController extends Controller
     public function storeTraveller(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'type' => 'required|string',
-            'name' => 'required|string|max:255',
+            'type' => 'nullable|string',
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'relationship' => 'nullable|string',
             'dob' => 'nullable|date',
             'gender' => 'nullable|string',
             'nationality' => 'nullable|string',
+            'meal_preference' => 'nullable|string',
+            'train_berth_preference' => 'nullable|string',
             'passport_number' => 'nullable|string',
             'passport_expiry' => 'nullable|date',
             'passport_issuing_country' => 'nullable|string',
+            'phone' => 'nullable|string',
+            'email' => 'nullable|email',
+            'frequent_flyer_airline' => 'nullable|string',
+            'frequent_flyer_number' => 'nullable|string',
         ]);
 
         $request->user()->savedTravellers()->create($validated);
@@ -93,14 +101,22 @@ class ProfileController extends Controller
         }
 
         $validated = $request->validate([
-            'type' => 'required|string',
-            'name' => 'required|string|max:255',
+            'type' => 'nullable|string',
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'relationship' => 'nullable|string',
             'dob' => 'nullable|date',
             'gender' => 'nullable|string',
             'nationality' => 'nullable|string',
+            'meal_preference' => 'nullable|string',
+            'train_berth_preference' => 'nullable|string',
             'passport_number' => 'nullable|string',
             'passport_expiry' => 'nullable|date',
             'passport_issuing_country' => 'nullable|string',
+            'phone' => 'nullable|string',
+            'email' => 'nullable|email',
+            'frequent_flyer_airline' => 'nullable|string',
+            'frequent_flyer_number' => 'nullable|string',
         ]);
 
         $traveller->update($validated);
