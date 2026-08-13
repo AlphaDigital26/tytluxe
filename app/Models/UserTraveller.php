@@ -9,13 +9,21 @@ class UserTraveller extends Model
     protected $fillable = [
         'user_id',
         'type',
-        'name',
+        'first_name',
+        'last_name',
+        'relationship',
         'dob',
         'gender',
         'nationality',
+        'meal_preference',
+        'train_berth_preference',
         'passport_number',
         'passport_expiry',
         'passport_issuing_country',
+        'phone',
+        'email',
+        'frequent_flyer_airline',
+        'frequent_flyer_number',
     ];
 
     protected $casts = [

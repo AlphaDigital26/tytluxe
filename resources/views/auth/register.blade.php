@@ -153,8 +153,8 @@
                 <div class="auth-form-group">
                     <label>PASSWORD</label>
                     <div class="auth-input-wrapper" style="position: relative;">
-                        <input type="password" name="password" placeholder="••••••••" required>
-                        <i class="fa-regular fa-eye" style="position: absolute; right: 0; top: 50%; transform: translateY(-50%); cursor: pointer;"></i>
+                        <input type="password" name="password" placeholder="••••••••" required id="regPasswordInput">
+                        <i class="fa-regular fa-eye" style="position: absolute; right: 0; top: 50%; transform: translateY(-50%); cursor: pointer;" onclick="const input = document.getElementById('regPasswordInput'); if(input.type === 'password') { input.type = 'text'; this.classList.replace('fa-eye', 'fa-eye-slash'); } else { input.type = 'password'; this.classList.replace('fa-eye-slash', 'fa-eye'); }"></i>
                     </div>
                     @error('password')
                         <span class="auth-error-msg">{{ $message }}</span>
@@ -164,8 +164,8 @@
                 <div class="auth-form-group">
                     <label>CONFIRM PASSWORD</label>
                     <div class="auth-input-wrapper" style="position: relative;">
-                        <input type="password" name="password_confirmation" placeholder="••••••••" required>
-                        <i class="fa-regular fa-eye" style="position: absolute; right: 0; top: 50%; transform: translateY(-50%); cursor: pointer;"></i>
+                        <input type="password" name="password_confirmation" placeholder="••••••••" required id="regConfirmPasswordInput">
+                        <i class="fa-regular fa-eye" style="position: absolute; right: 0; top: 50%; transform: translateY(-50%); cursor: pointer;" onclick="const input = document.getElementById('regConfirmPasswordInput'); if(input.type === 'password') { input.type = 'text'; this.classList.replace('fa-eye', 'fa-eye-slash'); } else { input.type = 'password'; this.classList.replace('fa-eye-slash', 'fa-eye'); }"></i>
                     </div>
                 </div>
 
