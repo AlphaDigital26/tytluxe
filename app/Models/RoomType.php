@@ -14,6 +14,7 @@ class RoomType extends Model
 
     protected $casts = [
         'inclusions' => 'array',
+        'images' => 'array',
         'is_active' => 'boolean',
     ];
 

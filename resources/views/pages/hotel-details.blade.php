@@ -212,6 +212,23 @@ body { background: var(--dark); color: #fff; }
   cursor: pointer; transition: all var(--tr); width: 100%;
 }
 .hd-room-btn:hover { background: var(--gold); color: var(--dark); }
+.hd-room-more-btn {
+  display: inline-block; font-family: 'Jost', sans-serif; font-size: 12.5px;
+  color: var(--gold); text-decoration: none; border-bottom: 1px dashed var(--gold);
+  margin-top: -4px; margin-bottom: 14px; cursor: pointer; transition: all var(--tr);
+}
+.hd-room-more-btn:hover { color: #fff; border-bottom-color: #fff; }
+
+.hd-room-gallery {
+  display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 12px;
+  margin-bottom: 20px; padding-bottom: 8px;
+  -ms-overflow-style: none; scrollbar-width: none;
+}
+.hd-room-gallery::-webkit-scrollbar { display: none; }
+.hd-room-gallery img {
+  width: 100%; flex-shrink: 0; scroll-snap-align: start;
+  border-radius: 12px; max-height: 280px; object-fit: cover;
+}
 
 /* ===== NEARBY ATTRACTIONS ===== */
 .hd-nearby-list {
@@ -318,7 +335,9 @@ body { background: var(--dark); color: #fff; }
   padding: 40px 36px; position: relative;
   transform: translateY(24px) scale(0.97);
   transition: transform 0.35s cubic-bezier(0.25,0.46,0.45,0.94);
+  -ms-overflow-style: none; scrollbar-width: none; /* Hide scrollbar for IE, Edge and Firefox */
 }
+.hd-modal::-webkit-scrollbar { display: none; /* Hide scrollbar for Chrome, Safari and Opera */ }
 .hd-modal-backdrop.open .hd-modal { transform: translateY(0) scale(1); }
 .hd-modal-close {
   position: absolute; top: 16px; right: 16px;
@@ -572,12 +591,18 @@ body { background: var(--dark); color: #fff; }
                 </div>
                 @if($room->description)
                   <div class="hd-room-desc-text">{{ $room->description }}</div>
+                  <a class="hd-room-more-btn" data-modal="hdRoomModal_{{ $room->id }}">More Details</a>
+                @else
+                  <a class="hd-room-more-btn" data-modal="hdRoomModal_{{ $room->id }}">More Details</a>
                 @endif
                 @if($room->inclusions && count($room->inclusions) > 0)
                 <div class="hd-room-inc">
-                  @foreach($room->inclusions as $inc)
+                  @foreach(array_slice($room->inclusions, 0, 4) as $inc)
                     <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg> {{ $inc }}</span>
                   @endforeach
+                  @if(count($room->inclusions) > 4)
+                    <span style="background:transparent; padding:0; color:var(--white-60);">+{{ count($room->inclusions) - 4 }} more</span>
+                  @endif
                 </div>
                 @endif
               </div>
@@ -590,6 +615,59 @@ body { background: var(--dark); color: #fff; }
               </div>
             </div>
           </div>
+          
+          <!-- Room Details Modal -->
+          <div class="hd-modal-backdrop hd-room-details-modal" id="hdRoomModal_{{ $room->id }}" role="dialog" aria-modal="true">
+            <div class="hd-modal">
+              <button class="hd-modal-close hd-room-modal-close" aria-label="Close">✕</button>
+              <h2 class="hd-modal-title" style="font-size: 1.8rem; margin-bottom: 16px;">{{ $room->name }}</h2>
+              
+              @php
+                $roomImages = collect();
+                if ($room->image_path) $roomImages->push($room->image_path);
+                if (is_array($room->images)) {
+                  foreach ($room->images as $img) $roomImages->push($img);
+                }
+              @endphp
+
+              @if($roomImages->count() > 0)
+                <div class="hd-room-gallery">
+                  @foreach($roomImages as $img)
+                    <img src="{{ Storage::disk('public')->url($img) }}" alt="{{ $room->name }} Image">
+                  @endforeach
+                </div>
+              @endif
+              
+              <div class="hd-room-specs" style="margin-bottom: 24px; border-bottom: 1px dashed rgba(255,255,255,0.1); padding-bottom: 20px;">
+                @if($room->room_size)
+                  <span class="hd-room-spec"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z M4 9h16 M9 4v16"/></svg>{{ $room->room_size }}</span>
+                @endif
+                @if($room->bed_type)
+                  <span class="hd-room-spec"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4v16M22 4v16M2 8h20M6 4v4M18 4v4"/></svg>{{ $room->bed_type }}</span>
+                @endif
+                <span class="hd-room-spec"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/></svg>{{ $room->occupancy_adults }} Adults @if($room->occupancy_children) , {{ $room->occupancy_children }} Child @endif</span>
+              </div>
+              
+              @if($room->description)
+                <h3 style="font-family: 'Jost', sans-serif; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--gold); margin-bottom: 12px;">About this room</h3>
+                <p style="font-family: 'Jost', sans-serif; font-size: 14px; color: var(--white-80); line-height: 1.6; margin-bottom: 24px;">
+                  {{ $room->description }}
+                </p>
+              @endif
+              
+              @if($room->inclusions && count($room->inclusions) > 0)
+                <h3 style="font-family: 'Jost', sans-serif; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--gold); margin-bottom: 14px;">Inclusions & Amenities</h3>
+                <div class="hd-room-inc" style="gap: 12px; margin-bottom: 24px;">
+                  @foreach($room->inclusions as $inc)
+                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg> {{ $inc }}</span>
+                  @endforeach
+                </div>
+              @endif
+              
+              <button class="hd-room-btn" style="margin-top: 10px;" onclick="document.getElementById('hdRoomModal_{{ $room->id }}').classList.remove('open'); document.body.style.overflow=''; document.getElementById('hdEnquireBtn').click();">Enquire Now</button>
+            </div>
+          </div>
+          
         @endforeach
       </div>
     </div>
@@ -793,7 +871,51 @@ body { background: var(--dark); color: #fff; }
   if (openBtn)  openBtn.addEventListener('click', openModal);
   if (closeBtn) closeBtn.addEventListener('click', closeModal);
   modal?.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+  
+  /* ===== ROOM DETAILS MODALS ===== */
+  const roomMoreBtns = document.querySelectorAll('.hd-room-more-btn');
+  const roomModalCloses = document.querySelectorAll('.hd-room-modal-close');
+
+  roomMoreBtns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const targetId = btn.getAttribute('data-modal');
+      const targetModal = document.getElementById(targetId);
+      if(targetModal) {
+        targetModal.classList.add('open');
+        document.body.style.overflow = 'hidden';
+      }
+    });
+  });
+
+  roomModalCloses.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const modalBox = btn.closest('.hd-modal-backdrop');
+      if(modalBox) {
+        modalBox.classList.remove('open');
+        document.body.style.overflow = '';
+      }
+    });
+  });
+  
+  document.querySelectorAll('.hd-room-details-modal').forEach(modBox => {
+    modBox.addEventListener('click', (e) => {
+      if (e.target === modBox) {
+        modBox.classList.remove('open');
+        document.body.style.overflow = '';
+      }
+    });
+  });
+
+  // Global escape key
+  document.addEventListener('keydown', (e) => { 
+    if (e.key === 'Escape') {
+      closeModal(); 
+      document.querySelectorAll('.hd-room-details-modal.open').forEach(m => m.classList.remove('open'));
+      document.body.style.overflow = '';
+    } 
+  });
 
   /* ===== MODAL FORM SUBMIT → WHATSAPP ===== */
   if (mForm) {
