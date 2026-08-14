@@ -39,7 +39,7 @@ class PackageForm
                                 ->helperText('The full name of this trip, exactly as it appears on the brochure or PDF.')
                                 ->required()
                                 ->live(onBlur: true)
-                                ->afterStateUpdated(fn (string $state, callable $set) => $set('slug', Str::slug($state)))
+                                ->afterStateUpdated(fn (string $state, $set) => $set('slug', Str::slug($state)))
                                 ->columnSpanFull(),
 
                             TextInput::make('slug')
@@ -58,6 +58,7 @@ class PackageForm
                                 ->placeholder('Write 2–4 sentences describing the essence of this trip...')
                                 ->helperText('Copy the main overview paragraph from the PDF. Appears under the title on the website.')
                                 ->rows(5)
+                                ->required()
                                 ->columnSpanFull(),
 
                             Select::make('region_type')
@@ -80,7 +81,7 @@ class PackageForm
 
                             Select::make('destination_id')
                                 ->label('Destination')
-                                ->relationship('destination', 'name', fn ($query) => $query->where('for', 'package')->where('is_active', true)->orderBy('name'))
+                                ->relationship('destination', 'name', fn ($query) => $query->whereJsonContains('for', 'package')->where('is_active', true)->orderBy('name'))
                                 ->searchable()
                                 ->preload()
                                 ->nullable()
@@ -119,10 +120,10 @@ class PackageForm
                                 ->prefix('₹')
                                 ->nullable(),
 
-                            TextInput::make('departure_from')
-                                ->label('Departure City')
-                                ->placeholder('e.g.  Delhi')
-                                ->helperText('The city from which the trip begins.'),
+                            TagsInput::make('departure_from')
+                                ->label('Departure Cities')
+                                ->placeholder('Type a city and press Enter  —  e.g.  Delhi')
+                                ->helperText('The cities from which the trip begins. Press Enter after each city.'),
 
                             TextInput::make('meals_info')
                                 ->label('Meals Included')
@@ -202,11 +203,11 @@ class PackageForm
 
                                     TextInput::make('day_number')
                                         ->label('Day No.')
-                                        ->helperText('e.g. 1 for Day 1')
+                                        ->helperText('e.g. 0 for Day 0 or 1 for Day 1')
                                         ->numeric()
                                         ->default(1)
                                         ->required()
-                                        ->minValue(1)
+                                        ->minValue(0)
                                         ->columnSpan(1),
 
                                     TextInput::make('title')
@@ -371,6 +372,7 @@ class PackageForm
                                 ->image()
                                 ->imagePreviewHeight('200')
                                 ->directory('packages/heroes')
+                                ->disk('public')
                                 ->columnSpanFull(),
 
                             Repeater::make('images')
@@ -385,6 +387,7 @@ class PackageForm
                                         ->image()
                                         ->imagePreviewHeight('130')
                                         ->directory('packages/gallery')
+                                        ->disk('public')
                                         ->required(),
 
                                     TextInput::make('alt_text')
@@ -405,15 +408,16 @@ class PackageForm
                                 ->columnSpanFull(),
 
                             FileUpload::make('itinerary_pdf')
-                                ->label('Itinerary PDF')
-                                ->helperText('Upload the full PDF brochure. Guests can click "Download Itinerary" on the package page to get this file.')
-                                ->acceptedFileTypes(['application/pdf'])
-                                ->directory('itineraries')
-                                ->maxSize(15360)
-                                ->validationMessages([
-                                    'max' => 'The itinerary PDF must not be greater than 15 MB.',
-                                ])
-                                ->columnSpanFull(),
+                                        ->label('Itinerary PDF')
+                                        ->helperText('Upload the full PDF brochure. Guests can click "Download Itinerary" on the package page to get this file.')
+                                        ->acceptedFileTypes(['application/pdf'])
+                                        ->directory('itineraries')
+                                        ->disk('public')
+                                        ->maxSize(15360)
+                                        ->validationMessages([
+                                            'max' => 'The itinerary PDF must not be greater than 15 MB.',
+                                        ])
+                                        ->columnSpanFull(),
 
                         ]),
 

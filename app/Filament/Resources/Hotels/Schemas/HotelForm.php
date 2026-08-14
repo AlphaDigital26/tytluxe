@@ -12,7 +12,6 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Components\Grid;
-use Filament\Forms\Set;
 use Illuminate\Support\Str;
 use Filament\Schemas\Schema;
 
@@ -31,7 +30,7 @@ class HotelForm
                                     Select::make('destination_id')
                                         ->label('Destination')
                                         ->helperText('City or region where this hotel is located')
-                                        ->relationship('destination', 'name', fn ($query) => $query->where('for', 'hotel')->where('is_active', true)->orderBy('name'))
+                                        ->relationship('destination', 'name', fn ($query) => $query->whereJsonContains('for', 'hotel')->where('is_active', true)->orderBy('name'))
                                         ->required()
                                         ->searchable()
                                         ->preload(),
@@ -51,13 +50,14 @@ class HotelForm
                                         ->label('Hotel Name')
                                         ->required()
                                         ->live(onBlur: true)
-                                        ->afterStateUpdated(fn (Set $set, ?string $state) => $set('slug', Str::slug($state)))
+                                        ->afterStateUpdated(fn ($set, ?string $state) => $set('slug', Str::slug($state)))
                                         ->columnSpan(2),
 
                                     TextInput::make('slug')
                                         ->label('URL Slug')
                                         ->helperText('This forms the link of the hotel page. Auto-generated from the name.')
                                         ->required()
+                                        ->unique(ignoreRecord: true)
                                         ->columnSpan(2),
 
                                     Textarea::make('description')
@@ -161,6 +161,7 @@ class HotelForm
                                             ->label('Photo')
                                             ->image()
                                             ->directory('hotels')
+                                            ->disk('public')
                                             ->required(),
                                         TextInput::make('alt_text')
                                             ->label('Photo Caption (optional)')

@@ -24,17 +24,6 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 body { background: var(--dark); color: #fff; }
 
-/* ===== BACK LINK ===== */
-.hd-back {
-  display: inline-flex; align-items: center; gap: 8px;
-  font-family: 'Jost', sans-serif; font-size: 12.5px; font-weight: 600;
-  letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold);
-  text-decoration: none; padding: 24px 40px 0;
-  transition: opacity var(--tr);
-}
-.hd-back:hover { opacity: 0.7; }
-.hd-back svg { width: 14px; height: 14px; }
-
 /* ===== HERO GALLERY ===== */
 .hd-gallery { position: relative; }
 .hd-gallery-main {
@@ -108,25 +97,6 @@ body { background: var(--dark); color: #fff; }
   color: var(--white-60); display: flex; align-items: center; gap: 8px;
 }
 
-/* Thumbnail strip */
-.hd-thumbs {
-  display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; max-height: 110px;
-}
-.hd-thumb {
-  height: 110px; overflow: hidden; cursor: pointer; background: var(--dark-2); position: relative;
-}
-.hd-thumb img { width: 100%; height: 100%; object-fit: cover; transition: transform var(--tr); display: block; }
-.hd-thumb:hover img { transform: scale(1.08); }
-.hd-thumb.active::after {
-  content: ''; position: absolute; inset: 0; border: 2px solid var(--gold);
-}
-.hd-thumb-more { position: relative; cursor: pointer; background: var(--dark-3); }
-.hd-thumb-more img { opacity: 0.45; }
-.hd-thumb-more-label {
-  position: absolute; inset: 0; display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  font-family: 'Jost', sans-serif; font-size: 13px; font-weight: 600; color: #fff;
-}
 
 /* ===== LAYOUT ===== */
 .hd-layout {
@@ -177,15 +147,71 @@ body { background: var(--dark); color: #fff; }
 
 /* ===== ROOM CATEGORIES ===== */
 .hd-room-cats { display: flex; flex-wrap: wrap; gap: 10px; }
-.hd-room-cat {
-  display: inline-flex; align-items: center; gap: 8px;
-  background: rgba(201,168,76,0.08); border: 1px solid rgba(201,168,76,0.25);
-  padding: 10px 18px; border-radius: 10px;
-  font-family: 'Jost', sans-serif; font-size: 13.5px; color: #fff;
+/* ===== ROOM CARDS ===== */
+.hd-room-list { display: flex; flex-direction: column; gap: 20px; }
+.hd-room-card {
+  background: var(--dark-2); border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px; overflow: hidden; display: flex; flex-direction: column;
 }
-.hd-room-cat::before {
-  content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--gold); flex-shrink: 0;
+@media (min-width: 768px) { .hd-room-card { flex-direction: row; } }
+.hd-room-img { width: 100%; height: 180px; }
+@media (min-width: 768px) { .hd-room-img { width: 260px; height: auto; flex-shrink: 0; } }
+.hd-room-img img { width: 100%; height: 100%; object-fit: cover; }
+.hd-room-content {
+  padding: 22px; display: flex; flex-direction: column; gap: 20px; flex: 1;
 }
+@media (min-width: 992px) {
+  .hd-room-content { flex-direction: row; justify-content: space-between; align-items: center; }
+}
+.hd-room-info { flex: 1; border-bottom: 1px dashed rgba(255,255,255,0.1); padding-bottom: 20px; }
+@media (min-width: 992px) {
+  .hd-room-info { border-bottom: none; border-right: 1px dashed rgba(255,255,255,0.1); padding-bottom: 0; padding-right: 24px; margin-right: 24px; }
+}
+.hd-room-title {
+  font-family: 'Cormorant Garamond', serif; font-size: 1.6rem; color: #fff; margin-bottom: 10px; line-height: 1.2;
+}
+.hd-room-specs {
+  display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 14px;
+}
+.hd-room-spec {
+  display: flex; align-items: center; gap: 6px;
+  font-family: 'Jost', sans-serif; font-size: 13px; color: var(--white-80);
+}
+.hd-room-spec svg { width: 14px; height: 14px; color: var(--gold); }
+.hd-room-desc-text {
+  font-size: 13px; margin-bottom: 14px; color: var(--white-60); line-height: 1.5;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.hd-room-inc {
+  display: flex; flex-wrap: wrap; gap: 8px;
+}
+.hd-room-inc span {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: 'Jost', sans-serif; font-size: 11.5px; color: var(--green);
+  background: rgba(74, 222, 128, 0.08); padding: 4px 10px; border-radius: 100px;
+}
+.hd-room-price {
+  display: flex; flex-direction: column; justify-content: center; align-items: flex-start;
+  min-width: 160px;
+}
+@media (min-width: 992px) { .hd-room-price { align-items: center; text-align: center; } }
+.hd-room-price-val {
+  font-family: 'Jost', sans-serif; font-size: 1.6rem; font-weight: 700; color: #fff; line-height: 1;
+}
+.hd-room-price-val small { font-size: 12px; font-weight: 400; color: var(--white-60); margin-left: 4px; }
+.hd-room-cancel {
+  font-family: 'Jost', sans-serif; font-size: 12px; color: var(--white-60); margin-top: 6px; margin-bottom: 16px;
+}
+.hd-room-cancel.text-green { color: var(--green); }
+.hd-room-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 12px 24px; border-radius: 100px;
+  background: transparent; border: 1px solid var(--gold);
+  color: var(--gold); font-family: 'Jost', sans-serif; font-size: 12px;
+  font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em;
+  cursor: pointer; transition: all var(--tr); width: 100%;
+}
+.hd-room-btn:hover { background: var(--gold); color: var(--dark); }
 
 /* ===== NEARBY ATTRACTIONS ===== */
 .hd-nearby-list {
@@ -366,7 +392,6 @@ body { background: var(--dark); color: #fff; }
   .hd-layout { grid-template-columns: 1fr; padding: 40px 24px 60px; gap: 40px; }
   .hd-book-card { position: static; }
   .hd-gallery-hero-info { padding: 32px 24px 28px; }
-  .hd-thumbs { grid-template-columns: repeat(4, 1fr); }
 }
 @media (max-width: 768px) {
   .hd-back { padding: 18px 20px 0; }
@@ -379,8 +404,6 @@ body { background: var(--dark); color: #fff; }
   .hd-mform-submit { flex-direction: column; align-items: stretch; }
   .hd-mform-btn { justify-content: center; }
   .hd-modal { padding: 28px 20px; }
-  .hd-thumbs { grid-template-columns: repeat(3, 1fr); max-height: 80px; }
-  .hd-thumb { height: 80px; }
 }
 </style>
 @endpush
@@ -412,12 +435,6 @@ body { background: var(--dark); color: #fff; }
 @endphp
 
 @section('content')
-
-<!-- Back link -->
-<a href="{{ route('hotels') }}" class="hd-back">
-  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 8H3M7 4L3 8l4 4"/></svg>
-  Back to Hotels
-</a>
 
 <!-- ===================================================
      HERO GALLERY
@@ -472,26 +489,7 @@ body { background: var(--dark); color: #fff; }
     </div>
   </div>
 
-  {{-- Thumbnail strip (show up to 5 thumbs) --}}
-  @if($imageCount > 1)
-  <div class="hd-thumbs" id="hdThumbs">
-    @foreach($images->take(5) as $i => $img)
-      @if($i === 4 && $imageCount > 5)
-        <div class="hd-thumb hd-thumb-more {{ $i === 0 ? 'active' : '' }}" data-index="{{ $i }}" onclick="hdGallTo({{ $i }})">
-          <img src="{{ Storage::disk('public')->url($img->path) }}" alt="" loading="lazy" />
-          <div class="hd-thumb-more-label">
-            <span style="font-size:20px;">+</span>
-            <span>{{ $imageCount - 4 }} more</span>
-          </div>
-        </div>
-      @else
-        <div class="hd-thumb {{ $i === 0 ? 'active' : '' }}" data-index="{{ $i }}" onclick="hdGallTo({{ $i }})">
-          <img src="{{ Storage::disk('public')->url($img->path) }}" alt="{{ $img->alt_text ?: $hotel->title }}" loading="lazy" />
-        </div>
-      @endif
-    @endforeach
-  </div>
-  @endif
+
 </div>
 
 <!-- ===================================================
@@ -539,13 +537,70 @@ body { background: var(--dark); color: #fff; }
     </div>
     @endif
 
-    <!-- Room Categories -->
-    @if(count($roomCats) > 0)
+    <!-- Room Categories / Types -->
+    @if($hotel->roomTypes && $hotel->roomTypes->where('is_active', true)->count() > 0)
+    <div class="hd-section">
+      <h2 class="hd-section-title">Select Room</h2>
+      <div class="hd-room-list">
+        @foreach($hotel->roomTypes->where('is_active', true) as $room)
+          <div class="hd-room-card">
+            @if($room->image_path)
+            <div class="hd-room-img">
+              <img src="{{ Storage::disk('public')->url($room->image_path) }}" alt="{{ $room->name }}">
+            </div>
+            @endif
+            <div class="hd-room-content">
+              <div class="hd-room-info">
+                <h3 class="hd-room-title">{{ $room->name }}</h3>
+                <div class="hd-room-specs">
+                  @if($room->room_size)
+                  <span class="hd-room-spec">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z M4 9h16 M9 4v16"/></svg>
+                    {{ $room->room_size }}
+                  </span>
+                  @endif
+                  @if($room->bed_type)
+                  <span class="hd-room-spec">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4v16M22 4v16M2 8h20M6 4v4M18 4v4"/></svg>
+                    {{ $room->bed_type }}
+                  </span>
+                  @endif
+                  <span class="hd-room-spec">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/></svg>
+                    {{ $room->occupancy_adults }} Adults @if($room->occupancy_children) , {{ $room->occupancy_children }} Child @endif
+                  </span>
+                </div>
+                @if($room->description)
+                  <div class="hd-room-desc-text">{{ $room->description }}</div>
+                @endif
+                @if($room->inclusions && count($room->inclusions) > 0)
+                <div class="hd-room-inc">
+                  @foreach($room->inclusions as $inc)
+                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg> {{ $inc }}</span>
+                  @endforeach
+                </div>
+                @endif
+              </div>
+              <div class="hd-room-price">
+                <div class="hd-room-price-val">₹{{ number_format($room->price_per_night) }}<small>/ night</small></div>
+                <div class="hd-room-cancel @if($room->cancellation_policy == 'free_cancellation') text-green @endif">
+                  {{ str_replace('_', ' ', Str::title($room->cancellation_policy)) }}
+                </div>
+                <button class="hd-room-btn" onclick="document.getElementById('hdEnquireBtn').click()">Select Room</button>
+              </div>
+            </div>
+          </div>
+        @endforeach
+      </div>
+    </div>
+    @elseif(isset($roomCats) && count($roomCats) > 0)
     <div class="hd-section">
       <h2 class="hd-section-title">Room Types</h2>
-      <div class="hd-room-cats">
+      <div class="hd-room-list" style="display:flex; flex-direction:row; flex-wrap:wrap; gap:10px;">
         @foreach($roomCats as $cat)
-          <span class="hd-room-cat">{{ $cat }}</span>
+          <span style="display: inline-flex; align-items: center; gap: 8px; background: rgba(201,168,76,0.08); border: 1px solid rgba(201,168,76,0.25); padding: 10px 18px; border-radius: 10px; font-family: 'Jost', sans-serif; font-size: 13.5px; color: #fff;">
+            <span style="width:7px;height:7px;border-radius:50%;background:var(--gold)"></span> {{ $cat }}
+          </span>
         @endforeach
       </div>
     </div>
@@ -599,7 +654,6 @@ body { background: var(--dark); color: #fff; }
       <div class="hd-book-perks">
         <div class="hd-book-perk"><span class="hd-book-perk-dot"></span> Breakfast Included</div>
         <div class="hd-book-perk"><span class="hd-book-perk-dot"></span> Best Rate Guarantee</div>
-        <div class="hd-book-perk green-perk"><span class="hd-book-perk-dot"></span> Free Cancellation before {{ $cancelDate }}</div>
         <div class="hd-book-perk"><span class="hd-book-perk-dot"></span> 24/7 Dedicated Support</div>
       </div>
 

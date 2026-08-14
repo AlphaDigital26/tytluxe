@@ -17,7 +17,7 @@ class FeaturedBlogDestinationForm
                     ->required()
                     ->maxLength(100)
                     ->live(onBlur: true)
-                    ->afterStateUpdated(function ($state, callable $set) {
+                    ->afterStateUpdated(function ($state, $set) {
                         $set('slug', Str::slug($state));
                     }),
 

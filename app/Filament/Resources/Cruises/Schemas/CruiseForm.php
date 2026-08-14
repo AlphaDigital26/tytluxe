@@ -24,7 +24,7 @@ class CruiseForm
                 Select::make('destination_id')
                     ->label('Destination')
                     ->helperText('Select the main destination for this cruise. Add new ones under Content → Destinations → Cruises tab.')
-                    ->relationship('destination', 'name', fn ($query) => $query->where('for', 'cruise')->where('is_active', true)->orderBy('name'))
+                    ->relationship('destination', 'name', fn ($query) => $query->whereJsonContains('for', 'cruise')->where('is_active', true)->orderBy('name'))
                     ->searchable()
                     ->preload()
                     ->nullable(),
@@ -32,7 +32,8 @@ class CruiseForm
                 TextInput::make('slug')
                     ->label('URL Slug')
                     ->helperText('Auto-filled — only change if needed')
-                    ->required(),
+                    ->required()
+                    ->unique(ignoreRecord: true),
 
                 Textarea::make('description')
                     ->label('Description')

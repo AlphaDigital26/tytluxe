@@ -12,5 +12,10 @@ class RoomType extends Model
 
     protected $guarded = [];
 
+    protected $casts = [
+        'inclusions' => 'array',
+        'is_active' => 'boolean',
+    ];
+
     public function hotel() { return $this->belongsTo(Hotel::class); }
 }

@@ -310,17 +310,7 @@
 
 @section('content')
 @php
-    $heroImage = null;
-    if ($package->hero_bg_image) {
-        $heroImage = Str::startsWith($package->hero_bg_image, 'http')
-            ? $package->hero_bg_image
-            : Storage::disk('public')->url($package->hero_bg_image);
-    }
-    if (!$heroImage && $package->images && $package->images->count() > 0) {
-        $first = $package->images->first()->image_path;
-        $heroImage = Str::startsWith($first, 'http') ? $first : Storage::disk('public')->url($first);
-    }
-    $heroImage = $heroImage ?? 'https://images.unsplash.com/photo-1585409677983-0f6c41ca9c3b?w=1800&q=85';
+    $heroImage = $package->hero_image_url;
 
     $hasBooked = auth()->check()
         ? \App\Models\Booking::where('user_id', auth()->id())
@@ -354,8 +344,8 @@
         <div class="pd-pill"><i class="fa-regular fa-moon"></i> {{ $package->duration_nights }} Night{{ $package->duration_nights > 1 ? 's' : '' }}</div>
         <div class="pd-pill"><i class="fa-solid fa-sun"></i> {{ $package->duration_nights + 1 }} Days</div>
       @endif
-      @if($package->departure_from)
-        <div class="pd-pill"><i class="fa-solid fa-bus"></i> {{ $package->departure_from }} Departure</div>
+      @if(!empty($package->departure_from))
+        <div class="pd-pill"><i class="fa-solid fa-bus"></i> {{ is_array($package->departure_from) ? implode(', ', $package->departure_from) : $package->departure_from }} Departure</div>
       @endif
       @if($package->meals_info)
         <div class="pd-pill"><i class="fa-solid fa-utensils"></i> {{ $package->meals_info }}</div>
@@ -578,7 +568,7 @@
             <div class="pd-price-card-top">
               <div class="pd-price-label">Starting From</div>
               <div class="pd-price-val"><span class="curr">₹</span>{{ number_format($package->price_from, 0) }}</div>
-              <div class="pd-price-pp">per person{{ $package->departure_from ? ' (ex. ' . $package->departure_from . ')' : '' }}</div>
+              <div class="pd-price-pp">per person{{ !empty($package->departure_from) ? ' (ex. ' . (is_array($package->departure_from) ? implode(', ', $package->departure_from) : $package->departure_from) . ')' : '' }}</div>
             </div>
             <div class="pd-price-card-body">
               @if($package->duration_nights)
@@ -589,8 +579,8 @@
                 <div class="pd-price-row"><span>Booking Amount</span><strong>₹{{ number_format($package->booking_amount, 0) }} / person</strong></div>
                 <div class="pd-price-divider"></div>
               @endif
-              @if($package->departure_from)
-                <div class="pd-price-row"><span>Departure</span><strong>{{ $package->departure_from }}</strong></div>
+              @if(!empty($package->departure_from))
+                <div class="pd-price-row"><span>Departure</span><strong>{{ is_array($package->departure_from) ? implode(', ', $package->departure_from) : $package->departure_from }}</strong></div>
                 <div class="pd-price-divider"></div>
               @endif
               @if($package->meals_info)

@@ -17,14 +17,15 @@ class BlogCategoryForm
                     ->required()
                     ->maxLength(100)
                     ->live(onBlur: true)
-                    ->afterStateUpdated(function ($state, callable $set) {
+                    ->afterStateUpdated(function ($state, $set) {
                         $set('slug', Str::slug($state));
                     }),
 
                 TextInput::make('slug')
+                    ->label('URL Slug')
                     ->required()
-                    ->maxLength(100)
                     ->unique(ignoreRecord: true)
+                    ->maxLength(255)
                     ->helperText('Used for filtering on the blog page.'),
 
                 TextInput::make('sort_order')
