@@ -37,11 +37,18 @@ class RoomTypesRelationManager extends RelationManager
                 Section::make('Room Details')->schema([
                     TextInput::make('name')
                         ->required()
-                        ->maxLength(255),
-                    FileUpload::make('image_path')
-                        ->image()
-                        ->directory('room-images')
+                        ->maxLength(255)
                         ->columnSpanFull(),
+                    FileUpload::make('image_path')
+                        ->label('Main Thumbnail')
+                        ->image()
+                        ->directory('room-images'),
+                    FileUpload::make('images')
+                        ->label('Gallery Images (Multiple)')
+                        ->multiple()
+                        ->image()
+                        ->reorderable()
+                        ->directory('room-images'),
                     Textarea::make('description')
                         ->rows(3)
                         ->columnSpanFull(),
