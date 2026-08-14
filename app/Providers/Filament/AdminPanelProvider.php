@@ -18,6 +18,8 @@ use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use Filament\View\PanelsRenderHook;
+use Illuminate\Support\Facades\Blade;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -73,6 +75,25 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
-            ]);
+            ])
+            ->renderHook(
+                PanelsRenderHook::BODY_END,
+                fn (): string => Blade::render(<<<'HTML'
+                    <script>
+                        document.addEventListener('livewire:init', () => {
+                            Livewire.hook('request.error', ({ status, preventDefault }) => {
+                                if (status === 419) {
+                                    preventDefault();
+                                    new FilamentNotification()
+                                        .title('Session Expired')
+                                        .body('Your session has expired (likely due to background development updates). Please refresh the page.')
+                                        .warning()
+                                        .send();
+                                }
+                            });
+                        });
+                    </script>
+                HTML)
+            );
     }
 }

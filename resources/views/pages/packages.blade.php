@@ -427,7 +427,7 @@
                 <div class="dest-card" data-state="{{ Str::slug($pkg->destination->name) }}" onclick="openDrawer({{ $pkg->id }})" tabindex="0" role="button"
                   aria-label="View {{ $pkg->title }} package details"
                   onkeydown="if(event.key==='Enter'||event.key===' ') openDrawer({{ $pkg->id }})">
-                  <div class="dest-card-img" style="background-image: url('{{ $pkg->images->first()?->image_path ?? 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=700&q=80' }}')"></div>
+                  <div class="dest-card-img" style="background-image: url('{{ $pkg->hero_image_url }}')"></div>
                   <div class="pkg-tour-type-pill">{{ ucfirst($pkg->tour_type) }}</div>
                   <div class="dest-card-overlay"></div>
                   <div class="dest-card-content">
@@ -438,7 +438,7 @@
                     <div class="dest-card-meta">
                       <div class="dest-meta-row">
                         <span class="dest-meta-item"><i class="fa-regular fa-clock"></i> {{ $pkg->duration_nights }}N/{{ $pkg->duration_nights + 1 }}D</span>
-                        <span class="dest-meta-item"><i class="fa-solid fa-location-dot"></i> {{ $pkg->departure_from ?? 'Delhi' }} - {{ $pkg->destination->name }}</span>
+                        <span class="dest-meta-item"><i class="fa-solid fa-location-dot"></i> {{ !empty($pkg->departure_from) ? (is_array($pkg->departure_from) ? implode(', ', $pkg->departure_from) : $pkg->departure_from) : 'Delhi' }} - {{ $pkg->destination->name }}</span>
                       </div>
                       <div class="dest-meta-row">
                         @if($pkg->tour_type == 'custom')
@@ -503,7 +503,7 @@
                 <div class="dest-card" data-state="{{ Str::slug($pkg->destination->name) }}" onclick="openDrawer({{ $pkg->id }})" tabindex="0" role="button"
                   aria-label="View {{ $pkg->title }} package details"
                   onkeydown="if(event.key==='Enter'||event.key===' ') openDrawer({{ $pkg->id }})">
-                  <div class="dest-card-img" style="background-image: url('{{ $pkg->images->first()?->image_path ?? 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=700&q=80' }}')"></div>
+                  <div class="dest-card-img" style="background-image: url('{{ $pkg->hero_image_url }}')"></div>
                   <div class="pkg-tour-type-pill">{{ ucfirst($pkg->tour_type) }}</div>
                   <div class="dest-card-overlay"></div>
                   <div class="dest-card-content">
@@ -514,7 +514,7 @@
                     <div class="dest-card-meta">
                       <div class="dest-meta-row">
                         <span class="dest-meta-item"><i class="fa-regular fa-clock"></i> {{ $pkg->duration_nights }}N/{{ $pkg->duration_nights + 1 }}D</span>
-                        <span class="dest-meta-item"><i class="fa-solid fa-location-dot"></i> {{ $pkg->departure_from ?? 'Delhi' }} - {{ $pkg->destination->name }}</span>
+                        <span class="dest-meta-item"><i class="fa-solid fa-location-dot"></i> {{ !empty($pkg->departure_from) ? (is_array($pkg->departure_from) ? implode(', ', $pkg->departure_from) : $pkg->departure_from) : 'Delhi' }} - {{ $pkg->destination->name }}</span>
                       </div>
                       <div class="dest-meta-row">
                         @if($pkg->tour_type == 'custom')
@@ -621,7 +621,7 @@ foreach($packages as $p) {
         'price'     => $p->price_from,
         'short_desc'=> $p->short_desc ?? '',
         'country'   => $p->destination->name,
-        'image'     => $p->images->first()?->image_path ?? 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=700&q=80',
+        'image'     => $p->hero_image_url,
         'inclusions'=> $p->inclusions->map(fn($i) => $i->label ?? $i->name ?? $i->title)->filter()->values()->toArray(),
         'detailUrl' => route('package.details', ['id' => $p->id]),
     ];

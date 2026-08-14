@@ -19,7 +19,10 @@ class FrontendController extends Controller
 
     public function hotels()
     {
-        $hotels = Hotel::with(['destination', 'amenities', 'images'])->where('is_active', true)->get();
+        $hotels = Hotel::with(['destination', 'amenities', 'images'])
+            ->where('is_active', true)
+            ->latest()
+            ->get();
 
         return view('pages.hotels', compact('hotels'));
     }

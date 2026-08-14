@@ -5,7 +5,6 @@ namespace App\Filament\Resources\Destinations\Schemas;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use Filament\Forms\Set;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Illuminate\Support\Str;
@@ -28,13 +27,14 @@ class DestinationForm
                                 ->helperText('E.g. Goa, Maldives, Kerala')
                                 ->required()
                                 ->live(onBlur: true)
-                                ->afterStateUpdated(fn (Set $set, ?string $state) => $set('slug', Str::slug($state)))
+                                ->afterStateUpdated(fn ($set, ?string $state) => $set('slug', Str::slug($state)))
                                 ->columnSpan(2),
 
                             TextInput::make('slug')
                                 ->label('URL Slug')
                                 ->helperText('This forms the web address. Auto-generated from the name above.')
                                 ->required()
+                                ->unique(ignoreRecord: true)
                                 ->columnSpan(2),
 
                             TextInput::make('country')
@@ -63,15 +63,15 @@ class DestinationForm
                     ->schema([
                         Select::make('for')
                             ->label('Used For')
-                            ->helperText('Select which section this destination belongs to. You can add the same place again under a different section if needed.')
+                            ->helperText('Select which sections this destination belongs to.')
                             ->options([
                                 'hotel'   => '🏨  Hotels',
                                 'cruise'  => '🚢  Cruises',
                                 'package' => '📦  Packages',
                             ])
-                            ->default('hotel')
-                            ->required()
-                            ->native(false),
+                            ->multiple()
+                            ->default(['hotel'])
+                            ->required(),
                     ]),
 
                 Section::make('Visibility & Coordinates')

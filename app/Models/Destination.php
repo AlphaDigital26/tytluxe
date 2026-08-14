@@ -12,13 +12,17 @@ class Destination extends Model
 
     protected $guarded = [];
 
+    protected $casts = [
+        'for' => 'array',
+    ];
+
     // ── Relationships ──────────────────────────────────────────────────────────
     public function hotels()   { return $this->hasMany(Hotel::class); }
     public function cruises()  { return $this->hasMany(Cruise::class); }
     public function packages() { return $this->hasMany(Package::class); }
 
     // ── Scopes ─────────────────────────────────────────────────────────────────
-    public function scopeForHotels($query)   { return $query->where('for', 'hotel'); }
-    public function scopeForCruises($query)  { return $query->where('for', 'cruise'); }
-    public function scopeForPackages($query) { return $query->where('for', 'package'); }
+    public function scopeForHotels($query)   { return $query->whereJsonContains('for', 'hotel'); }
+    public function scopeForCruises($query)  { return $query->whereJsonContains('for', 'cruise'); }
+    public function scopeForPackages($query) { return $query->whereJsonContains('for', 'package'); }
 }

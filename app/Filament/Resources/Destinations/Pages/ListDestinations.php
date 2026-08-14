@@ -25,19 +25,19 @@ class ListDestinations extends ListRecords
     {
         return [
             'hotel' => Tab::make('🏨  Hotels')
-                ->badge(Destination::where('for', 'hotel')->count())
+                ->badge(Destination::whereJsonContains('for', 'hotel')->count())
                 ->badgeColor('info')
-                ->modifyQueryUsing(fn (Builder $query) => $query->where('for', 'hotel')),
+                ->modifyQueryUsing(fn (Builder $query) => $query->whereJsonContains('for', 'hotel')),
 
             'cruise' => Tab::make('🚢  Cruises')
-                ->badge(Destination::where('for', 'cruise')->count())
+                ->badge(Destination::whereJsonContains('for', 'cruise')->count())
                 ->badgeColor('success')
-                ->modifyQueryUsing(fn (Builder $query) => $query->where('for', 'cruise')),
+                ->modifyQueryUsing(fn (Builder $query) => $query->whereJsonContains('for', 'cruise')),
 
             'package' => Tab::make('📦  Packages')
-                ->badge(Destination::where('for', 'package')->count())
+                ->badge(Destination::whereJsonContains('for', 'package')->count())
                 ->badgeColor('warning')
-                ->modifyQueryUsing(fn (Builder $query) => $query->where('for', 'package')),
+                ->modifyQueryUsing(fn (Builder $query) => $query->whereJsonContains('for', 'package')),
         ];
     }
 }

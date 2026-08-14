@@ -16,6 +16,9 @@ class PackageImage extends Model
 
     public function getImagePathAttribute()
     {
-        return $this->path;
+        if (\Illuminate\Support\Str::startsWith($this->path, 'http')) {
+            return $this->path;
+        }
+        return \Illuminate\Support\Facades\Storage::disk('public')->url($this->path);
     }
 }

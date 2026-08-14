@@ -149,15 +149,15 @@
 /* Wishlist heart */
 .htl-heart {
   position: absolute; top: 12px; right: 12px; z-index: 2;
-  width: 34px; height: 34px; border-radius: 50%;
-  background: rgba(0,0,0,0.5); backdrop-filter: blur(6px);
+  width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(0,0,0,0.4); backdrop-filter: blur(8px);
   display: flex; align-items: center; justify-content: center;
-  cursor: pointer; border: 1px solid rgba(255,255,255,0.15);
-  transition: all 0.25s ease; color: rgba(255,255,255,0.7);
-  font-size: 14px;
+  cursor: pointer; border: 1px solid rgba(255,255,255,0.2);
+  transition: all 0.25s ease; color: #fff;
 }
-.htl-heart:hover { background: rgba(201,168,76,0.25); border-color: var(--gold); color: var(--gold); }
-.htl-heart.active { background: rgba(220,38,38,0.25); border-color: #ef4444; color: #ef4444; }
+.htl-heart:hover { background: rgba(201,168,76,0.25); border-color: var(--gold); color: var(--gold); transform: scale(1.05); }
+.htl-heart.active { background: var(--gold); border-color: var(--gold); color: var(--dark); }
+.htl-heart.active svg { fill: currentColor; }
 
 /* Card body */
 .htl-card-body {
@@ -490,7 +490,9 @@
           @if($imageCount > 1)
           <span class="htl-img-counter">1 / {{ $imageCount }}</span>
           @endif
-          <button class="htl-heart" aria-label="Save to wishlist" onclick="event.preventDefault(); this.classList.toggle('active');">♥</button>
+          <button class="htl-heart" aria-label="Save to wishlist" onclick="event.preventDefault(); this.classList.toggle('active');">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+          </button>
         </div>
 
         <!-- Body -->
@@ -509,7 +511,6 @@
           <!-- Feature bullets -->
           <div class="htl-card-features">
             <span class="htl-feature-item">Breakfast Included</span>
-            <span class="htl-feature-item green">Free Cancellation before {{ $cancelDate }}</span>
           </div>
 
           <!-- Amenity tags -->
