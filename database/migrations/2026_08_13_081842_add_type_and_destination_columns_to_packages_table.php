@@ -12,11 +12,16 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('packages', function (Blueprint $table) {
-            $table->string('region_type')->nullable()->after('description');
-            $table->string('tour_type')->nullable()->after('region_type');
-            $table->unsignedBigInteger('destination_id')->nullable()->after('tour_type');
-
-            $table->foreign('destination_id')->references('id')->on('destinations')->nullOnDelete();
+            if (!Schema::hasColumn('packages', 'region_type')) {
+                $table->string('region_type')->nullable()->after('description');
+            }
+            if (!Schema::hasColumn('packages', 'tour_type')) {
+                $table->string('tour_type')->nullable()->after('region_type');
+            }
+            if (!Schema::hasColumn('packages', 'destination_id')) {
+                $table->unsignedBigInteger('destination_id')->nullable()->after('tour_type');
+                $table->foreign('destination_id')->references('id')->on('destinations')->nullOnDelete();
+            }
         });
     }
 

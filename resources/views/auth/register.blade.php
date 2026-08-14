@@ -113,6 +113,7 @@
         <div class="auth-bg-overlay"></div>
 
         <div class="auth-image-content" style="position: relative; z-index: 10; padding: 40px; text-align: center;">
+            <img src="{{ asset('assets/images/tyt-logo.png') }}" alt="TYT Luxe" style="max-width: 150px; margin-bottom: 20px; display: inline-block;">
             <h2>Elevate Your Journey.</h2>
             <p>Experience world-class flights, luxury cruises, and exclusive handpicked hotels tailored for you.</p>
         </div>
@@ -123,7 +124,6 @@
         <a href="{{ url('/') }}" class="auth-back-btn"><i class="fa-solid fa-arrow-left"></i> Back to Home</a>
         
         <div class="auth-form-container">
-            <img src="{{ asset('assets/images/tyt-logo.png') }}" alt="TYT Luxe" class="auth-logo-center">
             
             <h2>Join the Elite</h2>
             <p class="auth-modal-subtitle">Create your account</p>
