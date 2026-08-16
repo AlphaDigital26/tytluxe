@@ -16,8 +16,20 @@ class ProfileController extends Controller
      */
     public function history(Request $request): View
     {
+        $bookings = $request->user()->bookings()->with(['hotel.destination', 'hotel.images', 'package'])->orderBy('check_in', 'desc')->get();
+        
+        $upcomingBookings = $bookings->filter(function ($b) {
+            return !$b->check_in || \Carbon\Carbon::parse($b->check_in)->isFuture() || \Carbon\Carbon::parse($b->check_in)->isToday();
+        });
+
+        $pastBookings = $bookings->filter(function ($b) {
+            return $b->check_in && \Carbon\Carbon::parse($b->check_in)->isPast() && !\Carbon\Carbon::parse($b->check_in)->isToday();
+        });
+
         return view('profile.history', [
             'user' => $request->user(),
+            'upcomingBookings' => $upcomingBookings,
+            'pastBookings' => $pastBookings,
         ]);
     }
 

@@ -12,5 +12,11 @@ class Review extends Model
 
     protected $guarded = [];
 
+    protected $casts = [
+        'images' => 'array',
+        'is_published' => 'boolean',
+        'is_featured' => 'boolean',
+    ];
+
     public function user() { return $this->belongsTo(User::class); }
 }

@@ -17,4 +17,5 @@ class Booking extends Model
     public function travelers() { return $this->hasMany(BookingTraveler::class); }
     public function payments() { return $this->hasMany(Payment::class); }
     public function package() { return $this->belongsTo(Package::class); }
+    public function hotel() { return $this->belongsTo(Hotel::class); }
 }

@@ -70,6 +70,16 @@
             background: radial-gradient(circle at center, rgba(10,10,10,0.5) 0%, rgba(10,10,10,0.95) 100%);
             z-index: 2;
         }
+
+        .auth-terms-link {
+            color: #111;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+        
+        .auth-terms-link:hover {
+            color: #007bff;
+        }
     </style>
 </head>
 <body>
@@ -113,6 +123,7 @@
         <div class="auth-bg-overlay"></div>
 
         <div class="auth-image-content" style="position: relative; z-index: 10; padding: 40px; text-align: center;">
+            <img src="{{ asset('assets/images/tyt-logo.png') }}" alt="TYT Luxe" style="max-width: 150px; margin-bottom: 20px; display: inline-block;">
             <h2>Elevate Your Journey.</h2>
             <p>Experience world-class flights, luxury cruises, and exclusive handpicked hotels tailored for you.</p>
         </div>
@@ -123,9 +134,8 @@
         <a href="{{ url('/') }}" class="auth-back-btn"><i class="fa-solid fa-arrow-left"></i> Back to Home</a>
         
         <div class="auth-form-container">
-            <img src="{{ asset('assets/images/tyt-logo.png') }}" alt="TYT Luxe" class="auth-logo-center">
             
-            <h2>Join the Elite</h2>
+            <h2>Travel With Us</h2>
             <p class="auth-modal-subtitle">Create your account</p>
 
             <form method="POST" action="{{ route('register') }}">
@@ -169,9 +179,15 @@
                     </div>
                 </div>
 
+                <div class="auth-form-group-header" style="margin-bottom: 15px;">
+                    <label class="terms-label" style="text-transform: none; font-weight: normal; font-size: 13px; color: #666;">
+                        <input type="checkbox" name="terms" required style="width: auto;"> I agree to <a href="{{ url('/terms-and-conditions') }}" target="_blank" class="auth-terms-link">Terms & Conditions</a> and <a href="{{ url('/privacy-policy') }}" target="_blank" class="auth-terms-link">Privacy Policy</a> <span style="color: red;">*</span>
+                    </label>
+                </div>
+
                 <div class="auth-form-group-header" style="margin-bottom: 25px;">
                     <label class="terms-label" style="text-transform: none; font-weight: normal; font-size: 13px; color: #666;">
-                        <input type="checkbox" name="terms" required style="width: auto;"> I agree to the <a href="#" style="color:#111;">Terms</a> & <a href="#" style="color:#111;">Privacy Policy</a>.
+                        <input type="checkbox" name="subscribe_newsletter" style="width: auto;"> Subscribe to our Newsletter
                     </label>
                 </div>
 

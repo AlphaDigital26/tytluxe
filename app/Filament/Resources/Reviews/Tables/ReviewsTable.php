@@ -29,10 +29,14 @@ class ReviewsTable
                     ->searchable(),
                 TextColumn::make('avatar_path')
                     ->searchable(),
+                TextColumn::make('title')
+                    ->searchable(),
                 TextColumn::make('rating')
                     ->numeric()
                     ->sortable(),
                 IconColumn::make('is_published')
+                    ->boolean(),
+                IconColumn::make('is_featured')
                     ->boolean(),
                 TextColumn::make('created_at')
                     ->dateTime()

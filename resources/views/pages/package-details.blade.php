@@ -181,7 +181,7 @@
 .pd-exc-list li i { color: var(--red); font-size: 14px; margin-top: 2px; flex-shrink: 0; }
 
 /* ===== SIDEBAR ===== */
-.pd-sidebar-wrap { position: sticky; top: 80px; display: flex; flex-direction: column; gap: 24px; }
+.pd-sidebar-wrap { display: flex; flex-direction: column; gap: 24px; }
 .pd-sidebar-card { background: var(--dark-3); border: 1px solid var(--white-10); border-radius: var(--radius); overflow: hidden; }
 .pd-price-card-top { background: linear-gradient(135deg, var(--dark-2) 0%, var(--dark-3) 100%); padding: 32px 28px 24px; border-bottom: 1px solid var(--white-10); }
 .pd-price-label { font-family: 'Jost', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold); margin-bottom: 8px; }
@@ -598,9 +598,15 @@
                 <i class="fa-brands fa-whatsapp"></i> WhatsApp Us
               </a>
               @if($package->itinerary_pdf)
-                <a href="{{ route('package.download', ['id' => $package->id]) }}" class="pd-btn-outline" target="_blank" download>
-                  <i class="fa-solid fa-download"></i> Download Itinerary
-                </a>
+                @auth
+                  <a href="{{ route('package.download', ['id' => $package->id]) }}" class="pd-btn-outline" target="_blank" download>
+                    <i class="fa-solid fa-download"></i> Download Itinerary
+                  </a>
+                @else
+                  <button type="button" onclick="document.getElementById('itineraryDownloadModal').style.display='flex'" class="pd-btn-outline">
+                    <i class="fa-solid fa-download"></i> Download Itinerary
+                  </button>
+                @endauth
               @endif
             </div>
           </div>
@@ -676,11 +682,25 @@
 </div>
 @endif
 
+@if($publishedReviews->count() > 0 || $hasBooked)
 {{-- ===== REVIEWS ===== --}}
 <div class="pd-page" style="padding: 80px 0; background: var(--dark-3);">
   <div class="pd-container">
     <div class="pd-section-label" style="text-align:center;margin-bottom:12px;">Experiences</div>
-    <h2 class="pd-section-title" style="text-align:center;margin-bottom:40px;">Traveller <em>Reviews</em></h2>
+    <h2 class="pd-section-title" style="text-align:center;margin-bottom:10px;">Traveller <em>Reviews</em></h2>
+
+    @if($publishedReviews->count() > 0)
+      @php
+        $avgRating = number_format($publishedReviews->avg('rating'), 1);
+      @endphp
+      <div style="text-align:center; margin-bottom:40px; color:var(--white-80); font-family:'Jost',sans-serif;">
+        <span style="font-size:2rem; font-weight:bold; color:var(--gold);">★ {{ $avgRating }}</span> / 5
+        <br>
+        Based on {{ $publishedReviews->count() }} verified reviews
+      </div>
+    @else
+      <div style="margin-bottom:40px;"></div>
+    @endif
 
     @if(session('success'))
       <div class="pd-alert pd-alert-success" style="max-width:700px;margin:0 auto 24px;">{{ session('success') }}</div>
@@ -692,60 +712,173 @@
     @if($hasBooked)
       <div class="pd-review-form" style="max-width:700px;margin:0 auto 40px;">
         <h3>Write a Review</h3>
-        <form action="{{ route('package.reviews.store', $package->id) }}" method="POST">
+        <form action="{{ route('package.reviews.store', $package->id) }}" method="POST" enctype="multipart/form-data">
           @csrf
+          
           <div class="pd-form-group">
-            <label class="pd-form-label">Your Rating</label>
-            <select name="rating" required class="pd-form-select">
-              <option value="5">★★★★★ Excellent</option>
-              <option value="4">★★★★☆ Very Good</option>
-              <option value="3">★★★☆☆ Average</option>
-              <option value="2">★★☆☆☆ Poor</option>
-              <option value="1">★☆☆☆☆ Terrible</option>
-            </select>
+            <label class="pd-form-label">Review Title (Optional)</label>
+            <input type="text" name="title" class="pd-form-input" placeholder="e.g. Unforgettable Experience!">
           </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+            <div class="pd-form-group">
+              <label class="pd-form-label">Overall Rating *</label>
+              <select name="rating" required class="pd-form-select">
+                <option value="5">★★★★★ Excellent</option>
+                <option value="4">★★★★☆ Very Good</option>
+                <option value="3">★★★☆☆ Average</option>
+                <option value="2">★★☆☆☆ Poor</option>
+                <option value="1">★☆☆☆☆ Terrible</option>
+              </select>
+            </div>
+            <div class="pd-form-group">
+              <label class="pd-form-label">Guide/Service (Optional)</label>
+              <select name="rating_guide" class="pd-form-select">
+                <option value="">-- Select --</option>
+                <option value="5">5 - Excellent</option>
+                <option value="4">4 - Good</option>
+                <option value="3">3 - Average</option>
+                <option value="2">2 - Poor</option>
+                <option value="1">1 - Terrible</option>
+              </select>
+            </div>
+            <div class="pd-form-group">
+              <label class="pd-form-label">Accommodation (Optional)</label>
+              <select name="rating_accommodation" class="pd-form-select">
+                <option value="">-- Select --</option>
+                <option value="5">5 - Excellent</option>
+                <option value="4">4 - Good</option>
+                <option value="3">3 - Average</option>
+                <option value="2">2 - Poor</option>
+                <option value="1">1 - Terrible</option>
+              </select>
+            </div>
+            <div class="pd-form-group">
+              <label class="pd-form-label">Itinerary (Optional)</label>
+              <select name="rating_itinerary" class="pd-form-select">
+                <option value="">-- Select --</option>
+                <option value="5">5 - Excellent</option>
+                <option value="4">4 - Good</option>
+                <option value="3">3 - Average</option>
+                <option value="2">2 - Poor</option>
+                <option value="1">1 - Terrible</option>
+              </select>
+            </div>
+          </div>
+
           <div class="pd-form-group">
-            <label class="pd-form-label">Your Review</label>
+            <label class="pd-form-label">Your Review *</label>
             <textarea name="body" rows="4" required class="pd-form-textarea" placeholder="Share your experience..."></textarea>
           </div>
+          
+          <div class="pd-form-group">
+            <label class="pd-form-label">Upload Photos (Optional, Max 2MB each)</label>
+            <input type="file" name="images[]" multiple accept="image/*" class="pd-form-input" style="padding: 10px; background: rgba(255,255,255,0.05); color: #fff;">
+          </div>
+
           <button type="submit" class="pd-btn" style="max-width:220px;">Submit Review</button>
         </form>
-      </div>
-    @elseif(auth()->check())
-      <div class="pd-alert-info" style="max-width:700px;margin:0 auto 40px;">
-        Only customers with a confirmed booking for this package can leave a review.
-      </div>
-    @else
-      <div class="pd-alert-info" style="max-width:700px;margin:0 auto 40px;">
-        <a href="{{ route('login') }}">Login</a> to write a review for this package.
       </div>
     @endif
 
     @if($publishedReviews->count() > 0)
       <div style="max-width:700px;margin:0 auto;">
-        @foreach($publishedReviews as $review)
-          <div class="pd-review-item">
-            <div class="pd-review-header">
-              <span class="pd-review-name">{{ $review->author_name }}</span>
-              <span class="pd-review-stars">
+        @foreach($publishedReviews->sortByDesc('is_featured') as $review)
+          <div class="pd-review-item" style="border: 1px solid var(--border-color); padding: 24px; border-radius: 8px; margin-bottom: 24px; background: rgba(255,255,255,0.02); position: relative;">
+            <div class="pd-review-header" style="margin-bottom: 12px;">
+              <span class="pd-review-name" style="font-size: 1.1rem; font-weight: 500;">{{ $review->author_name }}</span>
+              <span class="pd-review-stars" style="color: var(--gold);">
                 @for($i=1; $i<=5; $i++)
                   <i class="fa-{{ $i <= $review->rating ? 'solid' : 'regular' }} fa-star"></i>
                 @endfor
               </span>
             </div>
-            <div class="pd-review-body">{{ $review->body }}</div>
+            
+            @if($review->title)
+                <h4 style="color: #fff; margin-bottom: 10px; font-size: 1.2rem;">{{ $review->title }}</h4>
+            @endif
+
+            <div class="pd-review-body-container" style="margin-bottom: 15px;">
+                <div class="pd-review-text" style="color: var(--white-80); line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; transition: all 0.3s ease;">
+                    {{ $review->body }}
+                </div>
+                @if(strlen($review->body) > 150)
+                    <span onclick="toggleReviewText(this)" style="color: var(--gold); cursor: pointer; font-size: 0.9rem; font-weight: 500; display: inline-block; margin-top: 5px;">Read more</span>
+                @endif
+            </div>
+            
+            @if($review->images && is_array($review->images) && count($review->images) > 0)
+                <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                    @foreach($review->images as $img)
+                        <img src="{{ Storage::disk('public')->url($img) }}" alt="Review Photo" style="width: 120px; height: 90px; object-fit: cover; border-radius: 4px; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'" onclick="openReviewImageModal(this.src)">
+                    @endforeach
+                </div>
+            @endif
+
+            @if($review->admin_reply)
+                <div style="background: rgba(0,0,0,0.3); border-left: 3px solid var(--gold); padding: 15px; margin-top: 15px; border-radius: 4px;">
+                    <strong style="color: var(--gold); display: block; margin-bottom: 5px; font-size: 0.9rem;">Response from TYT Luxe</strong>
+                    <p style="color: var(--white-80); margin: 0; font-size: 0.95rem;">{{ $review->admin_reply }}</p>
+                </div>
+            @endif
           </div>
         @endforeach
       </div>
-    @else
-      <p style="text-align:center;color:var(--white-60);font-family:'Jost',sans-serif;">
-        No reviews yet. Be the first to share your experience after taking this package!
-      </p>
     @endif
   </div>
 </div>
+@endif
+
+{{-- Guest Download Modal --}}
+<div id="itineraryDownloadModal" style="display: none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); align-items: center; justify-content: center;">
+  <div style="background: var(--dark-3); padding: 40px; border-radius: 8px; max-width: 450px; width: 90%; border: 1px solid var(--gold); position: relative;">
+    <span onclick="document.getElementById('itineraryDownloadModal').style.display='none'" style="position: absolute; top: 15px; right: 25px; font-size: 28px; cursor: pointer; color: var(--gold);">&times;</span>
+    <h3 style="color: var(--gold); margin-bottom: 15px; font-family: 'Cinzel', serif; font-size: 1.5rem;">Download Itinerary</h3>
+    <p style="color: var(--white-80); margin-bottom: 25px; font-size: 0.95rem; line-height: 1.5;">Please enter your email address to download the detailed itinerary for this package.</p>
+    <form action="{{ route('package.download.guest', $package->id) }}" method="POST">
+      @csrf
+      <input type="email" name="email" required placeholder="Your Email Address" style="width: 100%; padding: 14px; margin-bottom: 20px; background: rgba(255,255,255,0.05); border: 1px solid var(--white-20); color: #fff; border-radius: 4px; font-family: 'Jost', sans-serif;">
+      <button type="submit" class="pd-btn" style="width: 100%; cursor: pointer;">Download Now</button>
+    </form>
+  </div>
+</div>
+
+{{-- Image Modal --}}
+<div id="reviewImageModal" style="display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.9); align-items: center; justify-content: center;">
+  <span onclick="closeReviewImageModal()" style="position: absolute; top: 20px; right: 35px; color: #f1f1f1; font-size: 40px; font-weight: bold; cursor: pointer;">&times;</span>
+  <img id="reviewModalImage" style="max-width: 90%; max-height: 90%; object-fit: contain; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
+</div>
 
 <script>
+function toggleReviewText(btn) {
+  const textDiv = btn.previousElementSibling;
+  if (textDiv.style.webkitLineClamp === 'unset') {
+    textDiv.style.webkitLineClamp = '2';
+    btn.innerText = 'Read more';
+  } else {
+    textDiv.style.webkitLineClamp = 'unset';
+    btn.innerText = 'Read less';
+  }
+}
+
+function openReviewImageModal(src) {
+  const modal = document.getElementById('reviewImageModal');
+  const modalImg = document.getElementById('reviewModalImage');
+  modal.style.display = "flex";
+  modalImg.src = src;
+}
+
+function closeReviewImageModal() {
+  document.getElementById('reviewImageModal').style.display = "none";
+}
+
+// Close modal when clicking outside the image
+document.getElementById('reviewImageModal').addEventListener('click', function(e) {
+  if (e.target === this) {
+    closeReviewImageModal();
+  }
+});
+
 // Active nav highlight on scroll
 const pdSections = document.querySelectorAll('[id]');
 const pdNavLinks = document.querySelectorAll('.pd-nav-link');

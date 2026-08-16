@@ -230,9 +230,24 @@ class FrontendController extends Controller
 
         return view('pages.blog', compact('categories', 'trendingPosts', 'posts', 'destinations'));
     }
-
     public function downloadItinerary($id)
     {
+        $package = \App\Models\Package::findOrFail($id);
+
+        if (!$package->itinerary_pdf || !Storage::disk('public')->exists($package->itinerary_pdf)) {
+            abort(404, 'Itinerary PDF not found.');
+        }
+
+        $filename = ($package->slug ?? 'package') . '-itinerary.pdf';
+        return Storage::disk('public')->download($package->itinerary_pdf, $filename);
+    }
+
+    public function guestDownloadItinerary(Request $request, $id)
+    {
+        $request->validate([
+            'email' => 'required|email'
+        ]);
+
         $package = \App\Models\Package::findOrFail($id);
 
         if (!$package->itinerary_pdf || !Storage::disk('public')->exists($package->itinerary_pdf)) {
@@ -249,7 +264,13 @@ class FrontendController extends Controller
 
         $request->validate([
             'rating' => 'required|integer|min:1|max:5',
+            'title' => 'nullable|string|max:255',
             'body'   => 'required|string|max:1000',
+            'rating_guide' => 'nullable|integer|min:1|max:5',
+            'rating_accommodation' => 'nullable|integer|min:1|max:5',
+            'rating_value' => 'nullable|integer|min:1|max:5',
+            'rating_itinerary' => 'nullable|integer|min:1|max:5',
+            'images.*' => 'nullable|image|max:2048', // up to 2MB per image
         ]);
 
         $hasBooked = \App\Models\Booking::where('user_id', auth()->id())
@@ -262,16 +283,29 @@ class FrontendController extends Controller
             return back()->with('error', 'You can only review packages you have booked and completed.');
         }
 
+        $imagePaths = [];
+        if ($request->hasFile('images')) {
+            foreach ($request->file('images') as $image) {
+                $imagePaths[] = $image->store('reviews', 'public');
+            }
+        }
+
         \App\Models\Review::create([
             'user_id'      => auth()->id(),
             'vertical'     => 'package',
             'reference_id' => $package->id,
             'author_name'  => auth()->user()->name,
+            'title'        => $request->title,
             'rating'       => $request->rating,
+            'rating_guide' => $request->rating_guide,
+            'rating_accommodation' => $request->rating_accommodation,
+            'rating_value' => $request->rating_value,
+            'rating_itinerary' => $request->rating_itinerary,
+            'images'       => $imagePaths,
             'body'         => $request->body,
-            'is_published' => false,
+            'is_published' => true,
         ]);
 
-        return back()->with('success', 'Your review has been submitted and is pending approval.');
+        return back()->with('success', 'Your review has been submitted successfully.');
     }
 }
