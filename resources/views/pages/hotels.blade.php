@@ -625,7 +625,7 @@
 
       <div class="htl-form-group">
         <label for="htlCheckin">Check-in Date</label>
-        <input type="date" id="htlCheckin" name="checkin" />
+        <input type="date" id="htlCheckin" name="checkin" onclick="this.showPicker()" />
       </div>
 
       <div class="htl-form-group">
@@ -652,15 +652,7 @@
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
         </button>
       </div>
-
     </form>
-
-    <div class="htl-form-success" id="htlFormSuccess">
-      <div class="htl-success-icon">✓</div>
-      <h3>Enquiry Received!</h3>
-      <p>Thank you for reaching out. Our travel expert will contact you within 2 hours with personalised hotel recommendations.</p>
-    </div>
-
   </div>
 </section>
 
@@ -751,28 +743,59 @@
   const success = document.getElementById('htlFormSuccess');
 
   if (form) {
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
+      const submitBtn = form.querySelector('button[type="submit"]');
+      const originalHtml = submitBtn.innerHTML;
       const name  = document.getElementById('htlName').value.trim();
       const phone = document.getElementById('htlPhone').value.trim();
 
       if (!name || !phone) {
-        alert('Please enter your name and phone number.');
+        showToast('Validation Error', 'Please enter your name and phone number.', 'error');
         return;
       }
 
+      submitBtn.innerHTML = 'Sending...';
+      submitBtn.disabled = true;
+
       const dest    = document.getElementById('htlDestination').value || 'Not specified';
-      const checkin = document.getElementById('htlCheckin').value || 'Flexible';
+      const checkin = document.getElementById('htlCheckin').value || '';
       const guests  = document.getElementById('htlGuests').value || 'Not specified';
       const email   = document.getElementById('htlEmail').value.trim();
       const message = document.getElementById('htlMessage').value.trim();
 
       const wa = `Hi TYT Luxe! I'd like to enquire about a hotel stay.\n\nName: ${name}\nPhone: ${phone}${email ? '\nEmail: ' + email : ''}\nDestination: ${dest}\nCheck-in: ${checkin}\nGuests: ${guests}${message ? '\nRequirements: ' + message : ''}`;
 
-      window.open('https://wa.me/919875073788?text=' + encodeURIComponent(wa), '_blank');
-
-      form.style.display = 'none';
-      success.classList.add('show');
+      try {
+          await fetch("{{ route('enquiries.store') }}", {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json',
+                  'X-CSRF-TOKEN': '{{ csrf_token() }}'
+              },
+              body: JSON.stringify({
+                  vertical: 'hotel',
+                  reference_id: 0,
+                  name: name,
+                  phone: phone,
+                  email: email,
+                  checkin: checkin,
+                  message: `Destination: ${dest}\nGuests: ${guests}\nRequirements: ${message}`
+              })
+          });
+          
+          window.open('https://wa.me/919875073788?text=' + encodeURIComponent(wa), '_blank');
+    
+          form.reset();
+          submitBtn.innerHTML = originalHtml;
+          submitBtn.disabled = false;
+          showToast('Enquiry Sent', 'Thank you! Our travel expert will contact you within 2 hours with personalised hotel recommendations.');
+      } catch (error) {
+          console.error(error);
+          submitBtn.innerHTML = originalHtml;
+          submitBtn.disabled = false;
+          showToast('Error', 'Something went wrong. Please try again.', 'error');
+      }
     });
   }
 

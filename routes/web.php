@@ -14,6 +14,7 @@ Route::get('/cruises', [FrontendController::class, 'cruises'])->name('cruises');
 Route::get('/packages', [FrontendController::class, 'packages'])->name('packages');
 Route::get('/packages/{id}', [FrontendController::class, 'packageDetails'])->name('package.details');
 Route::get('/offers', [FrontendController::class, 'offers'])->name('offers');
+Route::post('/enquiries', [FrontendController::class, 'storeEnquiry'])->name('enquiries.store');
 Route::view('/contact', 'pages.contact')->name('contact');
 
 Route::view('/terms-and-conditions', 'pages.terms')->name('terms');

@@ -334,26 +334,46 @@
       </div>
     </form>
 
-    <div class="success-msg" id="successMsg">
-      ✓ Thank you! Our travel expert will WhatsApp you shortly.
-    </div>
   </div>
-
 </div>
 
 @endsection
 
 @push('scripts')
 <script>
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     const btn = document.querySelector('.submit-btn');
+    const originalText = btn.textContent;
     btn.textContent = 'Sending...';
     btn.disabled = true;
-    setTimeout(() => {
-      document.getElementById('contactForm').style.display = 'none';
-      document.getElementById('successMsg').style.display = 'block';
-    }, 900);
+    
+    try {
+        await fetch("{{ route('enquiries.store') }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({
+                vertical: 'general',
+                reference_id: 0,
+                name: document.getElementById('fname').value,
+                phone: document.getElementById('phone').value,
+                email: document.getElementById('email').value,
+                message: 'Interest: ' + document.getElementById('interest').value + '\n\n' + document.getElementById('message').value
+            })
+        });
+        document.getElementById('contactForm').reset();
+        btn.textContent = originalText;
+        btn.disabled = false;
+        showToast('Enquiry Sent', 'Thank you! Our travel expert will WhatsApp you shortly.');
+    } catch (error) {
+        console.error(error);
+        btn.textContent = originalText;
+        btn.disabled = false;
+        showToast('Error', 'Something went wrong. Please try again.', 'error');
+    }
   }
 </script>
 @endpush
