@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\NewsletterSubscriber;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -41,6 +42,13 @@ class RegisteredUserController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
         ]);
+
+        if ($request->has('subscribe_newsletter')) {
+            NewsletterSubscriber::create([
+                'email' => $user->email,
+                'subscribed_at' => now(),
+            ]);
+        }
 
         event(new Registered($user));
 

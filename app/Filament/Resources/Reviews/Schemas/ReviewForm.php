@@ -36,14 +36,30 @@ class ReviewForm
                     ->default(null),
                 TextInput::make('avatar_path')
                     ->default(null),
+                TextInput::make('title')
+                    ->maxLength(255)
+                    ->default(null),
                 TextInput::make('rating')
                     ->numeric()
                     ->default(null),
+                TextInput::make('rating_guide')->numeric()->default(null),
+                TextInput::make('rating_accommodation')->numeric()->default(null),
+                TextInput::make('rating_value')->numeric()->default(null),
+                TextInput::make('rating_itinerary')->numeric()->default(null),
                 Textarea::make('body')
                     ->required()
                     ->columnSpanFull(),
+                \Filament\Forms\Components\FileUpload::make('images')
+                    ->multiple()
+                    ->image()
+                    ->directory('reviews')
+                    ->columnSpanFull(),
+                Textarea::make('admin_reply')
+                    ->columnSpanFull(),
                 Toggle::make('is_published')
                     ->required(),
+                Toggle::make('is_featured')
+                    ->default(false),
             ]);
     }
 }

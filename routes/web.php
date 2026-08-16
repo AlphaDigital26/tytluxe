@@ -39,5 +39,6 @@ Route::middleware('auth')->group(function () {
 });
 
 Route::get('/packages/{id}/download-itinerary', [FrontendController::class, 'downloadItinerary'])->name('package.download');
+Route::post('/packages/{id}/download-itinerary-guest', [FrontendController::class, 'guestDownloadItinerary'])->name('package.download.guest');
 
 require __DIR__.'/auth.php';
