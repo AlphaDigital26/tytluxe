@@ -340,7 +340,7 @@
       </div>
       <div class="tc-fg">
         <label>Travel Date</label>
-        <input type="date">
+        <input type="date" onclick="this.showPicker()">
       </div>
       <div class="tc-fg">
         <label>Duration</label>
@@ -427,12 +427,51 @@ function tcTab(btn, panel) {
   btn.classList.add('active');
   document.getElementById('tc-panel-' + panel).classList.add('active');
 }
-function tcSubmit() {
-  var req = document.querySelectorAll('.tc-form-wrap input[type="text"], .tc-form-wrap input[type="email"], .tc-form-wrap input[type="tel"]');
-  var ok = true;
-  req.forEach(function(i){ if(!i.value.trim()){i.style.borderColor='#c0392b';ok=false;}else{i.style.borderColor='';} });
-  if(ok) alert('Thank you! Our cruise specialist will WhatsApp you within 2 hours with the best options for your voyage.');
-  else alert('Please fill in your name, phone and email to continue.');
+async function tcSubmit() {
+  const req = document.querySelectorAll('.tc-form-wrap input[type="text"], .tc-form-wrap input[type="email"], .tc-form-wrap input[type="tel"]');
+  let ok = true;
+  req.forEach(function(i){ 
+      if(!i.value.trim()){i.style.borderColor='#c0392b';ok=false;}
+      else{i.style.borderColor='';} 
+  });
+  
+  if(!ok) {
+      showToast('Validation Error', 'Please fill in your name, phone and email to continue.', 'error');
+      return;
+  }
+
+  const inputs = document.querySelectorAll('.tc-form-wrap input, .tc-form-wrap textarea');
+  const btn = document.querySelector('.tc-submit-btn');
+  const originalText = btn.textContent;
+  btn.textContent = 'Sending...';
+  btn.disabled = true;
+  
+  try {
+      await fetch("{{ route('enquiries.store') }}", {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json',
+              'X-CSRF-TOKEN': '{{ csrf_token() }}'
+          },
+          body: JSON.stringify({
+              vertical: 'cruise',
+              reference_id: 0,
+              name: inputs[0].value,
+              phone: inputs[1].value,
+              email: inputs[2].value,
+              message: inputs[3].value
+          })
+      });
+      showToast('Enquiry Sent', 'Thank you! Our cruise specialist will WhatsApp you within 2 hours with the best options for your voyage.');
+      inputs.forEach(i => i.value = '');
+      btn.textContent = originalText;
+      btn.disabled = false;
+  } catch (error) {
+      console.error(error);
+      showToast('Error', 'Something went wrong. Please try again.', 'error');
+      btn.textContent = originalText;
+      btn.disabled = false;
+  }
 }
 </script>
 @endpush

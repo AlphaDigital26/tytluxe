@@ -4,7 +4,32 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,600&family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <style>
+/* ===== FLATPICKR THEME OVERRIDES ===== */
+.flatpickr-calendar { background: #1c1c1c !important; border: 1px solid rgba(201,168,76,0.3) !important; box-shadow: 0 10px 30px rgba(0,0,0,0.8) !important; border-radius: 12px !important; }
+.flatpickr-month { color: var(--gold) !important; fill: var(--gold) !important; }
+.flatpickr-current-month .flatpickr-monthDropdown-months { font-family: 'Jost', sans-serif !important; }
+.flatpickr-current-month input.cur-year { font-family: 'Jost', sans-serif !important; color: var(--gold) !important; }
+span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost', sans-serif !important; font-weight: 500 !important; }
+.flatpickr-day { color: #fff !important; font-family: 'Jost', sans-serif !important; border-radius: 6px !important; }
+.flatpickr-day.inRange { background: rgba(201,168,76,0.15) !important; border-color: rgba(201,168,76,0.15) !important; box-shadow: none !important; }
+.flatpickr-day.selected, .flatpickr-day.startRange, .flatpickr-day.endRange, .flatpickr-day.selected.inRange, .flatpickr-day.startRange.inRange, .flatpickr-day.endRange.inRange, .flatpickr-day.selected:focus, .flatpickr-day.startRange:focus, .flatpickr-day.endRange:focus, .flatpickr-day.selected:hover, .flatpickr-day.startRange:hover, .flatpickr-day.endRange:hover, .flatpickr-day.selected.prevMonthDay, .flatpickr-day.startRange.prevMonthDay, .flatpickr-day.endRange.prevMonthDay, .flatpickr-day.selected.nextMonthDay, .flatpickr-day.startRange.nextMonthDay, .flatpickr-day.endRange.nextMonthDay {
+    background: var(--gold) !important; color: var(--dark) !important; border-color: var(--gold) !important; font-weight: 600 !important;
+}
+.flatpickr-day:hover { background: rgba(255,255,255,0.1) !important; }
+.flatpickr-day.flatpickr-disabled, .flatpickr-day.flatpickr-disabled:hover { color: rgba(255,255,255,0.2) !important; }
+.flatpickr-months .flatpickr-prev-month, .flatpickr-months .flatpickr-next-month { fill: var(--gold) !important; color: var(--gold) !important; }
+.flatpickr-months .flatpickr-prev-month:hover svg, .flatpickr-months .flatpickr-next-month:hover svg { fill: var(--gold-light) !important; }
+
+/* Date input custom style to match theme */
+.hd-date-input {
+  width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); 
+  border-radius: 10px; padding: 13px 16px; color: #fff; cursor: pointer; 
+  font-family: 'Jost', sans-serif; font-size: 13.5px; font-weight: 300; outline: none;
+}
+.hd-date-input:focus { border-color: var(--gold); }
+
 /* ===== CORE VARIABLES ===== */
 :root {
   --gold: #c9a84c;
@@ -316,9 +341,75 @@ body { background: var(--dark); color: #fff; }
   transition: all var(--tr);
 }
 .hd-book-wa:hover { background: #20c45b; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(37,211,102,0.3); }
-.hd-book-note {
-  text-align: center; margin-top: 14px;
-  font-family: 'Jost', sans-serif; font-size: 11px; color: rgba(255,255,255,0.25);
+.hd-book-trust {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 12px;
+  margin-top: 18px; padding-top: 16px; border-top: 1px dashed rgba(255,255,255,0.08);
+}
+.hd-trust-item {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: 'Jost', sans-serif; font-size: 11px; color: var(--white-60);
+}
+.hd-trust-item svg { color: var(--gold); }
+
+/* ===== GUEST SELECTOR POPOVER ===== */
+.hd-guest-btn {
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px; padding: 13px 16px; color: #fff; cursor: pointer;
+  font-family: 'Jost', sans-serif; font-size: 13.5px; font-weight: 300;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.hd-guest-btn::after { content: '▼'; font-size: 10px; color: var(--gold); }
+.hd-guest-popover {
+  position: absolute; top: calc(100% + 5px); left: 0; width: 100%; z-index: 100;
+  background: #1c1c1c; border: 1px solid rgba(201,168,76,0.3); border-radius: 12px;
+  padding: 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+  max-height: 350px; overflow-y: auto; display: none;
+  -ms-overflow-style: none; scrollbar-width: none;
+}
+.hd-guest-popover::-webkit-scrollbar { display: none; }
+.hd-guest-popover.open { display: block; }
+.hd-guest-room { border-bottom: 1px dashed rgba(255,255,255,0.1); padding-bottom: 12px; margin-bottom: 12px; }
+.hd-guest-room:last-of-type { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
+.hd-guest-room-header {
+  display: flex; justify-content: space-between; align-items: center;
+  font-family: 'Cormorant Garamond', serif; font-size: 1.15rem; color: var(--gold);
+  margin-bottom: 10px; font-weight: 500;
+}
+.hd-guest-room-del {
+  background: transparent; border: none; color: var(--white-60); cursor: pointer; font-size: 14px; padding: 0 5px;
+}
+.hd-guest-room-del:hover { color: #fff; }
+.hd-guest-row {
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;
+}
+.hd-guest-label { font-family: 'Jost', sans-serif; font-size: 12.5px; color: #fff; display: flex; flex-direction: column; }
+.hd-guest-label small { font-size: 10.5px; color: var(--white-60); }
+.hd-guest-ctrl { display: flex; align-items: center; gap: 12px; }
+.hd-guest-ctrl button {
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+  color: #fff; width: 28px; height: 28px; border-radius: 6px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; font-size: 14px;
+}
+.hd-guest-ctrl button:hover { border-color: var(--gold); color: var(--gold); }
+.hd-guest-ctrl span { color: #fff; font-family: 'Jost', sans-serif; font-size: 13.5px; width: 14px; text-align: center; }
+.hd-guest-child-ages { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.hd-guest-child-ages select {
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+  color: #fff; padding: 8px 10px; border-radius: 8px; font-family: 'Jost', sans-serif;
+  font-size: 12px; outline: none;
+}
+.hd-guest-actions {
+  display: flex; justify-content: space-between; align-items: center;
+  border-top: 1px solid rgba(255,255,255,0.1); margin-top: 16px; padding-top: 16px;
+}
+.hd-guest-add-btn {
+  background: transparent; border: none; color: var(--gold); font-family: 'Jost', sans-serif;
+  font-size: 12px; font-weight: 600; text-transform: uppercase; cursor: pointer; letter-spacing: 0.1em; padding: 0;
+}
+.hd-guest-done-btn {
+  background: var(--gold); color: var(--dark); border: none; border-radius: 100px;
+  font-family: 'Jost', sans-serif; font-size: 12px; font-weight: 600; text-transform: uppercase;
+  padding: 8px 16px; cursor: pointer; letter-spacing: 0.1em;
 }
 
 /* ===== ENQUIRY MODAL FORM ===== */
@@ -744,7 +835,11 @@ body { background: var(--dark); color: #fff; }
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
         Chat on WhatsApp
       </a>
-      <p class="hd-book-note">No booking fees · Instant confirmation · Expert support</p>
+      <div class="hd-book-trust">
+        <div class="hd-trust-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg> No booking fees</div>
+        <div class="hd-trust-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg> Instant confirmation</div>
+        <div class="hd-trust-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg> Expert support</div>
+      </div>
 
     </div>
   </div>
@@ -762,6 +857,9 @@ body { background: var(--dark); color: #fff; }
     <p class="hd-modal-sub">Fill in your details and our travel expert will respond within 2 hours.</p>
 
     <form class="hd-mform" id="hdEnquiryForm" novalidate>
+      @csrf
+      <input type="hidden" name="vertical" value="hotel" />
+      <input type="hidden" name="reference_id" value="{{ $hotel->id }}" />
       <input type="hidden" name="hotel_name" value="{{ $hotel->title }}" />
       <input type="hidden" name="hotel_destination" value="{{ $destination }}" />
 
@@ -780,26 +878,35 @@ body { background: var(--dark); color: #fff; }
         <input type="email" id="hdEmail" name="email" placeholder="you@email.com" />
       </div>
 
-      <div class="hd-mform-group">
-        <label for="hdGuests">No. of Guests</label>
-        <select id="hdGuests" name="guests">
-          <option value="" disabled selected>Select guests</option>
-          <option>1 Guest</option>
-          <option>2 Guests</option>
-          <option>3 Guests</option>
-          <option>4 Guests</option>
-          <option>5+ Guests</option>
-        </select>
+      <div class="hd-mform-group full" style="position:relative;" id="hdGuestWidget">
+        <label>Persons & Rooms *</label>
+        <input type="hidden" id="hdGuestData" name="guest_data" value="1 Room, 2 Adults, 0 Children" />
+        <div class="hd-guest-btn" id="hdGuestBtn">1 Room, 2 Adults</div>
+        
+        <div class="hd-guest-popover" id="hdGuestPopover">
+          <div id="hdGuestList"></div>
+          <div class="hd-guest-actions">
+            <button type="button" class="hd-guest-add-btn" id="hdGuestAddBtn">+ ADD ROOM</button>
+            <button type="button" class="hd-guest-done-btn" id="hdGuestDoneBtn">DONE</button>
+          </div>
+        </div>
       </div>
 
       <div class="hd-mform-group">
-        <label for="hdCheckin">Check-in Date</label>
-        <input type="date" id="hdCheckin" name="checkin" />
+        <label>Check In *</label>
+        <div style="position:relative;">
+            <input type="text" id="hdCheckin" class="hd-date-input" placeholder="Check in date" readonly required />
+            <input type="text" id="hdDates" style="position:absolute; width:0; height:0; opacity:0; pointer-events:none; padding:0; border:none; top:0; left:0;" tabindex="-1" />
+            <svg style="position:absolute; right:16px; top:13px; pointer-events:none; color:var(--gold);" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+        </div>
       </div>
 
       <div class="hd-mform-group">
-        <label for="hdCheckout">Check-out Date</label>
-        <input type="date" id="hdCheckout" name="checkout" />
+        <label>Check Out *</label>
+        <div style="position:relative;">
+            <input type="text" id="hdCheckout" class="hd-date-input" placeholder="Check out date" readonly required />
+            <svg style="position:absolute; right:16px; top:13px; pointer-events:none; color:var(--gold);" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+        </div>
       </div>
 
       <div class="hd-mform-group full">
@@ -917,35 +1024,245 @@ body { background: var(--dark); color: #fff; }
     } 
   });
 
-  /* ===== MODAL FORM SUBMIT → WHATSAPP ===== */
+  /* ===== MODAL FORM SUBMIT → WHATSAPP & DB ===== */
   if (mForm) {
-    mForm.addEventListener('submit', (e) => {
+    mForm.addEventListener('submit', async (e) => {
       e.preventDefault();
+      const submitBtn = mForm.querySelector('button[type="submit"]');
+      const originalBtnText = submitBtn.innerHTML;
+
       const name    = document.getElementById('hdName').value.trim();
       const phone   = document.getElementById('hdPhone').value.trim();
 
       if (!name || !phone) {
-        alert('Please enter your name and phone number.');
+        showToast('Validation Error', 'Please enter your name and phone number.', 'error');
         return;
       }
 
+      submitBtn.innerHTML = 'Sending...';
+      submitBtn.disabled = true;
+
       const email   = document.getElementById('hdEmail').value.trim();
-      const guests  = document.getElementById('hdGuests').value || 'Not specified';
-      const checkin = document.getElementById('hdCheckin').value || 'Flexible';
-      const checkout= document.getElementById('hdCheckout').value || 'Flexible';
+      const checkin = document.getElementById('hdCheckin').value || '';
+      const checkout= document.getElementById('hdCheckout').value || '';
       const message = document.getElementById('hdMessage').value.trim();
       const hotel   = mForm.querySelector('[name="hotel_name"]').value;
       const dest    = mForm.querySelector('[name="hotel_destination"]').value;
+      const vertical = mForm.querySelector('[name="vertical"]').value;
+      const refId    = mForm.querySelector('[name="reference_id"]').value;
+      const guestData = document.getElementById('hdGuestData')?.value || '';
+      
+      let roomsStr = window.hdRoomsData ? window.hdRoomsData.map((r, i) => {
+        let str = `Room ${i+1}: ${r.adults} Adult${r.adults > 1 ? 's' : ''}`;
+        if (r.children.length > 0) {
+           let ages = r.children.map(a => a ? `${a} yrs` : 'Unknown').join(', ');
+           str += `, ${r.children.length} Child${r.children.length > 1 ? 'ren' : ''} (${ages})`;
+        }
+        return str;
+      }).join('\n') : (guestData || 'Not specified');
 
-      const wa = `Hi TYT Luxe! I'd like to enquire about a stay.\n\nHotel: ${hotel} (${dest})\nName: ${name}\nPhone: ${phone}${email ? '\nEmail: ' + email : ''}\nGuests: ${guests}\nCheck-in: ${checkin}\nCheck-out: ${checkout}${message ? '\nRequirements: ' + message : ''}`;
+      // 1. Save to DB via AJAX
+      try {
+          const csrfToken = mForm.querySelector('input[name="_token"]').value;
+          const formData = new FormData();
+          formData.append('_token', csrfToken);
+          formData.append('vertical', vertical);
+          formData.append('reference_id', refId);
+          formData.append('name', name);
+          formData.append('phone', phone);
+          formData.append('email', email);
+          formData.append('checkin', checkin);
+          formData.append('checkout', checkout);
+          formData.append('message', message);
+          if (window.hdRoomsData) formData.append('guest_data', JSON.stringify(window.hdRoomsData));
+          else formData.append('guest_data', guestData);
+          
+          await fetch("{{ route('enquiries.store') }}", {
+              method: 'POST',
+              body: formData
+          });
+      } catch (err) {
+          console.error('Failed to save enquiry to db:', err);
+      }
+
+      // 2. Open WhatsApp
+      const wa = `Hi TYT Luxe! I'd like to enquire about a stay.\n\nHotel: ${hotel} (${dest})\nName: ${name}\nPhone: ${phone}${email ? '\nEmail: ' + email : ''}\nCheck-in: ${checkin || 'Flexible'}\nCheck-out: ${checkout || 'Flexible'}\n\nGuests & Rooms:\n${roomsStr}${message ? '\n\nRequirements: ' + message : ''}`;
 
       window.open('https://wa.me/919875073788?text=' + encodeURIComponent(wa), '_blank');
 
-      mForm.style.display = 'none';
-      mSuccess.classList.add('show');
+      mForm.reset();
+      closeModal();
+      showToast('Enquiry Sent', 'Thank you! Our travel expert will contact you within 2 hours with personalised hotel recommendations.');
+
+      submitBtn.innerHTML = originalBtnText;
+      submitBtn.disabled = false;
     });
   }
 
+  /* ===== DYNAMIC GUEST SELECTOR ===== */
+  const guestBtn = document.getElementById('hdGuestBtn');
+  const guestPopover = document.getElementById('hdGuestPopover');
+  const guestList = document.getElementById('hdGuestList');
+  const guestAddBtn = document.getElementById('hdGuestAddBtn');
+  const guestDoneBtn = document.getElementById('hdGuestDoneBtn');
+  const guestDataInput = document.getElementById('hdGuestData');
+  
+  window.hdRoomsData = [ { adults: 2, children: [] } ];
+  
+  function renderGuestList() {
+    if(!guestList) return;
+    guestList.innerHTML = '';
+    
+    window.hdRoomsData.forEach((room, rIndex) => {
+      const roomDiv = document.createElement('div');
+      roomDiv.className = 'hd-guest-room';
+      
+      let childHtml = '';
+      if(room.children.length > 0) {
+        let selects = '';
+        room.children.forEach((age, cIndex) => {
+          let options = '<option value="" disabled selected>Age</option>';
+          options += `<option value="<1" ${age === '<1' ? 'selected' : ''}>Under 1</option>`;
+          for(let i=1; i<=12; i++) {
+             options += `<option value="${i}" ${age == i ? 'selected' : ''}>${i} yrs</option>`;
+          }
+          selects += `<select onchange="window.updateChildAge(${rIndex}, ${cIndex}, this.value)">${options}</select>`;
+        });
+        childHtml = `
+          <div class="hd-guest-label" style="margin-top:10px;">Age of Child</div>
+          <div class="hd-guest-child-ages">${selects}</div>
+        `;
+      }
+
+      roomDiv.innerHTML = `
+        <div class="hd-guest-room-header">
+          <span>Room ${rIndex + 1}</span>
+          ${window.hdRoomsData.length > 1 ? `<button type="button" class="hd-guest-room-del" onclick="window.removeRoom(${rIndex})">✕</button>` : ''}
+        </div>
+        <div class="hd-guest-row">
+          <div class="hd-guest-label">Adults <small>12+ Years</small></div>
+          <div class="hd-guest-ctrl">
+            <button type="button" onclick="window.updateAdults(${rIndex}, -1)">-</button>
+            <span>${room.adults}</span>
+            <button type="button" onclick="window.updateAdults(${rIndex}, 1)">+</button>
+          </div>
+        </div>
+        <div class="hd-guest-row" style="margin-bottom:0;">
+          <div class="hd-guest-label">Children <small>0 - 12 Years</small></div>
+          <div class="hd-guest-ctrl">
+            <button type="button" onclick="window.updateChildren(${rIndex}, -1)">-</button>
+            <span>${room.children.length}</span>
+            <button type="button" onclick="window.updateChildren(${rIndex}, 1)">+</button>
+          </div>
+        </div>
+        ${childHtml}
+      `;
+      guestList.appendChild(roomDiv);
+    });
+    
+    updateGuestSummary();
+  }
+  
+  function updateGuestSummary() {
+    let totalAdults = 0;
+    let totalChildren = 0;
+    window.hdRoomsData.forEach(r => {
+      totalAdults += r.adults;
+      totalChildren += r.children.length;
+    });
+    const txt = `${window.hdRoomsData.length} Room${window.hdRoomsData.length > 1 ? 's' : ''}, ${totalAdults} Adult${totalAdults > 1 ? 's' : ''}${totalChildren > 0 ? `, ${totalChildren} Child${totalChildren > 1 ? 'ren' : ''}` : ''}`;
+    if(guestBtn) guestBtn.textContent = txt;
+    if(guestDataInput) guestDataInput.value = txt;
+  }
+  
+  window.updateAdults = function(rIndex, delta) {
+    let newA = window.hdRoomsData[rIndex].adults + delta;
+    if(newA >= 1 && newA <= 6) {
+      window.hdRoomsData[rIndex].adults = newA;
+      renderGuestList();
+    }
+  }
+  
+  window.updateChildren = function(rIndex, delta) {
+    if(delta > 0 && window.hdRoomsData[rIndex].children.length < 4) {
+      window.hdRoomsData[rIndex].children.push('');
+      renderGuestList();
+    } else if(delta < 0 && window.hdRoomsData[rIndex].children.length > 0) {
+      window.hdRoomsData[rIndex].children.pop();
+      renderGuestList();
+    }
+  }
+  
+  window.updateChildAge = function(rIndex, cIndex, age) {
+    window.hdRoomsData[rIndex].children[cIndex] = age;
+  }
+  
+  window.removeRoom = function(rIndex) {
+    window.hdRoomsData.splice(rIndex, 1);
+    renderGuestList();
+  }
+  
+  if(guestAddBtn) {
+    guestAddBtn.addEventListener('click', () => {
+      if(window.hdRoomsData.length < 6) {
+        window.hdRoomsData.push({ adults: 1, children: [] });
+        renderGuestList();
+      }
+    });
+  }
+  
+  if(guestBtn) {
+    guestBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      guestPopover.classList.toggle('open');
+    });
+  }
+  
+  if(guestDoneBtn) {
+    guestDoneBtn.addEventListener('click', () => {
+      guestPopover.classList.remove('open');
+    });
+  }
+  
+  if(guestPopover) {
+    guestPopover.addEventListener('click', (e) => { e.stopPropagation(); });
+    document.addEventListener('click', () => { guestPopover.classList.remove('open'); });
+  }
+  
+  renderGuestList();
+
 })();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const dateInput = document.getElementById('hdDates');
+    const checkinInput = document.getElementById('hdCheckin');
+    const checkoutInput = document.getElementById('hdCheckout');
+    
+    if(dateInput && checkinInput && checkoutInput) {
+      const fp = flatpickr(dateInput, {
+        mode: "range",
+        minDate: "today",
+        showMonths: window.innerWidth > 768 ? 2 : 1,
+        positionElement: checkinInput,
+        onChange: function(selectedDates, dateStr, instance) {
+          if(selectedDates.length > 0) {
+            checkinInput.value = instance.formatDate(selectedDates[0], "d M Y");
+          } else {
+            checkinInput.value = "";
+          }
+          if(selectedDates.length === 2) {
+            checkoutInput.value = instance.formatDate(selectedDates[1], "d M Y");
+          } else {
+            checkoutInput.value = "";
+          }
+        }
+      });
+
+      checkinInput.addEventListener('click', () => fp.open());
+      checkoutInput.addEventListener('click', () => fp.open());
+    }
+  });
 </script>
 @endpush

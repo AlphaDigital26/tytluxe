@@ -308,4 +308,69 @@ class FrontendController extends Controller
 
         return back()->with('success', 'Your review has been submitted successfully.');
     }
+
+    public function storeEnquiry(Request $request)
+    {
+        $request->validate([
+            'vertical'     => 'required|string',
+            'reference_id' => 'required|integer',
+            'name'         => 'required|string|max:255',
+            'phone'        => 'required|string|max:20',
+            'email'        => 'nullable|email|max:255',
+            'checkin'      => 'nullable|string',
+            'checkout'     => 'nullable|string',
+            'guest_data'   => 'nullable|string',
+            'message'      => 'nullable|string|max:1000',
+        ]);
+
+        $travelDateFrom = null;
+        $travelDateTo = null;
+        
+        // Basic parsing for dates if they are in 'Y-m-d' format or we can just leave it if they are text
+        if (!empty($request->checkin) && strtotime($request->checkin)) {
+            $travelDateFrom = date('Y-m-d', strtotime($request->checkin));
+        }
+        if (!empty($request->checkout) && strtotime($request->checkout)) {
+            $travelDateTo = date('Y-m-d', strtotime($request->checkout));
+        }
+
+        // Parse pax_adults and pax_children from guest_data JSON if possible
+        $paxAdults = 2;
+        $paxChildren = 0;
+        $guestNotes = [];
+        if (!empty($request->guest_data)) {
+            $guestData = json_decode($request->guest_data, true);
+            if (is_array($guestData)) {
+                $paxAdults = array_sum(array_column($guestData, 'adults'));
+                $paxChildren = array_reduce($guestData, function($carry, $room) {
+                    return $carry + count($room['children'] ?? []);
+                }, 0);
+            }
+        }
+
+        // Build notes field
+        $notesStr = null;
+        if (!empty($request->message)) {
+            $notesStr = trim($request->message);
+            if (strlen($notesStr) > 500) $notesStr = substr($notesStr, 0, 497) . '...';
+        }
+
+        \App\Models\Enquiry::create([
+            'user_id'          => auth()->id(),
+            'vertical'         => $request->vertical,
+            'reference_id'     => $request->reference_id,
+            'name'             => $request->name,
+            'phone'            => $request->phone,
+            'email'            => $request->email,
+            'travel_date_from' => $travelDateFrom,
+            'travel_date_to'   => $travelDateTo,
+            'pax_adults'       => $paxAdults,
+            'pax_children'     => $paxChildren,
+            'notes'            => $notesStr,
+            'source'           => 'web',
+            'status'           => 'new'
+        ]);
+
+        return response()->json(['success' => true]);
+    }
 }

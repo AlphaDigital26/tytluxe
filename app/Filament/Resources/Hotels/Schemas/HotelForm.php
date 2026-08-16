@@ -8,6 +8,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\RichEditor;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
@@ -53,19 +54,21 @@ class HotelForm
                                         ->afterStateUpdated(fn ($set, ?string $state) => $set('slug', Str::slug($state)))
                                         ->columnSpan(2),
 
+                                    RichEditor::make('description')
+                                        ->label('Description')
+                                        ->helperText('A brief description that appears on the hotel detail page. You can make text bold, add bullet points, etc.')
+                                        ->required()
+                                        ->columnSpan(2)
+                                        ->toolbarButtons([
+                                            'bold', 'italic', 'bulletList', 'orderedList', 'h2', 'h3', 'link', 'redo', 'undo',
+                                        ]),
+
                                     TextInput::make('slug')
-                                        ->label('URL Slug')
-                                        ->helperText('This forms the link of the hotel page. Auto-generated from the name.')
+                                        ->label('URL Slug (Advanced)')
+                                        ->helperText('Auto-generated. Only edit if you know what you are doing.')
                                         ->required()
                                         ->unique(ignoreRecord: true)
                                         ->columnSpan(2),
-
-                                    Textarea::make('description')
-                                        ->label('Description')
-                                        ->helperText('A brief description that appears on the hotel detail page')
-                                        ->required()
-                                        ->columnSpan(2)
-                                        ->rows(4),
                                 ]),
                             ]),
 
@@ -74,20 +77,24 @@ class HotelForm
                             ->schema([
                                 Grid::make(2)->schema([
                                     TextInput::make('price_from')
-                                        ->label('Starting Price')
-                                        ->helperText('Leave 0 if price is on request')
+                                        ->label('Starting Price (Per Night)')
+                                        ->helperText('Leave as 0 to show "Price on request"')
                                         ->numeric()
                                         ->required()
                                         ->prefix('₹'),
 
-                                    TextInput::make('star_rating')
+                                    Select::make('star_rating')
                                         ->label('Star Rating')
-                                        ->helperText('Enter a number from 1 to 5')
-                                        ->numeric()
-                                        ->minValue(1)
-                                        ->maxValue(5)
+                                        ->helperText('Official classification of the hotel')
+                                        ->options([
+                                            1 => '⭐ 1 Star',
+                                            2 => '⭐⭐ 2 Stars',
+                                            3 => '⭐⭐⭐ 3 Stars',
+                                            4 => '⭐⭐⭐⭐ 4 Stars',
+                                            5 => '⭐⭐⭐⭐⭐ 5 Stars',
+                                        ])
                                         ->required()
-                                        ->suffix('Stars'),
+                                        ->native(false),
                                 ]),
                             ]),
 
@@ -111,12 +118,14 @@ class HotelForm
                                         ->required(),
 
                                     TextInput::make('lat')
-                                        ->label('Latitude (optional)')
+                                        ->label('Latitude (Map location)')
+                                        ->helperText('e.g. 31.1048. Find on Google Maps.')
                                         ->numeric()
                                         ->default(null),
 
                                     TextInput::make('lng')
-                                        ->label('Longitude (optional)')
+                                        ->label('Longitude (Map location)')
+                                        ->helperText('e.g. 77.1734. Find on Google Maps.')
                                         ->numeric()
                                         ->default(null),
                                 ]),

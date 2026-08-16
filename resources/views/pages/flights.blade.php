@@ -219,8 +219,8 @@ input[type="date"].tyt-finput::-webkit-calendar-picker-indicator{filter:invert(0
       <div><label class="tyt-flabel">To</label><input class="tyt-finput" type="text" placeholder="City or Airport" id="tyt-to"/></div>
     </div>
     <div class="tyt-form-3">
-      <div><label class="tyt-flabel">Departure Date</label><input class="tyt-finput" type="date" id="tyt-dep"/></div>
-      <div class="tyt-ret" id="tyt-ret"><label class="tyt-flabel">Return Date</label><input class="tyt-finput" type="date" id="tyt-retdate"/></div>
+      <div><label class="tyt-flabel">Departure Date</label><input class="tyt-finput" type="date" id="tyt-dep" onclick="this.showPicker()"/></div>
+      <div class="tyt-ret" id="tyt-ret"><label class="tyt-flabel">Return Date</label><input class="tyt-finput" type="date" id="tyt-retdate" onclick="this.showPicker()"/></div>
       <div><label class="tyt-flabel">Passengers</label><select class="tyt-finput" id="tyt-pax"><option>1 Adult</option><option>2 Adults</option><option>2 Adults + 1 Child</option><option>2 Adults + 2 Children</option><option>3+ Adults</option><option>Group Booking</option></select></div>
     </div>
     <p class="tyt-flabel" style="margin-bottom:10px">Travel Class</p>
@@ -243,7 +243,6 @@ input[type="date"].tyt-finput::-webkit-calendar-picker-indicator{filter:invert(0
       <p style="font-family:'Poppins',sans-serif;font-size:12px;color:#555;font-weight:300;line-height:1.7">Our travel expert will reach out on<br>WhatsApp &amp; Email with curated options.</p>
       <button class="tyt-gold-btn" onclick="tytSubmit()" id="tyt-sbtn">ENQUIRE NOW &rarr;</button>
     </div>
-    <div class="tyt-success" id="tyt-success">&#10003; &nbsp; Request received! Our team will WhatsApp you shortly with the best flight options.</div>
   </div>
 
   <!-- FEATURES BAR -->
@@ -270,16 +269,58 @@ function tytSelClass(el){
   document.querySelectorAll('.tyt-class-btn').forEach(function(x){x.classList.remove('active')});
   el.classList.add('active');
 }
-function tytSubmit(){
+async function tytSubmit(){
   var n=document.getElementById('tyt-name').value.trim();
   var p=document.getElementById('tyt-phone').value.trim();
+  var e=document.getElementById('tyt-email').value.trim();
   var f=document.getElementById('tyt-from').value.trim();
   var t=document.getElementById('tyt-to').value.trim();
   if(!n||!p||!f||!t){alert('Please fill in: From, To, Name and Phone.');return;}
   var btn=document.getElementById('tyt-sbtn');
-  btn.textContent='SUBMITTED \u2713';
-  btn.style.background='#2a7a2a';
-  document.getElementById('tyt-success').style.display='block';
+  var originalText=btn.textContent;
+  btn.textContent='Sending...';
+  btn.disabled = true;
+
+  var tripType = document.querySelector('.tyt-trip-btn.active').textContent;
+  var depDate = document.getElementById('tyt-dep').value;
+  var retDate = document.getElementById('tyt-retdate').value;
+  var pax = document.getElementById('tyt-pax').value;
+  var cls = document.querySelector('.tyt-class-btn.active').textContent;
+  var msg = document.getElementById('tyt-special').value.trim();
+
+  var message = `Trip Type: ${tripType}\nFrom: ${f}\nTo: ${t}\nDeparture: ${depDate}\nReturn: ${retDate}\nPassengers: ${pax}\nClass: ${cls}\n\nSpecial Requests: ${msg}`;
+
+  try {
+      let res = await fetch("{{ route('enquiries.store') }}", {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json',
+              'X-CSRF-TOKEN': '{{ csrf_token() }}'
+          },
+          body: JSON.stringify({
+              vertical: 'flight',
+              reference_id: 0,
+              name: n,
+              phone: p,
+              email: e,
+              message: message
+          })
+      });
+      
+      if (!res.ok) {
+          let errData = await res.text();
+          throw new Error('Server error: ' + errData);
+      }
+      
+      btn.textContent='SUBMITTED \u2713';
+      btn.style.background='#2a7a2a';
+      showToast('Request Received', 'Our team will WhatsApp you shortly with the best flight options.');
+  } catch (error) {
+      console.error(error);
+      btn.textContent = originalText;
+      btn.disabled = false;
+      showToast('Error', 'Something went wrong. Please try again.', 'error');
+  }
 }
 </script>
 @endpush
