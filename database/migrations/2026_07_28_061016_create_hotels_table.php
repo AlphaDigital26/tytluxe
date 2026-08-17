@@ -25,12 +25,15 @@ return new class extends Migration
             $table->decimal('price_from', 10, 2);
             $table->enum('source', ['tripjack', 'manual'])->default('manual');
             $table->string('tripjack_hotel_id', 100)->nullable()->unique();
+            $table->string('check_in_time')->default('2:00 PM');
+            $table->string('check_out_time')->default('11:00 AM');
+            $table->text('nearby_attractions')->nullable();
+            $table->text('room_categories')->nullable();
             $table->boolean('is_active')->default(true)->index();
             $table->boolean('is_featured')->default(false);
             $table->timestamps();
             $table->softDeletes();
             if (\Illuminate\Support\Facades\DB::connection()->getDriverName() !== 'sqlite') $table->fullText(['title', 'description']);
-
         });
     }
 

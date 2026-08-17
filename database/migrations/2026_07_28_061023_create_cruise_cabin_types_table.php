@@ -17,8 +17,11 @@ return new class extends Migration
             $table->string('name');
             $table->text('description')->nullable();
             $table->decimal('price_from', 10, 2)->nullable();
+            $table->string('image_path')->nullable();
+            $table->string('image_url')->nullable();
+            $table->string('tier_label')->nullable();
+            $table->string('size_info')->nullable();
             $table->timestamps();
-
         });
     }
 

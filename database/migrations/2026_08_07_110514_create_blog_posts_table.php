@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('slug')->unique();
             $table->text('excerpt')->nullable();
             $table->longText('body')->nullable();
-            $table->string('cover_image_url')->nullable();
+            $table->string('cover_image_url', 1000)->nullable();
             $table->unsignedBigInteger('blog_category_id')->nullable()->index();
             $table->unsignedSmallInteger('read_time_minutes')->default(5);
             $table->timestamp('published_at')->nullable();

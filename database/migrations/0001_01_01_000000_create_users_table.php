@@ -13,20 +13,33 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
+            $table->string('google_id')->nullable();
             $table->string('name');
+            $table->string('last_name')->nullable();
             $table->string('email')->unique();
             $table->string('phone', 20)->nullable()->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->timestamp('phone_verified_at')->nullable();
             $table->string('password');
-            $table->enum('role', ['customer', 'agent', 'admin'])->default('customer')->index();
-            $table->boolean('is_active')->default(true);
+            $table->string('status')->default('Active');
+            $table->date('dob')->nullable();
+            $table->string('gender')->nullable();
+            $table->string('nationality')->nullable();
+            $table->string('marital_status')->nullable();
+            $table->date('anniversary')->nullable();
+            $table->json('address')->nullable();
+            $table->json('preferences')->nullable();
+            $table->json('notifications')->nullable();
+            $table->string('passport_no')->nullable();
+            $table->date('passport_expiry')->nullable();
+            $table->string('passport_issuing_country')->nullable();
+            $table->json('govt_ids')->nullable();
             $table->text('two_factor_secret')->nullable();
             $table->text('two_factor_recovery_codes')->nullable();
             $table->rememberToken();
             $table->timestamps();
+            $table->timestamp('last_login_at')->nullable();
             $table->softDeletes();
-
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {

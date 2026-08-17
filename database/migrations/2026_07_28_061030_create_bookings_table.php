@@ -17,8 +17,9 @@ return new class extends Migration
             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
             $table->string('guest_email')->nullable()->index();
             $table->string('guest_phone', 20)->nullable();
-            $table->enum('vertical', ['hotel', 'flight'])->index();
+            $table->enum('vertical', ['hotel', 'flight', 'package'])->index();
             $table->foreignId('hotel_id')->nullable()->constrained()->restrictOnDelete();
+            $table->foreignId('package_id')->nullable()->constrained('packages')->nullOnDelete();
             $table->foreignId('room_type_id')->nullable()->constrained()->restrictOnDelete();
             $table->string('tripjack_booking_id', 100)->nullable()->unique();
             $table->string('tripjack_hold_id', 100)->nullable();

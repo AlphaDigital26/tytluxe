@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('cruises', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('destination_id')->nullable()->constrained('destinations')->nullOnDelete();
             $table->string('title');
             $table->string('slug')->unique();
             $table->text('description');
@@ -24,7 +25,6 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
             if (\Illuminate\Support\Facades\DB::connection()->getDriverName() !== 'sqlite') $table->fullText(['title', 'description']);
-
         });
     }
 

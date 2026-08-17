@@ -15,13 +15,21 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->string('type')->default('self');
-            $table->string('name');
+            $table->string('first_name');
+            $table->string('last_name')->nullable();
+            $table->string('relationship')->nullable();
             $table->date('dob')->nullable();
             $table->string('gender')->nullable();
             $table->string('nationality')->nullable();
             $table->string('passport_number')->nullable();
             $table->date('passport_expiry')->nullable();
             $table->string('passport_issuing_country')->nullable();
+            $table->string('meal_preference')->nullable();
+            $table->string('train_berth_preference')->nullable();
+            $table->string('phone')->nullable();
+            $table->string('email')->nullable();
+            $table->string('frequent_flyer_airline')->nullable();
+            $table->string('frequent_flyer_number')->nullable();
             $table->timestamps();
         });
     }

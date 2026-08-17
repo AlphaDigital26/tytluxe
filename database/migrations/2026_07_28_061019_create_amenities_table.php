@@ -14,9 +14,9 @@ return new class extends Migration
         Schema::create('amenities', function (Blueprint $table) {
             $table->id();
             $table->string('name', 100)->unique();
+            $table->enum('type', ['hotel', 'cruise', 'package'])->default('hotel')->index();
             $table->string('icon', 100)->nullable();
             $table->timestamps();
-
         });
     }
 
