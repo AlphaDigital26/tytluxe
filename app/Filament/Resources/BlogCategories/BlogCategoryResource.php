@@ -23,7 +23,7 @@ class BlogCategoryResource extends Resource
 
     protected static ?string $navigationLabel = 'Blog Categories';
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 120;
 
     protected static ?string $recordTitleAttribute = 'name';
 

@@ -23,7 +23,7 @@ class BlogPostResource extends Resource
 
     protected static ?string $navigationLabel = 'Blog Posts';
 
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 130;
 
     protected static ?string $recordTitleAttribute = 'title';
 

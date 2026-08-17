@@ -23,7 +23,7 @@ class FeaturedBlogDestinationResource extends Resource
 
     protected static ?string $navigationLabel = 'Featured Destinations';
 
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 140;
 
     protected static ?string $recordTitleAttribute = 'name';
 
