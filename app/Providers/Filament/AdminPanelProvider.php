@@ -65,7 +65,6 @@ class AdminPanelProvider extends PanelProvider
                 \App\Filament\Widgets\EnquiriesByCategoryChart::class,
                 \App\Filament\Widgets\EnquiriesOverTimeChart::class,
                 \App\Filament\Widgets\LatestEnquiriesWidget::class,
-                AccountWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,
