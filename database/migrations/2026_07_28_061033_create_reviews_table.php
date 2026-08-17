@@ -20,11 +20,18 @@ return new class extends Migration
             $table->string('author_location')->nullable();
             $table->string('avatar_path')->nullable();
             $table->unsignedTinyInteger('rating')->nullable();
+            $table->string('title')->nullable();
             $table->text('body');
+            $table->json('images')->nullable();
+            $table->unsignedTinyInteger('rating_guide')->nullable();
+            $table->unsignedTinyInteger('rating_accommodation')->nullable();
+            $table->unsignedTinyInteger('rating_value')->nullable();
+            $table->unsignedTinyInteger('rating_itinerary')->nullable();
+            $table->text('admin_reply')->nullable();
             $table->boolean('is_published')->default(false)->index();
+            $table->boolean('is_featured')->default(false);
             $table->timestamps();
             $table->index(['vertical', 'reference_id']);
-
         });
     }
 

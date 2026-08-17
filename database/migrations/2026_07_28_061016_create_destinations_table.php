@@ -17,12 +17,12 @@ return new class extends Migration
             $table->string('slug')->unique();
             $table->string('country')->index();
             $table->enum('type', ['city', 'region', 'island', 'other'])->default('city');
+            $table->json('for')->nullable();
             $table->decimal('lat', 10, 7)->nullable();
             $table->decimal('lng', 10, 7)->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
             if (\Illuminate\Support\Facades\DB::connection()->getDriverName() !== 'sqlite') $table->fullText('name');
-
         });
     }
 

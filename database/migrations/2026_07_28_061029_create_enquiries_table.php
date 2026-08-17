@@ -24,12 +24,13 @@ return new class extends Migration
             $table->unsignedTinyInteger('pax_adults')->default(1);
             $table->unsignedTinyInteger('pax_children')->default(0);
             $table->string('notes', 500)->nullable();
+            $table->text('admin_notes')->nullable();
             $table->enum('status', ['new', 'contacted', 'quoted', 'converted', 'closed'])->default('new')->index();
             $table->foreignId('assigned_agent_id')->nullable()->constrained('users')->nullOnDelete();
             $table->enum('source', ['web', 'whatsapp', 'phone'])->default('web');
+            $table->timestamp('resolved_at')->nullable();
             $table->timestamps();
             $table->index(['vertical', 'reference_id']);
-
         });
     }
 

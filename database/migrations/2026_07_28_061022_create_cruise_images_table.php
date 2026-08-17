@@ -15,11 +15,11 @@ return new class extends Migration
             $table->id();
             $table->foreignId('cruise_id')->constrained()->cascadeOnDelete();
             $table->string('path');
+            $table->string('image_url')->nullable();
             $table->unsignedSmallInteger('sort_order')->default(0);
             $table->string('alt_text')->nullable();
             $table->timestamps();
             $table->index(['cruise_id', 'sort_order']);
-
         });
     }
 
