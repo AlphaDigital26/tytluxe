@@ -20,6 +20,8 @@ class DestinationResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-map-pin';
 
+    protected static ?int $navigationSort = 60;
+
     protected static ?string $recordTitleAttribute = 'name';
 
     public static function form(Schema $schema): Schema

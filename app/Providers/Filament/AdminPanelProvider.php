@@ -32,7 +32,7 @@ class AdminPanelProvider extends PanelProvider
             ->login()
             ->authGuard('admin')
             ->colors([
-                'primary' => Color::Slate,
+                'primary' => Color::hex('#c9a84c'),
                 'danger' => Color::Rose,
                 'info' => Color::Blue,
                 'success' => Color::Emerald,
@@ -40,7 +40,9 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->brandName('TYT Luxe')
             ->favicon(asset('assets/images/favicon.png'))
-            ->font('Inter')
+            ->font('Jost')
+            ->sidebarWidth('15rem')
+            ->sidebarCollapsibleOnDesktop()
             ->navigationGroups([
                 \Filament\Navigation\NavigationGroup::make()
                      ->label('Operations')
@@ -59,8 +61,11 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
+                \App\Filament\Widgets\DashboardStatsOverview::class,
+                \App\Filament\Widgets\EnquiriesByCategoryChart::class,
+                \App\Filament\Widgets\EnquiriesOverTimeChart::class,
+                \App\Filament\Widgets\LatestEnquiriesWidget::class,
                 AccountWidget::class,
-                FilamentInfoWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,
@@ -76,6 +81,39 @@ class AdminPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
             ])
+            ->renderHook(
+                PanelsRenderHook::HEAD_END,
+                fn (): string => Blade::render(<<<'HTML'
+                    <style>
+                        /* Hide scrollbar from sidebar */
+                        aside.fi-sidebar nav, 
+                        .fi-sidebar-nav, 
+                        .fi-sidebar-nav-groups,
+                        aside.fi-sidebar > div,
+                        aside.fi-sidebar main {
+                            scrollbar-width: none !important;
+                            -ms-overflow-style: none !important;
+                        }
+                        aside.fi-sidebar nav::-webkit-scrollbar,
+                        .fi-sidebar-nav::-webkit-scrollbar,
+                        .fi-sidebar-nav-groups::-webkit-scrollbar,
+                        aside.fi-sidebar > div::-webkit-scrollbar,
+                        aside.fi-sidebar main::-webkit-scrollbar {
+                            display: none !important;
+                        }
+
+                        /* Add vertical divider between sidebar and main content */
+                        .fi-sidebar {
+                            border-right: 1px solid #d1d5db !important; /* gray-300 */
+                            box-shadow: 1px 0 0 0 rgba(0,0,0,0.05) !important;
+                        }
+                        .dark .fi-sidebar {
+                            border-right: 1px solid #374151 !important; /* gray-700 */
+                            box-shadow: 1px 0 0 0 rgba(255,255,255,0.05) !important;
+                        }
+                    </style>
+                HTML)
+            )
             ->renderHook(
                 PanelsRenderHook::BODY_END,
                 fn (): string => Blade::render(<<<'HTML'

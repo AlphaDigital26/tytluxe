@@ -23,6 +23,8 @@ class CruiseResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-paper-airplane';
 
+    protected static ?int $navigationSort = 50;
+
     protected static ?string $navigationLabel = 'Cruises';
 
     protected static ?string $recordTitleAttribute = 'name';

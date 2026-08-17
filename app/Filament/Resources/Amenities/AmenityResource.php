@@ -20,6 +20,8 @@ class AmenityResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-check-badge';
 
+    protected static ?int $navigationSort = 80;
+
     protected static ?string $navigationLabel = 'Amenities';
 
     protected static ?string $modelLabel = 'Amenity';
