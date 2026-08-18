@@ -42,13 +42,13 @@ class RoomTypesRelationManager extends RelationManager
                     FileUpload::make('image_path')
                         ->label('Main Thumbnail')
                         ->image()
-                        ->directory('room-images'),
+                        ->saveUploadedFileUsing(fn ($file) => app(\App\Services\ImageOptimizer::class)->optimizeAndSave($file, 'thumbnail', 'room-images')),
                     FileUpload::make('images')
                         ->label('Gallery Images (Multiple)')
                         ->multiple()
                         ->image()
                         ->reorderable()
-                        ->directory('room-images'),
+                        ->saveUploadedFileUsing(fn ($file) => app(\App\Services\ImageOptimizer::class)->optimizeAndSave($file, 'thumbnail', 'room-images')),
                     Textarea::make('description')
                         ->rows(3)
                         ->columnSpanFull(),

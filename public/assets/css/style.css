@@ -831,6 +831,7 @@ footer {
 
 .footer-logo img {
     height: 60px;
+    width: auto;
     margin-bottom: 20px;
 }
 
@@ -1328,6 +1329,7 @@ main {
 
     .footer-logo img {
         height: 50px;
+        width: auto;
     }
 
     .newsletter-form {
