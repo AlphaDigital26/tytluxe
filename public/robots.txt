@@ -1,2 +1,13 @@
 User-agent: *
-Disallow:
+Disallow: /admin
+Disallow: /profile
+Disallow: /history
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /reset-password
+
+# Allow all public content
+Allow: /
+
+Sitemap: https://tytluxe.in/sitemap.xml

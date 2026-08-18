@@ -1,5 +1,26 @@
 @extends('layouts.frontend')
 
+@section('meta_title', 'About TYT Luxe — Our Story, Team & Values | Luxury Travel Agency')
+@section('meta_description', 'Learn about TYT Luxe — founded in 2020, we handpick luxury hotels and curated cruise experiences for Indian travellers. Meet our founders Kartik Singhal, Neha Singhal and the team behind every journey.')
+
+@push('scripts')
+<script type="application/ld+json">
+{
+  "@@context": "https://schema.org",
+  "@@type": "AboutPage",
+  "name": "About TYT Luxe",
+  "url": "https://tytluxe.in/about",
+  "description": "TYT Luxe was founded in 2020 with a passion for curated luxury travel. We handpick hotels and cruises and serve Indian travellers with personalised itineraries.",
+  "publisher": {
+    "@@type": "TravelAgency",
+    "name": "TYT Luxe",
+    "url": "https://tytluxe.in",
+    "telephone": "+91-98750-73788"
+  }
+}
+</script>
+@endpush
+
 @push('styles')
 <style>
 *, *::before, *::after { box-sizing: border-box; }
@@ -374,7 +395,10 @@ body {
 <section class="ta-section-cream">
   <div class="ta-story-grid">
     <div class="ta-story-img">
-      <img src="https://images.unsplash.com/photo-1522199755839-a2bacb67c546?auto=format&fit=crop&w=800&q=80" alt="Our Story">
+      <img src="https://images.unsplash.com/photo-1522199755839-a2bacb67c546?auto=format&fit=crop&w=800&q=80"
+           alt="Travel planner working on a laptop with maps and destinations"
+           width="800" height="520"
+           loading="lazy">
       <div class="ta-story-img-badge">
         <span>2020</span>
         <small>Founded With Passion</small>
@@ -404,7 +428,7 @@ body {
   </div>
   <div class="ta-team-grid">
     <div class="ta-team-card">
-      <div class="ta-team-photo-placeholder" aria-label="Founder photo placeholder"></div>
+      <img src="{{ asset('assets/images/Founder.jpeg') }}" alt="Kartik Singhal — Founder, TYT Luxe" width="400" height="260" loading="lazy">
       <div class="ta-team-card-body">
         <div class="ta-team-role">Founder</div>
         <h3>Kartik Singhal</h3>
@@ -414,16 +438,26 @@ body {
       </div>
     </div>
     <div class="ta-team-card">
-      <div class="ta-team-photo-placeholder" aria-label="Associate head photo placeholder"></div>
+      <img src="{{ asset('assets/images/CEO.jpeg') }}" alt="Neha Singhal — CEO, TYT Luxe" width="400" height="260" loading="lazy">
       <div class="ta-team-card-body">
-        <div class="ta-team-role">Associate Head</div>
+        <div class="ta-team-role">CEO</div>
+        <h3>Neha Singhal</h3>
+        <p>Neha Singhal, CEO of TYT Luxe, brings a refined sense of luxury, personalization, and client-centric thinking to the brand. With a keen eye for detail and a passion for curating meaningful travel experiences, she plays a pivotal role in designing journeys that go beyond conventional itineraries and transform into lifelong memories.</p>
+        <p>At TYT Luxe, Neha focuses on understanding each traveler's unique preferences and translating them into thoughtfully crafted, seamless experiences. From handpicked luxury stays and bespoke itineraries to exclusive on-ground arrangements, her approach blends elegance with comfort, ensuring every journey reflects sophistication and individuality.</p>
+        <p>Her dedication to service excellence and commitment to building long-term client relationships has been instrumental in shaping TYT Luxe into a trusted name for premium and bespoke travel. Neha believes that true luxury lies in personalization, attention to detail, and creating experiences that feel effortless yet extraordinary.</p>
+      </div>
+    </div>
+    <div class="ta-team-card">
+      <img src="{{ asset('assets/images/Co-founder.jpeg') }}" alt="Swati Lohariwal">
+      <div class="ta-team-card-body">
+        <div class="ta-team-role">Co-Founder</div>
         <h3>Swati Lohariwal</h3>
-        <p>Swati Lohariwal serves as Associate Head at TYT Luxe with a sharp focus on precision, personalization and service excellence. She helps oversee end-to-end operational management so every journey reflects the brand's premium standards.</p>
+        <p>Swati Lohariwal serves as Co-Founder at TYT Luxe with a sharp focus on precision, personalization and service excellence. She helps oversee end-to-end operational management so every journey reflects the brand's premium standards.</p>
         <p>Swati brings a strong eye for detail, client servicing expertise and a passion for curated travel experiences. Her approach emphasizes understanding individual preferences and translating them into thoughtfully designed itineraries that deliver comfort, exclusivity and memorable moments.</p>
       </div>
     </div>
     <div class="ta-team-card">
-      <div class="ta-team-photo-placeholder" aria-label="Operational head photo placeholder"></div>
+      <img src="{{ asset('assets/images/operational-head.jpeg') }}" alt="Ashish Lohariwal">
       <div class="ta-team-card-body">
         <div class="ta-team-role">Operational Head</div>
         <h3>Ashish Lohariwal</h3>
@@ -542,7 +576,10 @@ body {
       <span class="ta-testi-quote">"</span>
       <p>Amazing stay and exceptional service. Take Your Trip made our vacation truly memorable! They recommended the perfect hotel in Maldives and it was beyond our expectations.</p>
       <div class="ta-testi-author">
-        <img src="https://images.unsplash.com/photo-1506869640319-fe1a24fd76dc?auto=format&fit=crop&w=160&q=80" alt="Neha Malhotra">
+        <img src="https://images.unsplash.com/photo-1506869640319-fe1a24fd76dc?auto=format&fit=crop&w=160&q=80"
+             alt="Neha Malhotra from Jaipur, happy TYT Luxe traveller"
+             width="44" height="44"
+             loading="lazy">
         <div>
           <span class="ta-testi-name">Neha Malhotra</span>
           <span class="ta-testi-loc">Jaipur</span>
@@ -553,7 +590,10 @@ body {
       <span class="ta-testi-quote">"</span>
       <p>The cruise was beyond our expectations. Everything was perfect from start to finish. The team responded in under an hour and handled every single detail for our family trip.</p>
       <div class="ta-testi-author">
-        <img src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=160&q=80" alt="Rohan Mehta">
+        <img src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=160&q=80"
+             alt="Rohan Mehta from Mumbai, TYT Luxe cruise traveller"
+             width="44" height="44"
+             loading="lazy">
         <div>
           <span class="ta-testi-name">Rohan Mehta</span>
           <span class="ta-testi-loc">Mumbai</span>
@@ -564,7 +604,10 @@ body {
       <span class="ta-testi-quote">"</span>
       <p>Best holiday ever! Great deals and fantastic support throughout our trip. Our honeymoon package was curated so thoughtfully — every detail was just perfect.</p>
       <div class="ta-testi-author">
-        <img src="https://images.unsplash.com/photo-1521336575822-6da63fb45455?auto=format&fit=crop&w=160&q=80" alt="Priya Sharma">
+        <img src="https://images.unsplash.com/photo-1521336575822-6da63fb45455?auto=format&fit=crop&w=160&q=80"
+             alt="Priya Sharma from Bangalore, TYT Luxe honeymoon traveller"
+             width="44" height="44"
+             loading="lazy">
         <div>
           <span class="ta-testi-name">Priya Sharma</span>
           <span class="ta-testi-loc">Bangalore</span>

@@ -3,20 +3,33 @@
     @include('partials.head')
 <body>
 
+    {{-- ══════════════════════════════════════
+         SKIP TO MAIN CONTENT (Accessibility)
+    ══════════════════════════════════════ --}}
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+
     @include('partials.header')
 
-    @yield('content')
+    <main id="main-content" tabindex="-1">
+        @yield('content')
+    </main>
 
     @include('partials.footer')
     
     <!-- TOAST HTML -->
-    <div id="tyt-global-toast" class="tyt-toast">
-        <div class="tyt-toast-icon"><i class="fa-solid fa-check-circle"></i></div>
+    <div
+        id="tyt-global-toast"
+        class="tyt-toast"
+        role="alert"
+        aria-live="polite"
+        aria-atomic="true"
+    >
+        <div class="tyt-toast-icon"><i class="fa-solid fa-check-circle" aria-hidden="true"></i></div>
         <div class="tyt-toast-content">
             <div class="tyt-toast-title">Success</div>
             <div class="tyt-toast-message">Request received! Our team will WhatsApp you shortly.</div>
         </div>
-        <button class="tyt-toast-close" onclick="hideToast()">&times;</button>
+        <button class="tyt-toast-close" onclick="hideToast()" aria-label="Close notification">&times;</button>
     </div>
 
     @include('partials.scripts')

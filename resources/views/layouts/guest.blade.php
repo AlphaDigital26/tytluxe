@@ -10,6 +10,9 @@
 
         <link rel="stylesheet" href="{{ asset('assets/css/admin.css') }}">
         
+        <!-- FontAwesome -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
@@ -17,7 +20,7 @@
         <div class="auth-wrapper">
             <div class="auth-logo">
                 <a href="/">
-                    <x-application-logo />
+                    <img src="{{ asset('assets/images/tyt-logo.png') }}" alt="TYT Luxe" style="max-width: 150px;">
                 </a>
             </div>
 

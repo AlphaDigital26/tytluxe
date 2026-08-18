@@ -1,5 +1,8 @@
 @extends('layouts.frontend')
 
+@section('meta_title', 'Luxury Hotels — Handpicked Stays Across India & World | TYT Luxe')
+@section('meta_description', 'Browse TYT Luxe\'s curated collection of luxury hotels — beach resorts, city hotels, honeymoon getaways and family-friendly stays across India and international destinations. Best price guaranteed.')
+
 @push('styles')
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

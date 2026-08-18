@@ -1,5 +1,8 @@
 @extends('layouts.frontend')
 
+@section('meta_title', 'Exclusive Travel Offers & Deals — Limited Time Discounts | TYT Luxe')
+@section('meta_description', 'Explore exclusive limited-time travel deals and offers from TYT Luxe. Discover discounted luxury hotel packages, cruise deals and special promotions tailored for Indian travellers.')
+
 @push('styles')
 <style>
   *, *::before, *::after { box-sizing: border-box; }

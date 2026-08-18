@@ -1,5 +1,8 @@
 @extends('layouts.frontend')
 
+@section('meta_title', 'Privacy Policy | TYT Luxe')
+@section('meta_description', 'Read TYT Luxe\'s Privacy Policy to understand how we collect, use and protect your personal information when you use our luxury travel planning services.')
+
 @push('styles')
 <style>
 *, *::before, *::after { box-sizing: border-box; }

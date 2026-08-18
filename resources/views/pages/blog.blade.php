@@ -1,5 +1,8 @@
 @extends('layouts.frontend')
 
+@section('meta_title', 'Travel Journal — Luxury Travel Tips, Guides & Inspiration | TYT Luxe')
+@section('meta_description', 'Read TYT Luxe Travel Journal for expert travel guides, destination inspiration, packing tips and insider advice on luxury hotels and cruises. Plan your next trip with confidence.')
+
 @push('styles')
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>

@@ -1,5 +1,8 @@
 @extends('layouts.frontend')
 
+@section('meta_title', 'Travel Packages — Domestic & International Holiday Packages | TYT Luxe')
+@section('meta_description', 'Discover curated domestic and international travel packages with TYT Luxe. Honeymoon specials, family packages, adventure trips and luxury getaways — all tailored for Indian travellers.')
+
 @push('styles')
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
