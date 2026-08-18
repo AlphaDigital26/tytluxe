@@ -52,7 +52,7 @@ class ReviewForm
                 \Filament\Forms\Components\FileUpload::make('images')
                     ->multiple()
                     ->image()
-                    ->directory('reviews')
+                    ->saveUploadedFileUsing(fn ($file) => app(\App\Services\ImageOptimizer::class)->optimizeAndSave($file, 'thumbnail', 'reviews'))
                     ->columnSpanFull(),
                 Textarea::make('admin_reply')
                     ->columnSpanFull(),

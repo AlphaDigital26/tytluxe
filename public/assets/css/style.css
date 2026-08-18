@@ -5,7 +5,7 @@
 /* Skip to main content — keyboard navigation */
 .skip-link {
     position: absolute;
-    top: -100%;
+    top: -1000px;
     left: 8px;
     z-index: 9999;
     padding: 12px 24px;
@@ -831,6 +831,7 @@ footer {
 
 .footer-logo img {
     height: 60px;
+    width: auto;
     margin-bottom: 20px;
 }
 
@@ -1328,6 +1329,7 @@ main {
 
     .footer-logo img {
         height: 50px;
+        width: auto;
     }
 
     .newsletter-form {

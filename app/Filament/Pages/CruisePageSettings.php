@@ -207,8 +207,7 @@ class CruisePageSettings extends Page
                                         FileUpload::make('image_path')
                                             ->label('Upload Image')
                                             ->image()
-                                            ->disk('public')
-                                            ->directory('cruise-destinations')
+                                            ->saveUploadedFileUsing(fn ($file) => app(\App\Services\ImageOptimizer::class)->optimizeAndSave($file, 'thumbnail', 'cruise-destinations'))
                                             ->imagePreviewHeight('160')
                                             ->maxSize(4096),
                                         TextInput::make('image_url')
@@ -244,8 +243,8 @@ class CruisePageSettings extends Page
                                     ->schema([
                                         FileUpload::make('image_path')
                                             ->label('Upload Image')
-                                            ->image()->disk('public')
-                                            ->directory('cruise-dining')
+                                            ->image()
+                                            ->saveUploadedFileUsing(fn ($file) => app(\App\Services\ImageOptimizer::class)->optimizeAndSave($file, 'thumbnail', 'cruise-dining'))
                                             ->imagePreviewHeight('140')
                                             ->maxSize(4096),
                                         TextInput::make('image_url')

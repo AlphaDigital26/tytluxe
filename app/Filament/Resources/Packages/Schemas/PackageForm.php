@@ -371,8 +371,7 @@ class PackageForm
                                 ->helperText('The large background image at the top of the package page. Best size: 1920 × 1080 px (landscape/wide photo).')
                                 ->image()
                                 ->imagePreviewHeight('200')
-                                ->directory('packages/heroes')
-                                ->disk('public')
+                                ->saveUploadedFileUsing(fn ($file) => app(\App\Services\ImageOptimizer::class)->optimizeAndSave($file, 'hero', 'packages/heroes'))
                                 ->columnSpanFull(),
 
                             Repeater::make('images')
@@ -386,8 +385,7 @@ class PackageForm
                                         ->helperText('Upload a photo from your computer.')
                                         ->image()
                                         ->imagePreviewHeight('130')
-                                        ->directory('packages/gallery')
-                                        ->disk('public')
+                                        ->saveUploadedFileUsing(fn ($file) => app(\App\Services\ImageOptimizer::class)->optimizeAndSave($file, 'thumbnail', 'packages/gallery'))
                                         ->required(),
 
                                     TextInput::make('alt_text')

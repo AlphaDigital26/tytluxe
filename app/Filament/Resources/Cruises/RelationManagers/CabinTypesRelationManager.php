@@ -55,8 +55,7 @@ class CabinTypesRelationManager extends RelationManager
                         FileUpload::make('image_path')
                             ->label('Upload Image')
                             ->image()
-                            ->disk('public')
-                            ->directory('cruise-cabins')
+                            ->saveUploadedFileUsing(fn ($file) => app(\App\Services\ImageOptimizer::class)->optimizeAndSave($file, 'thumbnail', 'cruise-cabins'))
                             ->imagePreviewHeight('200')
                             ->maxSize(4096)
                             ->helperText('Upload a JPG/PNG/WebP (max 4MB). This takes priority over the URL below.'),

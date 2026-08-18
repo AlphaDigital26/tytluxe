@@ -169,8 +169,7 @@ class HotelForm
                                         FileUpload::make('path')
                                             ->label('Photo')
                                             ->image()
-                                            ->directory('hotels')
-                                            ->disk('public')
+                                            ->saveUploadedFileUsing(fn ($file) => app(\App\Services\ImageOptimizer::class)->optimizeAndSave($file, 'hero', 'hotels'))
                                             ->required(),
                                         TextInput::make('alt_text')
                                             ->label('Photo Caption (optional)')

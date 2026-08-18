@@ -163,44 +163,44 @@ input[type="date"].tyt-finput::-webkit-calendar-picker-indicator{filter:invert(0
     </div>
     <div class="tyt-airline-grid">
       <div class="tyt-airline-card">
-        <img src="https://tytluxe.in/wp-content/uploads/2026/05/indigo.png" alt="IndiGo"/>
+        <img src="{{ asset('assets/images/airlines/indigo.svg') }}" onerror="this.src='https://logo.clearbit.com/goindigo.in'" alt="IndiGo"/>
         <div class="tyt-airline-name">IndiGo</div>
       </div>
       <div class="tyt-airline-card">
-        <img src="https://tytluxe.in/wp-content/uploads/2026/05/Air_India_.png" alt="Air India"/>
+        <img src="https://logo.clearbit.com/airindia.com" onerror="this.src='https://ui-avatars.com/api/?name=Air+India&background=1a1a1a&color=C9A84C&size=100'" alt="Air India"/>
         <div class="tyt-airline-name">Air India</div>
       </div>
       <div class="tyt-airline-card">
-        <img src="https://tytluxe.in/wp-content/uploads/2026/05/spicejet-logo.png" alt="SpiceJet"/>
+        <img src="https://logo.clearbit.com/spicejet.com" onerror="this.src='https://ui-avatars.com/api/?name=SpiceJet&background=1a1a1a&color=C9A84C&size=100'" alt="SpiceJet"/>
         <div class="tyt-airline-name">SpiceJet</div>
       </div>
       <div class="tyt-airline-card">
-        <img src="https://tytluxe.in/wp-content/uploads/2026/05/Emirates.png" alt="Emirates"/>
+        <img src="{{ asset('assets/images/airlines/emirates.svg') }}" onerror="this.src='https://logo.clearbit.com/emirates.com'" alt="Emirates"/>
         <div class="tyt-airline-name">Emirates</div>
       </div>
       <div class="tyt-airline-card">
-        <img src="https://tytluxe.in/wp-content/uploads/2026/05/Qatar-scaled.png" alt="Qatar Airways"/>
+        <img src="{{ asset('assets/images/airlines/qatar.svg') }}" onerror="this.src='https://logo.clearbit.com/qatarairways.com'" alt="Qatar Airways"/>
         <div class="tyt-airline-name">Qatar Airways</div>
       </div>
       <div class="tyt-airline-card">
-        <img src="https://tytluxe.in/wp-content/uploads/2026/05/lufthansa.png" alt="Lufthansa"/>
+        <img src="{{ asset('assets/images/airlines/lufthansa.svg') }}" onerror="this.src='https://logo.clearbit.com/lufthansa.com'" alt="Lufthansa"/>
         <div class="tyt-airline-name">Lufthansa</div>
       </div>
       <div class="tyt-airline-card">
-        <img src="https://tytluxe.in/wp-content/uploads/2026/05/british_airways.webp" alt="British Airways"/>
+        <img src="{{ asset('assets/images/airlines/british_airways.svg') }}" onerror="this.src='https://logo.clearbit.com/britishairways.com'" alt="British Airways"/>
         <div class="tyt-airline-name">British Airways</div>
       </div>
       <div class="tyt-airline-card">
-        <img src="https://tytluxe.in/wp-content/uploads/2026/05/a23cc171383f478833c0fc2b2ec25c.webp" alt="Airline"/>
-        <div class="tyt-airline-name">Partner Airline</div>
+        <img src="https://logo.clearbit.com/etihad.com" onerror="this.src='https://ui-avatars.com/api/?name=Etihad&background=1a1a1a&color=C9A84C&size=100'" alt="Etihad Airways"/>
+        <div class="tyt-airline-name">Etihad Airways</div>
       </div>
       <div class="tyt-airline-card">
-        <img src="https://tytluxe.in/wp-content/uploads/2026/05/259197e9fd65bdfbdca482d85e9de859.webp" alt="Airline"/>
-        <div class="tyt-airline-name">Partner Airline</div>
+        <img src="https://logo.clearbit.com/singaporeair.com" onerror="this.src='https://ui-avatars.com/api/?name=Singapore+Airlines&background=1a1a1a&color=C9A84C&size=100'" alt="Singapore Airlines"/>
+        <div class="tyt-airline-name">Singapore Airlines</div>
       </div>
       <div class="tyt-airline-card">
-        <img src="https://tytluxe.in/wp-content/uploads/2026/05/avs7hwt8m.webp" alt="Airline"/>
-        <div class="tyt-airline-name">Partner Airline</div>
+        <img src="{{ asset('assets/images/airlines/cathay.svg') }}" onerror="this.src='https://logo.clearbit.com/cathaypacific.com'" alt="Cathay Pacific"/>
+        <div class="tyt-airline-name">Cathay Pacific</div>
       </div>
     </div>
   </div>

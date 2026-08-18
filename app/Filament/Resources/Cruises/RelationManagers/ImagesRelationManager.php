@@ -30,8 +30,7 @@ class ImagesRelationManager extends RelationManager
                         FileUpload::make('path')
                             ->label('Upload Image')
                             ->image()
-                            ->disk('public')
-                            ->directory('cruise-hero')
+                            ->saveUploadedFileUsing(fn ($file) => app(\App\Services\ImageOptimizer::class)->optimizeAndSave($file, 'hero', 'cruise-hero'))
                             ->imagePreviewHeight('220')
                             ->maxSize(8192)
                             ->helperText('Upload a high-resolution image (max 8MB, JPG/PNG/WebP). Recommended: 1800×900px or wider.'),
