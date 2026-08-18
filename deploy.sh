@@ -17,7 +17,7 @@ php artisan down || true
 
 # Pull the latest changes from the git repository
 echo "📥 Pulling latest code from git..."
-git pull origin main # Change 'main' to your actual branch name if different
+git pull origin master # Pulls from the master branch
 
 # Install/Update PHP dependencies
 echo "📦 Installing PHP dependencies..."
