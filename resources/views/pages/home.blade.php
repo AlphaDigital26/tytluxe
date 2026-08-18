@@ -338,21 +338,50 @@
             <h2 class="section-title">Trusted by Travelers</h2>
         </div>
         <div class="test-grid">
-            @for ($i = 1; $i <= 3; $i++)
+            <!-- Review 1 -->
             <div class="test-card">
                 <div class="test-quote-container">
                     <i class="fa-solid fa-quote-left test-quote-icon"></i>
-                    <p class="test-quote">Amazing experience!</p>
+                    <p class="test-quote">"Our anniversary trip to the Maldives was flawless. The team at TYT Luxe arranged everything perfectly, from the overwater villa to ensuring our specific dietary needs were met. Highly recommended!"</p>
                 </div>
                 <div class="test-user">
-                    <img src="https://i.pravatar.cc/150?u=user{{ $i }}" alt="Testimonial from traveller {{ $i }}" width="48" height="48" loading="lazy">
+                    <img src="https://i.pravatar.cc/150?u=neha" alt="Testimonial from Neha Sharma" width="48" height="48" loading="lazy">
                     <div class="test-user-info">
-                        <h5>User {{ $i }}</h5>
-                        <span>Location</span>
+                        <h5>Neha Sharma</h5>
+                        <span>Mumbai</span>
                     </div>
                 </div>
             </div>
-            @endfor
+
+            <!-- Review 2 -->
+            <div class="test-card">
+                <div class="test-quote-container">
+                    <i class="fa-solid fa-quote-left test-quote-icon"></i>
+                    <p class="test-quote">"Booking our family cruise was a breeze. They found us an amazing deal on Royal Caribbean and made sure we had great vegetarian food options onboard. The WhatsApp support gave us peace of mind."</p>
+                </div>
+                <div class="test-user">
+                    <img src="https://i.pravatar.cc/150?u=rahul" alt="Testimonial from Rahul Desai" width="48" height="48" loading="lazy">
+                    <div class="test-user-info">
+                        <h5>Rahul Desai</h5>
+                        <span>Ahmedabad</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Review 3 -->
+            <div class="test-card">
+                <div class="test-quote-container">
+                    <i class="fa-solid fa-quote-left test-quote-icon"></i>
+                    <p class="test-quote">"TYT Luxe curated the most luxurious honeymoon in Bali. Every detail, from the private transfers to the romantic dinners, was taken care of. We didn't have to worry about a single thing."</p>
+                </div>
+                <div class="test-user">
+                    <img src="https://i.pravatar.cc/150?u=amit" alt="Testimonial from Priya & Amit" width="48" height="48" loading="lazy">
+                    <div class="test-user-info">
+                        <h5>Priya & Amit</h5>
+                        <span>Delhi</span>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </section>
