@@ -15,7 +15,7 @@ class ImageOptimizer
     /**
      * Process, optimize and save an uploaded image file.
      *
-     * @param UploadedFile|TemporaryUploadedFile $file
+     * @param UploadedFile|TemporaryUploadedFile|string $file
      * @param string $type The context of the image ('hero' or 'thumbnail')
      * @param string $directory The storage directory
      * @param string $disk The storage disk (default: 'public')
@@ -29,7 +29,8 @@ class ImageOptimizer
         $manager = new ImageManager($driver);
 
         // 2. Read the image
-        $image = $manager->read($file->getRealPath());
+        $imagePath = is_string($file) ? Storage::disk($disk)->path($file) : $file->getRealPath();
+        $image = $manager->read($imagePath);
 
         // 3. Metadata (EXIF) is typically stripped automatically on WebP conversion
 
