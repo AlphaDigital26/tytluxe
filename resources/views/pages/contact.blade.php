@@ -1,5 +1,31 @@
 @extends('layouts.frontend')
 
+@section('meta_title', 'Contact TYT Luxe — Talk to Our Travel Experts | +91 98750 73788')
+@section('meta_description', 'Get in touch with TYT Luxe travel experts for personalised hotel and cruise recommendations. Call or WhatsApp us at +91 98750 73788. Response within 2 hours, Mon–Sat 10AM–7PM.')
+
+@push('scripts')
+<script type="application/ld+json">
+{
+  "@@context": "https://schema.org",
+  "@@type": "ContactPage",
+  "name": "Contact TYT Luxe",
+  "url": "https://tytluxe.in/contact",
+  "description": "Contact TYT Luxe for personalised travel planning. Call or WhatsApp +91-98750-73788.",
+  "mainEntity": {
+    "@@type": "TravelAgency",
+    "name": "TYT Luxe",
+    "telephone": "+91-98750-73788",
+    "openingHoursSpecification": {
+      "@@type": "OpeningHoursSpecification",
+      "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
+      "opens": "10:00",
+      "closes": "19:00"
+    }
+  }
+}
+</script>
+@endpush
+
 @push('styles')
 <style>
   *, *::before, *::after { box-sizing: border-box; }

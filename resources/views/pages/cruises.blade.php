@@ -1,5 +1,8 @@
 @extends('layouts.frontend')
 
+@section('meta_title', 'Premium Cruises — Cordelia & International Cruise Packages | TYT Luxe')
+@section('meta_description', 'Explore handpicked cruise packages with TYT Luxe — Cordelia cruises, Mediterranean voyages, scenic coastal getaways and luxury cruise experiences. Veg & Jain friendly options available.')
+
 @push('styles')
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Poppins:wght@300;400;500;600&display=swap');

@@ -1,5 +1,8 @@
 @extends('layouts.frontend')
 
+@section('meta_title', 'Terms & Conditions | TYT Luxe Travel')
+@section('meta_description', 'Read TYT Luxe Terms and Conditions. Understand your rights and obligations when booking luxury hotels, cruises and travel packages through our platform.')
+
 @push('styles')
 <style>
 *, *::before, *::after { box-sizing: border-box; }

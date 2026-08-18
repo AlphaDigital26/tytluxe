@@ -1,5 +1,8 @@
 @extends('layouts.frontend')
 
+@section('meta_title', 'Cancellation Policy | TYT Luxe Travel')
+@section('meta_description', 'Understand TYT Luxe\'s cancellation and refund policy for hotel bookings, cruise packages and travel itineraries. Clear, transparent guidelines for Indian travellers.')
+
 @push('styles')
 <style>
 *, *::before, *::after { box-sizing: border-box; }

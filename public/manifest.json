@@ -1,0 +1,21 @@
+{
+  "name": "TYT Luxe",
+  "short_name": "TYT Luxe",
+  "description": "Curated luxury hotels and premium cruises for Indian travellers. Your personal gateway to the world's finest stays.",
+  "start_url": "/",
+  "display": "browser",
+  "background_color": "#0f0c08",
+  "theme_color": "#b8935a",
+  "orientation": "any",
+  "lang": "en-IN",
+  "icons": [
+    {
+      "src": "/assets/images/favicon.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["travel", "lifestyle"],
+  "related_applications": []
+}

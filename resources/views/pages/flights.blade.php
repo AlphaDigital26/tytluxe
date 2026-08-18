@@ -1,5 +1,8 @@
 @extends('layouts.frontend')
 
+@section('meta_title', 'Flight Bookings — Best Deals on Domestic & International Flights | TYT Luxe')
+@section('meta_description', 'Book affordable domestic and international flights with TYT Luxe. Our travel experts find the best fares for Indian travellers. Call or WhatsApp +91 98750 73788 for instant assistance.')
+
 @push('styles')
 <style>
 *{box-sizing:border-box;}

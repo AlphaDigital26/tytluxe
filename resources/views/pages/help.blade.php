@@ -1,5 +1,8 @@
 @extends('layouts.frontend')
 
+@section('meta_title', 'Help Center — Travel Support & Assistance | TYT Luxe')
+@section('meta_description', 'Visit TYT Luxe Help Center for travel support, booking assistance, and answers to your questions. Our team is available Mon–Sat 10AM–7PM via call or WhatsApp.')
+
 @push('styles')
 <style>
 *, *::before, *::after { box-sizing: border-box; }

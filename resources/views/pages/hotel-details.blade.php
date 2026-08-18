@@ -1,5 +1,8 @@
 @extends('layouts.frontend')
 
+@section('meta_title', ($hotel->name ?? 'Luxury Hotel') . ' — Book Now | TYT Luxe')
+@section('meta_description', 'Book ' . ($hotel->name ?? 'this luxury hotel') . ' with TYT Luxe. Handpicked for quality and comfort. Personalised service, best price guaranteed, and 2-hour WhatsApp response.')
+
 @push('styles')
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

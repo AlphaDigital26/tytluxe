@@ -1,5 +1,33 @@
 @extends('layouts.frontend')
 
+@section('meta_title', 'TYT Luxe — Luxury Hotels & Cruises | Book Your Dream Vacation')
+@section('meta_description', 'Discover handpicked luxury hotels, premium cruises and tailored travel packages with TYT Luxe. Serving Indian travellers with personalised itineraries, veg-friendly options and a 2-hour WhatsApp response guarantee.')
+
+@push('scripts')
+<script type="application/ld+json">
+{
+  "@@context": "https://schema.org",
+  "@@type": ["TravelAgency", "LocalBusiness"],
+  "name": "TYT Luxe",
+  "alternateName": "Take Your Trip Luxe",
+  "url": "https://tytluxe.in",
+  "logo": "{{ asset('assets/images/tyt-logo.png') }}",
+  "image": "{{ asset('assets/images/og-image.jpg') }}",
+  "description": "Handpicked luxury hotels and premium cruises for Indian travellers. Personalised travel planning with a 2-hour WhatsApp response guarantee.",
+  "telephone": "+91-98750-73788",
+  "priceRange": "\u20b9\u20b9\u20b9",
+  "areaServed": { "@@type": "Country", "name": "India" },
+  "sameAs": ["https://wa.me/919875073788"],
+  "openingHoursSpecification": {
+    "@@type": "OpeningHoursSpecification",
+    "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
+    "opens": "10:00",
+    "closes": "19:00"
+  }
+}
+</script>
+@endpush
+
 @section('content')
 
 <!-- ===========================
@@ -98,7 +126,9 @@
                 class="cat-card">
 
                 <img src="{{ asset('assets/images/29788-15-hotel_carousel_large.jpg') }}"
-                    alt="Hotels">
+                    alt="Luxury hotel exterior with pool"
+                    width="600" height="400"
+                    loading="lazy">
 
                 <div class="cat-overlay">
 
@@ -118,7 +148,9 @@
                 class="cat-card">
 
                 <img src="{{ asset('assets/images/cruise-ship-is-docked-night-with-word-cruise-side_916191-10755.jpg') }}"
-                    alt="Cruises">
+                    alt="Luxury cruise ship docked at night"
+                    width="600" height="400"
+                    loading="lazy">
 
                 <div class="cat-overlay">
 
@@ -239,19 +271,19 @@
         </div>
         <div class="items-grid">
             <a href="{{ url('/hotels') }}" class="item-card">
-                <img src="{{ asset('assets/images/Hotel Collections 1.webp') }}" alt="Beach Resorts">
+                <img src="{{ asset('assets/images/Hotel Collections 1.webp') }}" alt="Beach resort with overwater villas" width="400" height="300" loading="lazy">
                 <div class="item-info"><h4>Beach Resorts</h4></div>
             </a>
             <a href="{{ url('/hotels') }}" class="item-card">
-                <img src="{{ asset('assets/images/Hotel Collections 2.jpg') }}" alt="City Luxury Hotels">
+                <img src="{{ asset('assets/images/Hotel Collections 2.jpg') }}" alt="City luxury hotel lobby" width="400" height="300" loading="lazy">
                 <div class="item-info"><h4>City Luxury Hotels</h4></div>
             </a>
             <a href="{{ url('/hotels') }}" class="item-card">
-                <img src="{{ asset('assets/images/Hotel Collections 3.jpg') }}" alt="Honeymoon Stays">
+                <img src="{{ asset('assets/images/Hotel Collections 3.jpg') }}" alt="Romantic honeymoon resort suite" width="400" height="300" loading="lazy">
                 <div class="item-info"><h4>Honeymoon Stays</h4></div>
             </a>
             <a href="{{ url('/hotels') }}" class="item-card">
-                <img src="{{ asset('assets/images/Hotel Collections 4.png') }}" alt="Family Friendly">
+                <img src="{{ asset('assets/images/Hotel Collections 4.png') }}" alt="Family-friendly hotel with pool area" width="400" height="300" loading="lazy">
                 <div class="item-info"><h4>Family Friendly</h4></div>
             </a>
         </div>
@@ -270,15 +302,15 @@
         </div>
         <div class="items-grid cruise-grid">
             <a href="{{ url('/cruises') }}" class="item-card cruise-card">
-                <img src="{{ asset('assets/images/Cruise Experiences 1.webp') }}" alt="Scenic Getaways">
+                <img src="{{ asset('assets/images/Cruise Experiences 1.webp') }}" alt="Scenic coastal cruise getaway" width="400" height="300" loading="lazy">
                 <div class="item-info"><h4>Scenic Getaways</h4></div>
             </a>
             <a href="{{ url('/cruises') }}" class="item-card cruise-card">
-                <img src="{{ asset('assets/images/Cruise Experiences 2.png') }}" alt="Luxury Cruises">
+                <img src="{{ asset('assets/images/Cruise Experiences 2.png') }}" alt="Luxury cruise ship on open ocean" width="400" height="300" loading="lazy">
                 <div class="item-info"><h4>Luxury Cruises</h4></div>
             </a>
             <a href="{{ url('/cruises') }}" class="item-card cruise-card">
-                <img src="{{ asset('assets/images/Cruise Experiences 3.webp') }}" alt="International Cruises">
+                <img src="{{ asset('assets/images/Cruise Experiences 3.webp') }}" alt="International cruise at sea" width="400" height="300" loading="lazy">
                 <div class="item-info"><h4>International Cruises</h4></div>
             </a>
         </div>
@@ -313,7 +345,7 @@
                     <p class="test-quote">Amazing experience!</p>
                 </div>
                 <div class="test-user">
-                    <img src="https://i.pravatar.cc/150?u=user{{ $i }}" alt="User {{ $i }}">
+                    <img src="https://i.pravatar.cc/150?u=user{{ $i }}" alt="Testimonial from traveller {{ $i }}" width="48" height="48" loading="lazy">
                     <div class="test-user-info">
                         <h5>User {{ $i }}</h5>
                         <span>Location</span>

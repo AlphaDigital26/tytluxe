@@ -1,5 +1,46 @@
 @extends('layouts.frontend')
 
+@section('meta_title', 'FAQs — Frequently Asked Questions | TYT Luxe Travel')
+@section('meta_description', 'Find answers to common questions about booking luxury hotels and cruises with TYT Luxe. Learn about our booking process, cancellation policy, vegetarian options, visa assistance and more.')
+
+@push('scripts')
+<script type="application/ld+json">
+{
+  "@@context": "https://schema.org",
+  "@@type": "FAQPage",
+  "name": "TYT Luxe — Frequently Asked Questions",
+  "url": "https://tytluxe.in/faqs",
+  "mainEntity": [
+    {
+      "@@type": "Question",
+      "name": "How do I make a booking with TYT Luxe?",
+      "acceptedAnswer": { "@@type": "Answer", "text": "You can make a booking by exploring our curated packages and submitting an enquiry form, or by contacting our travel experts directly via phone or WhatsApp. We typically respond within 2 hours." }
+    },
+    {
+      "@@type": "Question",
+      "name": "Do you offer customised travel itineraries?",
+      "acceptedAnswer": { "@@type": "Answer", "text": "Yes, we specialise in creating bespoke travel itineraries tailored to your specific preferences, whether you are looking for a romantic honeymoon, a family vacation, or an adventure trip." }
+    },
+    {
+      "@@type": "Question",
+      "name": "Are vegetarian and Jain food options available on international trips?",
+      "acceptedAnswer": { "@@type": "Answer", "text": "Absolutely. We understand the dietary needs of Indian travellers and work closely with hotels and cruise lines to ensure vegetarian and Jain meal options are available." }
+    },
+    {
+      "@@type": "Question",
+      "name": "What is your cancellation policy?",
+      "acceptedAnswer": { "@@type": "Answer", "text": "Our cancellation policy varies depending on the specific booking, hotel, and airline involved. Please review our Cancellation Policy page or speak to our travel experts for detailed information." }
+    },
+    {
+      "@@type": "Question",
+      "name": "Can you assist with visa applications?",
+      "acceptedAnswer": { "@@type": "Answer", "text": "Yes, we provide guidance and support for visa applications for most international destinations to ensure a smooth and hassle-free travel experience." }
+    }
+  ]
+}
+</script>
+@endpush
+
 @push('styles')
 <style>
 *, *::before, *::after { box-sizing: border-box; }
