@@ -16,4 +16,11 @@ class ListPackages extends ListRecords
             CreateAction::make(),
         ];
     }
+
+    protected function getFooterWidgets(): array
+    {
+        return [
+            \App\Filament\Resources\Packages\Widgets\DraftPackageWidget::class,
+        ];
+    }
 }

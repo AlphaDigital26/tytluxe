@@ -258,21 +258,45 @@ body { background: var(--dark); color: #fff; }
   border-radius: 12px; max-height: 280px; object-fit: cover;
 }
 
-/* ===== NEARBY ATTRACTIONS ===== */
-.hd-nearby-list {
-  display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;
+/* ===== PLACES SECTIONS (Nearby, Restaurants, Top Attractions) ===== */
+.hd-places-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
 }
-.hd-nearby-item {
-  background: var(--dark-2); border: 1px solid rgba(255,255,255,0.07);
-  border-radius: 10px; padding: 14px 18px;
-  font-family: 'Jost', sans-serif; font-size: 13.5px; color: var(--white-80);
-  display: flex; align-items: center; gap: 10px;
-  transition: border-color var(--tr);
+.hd-place-card {
+  background: var(--dark-2);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 12px; padding: 16px;
+  display: flex; align-items: flex-start; gap: 12px;
+  transition: border-color var(--tr), box-shadow var(--tr);
+  cursor: default;
 }
-.hd-nearby-item:hover { border-color: var(--gold-dim); }
-.hd-nearby-item::before {
-  content: '📍'; font-size: 14px; flex-shrink: 0;
+.hd-place-card:hover {
+  border-color: rgba(201,168,76,0.35);
+  box-shadow: 0 4px 20px rgba(201,168,76,0.08);
 }
+.hd-place-icon {
+  width: 36px; height: 36px; border-radius: 8px;
+  background: rgba(201,168,76,0.12);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; flex-shrink: 0; margin-top: 1px;
+}
+.hd-place-info { flex: 1; min-width: 0; }
+.hd-place-name {
+  font-family: 'Jost', sans-serif; font-size: 13px; font-weight: 500;
+  color: var(--white-80); line-height: 1.4;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.hd-place-dist {
+  font-family: 'Jost', sans-serif; font-size: 11.5px; font-weight: 300;
+  color: var(--gold); margin-top: 3px; letter-spacing: 0.02em;
+}
+/* Top-attraction cards get a gold left-border accent */
+.hd-place-card.top {
+  border-left: 2px solid rgba(201,168,76,0.45);
+}
+.hd-place-card.top:hover { border-left-color: var(--gold); }
+@media (max-width: 1024px) { .hd-places-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 500px)  { .hd-places-grid { grid-template-columns: 1fr; } }
 
 /* ===== STICKY BOOKING CARD ===== */
 .hd-book-card {
@@ -533,8 +557,10 @@ body { background: var(--dark); color: #fff; }
   $ratingLabel  = $stars >= 5 ? 'Exceptional' : ($stars >= 4 ? 'Excellent' : ($stars >= 3 ? 'Very Good' : 'Good'));
   // Room categories — stored as newline-separated text in DB
   $roomCats     = array_filter(array_map('trim', explode("\n", $hotel->room_categories ?? '')));
-  // Nearby attractions — stored as newline-separated text in DB
-  $nearbyAttr   = array_filter(array_map('trim', explode("\n", $hotel->nearby_attractions ?? '')));
+  // Nearby attractions, restaurants & top attractions — stored as newline-separated text in DB
+  $nearbyAttr       = array_filter(array_map('trim', explode("\n", $hotel->nearby_attractions   ?? '')));
+  $restaurantsCafes = array_filter(array_map('trim', explode("\n", $hotel->restaurants_cafes   ?? '')));
+  $topAttractions   = array_filter(array_map('trim', explode("\n", $hotel->top_attractions     ?? '')));
   // Category badge label
   $catLabels = [
     'beach_resort'    => 'Beach Resort',
@@ -778,13 +804,86 @@ body { background: var(--dark); color: #fff; }
     </div>
     @endif
 
-    <!-- Nearby Attractions -->
+    <!-- ===== NEARBY ATTRACTIONS ===== -->
     @if(count($nearbyAttr) > 0)
     <div class="hd-section">
-      <h2 class="hd-section-title">Nearby Attractions</h2>
-      <div class="hd-nearby-list">
+      <h2 class="hd-section-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="color:var(--gold);flex-shrink:0;">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+        </svg>
+        Nearby Attractions
+      </h2>
+      <div class="hd-places-grid">
         @foreach($nearbyAttr as $attr)
-          <div class="hd-nearby-item">{{ $attr }}</div>
+          @php
+            // Split "Name (dist)" or "Name — dist" or "Name - dist" into name + distance
+            $parts = preg_split('/\s*[\(\-—]\s*/', $attr, 2);
+            $placeName = trim($parts[0]);
+            $placeDist = isset($parts[1]) ? trim(rtrim($parts[1], ')')) : '';
+          @endphp
+          <div class="hd-place-card">
+            <div class="hd-place-icon">📍</div>
+            <div class="hd-place-info">
+              <div class="hd-place-name" title="{{ $placeName }}">{{ $placeName }}</div>
+              @if($placeDist)<div class="hd-place-dist">{{ $placeDist }}</div>@endif
+            </div>
+          </div>
+        @endforeach
+      </div>
+    </div>
+    @endif
+
+    <!-- ===== RESTAURANTS & CAFÉS ===== -->
+    @if(count($restaurantsCafes) > 0)
+    <div class="hd-section">
+      <h2 class="hd-section-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="color:var(--gold);flex-shrink:0;">
+          <path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/>
+        </svg>
+        Restaurants &amp; Caf&eacute;s
+      </h2>
+      <div class="hd-places-grid">
+        @foreach($restaurantsCafes as $item)
+          @php
+            $parts = preg_split('/\s*[\(\-—]\s*/', $item, 2);
+            $placeName = trim($parts[0]);
+            $placeDist = isset($parts[1]) ? trim(rtrim($parts[1], ')')) : '';
+          @endphp
+          <div class="hd-place-card">
+            <div class="hd-place-icon">🍽️</div>
+            <div class="hd-place-info">
+              <div class="hd-place-name" title="{{ $placeName }}">{{ $placeName }}</div>
+              @if($placeDist)<div class="hd-place-dist">{{ $placeDist }}</div>@endif
+            </div>
+          </div>
+        @endforeach
+      </div>
+    </div>
+    @endif
+
+    <!-- ===== TOP ATTRACTIONS ===== -->
+    @if(count($topAttractions) > 0)
+    <div class="hd-section">
+      <h2 class="hd-section-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="color:var(--gold);flex-shrink:0;">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+        </svg>
+        Top Attractions
+      </h2>
+      <div class="hd-places-grid">
+        @foreach($topAttractions as $item)
+          @php
+            $parts = preg_split('/\s*[\(\-—]\s*/', $item, 2);
+            $placeName = trim($parts[0]);
+            $placeDist = isset($parts[1]) ? trim(rtrim($parts[1], ')')) : '';
+          @endphp
+          <div class="hd-place-card top">
+            <div class="hd-place-icon">🏛️</div>
+            <div class="hd-place-info">
+              <div class="hd-place-name" title="{{ $placeName }}">{{ $placeName }}</div>
+              @if($placeDist)<div class="hd-place-dist">{{ $placeDist }}</div>@endif
+            </div>
+          </div>
         @endforeach
       </div>
     </div>

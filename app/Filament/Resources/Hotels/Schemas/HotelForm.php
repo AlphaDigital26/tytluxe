@@ -156,6 +156,20 @@ class HotelForm
                                     ->columnSpanFull()
                                     ->rows(3)
                                     ->nullable(),
+
+                                Textarea::make('restaurants_cafes')
+                                    ->label('Restaurants & Cafés Nearby')
+                                    ->helperText('Enter one restaurant or café per line — e.g. Café Mocha (500 m)')
+                                    ->columnSpanFull()
+                                    ->rows(3)
+                                    ->nullable(),
+
+                                Textarea::make('top_attractions')
+                                    ->label('Top Attractions Nearby')
+                                    ->helperText('Enter one top attraction per line — e.g. Gateway of India (1.2 km)')
+                                    ->columnSpanFull()
+                                    ->rows(3)
+                                    ->nullable(),
                             ]),
 
                         Tab::make('Photos')
