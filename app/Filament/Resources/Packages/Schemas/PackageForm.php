@@ -125,6 +125,11 @@ class PackageForm
                                 ->placeholder('Type a city and press Enter  —  e.g.  Delhi')
                                 ->helperText('The cities from which the trip begins. Press Enter after each city.'),
 
+                            TagsInput::make('arrival_cities')
+                                ->label('Arrival Cities')
+                                ->placeholder('Type a city and press Enter  —  e.g.  Manali')
+                                ->helperText('The cities where the trip ends. Press Enter after each city.'),
+
                             TextInput::make('meals_info')
                                 ->label('Meals Included')
                                 ->placeholder('e.g.  2 Breakfasts + 2 Dinners  (MAP AI)')
