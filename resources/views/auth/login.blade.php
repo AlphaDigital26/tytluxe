@@ -133,7 +133,7 @@
                 <div class="auth-form-group">
                     <label>EMAIL</label>
                     <div class="auth-input-wrapper">
-                        <input type="email" name="email" placeholder="mail@site.com" required value="{{ old('email') }}">
+                        <input type="email" name="email" placeholder="abc@gmail.com" required value="{{ old('email') }}">
                     </div>
                     @error('email')
                         <span class="auth-error-msg">{{ $message }}</span>

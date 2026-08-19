@@ -143,7 +143,7 @@
                 <div class="auth-form-group">
                     <label>FULL NAME</label>
                     <div class="auth-input-wrapper">
-                        <input type="text" name="name" placeholder="John Doe" required value="{{ old('name') }}">
+                        <input type="text" name="name" placeholder="Name" required value="{{ old('name') }}">
                     </div>
                     @error('name')
                         <span class="auth-error-msg">{{ $message }}</span>
@@ -153,7 +153,7 @@
                 <div class="auth-form-group">
                     <label>EMAIL</label>
                     <div class="auth-input-wrapper">
-                        <input type="email" name="email" placeholder="mail@site.com" required value="{{ old('email') }}">
+                        <input type="email" name="email" placeholder="abc@gmail.com" required value="{{ old('email') }}">
                     </div>
                     @error('email')
                         <span class="auth-error-msg">{{ $message }}</span>
