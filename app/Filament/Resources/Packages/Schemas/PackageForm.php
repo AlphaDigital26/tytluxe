@@ -16,6 +16,7 @@ use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Str;
+use Illuminate\Support\HtmlString;
 
 class PackageForm
 {
@@ -24,6 +25,7 @@ class PackageForm
         return $schema->components([
 
             Tabs::make('Package Details')
+                ->persistTabInQueryString()
                 ->tabs([
 
                     // ──────────────────────────────────────────────────────────
@@ -411,7 +413,7 @@ class PackageForm
                                 ->columnSpanFull(),
 
                             FileUpload::make('itinerary_pdf')
-                                        ->label('Itinerary PDF')
+                                        ->label(new HtmlString('Itinerary PDF <span style="color: red; font-weight: 600; margin-left: 0.5rem;">(Max file size: 15 MB)</span>'))
                                         ->helperText('Upload the full PDF brochure. Guests can click "Download Itinerary" on the package page to get this file.')
                                         ->acceptedFileTypes(['application/pdf'])
                                         ->directory('itineraries')
