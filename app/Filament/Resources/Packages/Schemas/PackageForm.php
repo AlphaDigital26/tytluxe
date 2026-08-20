@@ -489,6 +489,7 @@ class PackageForm
             'fa-solid fa-umbrella-beach'  => '🏖️   Beach / Coastal',
             'fa-solid fa-landmark'        => '🏛️   Heritage / Culture / Temple',
             'fa-solid fa-map-marked-alt'  => '🗺️   Guided Sightseeing',
+            'fa-solid fa-mountain-sun'    => '⛰️   Hill Station',
             'fa-solid fa-star'            => '⭐   General Highlight',
         ];
     }
