@@ -602,7 +602,7 @@
               </a>
               @if($package->itinerary_pdf)
                 @auth
-                  <a href="{{ route('package.download', ['id' => $package->id]) }}" class="pd-btn-outline" target="_blank" download>
+                  <a href="{{ route('package.download', ['slug' => $package->slug]) }}" class="pd-btn-outline" target="_blank" download>
                     <i class="fa-solid fa-download"></i> Download Itinerary
                   </a>
                 @else
@@ -715,7 +715,7 @@
     @if($hasBooked)
       <div class="pd-review-form" style="max-width:700px;margin:0 auto 40px;">
         <h3>Write a Review</h3>
-        <form action="{{ route('package.reviews.store', $package->id) }}" method="POST" enctype="multipart/form-data">
+        <form action="{{ route('package.reviews.store', $package->slug) }}" method="POST" enctype="multipart/form-data">
           @csrf
           
           <div class="pd-form-group">
@@ -838,7 +838,7 @@
     <span onclick="document.getElementById('itineraryDownloadModal').style.display='none'" style="position: absolute; top: 15px; right: 25px; font-size: 28px; cursor: pointer; color: var(--gold);">&times;</span>
     <h3 style="color: var(--gold); margin-bottom: 15px; font-family: 'Cinzel', serif; font-size: 1.5rem;">Download Itinerary</h3>
     <p style="color: var(--white-80); margin-bottom: 25px; font-size: 0.95rem; line-height: 1.5;">Please enter your email address to download the detailed itinerary for this package.</p>
-    <form action="{{ route('package.download.guest', $package->id) }}" method="POST">
+    <form action="{{ route('package.download.guest', $package->slug) }}" method="POST">
       @csrf
       <input type="email" name="email" required placeholder="Your Email Address" style="width: 100%; padding: 14px; margin-bottom: 20px; background: rgba(255,255,255,0.05); border: 1px solid var(--white-20); color: #fff; border-radius: 4px; font-family: 'Jost', sans-serif;">
       <button type="submit" class="pd-btn" style="width: 100%; cursor: pointer;">Download Now</button>

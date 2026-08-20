@@ -142,7 +142,7 @@ class FrontendController extends Controller
         return view('pages.packages', compact('packages'));
     }
 
-    public function packageDetails($id)
+    public function packageDetails($slug)
     {
         $package = \App\Models\Package::with([
             'destination',
@@ -152,7 +152,7 @@ class FrontendController extends Controller
             'itineraryDays',
             'highlights',
             'reviews' => fn ($q) => $q->where('is_published', true),
-        ])->findOrFail($id);
+        ])->where('slug', $slug)->firstOrFail();
 
         return view('pages.package-details', compact('package'));
     }
@@ -230,9 +230,9 @@ class FrontendController extends Controller
 
         return view('pages.blog', compact('categories', 'trendingPosts', 'posts', 'destinations'));
     }
-    public function downloadItinerary($id)
+    public function downloadItinerary($slug)
     {
-        $package = \App\Models\Package::findOrFail($id);
+        $package = \App\Models\Package::where('slug', $slug)->firstOrFail();
 
         if (!$package->itinerary_pdf || !Storage::disk('public')->exists($package->itinerary_pdf)) {
             abort(404, 'Itinerary PDF not found.');
@@ -242,13 +242,13 @@ class FrontendController extends Controller
         return Storage::disk('public')->download($package->itinerary_pdf, $filename);
     }
 
-    public function guestDownloadItinerary(Request $request, $id)
+    public function guestDownloadItinerary(Request $request, $slug)
     {
         $request->validate([
             'email' => 'required|email'
         ]);
 
-        $package = \App\Models\Package::findOrFail($id);
+        $package = \App\Models\Package::where('slug', $slug)->firstOrFail();
 
         if (!$package->itinerary_pdf || !Storage::disk('public')->exists($package->itinerary_pdf)) {
             abort(404, 'Itinerary PDF not found.');
@@ -258,9 +258,9 @@ class FrontendController extends Controller
         return Storage::disk('public')->download($package->itinerary_pdf, $filename);
     }
 
-    public function storeReview(Request $request, $id)
+    public function storeReview(Request $request, $slug)
     {
-        $package = \App\Models\Package::findOrFail($id);
+        $package = \App\Models\Package::where('slug', $slug)->firstOrFail();
 
         $request->validate([
             'rating' => 'required|integer|min:1|max:5',
