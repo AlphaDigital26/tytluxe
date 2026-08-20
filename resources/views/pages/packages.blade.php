@@ -471,7 +471,7 @@
                         @endif
                       </div>
                       <div class="dest-meta-row" style="margin-top: 4px;">
-                        <span class="dest-meta-price" style="color:var(--gold);">From ₹{{ number_format($pkg->price_from) }}</span>
+                        <span class="dest-meta-price" style="color:var(--gold);">From ₹{{ number_format($pkg->price_from) }} <span style="font-size: 10px; font-weight: 400; color: var(--white-60); margin-left: 4px;">(inclusive of all taxes)</span></span>
                       </div>
                     </div>
                     <div class="dest-card-cta">Explore Package <i class="fa-solid fa-arrow-right"></i></div>
@@ -560,7 +560,7 @@
                         @endif
                       </div>
                       <div class="dest-meta-row" style="margin-top: 4px;">
-                        <span class="dest-meta-price" style="color:var(--gold);">From ₹{{ number_format($pkg->price_from) }}</span>
+                        <span class="dest-meta-price" style="color:var(--gold);">From ₹{{ number_format($pkg->price_from) }} <span style="font-size: 10px; font-weight: 400; color: var(--white-60); margin-left: 4px;">(inclusive of all taxes)</span></span>
                       </div>
                     </div>
                     <div class="dest-card-cta">Explore Package <i class="fa-solid fa-arrow-right"></i></div>

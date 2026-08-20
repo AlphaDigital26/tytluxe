@@ -162,7 +162,7 @@ class FrontendController extends Controller
         $s = fn (string $key, mixed $default = '') => Setting::get($key, $default);
         $j = fn (string $key, mixed $default = []) => Setting::getJson($key, $default);
 
-        // Hero
+        // ── Hero ──────────────────────────────────────────────────────
         $heroEyebrow  = $s('offers_page.hero_eyebrow',  'Limited Time Deals');
         $heroTitle    = $s('offers_page.hero_title',    'Exclusive Deals. <em>Unforgettable</em> Experiences.');
         $heroSubtitle = $s('offers_page.hero_subtitle', 'Handpicked offers on hotels, cruises & flights — updated regularly');
@@ -183,30 +183,57 @@ class FrontendController extends Controller
             ];
         }
 
-        // Filter tabs
+        // ── Filter Tabs ───────────────────────────────────────────────
         $filterTabs = $j('offers_page.filter_tabs', [
-            ['key' => 'all', 'label' => 'All Offers'],
-            ['key' => 'hotels', 'label' => 'Hotels'],
-            ['key' => 'cruises', 'label' => 'Cruises'],
-            ['key' => 'flights', 'label' => 'Flights'],
+            ['key' => 'all',       'label' => 'All Offers'],
+            ['key' => 'hotels',    'label' => 'Hotels'],
+            ['key' => 'cruises',   'label' => 'Cruises'],
+            ['key' => 'flights',   'label' => 'Flights'],
             ['key' => 'honeymoon', 'label' => 'Honeymoon'],
-            ['key' => 'family', 'label' => 'Family'],
+            ['key' => 'family',    'label' => 'Family'],
         ]);
 
-        // Categories — resolve card images
-        $categories = array_map(function ($cat) {
-            $cat['cards'] = array_map(function ($card) {
-                if (!empty($card['image_path']) && Storage::disk('public')->exists($card['image_path'])) {
-                    $card['resolved_image'] = Storage::disk('public')->url($card['image_path']);
-                } else {
-                    $card['resolved_image'] = $card['image_url'] ?? null;
-                }
-                return $card;
-            }, $cat['cards'] ?? []);
-            return $cat;
-        }, $j('offers_page.categories', []));
+        // ── Offer Cards from Database ─────────────────────────────────
+        // Pull all active, non-expired offers ordered by sort_order.
+        // Group them by category_key so the blade can render each slider.
+        $dbOffers = \App\Models\Offer::active()
+            ->orderBy('category_key')
+            ->orderBy('sort_order')
+            ->orderBy('created_at')
+            ->get();
 
-        // Bottom CTA
+        // Build the $categories array in the same shape the blade expects.
+        $grouped = $dbOffers->groupBy('category_key');
+
+        $categories = $grouped->map(function ($offers, $catKey) {
+            // Use slider_label / slider_title from the first offer in the group
+            $first = $offers->first();
+
+            $cards = $offers->map(function ($offer) {
+                return [
+                    'name'           => $offer->title,
+                    'subtitle'       => $offer->subtitle,
+                    'price'          => $offer->display_price,
+                    'enquire_link'   => $offer->enquire_link,
+                    'badge_label'    => $offer->badge_label,
+                    'badge_type'     => $offer->badge_type ?? 'badge-gold',
+                    'coming_soon'    => (bool) $offer->coming_soon,
+                    'resolved_image' => $offer->resolved_image,
+                    // Keep raw values for any future use
+                    'image_path'     => $offer->image_path,
+                    'image_url'      => $offer->image_url,
+                ];
+            })->values()->toArray();
+
+            return [
+                'category_key'  => $catKey,
+                'slider_label'  => $first->slider_label,
+                'slider_title'  => $first->slider_title,
+                'cards'         => $cards,
+            ];
+        })->values()->toArray();
+
+        // ── Bottom CTA ────────────────────────────────────────────────
         $ctaTag        = $s('offers_page.cta_tag',         'Stay Ahead');
         $ctaHeading    = $s('offers_page.cta_heading',     'Be the First to <em>Know</em>');
         $ctaBody       = $s('offers_page.cta_body',        "Drop your WhatsApp number and we'll notify you the moment a new deal goes live — no spam, ever.");
@@ -245,7 +272,9 @@ class FrontendController extends Controller
     public function guestDownloadItinerary(Request $request, $id)
     {
         $request->validate([
-            'email' => 'required|email'
+            'name' => 'required|string|max:255',
+            'phone' => 'required|string|max:20',
+            'email' => 'required|email|max:255'
         ]);
 
         $package = \App\Models\Package::findOrFail($id);
@@ -253,6 +282,13 @@ class FrontendController extends Controller
         if (!$package->itinerary_pdf || !Storage::disk('public')->exists($package->itinerary_pdf)) {
             abort(404, 'Itinerary PDF not found.');
         }
+
+        \App\Models\ItineraryDownload::create([
+            'package_id'   => $package->id,
+            'name'         => $request->name,
+            'phone'        => $request->phone,
+            'email'        => $request->email,
+        ]);
 
         $filename = ($package->slug ?? 'package') . '-itinerary.pdf';
         return Storage::disk('public')->download($package->itinerary_pdf, $filename);

@@ -62,7 +62,7 @@ class BlogPostsTable
                     ->sortable(),
 
                 TextColumn::make('created_at')
-                    ->dateTime()
+                    ->dateTime('M j, Y h:i A')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
