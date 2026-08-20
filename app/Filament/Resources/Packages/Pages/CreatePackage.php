@@ -23,6 +23,15 @@ class CreatePackage extends CreateRecord
 
         if ($draft && is_array($draft)) {
             $this->form->fill($draft);
+
+            // Relationship fields get wiped by the form->fill() on Create pages.
+            // We must manually re-hydrate them by setting their state explicitly.
+            $fields = $this->form->getFlatFields();
+            foreach (['highlights', 'itineraryDays', 'departures', 'inclusions', 'exclusions', 'images', 'amenities'] as $key) {
+                if (isset($draft[$key]) && isset($fields[$key])) {
+                    $fields[$key]->state($draft[$key]);
+                }
+            }
         }
     }
 
