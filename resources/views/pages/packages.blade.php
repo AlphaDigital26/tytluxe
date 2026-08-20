@@ -652,7 +652,7 @@ foreach($packages as $p) {
         'country'   => $p->destination?->name,
         'image'     => $p->hero_image_url,
         'inclusions'=> $p->inclusions->map(fn($i) => $i->label ?? $i->name ?? $i->title)->filter()->values()->toArray(),
-        'detailUrl' => route('package.details', ['id' => $p->id]),
+        'detailUrl' => route('package.details', ['slug' => $p->slug]),
     ];
 }
 @endphp

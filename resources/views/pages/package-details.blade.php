@@ -602,7 +602,7 @@
               </a>
               @if($package->itinerary_pdf)
                 @auth
-                  <a href="{{ route('package.download', ['id' => $package->id]) }}" class="pd-btn-outline" target="_blank" download>
+                  <a href="{{ route('package.download', ['slug' => $package->slug]) }}" class="pd-btn-outline" target="_blank" download>
                     <i class="fa-solid fa-download"></i> Download Itinerary
                   </a>
                 @else
@@ -715,7 +715,7 @@
     @if($hasBooked)
       <div class="pd-review-form" style="max-width:700px;margin:0 auto 40px;">
         <h3>Write a Review</h3>
-        <form action="{{ route('package.reviews.store', $package->id) }}" method="POST" enctype="multipart/form-data">
+        <form action="{{ route('package.reviews.store', $package->slug) }}" method="POST" enctype="multipart/form-data">
           @csrf
           
           <div class="pd-form-group">
