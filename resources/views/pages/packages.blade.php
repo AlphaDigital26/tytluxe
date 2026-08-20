@@ -1,7 +1,7 @@
 @extends('layouts.frontend')
 
-@section('meta_title', 'Travel Packages — Domestic & International Holiday Packages | TYT Luxe')
-@section('meta_description', 'Discover curated domestic and international travel packages with TYT Luxe. Honeymoon specials, family packages, adventure trips and luxury getaways — all tailored for Indian travellers.')
+@section('meta_title', 'Travel Packages â€” Domestic & International Holiday Packages | TYT Luxe')
+@section('meta_description', 'Discover curated domestic and international travel packages with TYT Luxe. Honeymoon specials, family packages, adventure trips and luxury getaways â€” all tailored for Indian travellers.')
 
 @push('styles')
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -388,7 +388,7 @@
       <div class="pkg-header">
         <div class="pkg-eyebrow">Our Collection</div>
         <h1 class="pkg-title">Discover <em>Your Next</em> Adventure</h1>
-        <p class="pkg-desc">Choose your journey — explore iconic international destinations or uncover the hidden gems of incredible India.</p>
+        <p class="pkg-desc">Choose your journey â€” explore iconic international destinations or uncover the hidden gems of incredible India.</p>
       </div>
 
       <!-- CATEGORY TABS -->
@@ -441,7 +441,20 @@
                     <div class="dest-card-meta">
                       <div class="dest-meta-row">
                         <span class="dest-meta-item"><i class="fa-regular fa-clock"></i> {{ $pkg->duration_nights }}N/{{ $pkg->duration_nights + 1 }}D</span>
-                        <span class="dest-meta-item"><i class="fa-solid fa-location-dot"></i> {{ !empty($pkg->departure_from) ? (is_array($pkg->departure_from) ? implode(', ', $pkg->departure_from) : $pkg->departure_from) : 'Delhi' }} - {{ $pkg->destination?->name }}</span>
+                        @php
+                          $dep = !empty($pkg->departure_from) ? (is_array($pkg->departure_from) ? implode(', ', $pkg->departure_from) : $pkg->departure_from) : null;
+                          $arr = !empty($pkg->arrival_cities) ? (is_array($pkg->arrival_cities) ? implode(', ', $pkg->arrival_cities) : $pkg->arrival_cities) : $pkg->destination?->name;
+                        @endphp
+                        <span class="dest-meta-item">
+                          <i class="fa-solid fa-location-dot"></i> 
+                          @if($dep && $arr)
+                            {{ $dep }} - {{ $arr }}
+                          @elseif($dep)
+                            {{ $dep }}
+                          @elseif($arr)
+                            {{ $arr }}
+                          @endif
+                        </span>
                       </div>
                       <div class="dest-meta-row">
                         @if($pkg->tour_type == 'custom')
@@ -451,14 +464,14 @@
                              $firstDate = $pkg->departures ? ($pkg->departures->where('start_date', '>=', now()->format('Y-m-d'))->sortBy('start_date')->first() ?? $pkg->departures->first()) : null;
                           @endphp
                           @if($firstDate)
-                             <span class="dest-meta-item"><i class="fa-regular fa-calendar"></i> {{ \Carbon\Carbon::parse($firstDate->start_date)->format('d M') }} – {{ \Carbon\Carbon::parse($firstDate->end_date)->format('d M Y') }}</span>
+                             <span class="dest-meta-item"><i class="fa-regular fa-calendar"></i> {{ \Carbon\Carbon::parse($firstDate->start_date)->format('d M') }} â€“ {{ \Carbon\Carbon::parse($firstDate->end_date)->format('d M Y') }}</span>
                           @else
                              <span class="dest-meta-item"><i class="fa-regular fa-calendar"></i> Specific Dates</span>
                           @endif
                         @endif
                       </div>
                       <div class="dest-meta-row" style="margin-top: 4px;">
-                        <span class="dest-meta-price" style="color:var(--gold);">From ₹{{ number_format($pkg->price_from) }}</span>
+                        <span class="dest-meta-price" style="color:var(--gold);">From â‚¹{{ number_format($pkg->price_from) }}</span>
                       </div>
                     </div>
                     <div class="dest-card-cta">Explore Package <i class="fa-solid fa-arrow-right"></i></div>
@@ -517,7 +530,20 @@
                     <div class="dest-card-meta">
                       <div class="dest-meta-row">
                         <span class="dest-meta-item"><i class="fa-regular fa-clock"></i> {{ $pkg->duration_nights }}N/{{ $pkg->duration_nights + 1 }}D</span>
-                        <span class="dest-meta-item"><i class="fa-solid fa-location-dot"></i> {{ !empty($pkg->departure_from) ? (is_array($pkg->departure_from) ? implode(', ', $pkg->departure_from) : $pkg->departure_from) : 'Delhi' }} - {{ $pkg->destination?->name }}</span>
+                        @php
+                          $dep = !empty($pkg->departure_from) ? (is_array($pkg->departure_from) ? implode(', ', $pkg->departure_from) : $pkg->departure_from) : null;
+                          $arr = !empty($pkg->arrival_cities) ? (is_array($pkg->arrival_cities) ? implode(', ', $pkg->arrival_cities) : $pkg->arrival_cities) : $pkg->destination?->name;
+                        @endphp
+                        <span class="dest-meta-item">
+                          <i class="fa-solid fa-location-dot"></i> 
+                          @if($dep && $arr)
+                            {{ $dep }} - {{ $arr }}
+                          @elseif($dep)
+                            {{ $dep }}
+                          @elseif($arr)
+                            {{ $arr }}
+                          @endif
+                        </span>
                       </div>
                       <div class="dest-meta-row">
                         @if($pkg->tour_type == 'custom')
@@ -527,14 +553,14 @@
                              $firstDate = $pkg->departures ? ($pkg->departures->where('start_date', '>=', now()->format('Y-m-d'))->sortBy('start_date')->first() ?? $pkg->departures->first()) : null;
                           @endphp
                           @if($firstDate)
-                             <span class="dest-meta-item"><i class="fa-regular fa-calendar"></i> {{ \Carbon\Carbon::parse($firstDate->start_date)->format('d M') }} – {{ \Carbon\Carbon::parse($firstDate->end_date)->format('d M Y') }}</span>
+                             <span class="dest-meta-item"><i class="fa-regular fa-calendar"></i> {{ \Carbon\Carbon::parse($firstDate->start_date)->format('d M') }} â€“ {{ \Carbon\Carbon::parse($firstDate->end_date)->format('d M Y') }}</span>
                           @else
                              <span class="dest-meta-item"><i class="fa-regular fa-calendar"></i> Specific Dates</span>
                           @endif
                         @endif
                       </div>
                       <div class="dest-meta-row" style="margin-top: 4px;">
-                        <span class="dest-meta-price" style="color:var(--gold);">From ₹{{ number_format($pkg->price_from) }}</span>
+                        <span class="dest-meta-price" style="color:var(--gold);">From â‚¹{{ number_format($pkg->price_from) }}</span>
                       </div>
                     </div>
                     <div class="dest-card-cta">Explore Package <i class="fa-solid fa-arrow-right"></i></div>
@@ -590,7 +616,7 @@
     <div class="pkg-price-row">
       <div>
         <div class="pkg-price-from">Starting From</div>
-        <div class="pkg-price-val"><span class="curr">₹</span><span id="drawerPrice"></span></div>
+        <div class="pkg-price-val"><span class="curr">â‚¹</span><span id="drawerPrice"></span></div>
         <div class="pkg-price-pp">per person</div>
       </div>
       <div class="pkg-duration-badge">
@@ -612,7 +638,7 @@
 </aside>
 
 <script>
-// ─── Package Data ────────────────────────────────────────────────────────────
+// â”€â”€â”€ Package Data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 @php
 $pkgJsonData = [];
 foreach($packages as $p) {
@@ -632,7 +658,7 @@ foreach($packages as $p) {
 @endphp
 const packages = @json($pkgJsonData);
 
-// ─── Tab Switching ────────────────────────────────────────────────────────────
+// â”€â”€â”€ Tab Switching â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function switchTab(cat) {
   document.querySelectorAll('.cat-tab').forEach(t => {
     const active = t.id === 'tab-' + cat;
@@ -685,7 +711,7 @@ function applyFilters(category) {
   });
 }
 
-// ─── Drawer Logic ────────────────────────────────────────────────────────────
+// â”€â”€â”€ Drawer Logic â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function openDrawer(id) {
   const pkg = packages.find(p => p.id == id);
   if (!pkg) return;
@@ -705,7 +731,7 @@ function openDrawer(id) {
     <span class="pkg-drawer-pill"><i class="fa-regular fa-moon"></i> ${pkg.nights} Nights</span>
     <span class="pkg-drawer-pill"><i class="fa-solid fa-sun"></i> ${pkg.nights + 1} Days</span>
     <span class="pkg-drawer-pill"><i class="fa-solid fa-location-dot"></i> ${pkg.country}</span>
-    <span class="pkg-drawer-pill gold"><i class="fa-solid fa-indian-rupee-sign"></i> From ₹${Number(pkg.price).toLocaleString('en-IN')}</span>
+    <span class="pkg-drawer-pill gold"><i class="fa-solid fa-indian-rupee-sign"></i> From â‚¹${Number(pkg.price).toLocaleString('en-IN')}</span>
   `;
 
   // Inclusions
@@ -733,7 +759,7 @@ function closeDrawer() {
 // Close on Escape
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
 
-// ─── Auto-activate tab from navbar dropdown or URL param ──────────────────────
+// â”€â”€â”€ Auto-activate tab from navbar dropdown or URL param â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 (function() {
   // 1. Check sessionStorage (set by navbar dropdown click)
   let tab = sessionStorage.getItem('pkgActiveTab');
@@ -749,7 +775,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(
   }
 })();
 
-// ─── Drag to Scroll for State Filters ─────────────────────────────────────────
+// â”€â”€â”€ Drag to Scroll for State Filters â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 document.querySelectorAll('.state-filter-wrap').forEach(slider => {
   let isDown = false;
   let startX;
@@ -780,4 +806,5 @@ document.querySelectorAll('.state-filter-wrap').forEach(slider => {
 </script>
 
 @endsection
+
 
