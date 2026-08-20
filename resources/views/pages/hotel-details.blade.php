@@ -727,11 +727,10 @@ body { background: var(--dark); color: #fff; }
                 @endif
               </div>
               <div class="hd-room-price">
-                <div class="hd-room-price-val">₹{{ number_format($room->price_per_night) }}<small>/ night</small></div>
                 <div class="hd-room-cancel @if($room->cancellation_policy == 'free_cancellation') text-green @endif">
                   {{ str_replace('_', ' ', Str::title($room->cancellation_policy)) }}
                 </div>
-                <button class="hd-room-btn" onclick="document.getElementById('hdEnquireBtn').click()">Select Room</button>
+                <button class="hd-room-btn" onclick="document.getElementById('hdEnquireBtn').click()">Enquire Room</button>
               </div>
             </div>
           </div>
@@ -900,13 +899,7 @@ body { background: var(--dark); color: #fff; }
 
       <!-- Price -->
       <div class="hd-book-price-row">
-        <span class="hd-book-from">Starting from</span>
-        @if($price > 0)
-          <div class="hd-book-price">₹{{ number_format($price) }}</div>
-          <span class="hd-book-price-note">Per night · All taxes included</span>
-        @else
-          <div class="hd-book-price-req">Price on request</div>
-        @endif
+        <div class="hd-book-price-req" style="margin-bottom: 12px; font-size: 1.3rem;">Price on request</div>
       </div>
 
       <!-- Quick facts -->

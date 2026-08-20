@@ -9,7 +9,7 @@ echo "🚀 Starting deployment process for TYT Luxe..."
 
 # Navigate to the project directory
 # Change this if your project is located elsewhere on the server
-cd /var/www/tytluxe
+cd /var/www/tytluxe.in
 
 # Put application into maintenance mode
 echo "🚧 Putting application into maintenance mode..."
