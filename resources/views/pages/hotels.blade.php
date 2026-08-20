@@ -674,7 +674,6 @@
       <p class="htl-body">We don't just list hotels. We personally vet every property, negotiate the best rates and stay with you from enquiry to check-out. No hidden charges, no last-minute surprises.</p>
       <div class="htl-banner-btns">
         <a href="https://wa.me/919875073788" class="htl-btn-primary" target="_blank">WhatsApp Us Now</a>
-        <a href="#htl-enquiry" class="htl-btn-outline">Send an Enquiry</a>
       </div>
     </div>
     <div class="htl-banner-img">
@@ -682,86 +681,6 @@
     </div>
   </div>
 </div>
-
-<!-- ===================================================
-     ENQUIRY FORM
-=================================================== -->
-<section class="htl-enquiry" id="htl-enquiry">
-  <div class="htl-enquiry-inner">
-    <div class="htl-enquiry-header">
-      <p class="htl-eyebrow">Send an Enquiry</p>
-      <h2 class="htl-title">Tell Us Your <em>Dream Stay</em></h2>
-      <p class="htl-desc">Fill in your details and our travel experts will get back to you within 2 hours with personalised hotel options and the best rates.</p>
-    </div>
-    <div class="htl-divider"><span>✦</span></div>
-
-    <form class="htl-enquiry-form" id="htlEnquiryForm" novalidate>
-
-      <div class="htl-form-group">
-        <label for="htlName">Your Name</label>
-        <input type="text" id="htlName" name="name" placeholder="e.g. Rahul Sharma" required />
-      </div>
-
-      <div class="htl-form-group">
-        <label for="htlPhone">Phone / WhatsApp</label>
-        <input type="tel" id="htlPhone" name="phone" placeholder="e.g. 98765 43210" required />
-      </div>
-
-      <div class="htl-form-group">
-        <label for="htlEmail">Email Address</label>
-        <input type="email" id="htlEmail" name="email" placeholder="e.g. rahul@email.com" />
-      </div>
-
-      <div class="htl-form-group">
-        <label for="htlDestination">Destination</label>
-        <select id="htlDestination" name="destination">
-          <option value="" disabled selected>Select a destination</option>
-          <option>Shimla</option>
-          <option>Manali</option>
-          <option>Kasol</option>
-          <option>Mussoorie</option>
-          <option>Rishikesh</option>
-          <option>Bhimtal</option>
-          <option>Goa</option>
-          <option>Jaipur</option>
-          <option>Udaipur</option>
-          <option>Jibhi</option>
-          <option>Other / Not Sure</option>
-        </select>
-      </div>
-
-      <div class="htl-form-group">
-        <label for="htlCheckin">Check-in Date</label>
-        <input type="date" id="htlCheckin" name="checkin" onclick="this.showPicker()" />
-      </div>
-
-      <div class="htl-form-group">
-        <label for="htlGuests">No. of Guests</label>
-        <select id="htlGuests" name="guests">
-          <option value="" disabled selected>Select guests</option>
-          <option>1 Guest</option>
-          <option>2 Guests</option>
-          <option>3 Guests</option>
-          <option>4 Guests</option>
-          <option>5+ Guests</option>
-        </select>
-      </div>
-
-      <div class="htl-form-group full">
-        <label for="htlMessage">Additional Requirements</label>
-        <textarea id="htlMessage" name="message" placeholder="Any specific requests, budget range, room preferences, special occasions..."></textarea>
-      </div>
-
-      <div class="htl-form-submit-row">
-        <span class="htl-form-note">We typically respond within 2 hours — No spam, ever.</span>
-        <button type="submit" class="htl-form-btn">
-          Send Enquiry
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
-        </button>
-      </div>
-    </form>
-  </div>
-</section>
 
 <!-- ===================================================
      CTA STRIP
