@@ -405,7 +405,7 @@
       <div class="cat-panel active" id="panel-domestic" role="tabpanel" aria-labelledby="tab-domestic">
         
         @php
-          $domesticStates = $packages->where('region_type', 'domestic')->pluck('destination.name')->unique();
+          $domesticStates = $packages->where('region_type', 'domestic')->pluck('destination.name')->filter()->unique();
         @endphp
         @if($domesticStates->count() > 0)
         <div class="state-filter-wrap">
@@ -427,7 +427,7 @@
               <h3 class="pkg-title" style="font-size: 1.8rem; margin: 40px 0 20px; text-align: left;">{{ $title }}</h3>
               <div class="dest-grid type-section-grid" data-tour-type="{{ $type }}">
                 @foreach($typePackages as $pkg)
-                <div class="dest-card" data-state="{{ Str::slug($pkg->destination->name) }}" onclick="openDrawer({{ $pkg->id }})" tabindex="0" role="button"
+                <div class="dest-card" data-state="{{ Str::slug($pkg->destination?->name) }}" onclick="openDrawer({{ $pkg->id }})" tabindex="0" role="button"
                   aria-label="View {{ $pkg->title }} package details"
                   onkeydown="if(event.key==='Enter'||event.key===' ') openDrawer({{ $pkg->id }})">
                   <div class="dest-card-img" style="background-image: url('{{ $pkg->hero_image_url }}')"></div>
@@ -435,13 +435,13 @@
                   <div class="dest-card-overlay"></div>
                   <div class="dest-card-content">
                     <div class="dest-card-country">
-                      <i class="fa-solid fa-location-dot"></i> {{ $pkg->destination->name }}
+                      <i class="fa-solid fa-location-dot"></i> {{ $pkg->destination?->name }}
                     </div>
                     <div class="dest-card-name">{{ $pkg->title }}</div>
                     <div class="dest-card-meta">
                       <div class="dest-meta-row">
                         <span class="dest-meta-item"><i class="fa-regular fa-clock"></i> {{ $pkg->duration_nights }}N/{{ $pkg->duration_nights + 1 }}D</span>
-                        <span class="dest-meta-item"><i class="fa-solid fa-location-dot"></i> {{ !empty($pkg->departure_from) ? (is_array($pkg->departure_from) ? implode(', ', $pkg->departure_from) : $pkg->departure_from) : 'Delhi' }} - {{ $pkg->destination->name }}</span>
+                        <span class="dest-meta-item"><i class="fa-solid fa-location-dot"></i> {{ !empty($pkg->departure_from) ? (is_array($pkg->departure_from) ? implode(', ', $pkg->departure_from) : $pkg->departure_from) : 'Delhi' }} - {{ $pkg->destination?->name }}</span>
                       </div>
                       <div class="dest-meta-row">
                         @if($pkg->tour_type == 'custom')
@@ -481,7 +481,7 @@
       <div class="cat-panel" id="panel-international" role="tabpanel" aria-labelledby="tab-international">
         
         @php
-          $intlStates = $packages->where('region_type', 'international')->pluck('destination.name')->unique();
+          $intlStates = $packages->where('region_type', 'international')->pluck('destination.name')->filter()->unique();
         @endphp
         @if($intlStates->count() > 0)
         <div class="state-filter-wrap">
@@ -503,7 +503,7 @@
               <h3 class="pkg-title" style="font-size: 1.8rem; margin: 40px 0 20px; text-align: left;">{{ $title }}</h3>
               <div class="dest-grid type-section-grid" data-tour-type="{{ $type }}">
                 @foreach($typePackages as $pkg)
-                <div class="dest-card" data-state="{{ Str::slug($pkg->destination->name) }}" onclick="openDrawer({{ $pkg->id }})" tabindex="0" role="button"
+                <div class="dest-card" data-state="{{ Str::slug($pkg->destination?->name) }}" onclick="openDrawer({{ $pkg->id }})" tabindex="0" role="button"
                   aria-label="View {{ $pkg->title }} package details"
                   onkeydown="if(event.key==='Enter'||event.key===' ') openDrawer({{ $pkg->id }})">
                   <div class="dest-card-img" style="background-image: url('{{ $pkg->hero_image_url }}')"></div>
@@ -511,13 +511,13 @@
                   <div class="dest-card-overlay"></div>
                   <div class="dest-card-content">
                     <div class="dest-card-country">
-                      <i class="fa-solid fa-location-dot"></i> {{ $pkg->destination->name }}
+                      <i class="fa-solid fa-location-dot"></i> {{ $pkg->destination?->name }}
                     </div>
                     <div class="dest-card-name">{{ $pkg->title }}</div>
                     <div class="dest-card-meta">
                       <div class="dest-meta-row">
                         <span class="dest-meta-item"><i class="fa-regular fa-clock"></i> {{ $pkg->duration_nights }}N/{{ $pkg->duration_nights + 1 }}D</span>
-                        <span class="dest-meta-item"><i class="fa-solid fa-location-dot"></i> {{ !empty($pkg->departure_from) ? (is_array($pkg->departure_from) ? implode(', ', $pkg->departure_from) : $pkg->departure_from) : 'Delhi' }} - {{ $pkg->destination->name }}</span>
+                        <span class="dest-meta-item"><i class="fa-solid fa-location-dot"></i> {{ !empty($pkg->departure_from) ? (is_array($pkg->departure_from) ? implode(', ', $pkg->departure_from) : $pkg->departure_from) : 'Delhi' }} - {{ $pkg->destination?->name }}</span>
                       </div>
                       <div class="dest-meta-row">
                         @if($pkg->tour_type == 'custom')
@@ -623,7 +623,7 @@ foreach($packages as $p) {
         'nights'    => $p->duration_nights,
         'price'     => $p->price_from,
         'short_desc'=> $p->short_desc ?? '',
-        'country'   => $p->destination->name,
+        'country'   => $p->destination?->name,
         'image'     => $p->hero_image_url,
         'inclusions'=> $p->inclusions->map(fn($i) => $i->label ?? $i->name ?? $i->title)->filter()->values()->toArray(),
         'detailUrl' => route('package.details', ['id' => $p->id]),
@@ -780,3 +780,4 @@ document.querySelectorAll('.state-filter-wrap').forEach(slider => {
 </script>
 
 @endsection
+
