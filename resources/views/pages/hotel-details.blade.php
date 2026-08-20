@@ -550,7 +550,7 @@ body { background: var(--dark); color: #fff; }
   $images       = $hotel->images ?? collect();
   $imageCount   = $images->count();
   $stars        = min((int) ($hotel->star_rating ?? 3), 5);
-  $price        = (float) ($hotel->price_from ?? 0);
+
   $amenities    = $hotel->amenities ?? collect();
   $cancelDate   = now()->addDays(14)->format('d M Y');
   $ratingScore  = number_format(min(5, max(1, ($stars * 0.92))), 1);
@@ -658,7 +658,7 @@ body { background: var(--dark); color: #fff; }
     <!-- About -->
     <div class="hd-section">
       <h2 class="hd-section-title">About This Hotel</h2>
-      <p class="hd-desc">{{ $hotel->description }}</p>
+      <div class="hd-desc">{!! $hotel->description !!}</div>
     </div>
 
     <!-- Amenities -->
@@ -710,7 +710,7 @@ body { background: var(--dark); color: #fff; }
                   </span>
                 </div>
                 @if($room->description)
-                  <div class="hd-room-desc-text">{{ $room->description }}</div>
+                  <div class="hd-room-desc-text">{!! $room->description !!}</div>
                   <a class="hd-room-more-btn" data-modal="hdRoomModal_{{ $room->id }}">More Details</a>
                 @else
                   <a class="hd-room-more-btn" data-modal="hdRoomModal_{{ $room->id }}">More Details</a>
@@ -726,11 +726,14 @@ body { background: var(--dark); color: #fff; }
                 </div>
                 @endif
               </div>
-              <div class="hd-room-price">
-                <div class="hd-room-cancel @if($room->cancellation_policy == 'free_cancellation') text-green @endif">
+              <div class="hd-room-price" style="display:flex; flex-direction:column; gap:10px; align-items:flex-start;">
+                @if($room->cancellation_policy)
+                <div class="hd-room-cancel @if($room->cancellation_policy == 'free_cancellation') text-green @endif" style="font-size:12px;">
+                  @if($room->cancellation_policy == 'free_cancellation') ✅ @elseif($room->cancellation_policy == 'non_refundable') ❌ @else ⚠️ @endif
                   {{ str_replace('_', ' ', Str::title($room->cancellation_policy)) }}
                 </div>
-                <button class="hd-room-btn" onclick="document.getElementById('hdEnquireBtn').click()">Enquire Room</button>
+                @endif
+                <button class="hd-room-btn" onclick="document.getElementById('hdEnquireBtn').click()">Request Price</button>
               </div>
             </div>
           </div>
@@ -770,7 +773,7 @@ body { background: var(--dark); color: #fff; }
               @if($room->description)
                 <h3 style="font-family: 'Jost', sans-serif; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--gold); margin-bottom: 12px;">About this room</h3>
                 <p style="font-family: 'Jost', sans-serif; font-size: 14px; color: var(--white-80); line-height: 1.6; margin-bottom: 24px;">
-                  {{ $room->description }}
+                    {!! $room->description !!}
                 </p>
               @endif
               
@@ -897,9 +900,13 @@ body { background: var(--dark); color: #fff; }
       <p class="hd-book-card-loc">{{ $destination }}</p>
       <h2 class="hd-book-card-title">{{ $hotel->title }}</h2>
 
-      <!-- Price -->
-      <div class="hd-book-price-row">
-        <div class="hd-book-price-req" style="margin-bottom: 12px; font-size: 1.3rem;">Price on request</div>
+      <!-- Price on Request -->
+      <div class="hd-book-price-row" style="margin-bottom: 20px; padding: 16px 18px; background: rgba(201,168,76,0.07); border: 1px solid rgba(201,168,76,0.28); border-radius: 12px;">
+        <div style="display:flex; align-items:center; gap: 10px; margin-bottom: 6px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c9a84c" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
+          <span style="font-family:'Jost',sans-serif; font-size:12px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:#c9a84c;">Price on Request</span>
+        </div>
+        <p style="font-family:'Jost',sans-serif; font-size:13px; color:rgba(255,255,255,0.65); line-height:1.55; margin:0;">Send us an enquiry or WhatsApp us and we'll share the best available rates for your dates.</p>
       </div>
 
       <!-- Quick facts -->

@@ -108,139 +108,209 @@
 .htl-tab.active { background: var(--gold); border-color: var(--gold); color: var(--dark); }
 
 /* ===== HOTEL GRID ===== */
-.htl-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; }
+.htl-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; }
+@media (max-width: 1100px) { .htl-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 640px)  { .htl-grid { grid-template-columns: 1fr; } }
 
-/* ===== HOTEL CARD — styled like screenshot ===== */
+/* ===== HOTEL CARD — Ultra Premium ===== */
 .htl-card {
-  background: #1c1c1c;
-  border-radius: 16px;
+  background: var(--dark-2); /* Blends much better with the main background */
+  border-radius: 22px;
   overflow: hidden;
-  border: 1px solid rgba(255,255,255,0.07);
-  transition: all var(--transition);
+  border: 1px solid var(--white-10);
+  transition: transform 0.4s cubic-bezier(0.25,0.46,0.45,0.94),
+              box-shadow 0.4s ease,
+              border-color 0.3s ease;
   display: flex; flex-direction: column;
   color: inherit; text-decoration: none;
-  cursor: pointer;
-  position: relative;
+  cursor: pointer; position: relative;
 }
+/* Animated gold shimmer border on hover */
+.htl-card::before {
+  content: '';
+  position: absolute; inset: 0;
+  border-radius: 22px;
+  padding: 1px;
+  background: linear-gradient(135deg, transparent 20%, rgba(201,168,76,0.3) 50%, transparent 80%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  opacity: 0; transition: opacity 0.4s ease;
+  pointer-events: none; z-index: 10;
+}
+.htl-card:hover::before { opacity: 1; }
 .htl-card:hover {
-  transform: translateY(-6px);
-  border-color: rgba(201,168,76,0.35);
-  box-shadow: 0 20px 48px rgba(0,0,0,0.55), 0 0 0 1px rgba(201,168,76,0.1);
+  transform: translateY(-8px) scale(1.01);
+  border-color: rgba(201,168,76,0.25);
+  box-shadow:
+    0 32px 72px rgba(0,0,0,0.6),
+    0 0 0 1px rgba(201,168,76,0.1),
+    0 0 60px rgba(201,168,76,0.03);
 }
 .htl-card.htl-hidden { display: none; }
 
 /* Card image */
 .htl-card-img-wrap {
-  position: relative; height: 220px; overflow: hidden; flex-shrink: 0;
+  position: relative; height: 280px; overflow: hidden; flex-shrink: 0;
 }
 .htl-card-img-wrap img {
   width: 100%; height: 100%; object-fit: cover;
-  transition: transform 0.6s ease; display: block;
+  transition: transform 0.8s cubic-bezier(0.25,0.46,0.45,0.94); display: block;
+  filter: brightness(0.92);
 }
-.htl-card:hover .htl-card-img-wrap img { transform: scale(1.06); }
+.htl-card:hover .htl-card-img-wrap img {
+  transform: scale(1.1);
+  filter: brightness(1.0);
+}
+/* Deep rich gradient overlay */
+.htl-card-img-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(
+    to top,
+    rgba(0,0,0,0.92) 0%,
+    rgba(0,0,0,0.45) 40%,
+    rgba(0,0,0,0.05) 75%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+/* Hotel name & location on image */
+.htl-card-img-info {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  padding: 20px 20px 18px; z-index: 3;
+}
+.htl-card-img-name {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.5rem; font-weight: 600; line-height: 1.2;
+  color: #fff; margin-bottom: 6px;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.8);
+  transition: color 0.3s ease;
+}
+.htl-card:hover .htl-card-img-name { color: #f5e4a8; }
+.htl-card-img-loc {
+  display: flex; align-items: center; gap: 5px;
+  font-family: 'Jost', sans-serif; font-size: 12.5px;
+  color: rgba(255,255,255,0.7); font-weight: 400; letter-spacing: 0.03em;
+}
+.htl-card-img-loc svg { flex-shrink: 0; color: var(--gold); }
 
-/* Photo counter (1/N) */
+/* Category badge */
+.htl-card-badge {
+  position: absolute; top: 16px; left: 16px; z-index: 6;
+  background: rgba(0,0,0,0.6); backdrop-filter: blur(12px);
+  border: 1px solid rgba(201,168,76,0.55);
+  color: var(--gold); font-family: 'Jost', sans-serif;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+  padding: 5px 12px; border-radius: 100px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+
+/* Featured ribbon */
+.htl-card-featured {
+  position: absolute; top: 16px; left: 16px; z-index: 6;
+  background: linear-gradient(90deg, #c9a84c, #e8c96b);
+  color: #0d0d0d; font-family: 'Jost', sans-serif;
+  font-size: 9px; font-weight: 800; letter-spacing: 0.15em; text-transform: uppercase;
+  padding: 5px 12px; border-radius: 100px;
+  box-shadow: 0 4px 16px rgba(201,168,76,0.5);
+  display: flex; align-items: center; gap: 4px;
+}
+
+/* Photo counter */
 .htl-img-counter {
-  position: absolute; bottom: 12px; left: 12px;
-  background: rgba(0,0,0,0.65); backdrop-filter: blur(6px);
-  color: #fff; font-family: 'Jost', sans-serif;
+  position: absolute; bottom: 16px; right: 16px; z-index: 5;
+  background: rgba(0,0,0,0.6); backdrop-filter: blur(8px);
+  color: rgba(255,255,255,0.9); font-family: 'Jost', sans-serif;
   font-size: 11px; font-weight: 500;
-  padding: 3px 10px; border-radius: 100px;
-  z-index: 2; letter-spacing: 0.04em;
+  padding: 4px 12px; border-radius: 100px;
+  letter-spacing: 0.05em; border: 1px solid rgba(255,255,255,0.12);
 }
 
 /* Wishlist heart */
 .htl-heart {
-  position: absolute; top: 12px; right: 12px; z-index: 2;
-  width: 36px; height: 36px; border-radius: 50%;
-  background: rgba(0,0,0,0.4); backdrop-filter: blur(8px);
+  position: absolute; top: 16px; right: 16px; z-index: 7;
+  width: 38px; height: 38px; border-radius: 50%;
+  background: rgba(0,0,0,0.5); backdrop-filter: blur(10px);
   display: flex; align-items: center; justify-content: center;
   cursor: pointer; border: 1px solid rgba(255,255,255,0.2);
-  transition: all 0.25s ease; color: #fff;
+  transition: all 0.28s ease; color: #fff;
 }
-.htl-heart:hover { background: rgba(201,168,76,0.25); border-color: var(--gold); color: var(--gold); transform: scale(1.05); }
-.htl-heart.active { background: var(--gold); border-color: var(--gold); color: var(--dark); }
+.htl-heart:hover {
+  background: rgba(201,168,76,0.2); border-color: var(--gold);
+  color: var(--gold); transform: scale(1.12);
+  box-shadow: 0 0 20px rgba(201,168,76,0.3);
+}
+.htl-heart.active { background: var(--gold); border-color: var(--gold); color: #0d0d0d; }
 .htl-heart.active svg { fill: currentColor; }
 
-/* Card body */
+/* Card body — glassmorphism */
 .htl-card-body {
-  padding: 18px 18px 16px;
+  padding: 18px 20px 20px;
   display: flex; flex-direction: column; flex: 1;
+  background: linear-gradient(180deg, rgba(255,255,255,0.025) 0%, transparent 100%);
 }
 
-/* Hotel name + location + stars row */
-.htl-card-name {
-  font-family: 'Cormorant Garamond', serif;
-  font-size: 1.3rem; font-weight: 600; line-height: 1.25;
-  color: #fff; margin-bottom: 6px;
-}
-.htl-card-meta-row {
+/* Stars row */
+.htl-card-stars-row {
   display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 12px; gap: 8px; flex-wrap: wrap;
+  margin-bottom: 14px;
 }
-.htl-card-city {
-  font-family: 'Jost', sans-serif; font-size: 12px;
-  color: var(--white-60); text-transform: uppercase; letter-spacing: 0.06em;
+.htl-card-stars { display: flex; gap: 3px; }
+.htl-card-stars span { color: var(--gold); font-size: 13px; line-height: 1; filter: drop-shadow(0 0 3px rgba(201,168,76,0.6)); }
+.htl-card-star-label {
+  font-family: 'Jost', sans-serif; font-size: 10.5px; font-weight: 600;
+  color: var(--white-60); letter-spacing: 0.06em; text-transform: uppercase;
+  background: rgba(201,168,76,0.08); border: 1px solid rgba(201,168,76,0.2);
+  padding: 3px 10px; border-radius: 100px;
 }
-.htl-card-stars { display: flex; gap: 2px; }
-.htl-card-stars span { color: var(--gold); font-size: 13px; line-height: 1; }
 
-/* Feature bullets (Breakfast, Free Cancellation) */
-.htl-card-features { margin-bottom: 10px; display: flex; flex-direction: column; gap: 4px; }
-.htl-feature-item {
-  font-family: 'Jost', sans-serif; font-size: 12.5px;
-  color: var(--white-60); display: flex; align-items: center; gap: 6px;
+/* Amenity chips */
+.htl-amenity-chips {
+  display: flex; flex-wrap: wrap; gap: 7px;
+  margin-bottom: 18px; flex: 1;
 }
-.htl-feature-item::before {
-  content: '•'; color: var(--white-60); font-size: 14px; line-height: 1; flex-shrink: 0;
+.htl-amenity-chip {
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.09);
+  color: rgba(255,255,255,0.6); font-family: 'Jost', sans-serif;
+  font-size: 11px; font-weight: 400; padding: 5px 12px;
+  border-radius: 100px; white-space: nowrap;
+  transition: all 0.2s ease;
 }
-.htl-feature-item.green { color: var(--green); }
-.htl-feature-item.green::before { color: var(--green); }
+.htl-card:hover .htl-amenity-chip { border-color: rgba(201,168,76,0.2); color: rgba(255,255,255,0.75); }
 
-/* Amenity tags (Free WiFi, Pool, Gym...) */
-.htl-card-amenities {
-  font-family: 'Jost', sans-serif; font-size: 12px; color: var(--white-60);
-  font-weight: 300; margin-bottom: 14px; line-height: 1.5;
-  flex: 1;
+/* Divider */
+.htl-card-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(201,168,76,0.2) 50%, transparent);
+  margin-bottom: 16px;
 }
 
 /* Card footer */
 .htl-card-footer {
-  display: flex; align-items: center; justify-content: space-between;
-  border-top: 1px solid rgba(255,255,255,0.08); padding-top: 14px; gap: 10px;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+}
+.htl-star-badge {
+  display: flex; align-items: center; gap: 6px;
+  font-family: 'Jost', sans-serif; font-size: 12px;
+  color: var(--white-60); font-weight: 400;
+}
+.htl-star-badge svg { color: var(--gold); filter: drop-shadow(0 0 4px rgba(201,168,76,0.5)); }
+.htl-req-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: linear-gradient(90deg, #c9a84c, #e8c96b);
+  color: #0d0d0d;
+  font-family: 'Jost', sans-serif; font-size: 11px; font-weight: 800;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 10px 20px; border-radius: 100px;
+  transition: all 0.28s ease;
+  white-space: nowrap; border: none;
+  box-shadow: 0 4px 12px rgba(201,168,76,0.15);
+}
+.htl-card:hover .htl-req-btn {
+  background: linear-gradient(90deg, #e8c96b, #f5e4a8);
+  box-shadow: 0 6px 18px rgba(201,168,76,0.3);
+  transform: translateY(-1px);
 }
 
-/* Rating box */
-.htl-rating-box { display: flex; align-items: center; gap: 8px; }
-.htl-rating-score {
-  background: rgba(201,168,76,0.15); border: 1px solid var(--gold-dim);
-  color: var(--gold); font-family: 'Jost', sans-serif;
-  font-size: 13px; font-weight: 700; padding: 4px 10px;
-  border-radius: 8px; min-width: 38px; text-align: center;
-}
-.htl-rating-label {
-  font-family: 'Jost', sans-serif; font-size: 11.5px;
-  color: var(--white-60); line-height: 1.3;
-}
-.htl-rating-label strong { display: block; color: #fff; font-size: 12px; }
-
-/* Price */
-.htl-price-col { text-align: right; }
-.htl-price-struck {
-  font-family: 'Jost', sans-serif; font-size: 11px;
-  color: rgba(255,255,255,0.3); text-decoration: line-through; display: block; line-height: 1.2;
-}
-.htl-price-main {
-  font-family: 'Jost', sans-serif; font-size: 14px; font-weight: 700; color: #fff;
-}
-.htl-price-sub {
-  font-family: 'Jost', sans-serif; font-size: 10.5px;
-  color: var(--white-60); display: block; margin-top: 1px;
-}
-.htl-price-request {
-  font-family: 'Jost', sans-serif; font-size: 13px; font-weight: 600; color: var(--white-60);
-  font-style: italic;
-}
 
 /* ===== FEATURED BANNER ===== */
 .htl-banner { background: var(--dark-2); border-top: 1px solid var(--gold-dim); border-bottom: 1px solid var(--gold-dim); }
@@ -467,19 +537,30 @@
         $imageCount   = $images->count();
         $firstImage   = $imageCount > 0
                           ? Storage::disk('public')->url($images->first()->path)
-                          : 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=600&q=80';
+                          : null;
         $stars        = min((int) $hotel->star_rating, 5);
-        $price        = (float) ($hotel->price_from ?? 0);
         $amenities    = $hotel->amenities ?? collect();
         $amenityNames = $amenities->pluck('name')->take(5)->implode('  ');
-        // Build cancellation text (14 days from now as default)
-        $cancelDate   = now()->addDays(14)->format('d-m-Y');
-        // Rating display — use star_rating as base score proxy
-        $ratingScore  = number_format(min(5, max(1, ($stars * 0.9))), 1);
-        $ratingLabel  = $stars >= 5 ? 'Exceptional' : ($stars >= 4 ? 'Excellent' : ($stars >= 3 ? 'Very Good' : 'Good'));
+        $starLabel    = match(true) {
+            $stars === 5 => '5-Star Hotel',
+            $stars === 4 => '4-Star Hotel',
+            $stars === 3 => '3-Star Hotel',
+            $stars === 2 => '2-Star Hotel',
+            $stars === 1 => '1-Star Hotel',
+            default      => 'Hotel',
+        };
       @endphp
 
-      <a href="{{ route('hotel.details', $hotel->id) }}"
+@php
+        $categoryLabel = match($hotel->category ?? '') {
+            'beach_resort'    => '🏖️ Beach Resort',
+            'city_luxury'     => '🏙️ City Luxury',
+            'honeymoon'       => '💑 Honeymoon',
+            'family_friendly' => '👨‍👩‍👧 Family',
+            default           => null,
+        };
+      @endphp
+      <a href="{{ route('hotel.details', $hotel->slug) }}"
          class="htl-card"
          data-category="{{ $slug }}"
          data-name="{{ Str::slug($hotel->title) }}"
@@ -487,55 +568,85 @@
          data-amenities="{{ Str::slug($amenityNames) }}"
          style="text-decoration: none;">
 
-        <!-- Image -->
+        <!-- Image with overlay info -->
         <div class="htl-card-img-wrap">
-          <img src="{{ $firstImage }}" alt="{{ $hotel->title }}, {{ $destination }}" loading="lazy" />
-          @if($imageCount > 1)
-          <span class="htl-img-counter">1 / {{ $imageCount }}</span>
+          @if($firstImage)
+            <img src="{{ $firstImage }}" alt="{{ $hotel->title }}, {{ $destination }}" loading="lazy" />
+          @else
+            <div style="width:100%; height:100%; background:linear-gradient(135deg,#1c1c1c,#252525); display:flex; align-items:center; justify-content:center; flex-direction:column; gap:12px;">
+              <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="rgba(201,168,76,0.25)" stroke-width="1.2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+              <span style="font-family:'Jost',sans-serif; font-size:11px; color:rgba(255,255,255,0.2); letter-spacing:0.1em; text-transform:uppercase;">No Photo Yet</span>
+            </div>
           @endif
+
+          {{-- Gradient overlay --}}
+          <div class="htl-card-img-overlay"></div>
+
+          {{-- Category badge --}}
+          @if($categoryLabel)
+          <div class="htl-card-badge">{{ $categoryLabel }}</div>
+          @endif
+
+          {{-- Heart --}}
           <button class="htl-heart" aria-label="Save to wishlist" onclick="event.preventDefault(); this.classList.toggle('active');">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
           </button>
+
+          {{-- Hotel name & location on image --}}
+          <div class="htl-card-img-info">
+            <div class="htl-card-img-name">{{ $hotel->title }}</div>
+            <div class="htl-card-img-loc">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              {{ $destination }}
+            </div>
+          </div>
+
+          {{-- Photo counter --}}
+          @if($imageCount > 1)
+          <span class="htl-img-counter">📷 {{ $imageCount }} Photos</span>
+          @endif
         </div>
 
         <!-- Body -->
         <div class="htl-card-body">
-          <h3 class="htl-card-name">{{ $hotel->title }}</h3>
 
-          <div class="htl-card-meta-row">
-            <span class="htl-card-city">{{ strtoupper($destination) }}</span>
+          {{-- Stars row --}}
+          @if($stars > 0)
+          <div class="htl-card-stars-row">
             <div class="htl-card-stars">
-              @for($i = 0; $i < $stars; $i++)
-                <span>★</span>
-              @endfor
+              @for($i = 0; $i < $stars; $i++) <span>★</span> @endfor
             </div>
-          </div>
-
-          <!-- Feature bullets -->
-          <div class="htl-card-features">
-            <span class="htl-feature-item">Breakfast Included</span>
-          </div>
-
-          <!-- Amenity tags -->
-          @if($amenities->isNotEmpty())
-          <div class="htl-card-amenities">
-            {{ $amenities->pluck('name')->take(5)->implode('  ') }}
+            <span class="htl-card-star-label">{{ $starLabel }}</span>
           </div>
           @endif
 
-          <!-- Footer: rating + price -->
-          <div class="htl-card-footer">
-            <div class="htl-rating-box">
-              <span class="htl-rating-score">{{ $ratingScore }}</span>
-              <span class="htl-rating-label">
-                <strong>{{ $ratingLabel }}</strong>
-                {{ number_format(1200 + ($hotel->id * 137)) }} Ratings
-              </span>
-            </div>
+          {{-- Amenity chips --}}
+          @if($amenities->isNotEmpty())
+          <div class="htl-amenity-chips">
+            @foreach($amenities->take(4) as $am)
+            <span class="htl-amenity-chip">{{ $am->name }}</span>
+            @endforeach
+            @if($amenities->count() > 4)
+            <span class="htl-amenity-chip" style="color:var(--gold); border-color:rgba(201,168,76,0.3); background:rgba(201,168,76,0.06);">+{{ $amenities->count() - 4 }} more</span>
+            @endif
+          </div>
+          @else
+          <div style="flex:1;"></div>
+          @endif
 
-            <div class="htl-price-col">
-              <span style="display: inline-flex; align-items: center; justify-content: center; background: var(--gold); color: var(--dark); font-family: 'Jost', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 8px 16px; border-radius: 100px;">Request Price</span>
+          {{-- Gold divider --}}
+          <div class="htl-card-divider"></div>
+
+          <!-- Footer -->
+          <div class="htl-card-footer">
+            <div class="htl-star-badge">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              Price on Request
             </div>
+            <button class="htl-req-btn" onclick="event.preventDefault(); window.location.href=this.closest('a').href;">
+              Enquire Now
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </button>
           </div>
         </div>
       </a>
