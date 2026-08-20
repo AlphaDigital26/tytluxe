@@ -458,7 +458,7 @@
                         @endif
                       </div>
                       <div class="dest-meta-row" style="margin-top: 4px;">
-                        <span class="dest-meta-price" style="color:var(--gold);">From ₹{{ number_format($pkg->price_from) }}</span>
+                        <span class="dest-meta-price" style="color:var(--gold);">From ₹{{ number_format($pkg->price_from) }} <span style="font-size: 10px; font-weight: 400; color: var(--white-60); margin-left: 4px;">(inclusive of all taxes)</span></span>
                       </div>
                     </div>
                     <div class="dest-card-cta">Explore Package <i class="fa-solid fa-arrow-right"></i></div>
@@ -534,7 +534,7 @@
                         @endif
                       </div>
                       <div class="dest-meta-row" style="margin-top: 4px;">
-                        <span class="dest-meta-price" style="color:var(--gold);">From ₹{{ number_format($pkg->price_from) }}</span>
+                        <span class="dest-meta-price" style="color:var(--gold);">From ₹{{ number_format($pkg->price_from) }} <span style="font-size: 10px; font-weight: 400; color: var(--white-60); margin-left: 4px;">(inclusive of all taxes)</span></span>
                       </div>
                     </div>
                     <div class="dest-card-cta">Explore Package <i class="fa-solid fa-arrow-right"></i></div>
@@ -590,7 +590,7 @@
     <div class="pkg-price-row">
       <div>
         <div class="pkg-price-from">Starting From</div>
-        <div class="pkg-price-val"><span class="curr">₹</span><span id="drawerPrice"></span></div>
+        <div class="pkg-price-val"><span class="curr">₹</span><span id="drawerPrice"></span> <span style="font-size: 13px; font-weight: 500; color: var(--white-80); margin-left: 6px;">(inclusive of all taxes)</span></div>
         <div class="pkg-price-pp">per person</div>
       </div>
       <div class="pkg-duration-badge">

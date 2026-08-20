@@ -39,8 +39,8 @@ class AdminsTable
                         'Blocked' => 'danger',
                         default => 'gray',
                     }),
-                TextColumn::make('last_login_at')->dateTime()->sortable(),
-                TextColumn::make('created_at')->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('last_login_at')->dateTime('M j, Y h:i A')->sortable(),
+                TextColumn::make('created_at')->dateTime('M j, Y h:i A')->sortable()->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 TrashedFilter::make(),
