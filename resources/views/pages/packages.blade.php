@@ -458,20 +458,20 @@
                       </div>
                       <div class="dest-meta-row">
                         @if($pkg->tour_type == 'custom')
-                          <span class="dest-meta-item"><i class="fa-regular fa-calendar"></i> Any date of your choice</span>
+                          <span class="dest-meta-item" style="color:var(--gold);"><i class="fa-regular fa-calendar"></i> Any date of your choice</span>
                         @else
                           @php
                              $firstDate = $pkg->departures ? ($pkg->departures->where('start_date', '>=', now()->format('Y-m-d'))->sortBy('start_date')->first() ?? $pkg->departures->first()) : null;
                           @endphp
                           @if($firstDate)
-                             <span class="dest-meta-item"><i class="fa-regular fa-calendar"></i> {{ \Carbon\Carbon::parse($firstDate->start_date)->format('d M') }} â€“ {{ \Carbon\Carbon::parse($firstDate->end_date)->format('d M Y') }}</span>
+                             <span class="dest-meta-item" style="color:var(--gold);"><i class="fa-regular fa-calendar"></i> {{ \Carbon\Carbon::parse($firstDate->start_date)->format('d M') }} - {{ \Carbon\Carbon::parse($firstDate->end_date)->format('d M Y') }}</span>
                           @else
-                             <span class="dest-meta-item"><i class="fa-regular fa-calendar"></i> Specific Dates</span>
+                             <span class="dest-meta-item" style="color:var(--gold);"><i class="fa-regular fa-calendar"></i> Specific Dates</span>
                           @endif
                         @endif
                       </div>
                       <div class="dest-meta-row" style="margin-top: 4px;">
-                        <span class="dest-meta-price" style="color:var(--gold);">From â‚¹{{ number_format($pkg->price_from) }}</span>
+                        <span class="dest-meta-price" style="color:var(--gold);">From ₹{{ number_format($pkg->price_from) }}</span>
                       </div>
                     </div>
                     <div class="dest-card-cta">Explore Package <i class="fa-solid fa-arrow-right"></i></div>
@@ -547,20 +547,20 @@
                       </div>
                       <div class="dest-meta-row">
                         @if($pkg->tour_type == 'custom')
-                          <span class="dest-meta-item"><i class="fa-regular fa-calendar"></i> Any date of your choice</span>
+                          <span class="dest-meta-item" style="color:var(--gold);"><i class="fa-regular fa-calendar"></i> Any date of your choice</span>
                         @else
                           @php
                              $firstDate = $pkg->departures ? ($pkg->departures->where('start_date', '>=', now()->format('Y-m-d'))->sortBy('start_date')->first() ?? $pkg->departures->first()) : null;
                           @endphp
                           @if($firstDate)
-                             <span class="dest-meta-item"><i class="fa-regular fa-calendar"></i> {{ \Carbon\Carbon::parse($firstDate->start_date)->format('d M') }} â€“ {{ \Carbon\Carbon::parse($firstDate->end_date)->format('d M Y') }}</span>
+                             <span class="dest-meta-item" style="color:var(--gold);"><i class="fa-regular fa-calendar"></i> {{ \Carbon\Carbon::parse($firstDate->start_date)->format('d M') }} - {{ \Carbon\Carbon::parse($firstDate->end_date)->format('d M Y') }}</span>
                           @else
-                             <span class="dest-meta-item"><i class="fa-regular fa-calendar"></i> Specific Dates</span>
+                             <span class="dest-meta-item" style="color:var(--gold);"><i class="fa-regular fa-calendar"></i> Specific Dates</span>
                           @endif
                         @endif
                       </div>
                       <div class="dest-meta-row" style="margin-top: 4px;">
-                        <span class="dest-meta-price" style="color:var(--gold);">From â‚¹{{ number_format($pkg->price_from) }}</span>
+                        <span class="dest-meta-price" style="color:var(--gold);">From ₹{{ number_format($pkg->price_from) }}</span>
                       </div>
                     </div>
                     <div class="dest-card-cta">Explore Package <i class="fa-solid fa-arrow-right"></i></div>
@@ -731,7 +731,7 @@ function openDrawer(id) {
     <span class="pkg-drawer-pill"><i class="fa-regular fa-moon"></i> ${pkg.nights} Nights</span>
     <span class="pkg-drawer-pill"><i class="fa-solid fa-sun"></i> ${pkg.nights + 1} Days</span>
     <span class="pkg-drawer-pill"><i class="fa-solid fa-location-dot"></i> ${pkg.country}</span>
-    <span class="pkg-drawer-pill gold"><i class="fa-solid fa-indian-rupee-sign"></i> From â‚¹${Number(pkg.price).toLocaleString('en-IN')}</span>
+    <span class="pkg-drawer-pill gold"><i class="fa-solid fa-indian-rupee-sign"></i> From ₹{Number(pkg.price).toLocaleString('en-IN')}</span>
   `;
 
   // Inclusions
