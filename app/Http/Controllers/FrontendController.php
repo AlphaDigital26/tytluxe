@@ -27,11 +27,12 @@ class FrontendController extends Controller
         return view('pages.hotels', compact('hotels'));
     }
 
-    public function hotelDetails($id)
+    public function hotelDetails($slug)
     {
         $hotel = Hotel::with(['destination', 'amenities', 'images', 'roomTypes'])
             ->where('is_active', true)
-            ->findOrFail($id);
+            ->where('slug', $slug)
+            ->firstOrFail();
 
         return view('pages.hotel-details', compact('hotel'));
     }

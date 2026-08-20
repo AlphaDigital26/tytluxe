@@ -9,7 +9,7 @@ Route::get('/', [FrontendController::class, 'index'])->name('home');
 Route::view('/about', 'pages.about')->name('about');
 Route::view('/flights', 'pages.flights')->name('flights');
 Route::get('/hotels', [FrontendController::class, 'hotels'])->name('hotels');
-Route::get('/hotels/{id}', [FrontendController::class, 'hotelDetails'])->name('hotel.details');
+Route::get('/hotels/{slug}', [FrontendController::class, 'hotelDetails'])->name('hotel.details');
 Route::get('/cruises', [FrontendController::class, 'cruises'])->name('cruises');
 Route::get('/packages', [FrontendController::class, 'packages'])->name('packages');
 Route::get('/packages/{slug}', [FrontendController::class, 'packageDetails'])->name('package.details');

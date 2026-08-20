@@ -9,6 +9,7 @@ use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\RichEditor;
+use Filament\Forms\Components\Placeholder;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
@@ -72,20 +73,22 @@ class HotelForm
                                 ]),
                             ]),
 
-                        Tab::make('Pricing & Rating')
-                            ->icon('heroicon-o-currency-rupee')
+                        Tab::make('Star Rating')
+                            ->icon('heroicon-o-star')
                             ->schema([
-                                Grid::make(2)->schema([
-                                    TextInput::make('price_from')
-                                        ->label('Starting Price (Per Night)')
-                                        ->helperText('Leave as 0 to show "Price on request"')
-                                        ->numeric()
-                                        ->required()
-                                        ->prefix('₹'),
+                                Grid::make(1)->schema([
+                                    Placeholder::make('pricing_note')
+                                        ->label('')
+                                        ->content(new \Illuminate\Support\HtmlString(
+                                            '<div style="background: rgba(201,168,76,0.08); border: 1px solid rgba(201,168,76,0.3); border-radius: 8px; padding: 14px 18px; font-size: 13.5px; line-height: 1.6; color: #e8c96b;">'
+                                            . '<strong>💡 About Pricing:</strong> Hotel prices are <strong>not displayed</strong> on the website. When a customer is interested, they click "Request Price" and send an enquiry. You then share the price directly with them via WhatsApp or email. No need to enter a price here.'
+                                            . '</div>'
+                                        ))
+                                        ->columnSpanFull(),
 
                                     Select::make('star_rating')
-                                        ->label('Star Rating')
-                                        ->helperText('Official classification of the hotel')
+                                        ->label('Hotel Star Rating')
+                                        ->helperText('The official star classification of this hotel — shown as stars on the website.')
                                         ->options([
                                             1 => '⭐ 1 Star',
                                             2 => '⭐⭐ 2 Stars',
