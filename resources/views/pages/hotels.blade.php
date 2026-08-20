@@ -534,14 +534,7 @@
             </div>
 
             <div class="htl-price-col">
-              @if($price > 0)
-                @php $struckPrice = number_format($price * 1.18); @endphp
-                <span class="htl-price-struck">₹{{ $struckPrice }}/night</span>
-                <span class="htl-price-main">₹{{ number_format($price) }}</span>
-                <span class="htl-price-sub">Total (Incl. of all taxes)</span>
-              @else
-                <span class="htl-price-request">Price on request</span>
-              @endif
+              <span style="display: inline-flex; align-items: center; justify-content: center; background: var(--gold); color: var(--dark); font-family: 'Jost', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 8px 16px; border-radius: 100px;">Request Price</span>
             </div>
           </div>
         </div>
