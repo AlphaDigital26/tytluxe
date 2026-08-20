@@ -162,12 +162,11 @@ class FrontendController extends Controller
         $s = fn (string $key, mixed $default = '') => Setting::get($key, $default);
         $j = fn (string $key, mixed $default = []) => Setting::getJson($key, $default);
 
-        // ── Hero ──────────────────────────────────────────────────────
+        // ── Hero ──────────────────────────────────────────────────────────
         $heroEyebrow  = $s('offers_page.hero_eyebrow',  'Limited Time Deals');
         $heroTitle    = $s('offers_page.hero_title',    'Exclusive Deals. <em>Unforgettable</em> Experiences.');
-        $heroSubtitle = $s('offers_page.hero_subtitle', 'Handpicked offers on hotels, cruises & flights — updated regularly');
+        $heroSubtitle = $s('offers_page.hero_subtitle', 'Handpicked offers on flights, hotels, cruises & packages — updated regularly');
 
-        // Hero carousel images
         $heroImages = array_values(array_filter(array_map(function ($img) {
             if (!empty($img['image_path']) && Storage::disk('public')->exists($img['image_path'])) {
                 return Storage::disk('public')->url($img['image_path']);
@@ -177,61 +176,76 @@ class FrontendController extends Controller
 
         if (empty($heroImages)) {
             $heroImages = [
-                'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=1400&q=85',
-                'https://images.unsplash.com/photo-1548574505-5e239809ee19?w=1400&q=85',
                 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=1400&q=85',
+                'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=1400&q=85',
+                'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1400&q=85',
+                'https://images.unsplash.com/photo-1548574505-5e239809ee19?w=1400&q=85',
             ];
         }
 
-        // ── Filter Tabs ───────────────────────────────────────────────
-        $filterTabs = $j('offers_page.filter_tabs', [
-            ['key' => 'all',       'label' => 'All Offers'],
-            ['key' => 'hotels',    'label' => 'Hotels'],
-            ['key' => 'cruises',   'label' => 'Cruises'],
-            ['key' => 'flights',   'label' => 'Flights'],
-            ['key' => 'honeymoon', 'label' => 'Honeymoon'],
-            ['key' => 'family',    'label' => 'Family'],
-        ]);
+        // ── 4 Canonical Filter Tabs (always fixed for a travel agency) ───
+        $filterTabs = [
+            ['key' => 'all',      'label' => 'All Offers'],
+            ['key' => 'flights',  'label' => 'Flights'],
+            ['key' => 'hotels',   'label' => 'Hotels'],
+            ['key' => 'cruises',  'label' => 'Cruises'],
+            ['key' => 'packages', 'label' => 'Packages'],
+        ];
 
-        // ── Offer Cards from Database ─────────────────────────────────
-        // Pull all active, non-expired offers ordered by sort_order.
-        // Group them by category_key so the blade can render each slider.
-        $dbOffers = \App\Models\Offer::active()
-            ->orderBy('category_key')
+        // ── Auto section headings per category ──────────────────────
+        // Admin no longer needs to fill slider_label/slider_title — they
+        // are derived automatically from the offer's category.
+        $categoryMeta = [
+            'flights'  => ['slider_label' => 'Flight Deals',     'slider_title' => 'Exclusive <em>Flight Offers</em>',  'order' => 1],
+            'hotels'   => ['slider_label' => 'Hotel Deals',      'slider_title' => 'Luxury <em>Hotel Escapes</em>',      'order' => 2],
+            'cruises'  => ['slider_label' => 'Cruise Deals',     'slider_title' => 'Sail in <em>Style</em>',             'order' => 3],
+            'packages' => ['slider_label' => 'Holiday Packages', 'slider_title' => 'Handpicked <em>Journeys</em>',       'order' => 4],
+        ];
+
+        // ── Offer Cards from Database ───────────────────────────────
+        $dbOffers = Offer::active()
             ->orderBy('sort_order')
             ->orderBy('created_at')
             ->get();
 
-        // Build the $categories array in the same shape the blade expects.
-        $grouped = $dbOffers->groupBy('category_key');
+        $categories = $dbOffers
+            ->groupBy('category_key')
+            ->map(function ($offers, $catKey) use ($categoryMeta) {
+                $meta = $categoryMeta[$catKey] ?? [
+                    'slider_label' => ucfirst($catKey) . ' Deals',
+                    'slider_title' => 'Special <em>' . ucfirst($catKey) . ' Offers</em>',
+                    'order'        => 99,
+                ];
 
-        $categories = $grouped->map(function ($offers, $catKey) {
-            // Use slider_label / slider_title from the first offer in the group
-            $first = $offers->first();
-
-            $cards = $offers->map(function ($offer) {
-                return [
+                $cards = $offers->map(fn ($offer) => [
                     'name'           => $offer->title,
+                    'destination'    => $offer->destination,
+                    'duration'       => $offer->duration,
                     'subtitle'       => $offer->subtitle,
+                    'description'    => $offer->description,
+                    'terms'          => $offer->terms_and_conditions,
                     'price'          => $offer->display_price,
                     'enquire_link'   => $offer->enquire_link,
                     'badge_label'    => $offer->badge_label,
                     'badge_type'     => $offer->badge_type ?? 'badge-gold',
                     'coming_soon'    => (bool) $offer->coming_soon,
-                    'resolved_image' => $offer->resolved_image,
-                    // Keep raw values for any future use
-                    'image_path'     => $offer->image_path,
-                    'image_url'      => $offer->image_url,
-                ];
-            })->values()->toArray();
+                    'resolved_image' => $offer->resolvedImage,
+                    'promo_code'     => $offer->promo_code,
+                    'discount_label' => $offer->discount_value ? $offer->discountLabel : null,
+                    'valid_to'       => $offer->valid_to?->format('d M Y'),
+                ])->values()->toArray();
 
-            return [
-                'category_key'  => $catKey,
-                'slider_label'  => $first->slider_label,
-                'slider_title'  => $first->slider_title,
-                'cards'         => $cards,
-            ];
-        })->values()->toArray();
+                return [
+                    'category_key' => $catKey,
+                    'slider_label' => $meta['slider_label'],
+                    'slider_title' => $meta['slider_title'],
+                    'order'        => $meta['order'],
+                    'cards'        => $cards,
+                ];
+            })
+            ->sortBy('order')
+            ->values()
+            ->toArray();
 
         // ── Bottom CTA ────────────────────────────────────────────────
         $ctaTag        = $s('offers_page.cta_tag',         'Stay Ahead');

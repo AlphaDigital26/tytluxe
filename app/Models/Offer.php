@@ -58,7 +58,6 @@ class Offer extends Model
     public function scopeActive($query)
     {
         return $query->where('is_active', true)
-                     ->where('valid_from', '<=', now())
-                     ->where('valid_to',   '>=', now());
+                     ->where('valid_to', '>=', now()->toDateString());
     }
 }

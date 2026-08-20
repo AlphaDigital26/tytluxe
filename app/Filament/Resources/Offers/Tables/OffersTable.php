@@ -33,18 +33,16 @@ class OffersTable
                     ->searchable()
                     ->sortable()
                     ->weight('bold')
-                    ->description(fn ($record) => $record->subtitle),
+                    ->description(fn ($record) => collect([$record->destination, $record->duration, $record->subtitle])->filter()->implode(' · ')),
 
                 TextColumn::make('category_key')
                     ->label('Category')
                     ->formatStateUsing(fn (string $state) => match ($state) {
-                        'hotels'    => '🏨 Hotels',
-                        'cruises'   => '🚢 Cruises',
-                        'flights'   => '✈️ Flights',
-                        'packages'  => '📦 Packages',
-                        'honeymoon' => '💑 Honeymoon',
-                        'family'    => '👨‍👩‍👧 Family',
-                        default     => ucfirst($state),
+                        'flights'  => '✈️  Flights',
+                        'hotels'   => '🏨  Hotels',
+                        'cruises'  => '🚢  Cruises',
+                        'packages' => '📦  Packages',
+                        default    => ucfirst($state),
                     })
                     ->badge()
                     ->color('info')
@@ -97,12 +95,10 @@ class OffersTable
                 SelectFilter::make('category_key')
                     ->label('Category')
                     ->options([
-                        'hotels'    => '🏨 Hotels',
-                        'cruises'   => '🚢 Cruises',
-                        'flights'   => '✈️ Flights',
-                        'packages'  => '📦 Packages',
-                        'honeymoon' => '💑 Honeymoon',
-                        'family'    => '👨‍👩‍👧 Family',
+                        'flights'  => '✈️  Flights',
+                        'hotels'   => '🏨  Hotels',
+                        'cruises'  => '🚢  Cruises',
+                        'packages' => '📦  Packages',
                     ]),
 
                 TernaryFilter::make('is_active')
