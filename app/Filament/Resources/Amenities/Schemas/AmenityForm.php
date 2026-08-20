@@ -31,6 +31,7 @@ class AmenityForm
                     ->label('Amenity Name')
                     ->helperText('e.g. Free WiFi, Swimming Pool, Breakfast Included')
                     ->required()
+                    ->unique(ignoreRecord: true)
                     ->maxLength(100),
 
                 TextInput::make('icon')
