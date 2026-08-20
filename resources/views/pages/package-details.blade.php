@@ -188,8 +188,8 @@
 .pd-sidebar-card { background: var(--dark-3); border: 1px solid var(--white-10); border-radius: var(--radius); overflow: hidden; }
 .pd-price-card-top { background: linear-gradient(135deg, var(--dark-2) 0%, var(--dark-3) 100%); padding: 32px 28px 24px; border-bottom: 1px solid var(--white-10); }
 .pd-price-label { font-family: 'Jost', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold); margin-bottom: 8px; }
-.pd-price-val { font-family: 'Cormorant Garamond', serif; font-size: 3rem; font-weight: 500; color: #fff; line-height: 1; }
-.pd-price-val .curr { font-size: 1.8rem; vertical-align: top; margin-top: 6px; display: inline-block; }
+.pd-price-val { font-family: 'Jost', sans-serif; font-size: 2.8rem; font-weight: 200; color: #fff; line-height: 1; }
+.pd-price-val .curr { font-size: 1.6rem; color: var(--gold); vertical-align: middle; margin-right: 4px; display: inline-block; margin-top: 0; }
 .pd-price-pp { font-family: 'Jost', sans-serif; font-size: 12px; color: var(--white-60); margin-top: 6px; }
 .pd-price-card-body { padding: 24px 28px; }
 .pd-price-row { display: flex; justify-content: space-between; align-items: center; font-family: 'Jost', sans-serif; font-size: 14px; padding: 10px 0; }
@@ -354,7 +354,7 @@
         <div class="pd-pill"><i class="fa-solid fa-utensils"></i> {{ $package->meals_info }}</div>
       @endif
       @if($package->price_from)
-        <div class="pd-pill gold-pill"><i class="fa-solid fa-indian-rupee-sign"></i> Starting ₹{{ number_format($package->price_from, 0) }}</div>
+        <div class="pd-pill gold-pill"><i class="fa-solid fa-indian-rupee-sign"></i> Starting &#8377;{{ number_format($package->price_from, 0) }}</div>
       @endif
     </div>
   </div>
@@ -507,7 +507,7 @@
           <div class="pd-note">
             To book this package, simply reach out to us on WhatsApp or call us directly.
             @if($package->booking_amount)
-              A booking amount of <strong style="color:var(--gold);">₹{{ number_format($package->booking_amount, 0) }} per person</strong> is required to confirm your seat.
+              A booking amount of <strong style="color:var(--gold);">&#8377;{{ number_format($package->booking_amount, 0) }} per person</strong> is required to confirm your seat.
             @endif
             Our team will then share the full itinerary and payment details with you.
           </div>
@@ -570,7 +570,7 @@
           <div class="pd-sidebar-card">
             <div class="pd-price-card-top">
               <div class="pd-price-label">Starting From</div>
-              <div class="pd-price-val"><span class="curr">₹</span>{{ number_format($package->price_from, 0) }}</div>
+              <div class="pd-price-val"><span class="curr">&#8377;</span>{{ number_format($package->price_from, 0) }} <span style="font-size: 13px; font-weight: 500; color: var(--white-80); margin-left: 6px;">(inclusive of all taxes)</span></div>
               <div class="pd-price-pp">per person{{ !empty($package->departure_from) ? ' (ex. ' . (is_array($package->departure_from) ? implode(', ', $package->departure_from) : $package->departure_from) . ')' : '' }}</div>
             </div>
             <div class="pd-price-card-body">
@@ -579,7 +579,7 @@
                 <div class="pd-price-divider"></div>
               @endif
               @if($package->booking_amount)
-                <div class="pd-price-row"><span>Booking Amount</span><strong>₹{{ number_format($package->booking_amount, 0) }} / person</strong></div>
+                <div class="pd-price-row"><span>Booking Amount</span><strong>&#8377;{{ number_format($package->booking_amount, 0) }} / person</strong></div>
                 <div class="pd-price-divider"></div>
               @endif
               @if(!empty($package->departure_from))
@@ -591,7 +591,7 @@
               @endif
               @if($package->booking_amount)
                 <div class="pd-booking-badge">
-                  <i class="fa-solid fa-tag" style="margin-right:6px;"></i> Book now for ₹{{ number_format($package->booking_amount, 0) }} to confirm your seat
+                  <i class="fa-solid fa-tag" style="margin-right:6px;"></i> Book now for &#8377;{{ number_format($package->booking_amount, 0) }} to confirm your seat
                 </div>
               @endif
               <a href="https://wa.me/919875073788?text=Hi!%20I'm%20interested%20in%20the%20{{ urlencode($package->title) }}%20package." target="_blank" class="pd-btn">
