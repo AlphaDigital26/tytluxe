@@ -12,7 +12,7 @@ Route::get('/hotels', [FrontendController::class, 'hotels'])->name('hotels');
 Route::get('/hotels/{id}', [FrontendController::class, 'hotelDetails'])->name('hotel.details');
 Route::get('/cruises', [FrontendController::class, 'cruises'])->name('cruises');
 Route::get('/packages', [FrontendController::class, 'packages'])->name('packages');
-Route::get('/packages/{id}', [FrontendController::class, 'packageDetails'])->name('package.details');
+Route::get('/packages/{slug}', [FrontendController::class, 'packageDetails'])->name('package.details');
 Route::get('/offers', [FrontendController::class, 'offers'])->name('offers');
 Route::post('/enquiries', [FrontendController::class, 'storeEnquiry'])->name('enquiries.store');
 Route::view('/contact', 'pages.contact')->name('contact');
@@ -36,10 +36,10 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile/traveller/{traveller}', [ProfileController::class, 'deleteTraveller'])->name('profile.traveller.destroy');
     Route::post('/profile/logout-other-devices', [ProfileController::class, 'logoutOtherDevices'])->name('profile.logout-other-devices');
     
-    Route::post('/packages/{id}/reviews', [FrontendController::class, 'storeReview'])->name('package.reviews.store');
+    Route::post('/packages/{slug}/reviews', [FrontendController::class, 'storeReview'])->name('package.reviews.store');
 });
 
-Route::get('/packages/{id}/download-itinerary', [FrontendController::class, 'downloadItinerary'])->name('package.download');
-Route::post('/packages/{id}/download-itinerary-guest', [FrontendController::class, 'guestDownloadItinerary'])->name('package.download.guest');
+Route::get('/packages/{slug}/download-itinerary', [FrontendController::class, 'downloadItinerary'])->name('package.download');
+Route::post('/packages/{slug}/download-itinerary-guest', [FrontendController::class, 'guestDownloadItinerary'])->name('package.download.guest');
 
 require __DIR__.'/auth.php';

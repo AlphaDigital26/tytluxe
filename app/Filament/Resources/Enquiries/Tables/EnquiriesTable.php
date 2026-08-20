@@ -139,8 +139,12 @@ class EnquiriesTable
                         ]);
                     }),
             ])
-            ->toolbarActions([
+            ->bulkActions([
                 BulkActionGroup::make([
+                    \pxlrbt\FilamentExcel\Actions\ExportBulkAction::make()
+                        ->exports([
+                            \pxlrbt\FilamentExcel\Exports\ExcelExport::make()->fromModel(),
+                        ]),
                     DeleteBulkAction::make(),
                 ]),
             ]);
