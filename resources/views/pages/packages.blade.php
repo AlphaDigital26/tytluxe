@@ -616,7 +616,7 @@
     <div class="pkg-price-row">
       <div>
         <div class="pkg-price-from">Starting From</div>
-        <div class="pkg-price-val"><span class="curr">â‚¹</span><span id="drawerPrice"></span></div>
+        <div class="pkg-price-val"><span class="curr">₹</span><span id="drawerPrice"></span></div>
         <div class="pkg-price-pp">per person</div>
       </div>
       <div class="pkg-duration-badge">
@@ -731,7 +731,7 @@ function openDrawer(id) {
     <span class="pkg-drawer-pill"><i class="fa-regular fa-moon"></i> ${pkg.nights} Nights</span>
     <span class="pkg-drawer-pill"><i class="fa-solid fa-sun"></i> ${pkg.nights + 1} Days</span>
     <span class="pkg-drawer-pill"><i class="fa-solid fa-location-dot"></i> ${pkg.country}</span>
-    <span class="pkg-drawer-pill gold"><i class="fa-solid fa-indian-rupee-sign"></i> From ₹{Number(pkg.price).toLocaleString('en-IN')}</span>
+    <span class="pkg-drawer-pill gold"><i class="fa-solid fa-indian-rupee-sign"></i> From ₹${Number(pkg.price).toLocaleString('en-IN')}</span>
   `;
 
   // Inclusions
