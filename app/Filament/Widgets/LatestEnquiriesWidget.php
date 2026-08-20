@@ -48,7 +48,7 @@ class LatestEnquiriesWidget extends BaseWidget
                     ->formatStateUsing(fn (string $state): string => ucfirst($state)),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Received')
-                    ->dateTime()
+                    ->dateTime('M j, Y h:i A')
                     ->sortable(),
             ])
             ->actions([

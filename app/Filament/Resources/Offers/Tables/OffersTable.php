@@ -5,8 +5,8 @@ namespace App\Filament\Resources\Offers\Tables;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
-use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
@@ -18,11 +18,37 @@ class OffersTable
     {
         return $table
             ->columns([
+
+                ImageColumn::make('image_path')
+                    ->label('')
+                    ->disk('public')
+                    ->width(56)
+                    ->height(42)
+                    ->defaultImageUrl(fn ($record) => $record->image_url ?: null)
+                    ->extraImgAttributes(['style' => 'object-fit:cover;border-radius:6px;'])
+                    ->toggleable(),
+
                 TextColumn::make('title')
                     ->label('Offer')
                     ->searchable()
                     ->sortable()
-                    ->weight('bold'),
+                    ->weight('bold')
+                    ->description(fn ($record) => $record->subtitle),
+
+                TextColumn::make('category_key')
+                    ->label('Category')
+                    ->formatStateUsing(fn (string $state) => match ($state) {
+                        'hotels'    => '🏨 Hotels',
+                        'cruises'   => '🚢 Cruises',
+                        'flights'   => '✈️ Flights',
+                        'packages'  => '📦 Packages',
+                        'honeymoon' => '💑 Honeymoon',
+                        'family'    => '👨‍👩‍👧 Family',
+                        default     => ucfirst($state),
+                    })
+                    ->badge()
+                    ->color('info')
+                    ->sortable(),
 
                 TextColumn::make('discount_value')
                     ->label('Discount')
@@ -41,46 +67,42 @@ class OffersTable
                     ->copyMessage('Copied!')
                     ->searchable(),
 
-                TextColumn::make('applies_to_vertical')
-                    ->label('Applies To')
-                    ->formatStateUsing(fn (string $state) => match ($state) {
-                        'all'        => '🌍 All',
-                        'hotel'      => '🏨 Hotels',
-                        'flight'     => '✈️ Flights',
-                        'cruise'     => '🚢 Cruises',
-                        'package'    => '📦 Packages',
-                        'staycation' => '🏡 Staycations',
-                        default      => ucfirst($state),
-                    })
-                    ->badge()
-                    ->color('info'),
-
                 TextColumn::make('valid_from')
-                    ->label('From')
+                    ->label('Starts')
                     ->date('d M Y')
                     ->sortable(),
 
                 TextColumn::make('valid_to')
-                    ->label('Until')
+                    ->label('Expires')
                     ->date('d M Y')
                     ->sortable()
                     ->color(fn ($record) => now()->gt($record->valid_to) ? 'danger' : 'success'),
+
+                IconColumn::make('coming_soon')
+                    ->label('Coming Soon')
+                    ->boolean()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 IconColumn::make('is_active')
                     ->label('Active')
                     ->boolean()
                     ->sortable(),
+
+                TextColumn::make('sort_order')
+                    ->label('Order')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                SelectFilter::make('applies_to_vertical')
+                SelectFilter::make('category_key')
                     ->label('Category')
                     ->options([
-                        'all'        => 'All',
-                        'hotel'      => 'Hotels',
-                        'flight'     => 'Flights',
-                        'cruise'     => 'Cruises',
-                        'package'    => 'Packages',
-                        'staycation' => 'Staycations',
+                        'hotels'    => '🏨 Hotels',
+                        'cruises'   => '🚢 Cruises',
+                        'flights'   => '✈️ Flights',
+                        'packages'  => '📦 Packages',
+                        'honeymoon' => '💑 Honeymoon',
+                        'family'    => '👨‍👩‍👧 Family',
                     ]),
 
                 TernaryFilter::make('is_active')
@@ -88,6 +110,12 @@ class OffersTable
                     ->placeholder('All offers')
                     ->trueLabel('Active only')
                     ->falseLabel('Inactive only'),
+
+                TernaryFilter::make('coming_soon')
+                    ->label('Coming Soon')
+                    ->placeholder('All')
+                    ->trueLabel('Coming soon only')
+                    ->falseLabel('Live offers only'),
             ])
             ->recordActions([
                 EditAction::make(),
@@ -97,10 +125,10 @@ class OffersTable
                     DeleteBulkAction::make(),
                 ]),
             ])
-            ->defaultSort('valid_from', 'desc')
+            ->defaultSort('sort_order', 'asc')
             ->striped()
             ->emptyStateHeading('No offers yet')
-            ->emptyStateDescription('Click "+ New Offer" to create your first offer.')
+            ->emptyStateDescription('Click "+ New Offer" to add your first offer card.')
             ->emptyStateIcon('heroicon-o-tag');
     }
 }

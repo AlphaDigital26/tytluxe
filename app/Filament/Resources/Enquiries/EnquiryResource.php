@@ -136,7 +136,7 @@ class EnquiryResource extends Resource
                             ->default('-'),
                         TextEntry::make('resolved_at')
                             ->label('Resolved On')
-                            ->dateTime()
+                            ->dateTime('M j, Y h:i A')
                             ->icon('heroicon-m-clock')
                             ->default('-'),
                         TextEntry::make('admin_notes')
