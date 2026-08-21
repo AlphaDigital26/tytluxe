@@ -368,9 +368,9 @@ class PackageForm
                         ]),
 
                     // ──────────────────────────────────────────────────────────
-                    // TAB 7 — Photos & PDF
+                    // TAB 7 — Photos & Notes
                     // ──────────────────────────────────────────────────────────
-                    Tab::make('Photos & PDF')
+                    Tab::make('Photos & Notes')
                         ->icon('heroicon-o-photo')
                         ->schema([
 
@@ -408,11 +408,16 @@ class PackageForm
                                 ->orderColumn('sort_order')
                                 ->collapsible()
                                 ->collapsed(false)
-                                ->itemLabel(fn (array $state): string =>
+                                        ->itemLabel(fn (array $state): string =>
                                     ! empty($state['alt_text']) ? $state['alt_text'] : 'Photo'
                                 )
                                 ->columnSpanFull(),
 
+                            TagsInput::make('notes')
+                                ->label('Important Notes')
+                                ->helperText('Add any important notes for the itinerary PDF (e.g. "Trekking routes on Day 3 are subject to weather"). Press enter to add multiple notes.')
+                                ->placeholder('Add a note...')
+                                ->columnSpanFull(),
 
                         ]),
 
