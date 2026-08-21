@@ -600,7 +600,6 @@
               <a href="https://wa.me/919875073788" target="_blank" class="pd-btn-outline">
                 <i class="fa-brands fa-whatsapp"></i> WhatsApp Us
               </a>
-              @if($package->itinerary_pdf)
                 @auth
                   <a href="{{ route('package.download', ['slug' => $package->slug]) }}" class="pd-btn-outline" target="_blank" download>
                     <i class="fa-solid fa-download"></i> Download Itinerary
@@ -610,7 +609,6 @@
                     <i class="fa-solid fa-download"></i> Download Itinerary
                   </button>
                 @endauth
-              @endif
             </div>
           </div>
 

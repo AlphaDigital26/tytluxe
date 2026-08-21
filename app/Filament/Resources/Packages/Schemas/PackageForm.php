@@ -413,17 +413,6 @@ class PackageForm
                                 )
                                 ->columnSpanFull(),
 
-                            FileUpload::make('itinerary_pdf')
-                                        ->label(new HtmlString('Itinerary PDF <span style="color: red; font-weight: 600; margin-left: 0.5rem;">(Max file size: 15 MB)</span>'))
-                                        ->helperText('Upload the full PDF brochure. Guests can click "Download Itinerary" on the package page to get this file.')
-                                        ->acceptedFileTypes(['application/pdf'])
-                                        ->directory('itineraries')
-                                        ->disk('public')
-                                        ->maxSize(15360)
-                                        ->validationMessages([
-                                            'max' => 'The itinerary PDF must not be greater than 15 MB.',
-                                        ])
-                                        ->columnSpanFull(),
 
                         ]),
 
