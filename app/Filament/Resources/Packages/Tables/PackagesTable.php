@@ -30,6 +30,7 @@ class PackagesTable
                     ->color(fn (string $state): string => match ($state) {
                         'domestic'      => 'success',
                         'international' => 'info',
+                        'spiritual'     => 'purple',
                         default         => 'gray',
                     }),
                 TextColumn::make('tour_type')
@@ -59,7 +60,7 @@ class PackagesTable
             ->filters([
                 SelectFilter::make('region_type')
                     ->label('Region')
-                    ->options(['domestic' => 'Domestic', 'international' => 'International']),
+                    ->options(['domestic' => 'Domestic', 'international' => 'International', 'spiritual' => 'Spiritual']),
                 SelectFilter::make('tour_type')
                     ->label('Tour Type')
                     ->options(['group' => 'Group', 'custom' => 'Custom']),

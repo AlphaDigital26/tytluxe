@@ -1,7 +1,12 @@
 @extends('layouts.frontend')
 
-@section('meta_title', 'Travel Packages â€” Domestic & International Holiday Packages | TYT Luxe')
-@section('meta_description', 'Discover curated domestic and international travel packages with TYT Luxe. Honeymoon specials, family packages, adventure trips and luxury getaways â€” all tailored for Indian travellers.')
+@section('meta_title')
+Travel Packages - Domestic & International Holiday Packages | TYT Luxe
+@endsection
+
+@section('meta_description')
+Discover curated domestic and international travel packages with TYT Luxe. Honeymoon specials, family packages, adventure trips and luxury getaways - all tailored for Indian travellers.
+@endsection
 
 @push('styles')
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -388,7 +393,7 @@
       <div class="pkg-header">
         <div class="pkg-eyebrow">Our Collection</div>
         <h1 class="pkg-title">Discover <em>Your Next</em> Adventure</h1>
-        <p class="pkg-desc">Choose your journey â€” explore iconic international destinations or uncover the hidden gems of incredible India.</p>
+        <p class="pkg-desc">Choose your journey - explore iconic international destinations or uncover the hidden gems of incredible India.</p>
       </div>
 
       <!-- CATEGORY TABS -->
@@ -398,6 +403,9 @@
         </button>
         <button class="cat-tab" id="tab-international" role="tab" aria-selected="false" aria-controls="panel-international" onclick="switchTab('international')">
           <i class="fa-solid fa-earth-americas"></i> International
+        </button>
+        <button class="cat-tab" id="tab-spiritual" role="tab" aria-selected="false" aria-controls="panel-spiritual" onclick="switchTab('spiritual')">
+          <i class="fa-solid fa-om"></i> Spiritual
         </button>
       </div>
 
@@ -579,6 +587,95 @@
         </div>
       </div>
 
+      <!-- SPIRITUAL PANEL -->
+      <div class="cat-panel" id="panel-spiritual" role="tabpanel" aria-labelledby="tab-spiritual">
+        
+        @php
+          $spiritualStates = $packages->where('region_type', 'spiritual')->pluck('destination.name')->filter()->unique();
+        @endphp
+        @if($spiritualStates->count() > 0)
+        <div class="state-filter-wrap">
+          <button class="state-tab active" data-state="all" onclick="filterState('spiritual', 'all')">All Destinations</button>
+          @foreach($spiritualStates as $state)
+            <button class="state-tab" data-state="{{ Str::slug($state) }}" onclick="filterState('spiritual', '{{ Str::slug($state) }}')">{{ $state }}</button>
+          @endforeach
+        </div>
+        @endif
+
+        <div id="grid-spiritual" data-active-state="all">
+          @foreach(['group' => 'Group Packages', 'custom' => 'Custom Packages', 'all' => 'All Packages'] as $type => $title)
+            @php
+              $typePackages = $type === 'all' 
+                ? $packages->where('region_type', 'spiritual') 
+                : $packages->where('region_type', 'spiritual')->where('tour_type', $type);
+            @endphp
+            @if($typePackages->isNotEmpty())
+              <h3 class="pkg-title" style="font-size: 1.8rem; margin: 40px 0 20px; text-align: left;">{{ $title }}</h3>
+              <div class="dest-grid type-section-grid" data-tour-type="{{ $type }}">
+                @foreach($typePackages as $pkg)
+                <div class="dest-card" data-state="{{ Str::slug($pkg->destination?->name) }}" onclick="openDrawer({{ $pkg->id }})" tabindex="0" role="button"
+                  aria-label="View {{ $pkg->title }} package details"
+                  onkeydown="if(event.key==='Enter'||event.key===' ') openDrawer({{ $pkg->id }})">
+                  <div class="dest-card-img" style="background-image: url('{{ $pkg->hero_image_url }}')"></div>
+                  <div class="pkg-tour-type-pill">{{ ucfirst($pkg->tour_type) }}</div>
+                  <div class="dest-card-overlay"></div>
+                  <div class="dest-card-content">
+                    <div class="dest-card-country">
+                      <i class="fa-solid fa-location-dot"></i> {{ $pkg->destination?->name }}
+                    </div>
+                    <div class="dest-card-name">{{ $pkg->title }}</div>
+                    <div class="dest-card-meta">
+                      <div class="dest-meta-row">
+                        <span class="dest-meta-item"><i class="fa-regular fa-clock"></i> {{ $pkg->duration_nights }}N/{{ $pkg->duration_nights + 1 }}D</span>
+                        @php
+                          $dep = !empty($pkg->departure_from) ? (is_array($pkg->departure_from) ? implode(', ', $pkg->departure_from) : $pkg->departure_from) : null;
+                          $arr = !empty($pkg->arrival_cities) ? (is_array($pkg->arrival_cities) ? implode(', ', $pkg->arrival_cities) : $pkg->arrival_cities) : $pkg->destination?->name;
+                        @endphp
+                        <span class="dest-meta-item">
+                          <i class="fa-solid fa-location-dot"></i> 
+                          @if($dep && $arr)
+                            {{ $dep }} - {{ $arr }}
+                          @elseif($dep)
+                            {{ $dep }}
+                          @elseif($arr)
+                            {{ $arr }}
+                          @endif
+                        </span>
+                      </div>
+                      <div class="dest-meta-row">
+                        @if($pkg->tour_type == 'custom')
+                          <span class="dest-meta-item"><i class="fa-regular fa-calendar"></i> Any date of your choice</span>
+                        @else
+                          @php
+                             $firstDate = $pkg->departures ? ($pkg->departures->where('start_date', '>=', now()->format('Y-m-d'))->sortBy('start_date')->first() ?? $pkg->departures->first()) : null;
+                          @endphp
+                          @if($firstDate)
+                             <span class="dest-meta-item"><i class="fa-regular fa-calendar"></i> {{ \Carbon\Carbon::parse($firstDate->start_date)->format('d M') }} - {{ \Carbon\Carbon::parse($firstDate->end_date)->format('d M Y') }}</span>
+                          @else
+                             <span class="dest-meta-item"><i class="fa-regular fa-calendar"></i> Specific Dates</span>
+                          @endif
+                        @endif
+                      </div>
+                      <div class="dest-meta-row" style="margin-top: 4px;">
+                        <span class="dest-meta-price" style="color:var(--gold);">From &#8377;{{ number_format($pkg->price_from) }} <span style="font-size: 10px; font-weight: 400; color: var(--white-60); margin-left: 4px;">(inclusive of all taxes)</span></span>
+                      </div>
+                    </div>
+                    <div class="dest-card-cta">Explore Package <i class="fa-solid fa-arrow-right"></i></div>
+                  </div>
+                </div>
+                @endforeach
+              </div>
+            @endif
+          @endforeach
+
+          @if($packages->where('region_type', 'spiritual')->isEmpty())
+          <p style="color:var(--white-60); font-family:'Jost',sans-serif; grid-column:1/-1; text-align:center; padding:48px 0;">
+            Spiritual packages coming soon. Stay tuned!
+          </p>
+          @endif
+        </div>
+      </div>
+
     </div>
   </section>
 </div>
@@ -638,7 +735,7 @@
 </aside>
 
 <script>
-// â”€â”€â”€ Package Data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- Package Data ------------------------------------------------------------
 @php
 $pkgJsonData = [];
 foreach($packages as $p) {
@@ -658,7 +755,7 @@ foreach($packages as $p) {
 @endphp
 const packages = @json($pkgJsonData);
 
-// â”€â”€â”€ Tab Switching â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- Tab Switching ------------------------------------------------------------
 function switchTab(cat) {
   document.querySelectorAll('.cat-tab').forEach(t => {
     const active = t.id === 'tab-' + cat;
@@ -711,7 +808,7 @@ function applyFilters(category) {
   });
 }
 
-// â”€â”€â”€ Drawer Logic â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- Drawer Logic ------------------------------------------------------------
 function openDrawer(id) {
   const pkg = packages.find(p => p.id == id);
   if (!pkg) return;
@@ -759,7 +856,7 @@ function closeDrawer() {
 // Close on Escape
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
 
-// â”€â”€â”€ Auto-activate tab from navbar dropdown or URL param â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- Auto-activate tab from navbar dropdown or URL param ----------------------
 (function() {
   // 1. Check sessionStorage (set by navbar dropdown click)
   let tab = sessionStorage.getItem('pkgActiveTab');
@@ -770,12 +867,12 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(
     const urlParams = new URLSearchParams(window.location.search);
     tab = urlParams.get('tab');
   }
-  if (tab === 'domestic' || tab === 'international') {
+  if (tab === 'domestic' || tab === 'international' || tab === 'spiritual') {
     switchTab(tab);
   }
 })();
 
-// â”€â”€â”€ Drag to Scroll for State Filters â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- Drag to Scroll for State Filters -----------------------------------------
 document.querySelectorAll('.state-filter-wrap').forEach(slider => {
   let isDown = false;
   let startX;
