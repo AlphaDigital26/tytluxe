@@ -280,12 +280,10 @@ class FrontendController extends Controller
     {
         $package = \App\Models\Package::where('slug', $slug)->firstOrFail();
 
-        if (!$package->itinerary_pdf || !Storage::disk('public')->exists($package->itinerary_pdf)) {
-            abort(404, 'Itinerary PDF not found.');
-        }
-
         $filename = ($package->slug ?? 'package') . '-itinerary.pdf';
-        return Storage::disk('public')->download($package->itinerary_pdf, $filename);
+        
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.sample-itinerary', compact('package'));
+        return $pdf->download($filename);
     }
 
     public function guestDownloadItinerary(Request $request, $slug)
@@ -298,10 +296,6 @@ class FrontendController extends Controller
 
         $package = \App\Models\Package::where('slug', $slug)->firstOrFail();
 
-        if (!$package->itinerary_pdf || !Storage::disk('public')->exists($package->itinerary_pdf)) {
-            abort(404, 'Itinerary PDF not found.');
-        }
-
         \App\Models\ItineraryDownload::create([
             'package_id'   => $package->id,
             'name'         => $request->name,
@@ -310,7 +304,8 @@ class FrontendController extends Controller
         ]);
 
         $filename = ($package->slug ?? 'package') . '-itinerary.pdf';
-        return Storage::disk('public')->download($package->itinerary_pdf, $filename);
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.sample-itinerary', compact('package'));
+        return $pdf->download($filename);
     }
 
     public function storeReview(Request $request, $slug)
