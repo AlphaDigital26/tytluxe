@@ -491,6 +491,7 @@ class PackageForm
             'fa-solid fa-plane'           => '✈️   Flight Included',
             'fa-solid fa-umbrella-beach'  => '🏖️   Beach / Coastal',
             'fa-solid fa-landmark'        => '🏛️   Heritage / Culture / Temple',
+            'fa-solid fa-om'              => '🕉️   Spiritual',
             'fa-solid fa-map-marked-alt'  => '🗺️   Guided Sightseeing',
             'fa-solid fa-mountain-sun'    => '⛰️   Hill Station',
             'fa-solid fa-star'            => '⭐   General Highlight',
