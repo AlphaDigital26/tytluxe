@@ -68,8 +68,9 @@ class PackageForm
                                 ->options([
                                     'domestic'      => 'Domestic  (within India)',
                                     'international' => 'International  (outside India)',
+                                    'spiritual'     => 'Spiritual',
                                 ])
-                                ->helperText('Is this trip within India or abroad?')
+                                ->helperText('Is this trip within India, abroad, or a spiritual journey?')
                                 ->required(),
 
                             Select::make('tour_type')

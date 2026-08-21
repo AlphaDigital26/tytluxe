@@ -46,6 +46,15 @@
                                     </span>
                                 </a>
                             </li>
+                            <li>
+                                <a href="{{ url('/packages') }}?tab=spiritual" onclick="setPackageTab('spiritual')">
+                                    <span class="nav-dd-icon"><i class="fa-solid fa-om" aria-hidden="true"></i></span>
+                                    <span class="nav-dd-text">
+                                        <strong>Spiritual</strong>
+                                        <small>Pilgrimage & Retreats</small>
+                                    </span>
+                                </a>
+                            </li>
                         </ul>
                     </li>
 
