@@ -262,7 +262,7 @@
 <!-- Hotel Collections -->
 <section id="hotel-collections" class="section-padding">
     <div class="container">
-        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 40px;">
+        <div class="section-header-split">
             <div>
                 <span class="section-subtitle">Hotel Collections</span>
                 <h2 class="section-title" style="margin-bottom: 0;">Find Your Perfect Stay</h2>
@@ -293,7 +293,7 @@
 <!-- Cruise Experiences -->
 <section id="cruises" class="section-padding" style="background-color: var(--secondary); color: var(--text-light);">
     <div class="container">
-        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 40px;">
+        <div class="section-header-split">
             <div>
                 <span class="section-subtitle">Cruise Experiences</span>
                 <h2 class="section-title" style="margin-bottom: 0; color: var(--text-light);">Sail Beyond Ordinary</h2>
