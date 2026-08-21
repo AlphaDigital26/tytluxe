@@ -350,8 +350,9 @@ Discover curated domestic and international travel packages with TYT Luxe. Honey
 @media (max-width: 640px) {
   .dest-grid { grid-template-columns: 1fr; }
   .pkg-section { padding: 48px 20px 0; }
-  .cat-tabs-wrap { width: calc(100% - 40px); }
-  .cat-tab { padding: 12px 20px; font-size: 11px; flex: 1; justify-content: center; }
+  .cat-tabs-wrap { width: calc(100% - 40px); justify-content: flex-start; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; border-radius: 100px; padding: 6px; margin: 0 auto 40px auto; }
+  .cat-tabs-wrap::-webkit-scrollbar { display: none; }
+  .cat-tab { padding: 12px 20px; font-size: 11px; flex: 0 0 auto; }
   .pkg-trust-inner { gap: 18px; }
   .pkg-drawer { width: 100vw; }
   .pkg-drawer-hero { height: 220px; }

@@ -440,8 +440,9 @@
   .htl-grid { grid-template-columns: 1fr; }
   .htl-trust { padding: 16px 20px; }
   .htl-trust-inner { gap: 24px; }
-  .htl-filter-tabs { gap: 6px; }
-  .htl-tab { padding: 8px 16px; font-size: 11px; }
+  .htl-filter-tabs { gap: 6px; justify-content: flex-start; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding-bottom: 8px; flex-wrap: nowrap; }
+  .htl-filter-tabs::-webkit-scrollbar { display: none; }
+  .htl-tab { padding: 8px 16px; font-size: 11px; flex: 0 0 auto; }
   .htl-banner-inner { padding: 48px 20px; }
   .htl-cta { padding: 56px 20px; }
   .htl-enquiry { padding: 64px 20px; }

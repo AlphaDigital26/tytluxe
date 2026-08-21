@@ -140,48 +140,24 @@
         sessionStorage.setItem('pkgActiveTab', tab);
     }
 
+
     // Mobile: toggle dropdown accordion for Packages nav item
     document.addEventListener('DOMContentLoaded', function() {
         var dropdownLi = document.querySelector('.nav-has-dropdown');
-        if (!dropdownLi) return;
-        var dropdownLink = dropdownLi.querySelector(':scope > a');
-        if (!dropdownLink) return;
-
-        dropdownLink.addEventListener('click', function(e) {
-            // Only intercept on mobile
-            if (window.innerWidth <= 768) {
-                e.preventDefault();
-                var isOpen = dropdownLi.classList.toggle('mobile-open');
-                var arrow = dropdownLi.querySelector('.nav-arrow');
-                if (arrow) arrow.style.transform = isOpen ? 'rotate(180deg)' : '';
-                dropdownLink.setAttribute('aria-expanded', String(isOpen));
+        if (dropdownLi) {
+            var dropdownLink = dropdownLi.querySelector(':scope > a');
+            if (dropdownLink) {
+                dropdownLink.addEventListener('click', function(e) {
+                    // Only intercept on mobile
+                    if (window.innerWidth <= 768) {
+                        e.preventDefault();
+                        var isOpen = dropdownLi.classList.toggle('mobile-open');
+                        var arrow = dropdownLi.querySelector('.nav-arrow');
+                        if (arrow) arrow.style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
+                        dropdownLink.setAttribute('aria-expanded', String(isOpen));
+                    }
+                });
             }
-        });
-
-        // Mobile toggle button
-        var mobileToggle = document.querySelector('.mobile-toggle');
-        if (mobileToggle) {
-            mobileToggle.addEventListener('click', function() {
-                var navMenu = document.querySelector('.nav-menu');
-                if (navMenu) {
-                    var isOpen = navMenu.classList.toggle('active');
-                    mobileToggle.setAttribute('aria-expanded', String(isOpen));
-                    mobileToggle.setAttribute('aria-label', isOpen ? 'Close navigation menu' : 'Open navigation menu');
-                }
-            });
-        }
-
-        // Close button in mobile menu
-        var menuClose = document.querySelector('.menu-close');
-        if (menuClose) {
-            menuClose.addEventListener('click', function() {
-                var navMenu = document.querySelector('.nav-menu');
-                if (navMenu) navMenu.classList.remove('active');
-                if (mobileToggle) {
-                    mobileToggle.setAttribute('aria-expanded', 'false');
-                    mobileToggle.setAttribute('aria-label', 'Open navigation menu');
-                }
-            });
         }
     });
 </script>
