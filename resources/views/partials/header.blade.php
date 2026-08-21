@@ -58,7 +58,9 @@
                         </ul>
                     </li>
 
-                    <li><a href="{{ url('/offers') }}" class="{{ request()->is('offers') ? 'active' : '' }}" {{ request()->is('offers') ? 'aria-current=page' : '' }}>Offers</a></li>
+                    @if(\App\Models\Setting::get('offers_page.is_visible', '1') === '1')
+                        <li><a href="{{ url('/offers') }}" class="{{ request()->is('offers') ? 'active' : '' }}" {{ request()->is('offers') ? 'aria-current=page' : '' }}>Offers</a></li>
+                    @endif
                     <li><a href="{{ url('/contact') }}" class="{{ request()->is('contact') ? 'active' : '' }}" {{ request()->is('contact') ? 'aria-current=page' : '' }}>Contact Us</a></li>
                 </ul>
             </nav>

@@ -138,6 +138,7 @@
   /* ── SLIDER TRACK ── */
   .slider-track {
     display: flex; gap: 1.5rem; padding: 0.5rem 3.5rem 1.5rem;
+    align-items: stretch; /* Explicitly ensure all cards stretch to same height */
     overflow-x: auto; scroll-behavior: smooth;
     scrollbar-width: none; -ms-overflow-style: none;
     scroll-snap-type: x mandatory;
@@ -148,116 +149,82 @@
      OFFER CARD — the star of the show
   ────────────────────────────────────────────────────── */
   .offer-card {
-    flex: 0 0 300px; scroll-snap-align: start;
-    border-radius: 16px; overflow: hidden;
-    position: relative; cursor: pointer;
-    border: 1px solid var(--border);
-    background: var(--dark-card);
-    transition: transform .3s cubic-bezier(.4,0,.2,1),
-                box-shadow .3s cubic-bezier(.4,0,.2,1),
-                border-color .3s;
-    /* Stagger each card slightly */
-  }
-  .offer-card:hover {
-    transform: translateY(-8px) scale(1.01);
-    box-shadow: 0 28px 60px rgba(0,0,0,.65), 0 0 0 1px var(--border-h);
-    border-color: var(--border-h);
-  }
-
-  /* Image */
-  .card-img-wrap { position: relative; overflow: hidden; height: 210px; }
-  .card-img {
-    width: 100%; height: 100%; object-fit: cover; display: block;
-    transition: transform .5s cubic-bezier(.4,0,.2,1);
-  }
-  .offer-card:hover .card-img { transform: scale(1.07); }
-
-  /* Gradient overlay on image */
-  .card-img-wrap::after {
-    content: ''; position: absolute; inset: 0;
-    background: linear-gradient(
-      to bottom,
-      rgba(0,0,0,0) 30%,
-      rgba(0,0,0,.5) 70%,
-      rgba(0,0,0,.85) 100%
-    );
-    transition: opacity .3s;
-  }
-  .offer-card:hover .card-img-wrap::after { opacity: .8; }
-
-  /* No-image fallback */
-  .card-img-placeholder {
-    width: 100%; height: 100%;
-    background: linear-gradient(135deg, #1a1a1a 0%, #222 50%, #181818 100%);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 2.5rem; opacity: .4;
-  }
-
-  /* Badge */
-  .card-badge {
-    position: absolute; top: 14px; left: 14px; z-index: 3;
-    font-size: 8.5px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase;
-    padding: 4px 11px; border-radius: 100px;
-  }
-  .badge-gold {
-    background: linear-gradient(135deg, #C9A84C, #E2C97E);
-    color: #080808;
-    box-shadow: 0 2px 12px rgba(201,168,76,.5);
-  }
-  .badge-hot  { background: var(--red);   color: #fff; box-shadow: 0 2px 12px rgba(231,76,60,.45); }
-  .badge-new  { background: var(--green); color: #fff; box-shadow: 0 2px 12px rgba(39,174,96,.45); }
-
-  /* Expiry ticker on image */
-  .card-expiry-ticker {
-    position: absolute; bottom: 10px; right: 12px; z-index: 3;
-    font-size: 9px; font-weight: 600; letter-spacing: .06em;
-    color: var(--w60); background: rgba(0,0,0,.55); backdrop-filter: blur(6px);
-    padding: 3px 9px; border-radius: 100px; border: 1px solid rgba(255,255,255,.1);
-    display: flex; align-items: center; gap: 4px;
-  }
-  .card-expiry-ticker::before { content: '⏳'; font-size: 8px; }
-
-  /* Coming soon ribbon */
-  .soon-ribbon {
-    position: absolute; bottom: 0; left: 0; right: 0; z-index: 4;
-    background: rgba(8,8,8,.88); backdrop-filter: blur(6px);
-    text-align: center; padding: .6rem;
-    font-size: 9.5px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase;
-    color: var(--gold);
-    border-top: 1px solid var(--border-h);
-  }
-
-  /* Card body */
-  .card-body {
-    padding: 1.25rem 1.4rem 1.35rem;
-    background: var(--dark-card);
+    flex: 0 0 380px; 
+    background: #1a1a1a; 
+    border: 1px dashed rgba(201,168,76,.5);
+    border-radius: 12px;
+    display: flex; flex-direction: row;
     position: relative;
+    scroll-snap-align: start;
+    transition: transform .3s, box-shadow .3s, border-color .3s;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    min-height: 140px; /* SHORTER HEIGHT */
   }
-  /* subtle gold glow on hover inside body */
-  .offer-card:hover .card-body::before {
-    content: '';
-    position: absolute; inset: 0;
-    background: linear-gradient(180deg, var(--gold-dim) 0%, transparent 60%);
-    pointer-events: none;
+  .offer-card:hover { transform: translateY(-3px); border-color: rgba(201,168,76,1); box-shadow: 0 8px 30px rgba(201,168,76,.15); }
+  
+  .coupon-left {
+    flex: 1; padding: 1.2rem;
+    display: flex; flex-direction: column; justify-content: center;
   }
-
-  .card-name {
-    font-family: 'Playfair Display', serif; font-size: 1.1rem;
-    font-weight: 400; color: var(--white); margin-bottom: .3rem;
-    line-height: 1.3;
+  .coupon-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.8rem; font-weight: 600; color: var(--gold);
+    margin: 0 0 .2rem 0; line-height: 1.1;
   }
-  .card-sub {
-    font-size: 11px; color: var(--w40); line-height: 1.65; margin-bottom: 1rem;
+  .coupon-subtitle {
+    font-size: 10px; font-weight: 600; letter-spacing: .15em;
+    text-transform: uppercase; color: var(--w40);
+    margin-bottom: .5rem;
   }
-  .card-footer {
-    display: flex; align-items: center; justify-content: space-between;
-    gap: .5rem;
+  .coupon-desc-wrap { margin-top: .4rem; }
+  .coupon-desc {
+    font-size: 11px; color: var(--white); line-height: 1.4;
+    margin: 0;
   }
-  .card-price {
-    font-size: 13px; color: var(--gold); font-weight: 600;
-    font-variant-numeric: tabular-nums;
+  .read-more-btn {
+    background: transparent; border: none; color: var(--gold);
+    font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: .1em;
+    padding: 0; margin-top: 4px; cursor: pointer; text-decoration: underline;
   }
-  .card-price-contact { font-size: 11px; color: var(--w40); font-style: italic; }
+  .terms-btn {
+    background: transparent; border: none; color: var(--w40);
+    font-size: 8.5px; font-weight: 500; text-transform: uppercase; letter-spacing: .05em;
+    padding: 0; cursor: pointer; text-decoration: underline; margin-left: auto;
+  }
+  
+  .coupon-right {
+    width: 140px; 
+    background: rgba(201,168,76,.04);
+    border-left: 1px dashed rgba(201,168,76,.25);
+    padding: 1.2rem 1rem;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center;
+  }
+  .coupon-use {
+    font-size: 9px; color: var(--w40); text-transform: uppercase; letter-spacing: .1em;
+    margin-bottom: .5rem;
+  }
+  .coupon-code {
+    font-family: 'Poppins', sans-serif; font-size: 13px; font-weight: 700; color: var(--white);
+    margin-bottom: .8rem; letter-spacing: .05em; text-transform: uppercase;
+  }
+  .coupon-btn {
+    background: linear-gradient(135deg, #C9A84C, #E2C97E);
+    border: none; border-radius: 4px; padding: .6rem .8rem;
+    font-family: 'Poppins', sans-serif; font-size: 10px; font-weight: 700;
+    color: #080808; cursor: pointer; text-transform: uppercase;
+    transition: opacity .2s; width: 100%; text-decoration: none; display: inline-block;
+  }
+  .coupon-btn:hover { opacity: .9; }
+  
+  /* Status Ribbon overlay (if coming soon) */
+  .coupon-soon-ribbon {
+    position: absolute; top: 12px; left: -8px; z-index: 4;
+    background: var(--gold); color: #000;
+    padding: .3rem .8rem; font-size: 9px; font-weight: 800; letter-spacing: .15em;
+    text-transform: uppercase; box-shadow: 2px 2px 8px rgba(0,0,0,.5);
+    border-radius: 0 4px 4px 0;
+  }
 
   .card-cta {
     font-size: 9.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
@@ -349,6 +316,29 @@
     transition: box-shadow .25s, transform .2s;
   }
   .oes-btn:hover { box-shadow: 0 6px 32px rgba(201,168,76,.6); transform: translateY(-2px); }
+
+  /* ──────────────────────────────────────────────────────
+     MODAL OVERLAY FOR NOTIFY
+  ────────────────────────────────────────────────────── */
+  .notify-modal {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);
+    z-index: 9999; display: none; align-items: center; justify-content: center;
+    opacity: 0; transition: opacity .3s;
+  }
+  .notify-modal.active { display: flex; opacity: 1; }
+  .notify-modal-close {
+    position: absolute; top: 18px; right: 24px;
+    background: none; border: none; color: var(--w40); font-size: 32px;
+    cursor: pointer; line-height: 1; transition: color .2s; z-index: 10;
+  }
+  .notify-modal-close:hover { color: var(--white); }
+  .notify-modal .bottom-card {
+    width: 100%; max-width: 500px;
+    margin: 0 20px; padding-top: 3.5rem; transform: translateY(20px);
+    transition: transform .3s; 
+  }
+  .notify-modal.active .bottom-card { transform: translateY(0); }
 
   /* ──────────────────────────────────────────────────────
      BOTTOM CTA SECTION
@@ -477,24 +467,21 @@
 </div>
 
 {{-- ── DYNAMIC OFFER CATEGORIES ── --}}
-@if(empty($categories))
 
-  {{-- EMPTY STATE --}}
-  <div class="offers-empty-state">
-    <div class="oes-inner">
-      <span class="oes-icon">🎁</span>
-      <div class="oes-eyebrow">Stay Tuned</div>
-      <h2 class="oes-heading">Exciting Offers are <em>Coming Soon</em></h2>
-      <p class="oes-body">We're handpicking the finest deals on luxury hotels, cruises, flights &amp; packages — curated just for you. Check back shortly, or leave your number and we'll WhatsApp you the moment a deal drops.</p>
-      <a href="#notify" class="oes-btn" onclick="document.getElementById('notifyPhone').focus();return false;">
-        Notify Me When Deals Drop
-      </a>
-    </div>
+{{-- EMPTY STATE (Shown via JS when active tab has 0 offers) --}}
+<div class="offers-empty-state" id="dynamicEmptyState" style="display: {{ empty($categories) ? 'flex' : 'none' }};">
+  <div class="oes-inner">
+    <span class="oes-icon">🎁</span>
+    <div class="oes-eyebrow">Stay Tuned</div>
+    <h2 class="oes-heading">Exciting Offers are <em>Coming Soon</em></h2>
+    <p class="oes-body">We're handpicking the finest deals on luxury hotels, cruises, flights &amp; packages — curated just for you. Check back shortly, or leave your number and we'll WhatsApp you the moment a deal drops.</p>
+    <button class="oes-btn" onclick="openNotifyModal()">
+      Notify Me When Deals Drop
+    </button>
   </div>
+</div>
 
-@else
-
-  @foreach($categories as $catIndex => $category)
+@foreach($categories as $catIndex => $category)
     @php
       $trackId = $category['category_key'] . '-track';
       $dotsId  = $category['category_key'] . '-dots';
@@ -524,41 +511,58 @@
       <div class="slider-track" id="{{ $trackId }}">
         @foreach($category['cards'] as $card)
           <div class="offer-card">
+            
+            @if(!empty($card['coming_soon']))
+              <div class="coupon-soon-ribbon">Coming Soon</div>
+            @endif
 
-            {{-- Image --}}
-            <div class="card-img-wrap">
-              @if(!empty($card['resolved_image']))
-                <img class="card-img" src="{{ $card['resolved_image'] }}" alt="{{ $card['name'] ?? '' }}" loading="lazy">
-              @else
-                <div class="card-img-placeholder">✈️</div>
-              @endif
-
-              @if(!empty($card['badge_label']))
-                <span class="card-badge {{ $card['badge_type'] ?? 'badge-gold' }}">{{ $card['badge_label'] }}</span>
-              @endif
-
-              @if(!empty($card['coming_soon']))
-                <div class="soon-ribbon">Deal Coming Soon</div>
-              @endif
-            </div>
-
-            {{-- Body --}}
-            <div class="card-body">
-              <div class="card-name">{{ $card['name'] ?? '' }}</div>
-              @if(!empty($card['subtitle']))
-                <div class="card-sub">{{ $card['subtitle'] }}</div>
-              @endif
-              <div class="card-footer">
-                @if(!empty($card['price']))
-                  <span class="card-price">{{ $card['price'] }}</span>
-                @else
-                  <span class="card-price-contact">Contact for price</span>
-                @endif
-                @unless(!empty($card['coming_soon']))
-                  <a href="{{ $card['enquire_link'] ?? $ctaWhatsapp }}" class="card-cta" target="_blank" rel="noopener">Enquire</a>
-                @endunless
+            <div class="coupon-left">
+              <h3 class="coupon-title">{{ $card['name'] }}</h3>
+              <div class="coupon-subtitle">{{ $card['subtitle'] ?? $category['slider_label'] ?? '' }}</div>
+              <div class="coupon-desc-wrap">
+                <p class="coupon-desc" id="desc-{{ $loop->parent->index }}-{{ $loop->index }}" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                  @if(!empty($card['destination']) || !empty($card['duration']))
+                    <strong>{{ $card['destination'] ?? '' }} {{ !empty($card['duration']) ? '('.$card['duration'].')' : '' }}</strong><br>
+                  @endif
+                  @if(!empty($card['description']))
+                    {{ $card['description'] }}<br>
+                  @endif
+                  @if(!empty($card['price']))
+                    From {{ $card['price'] }}.
+                  @endif
+                  @if(!empty($card['discount_label']))
+                    <span style="color: var(--green);">{{ $card['discount_label'] }}</span>
+                  @endif
+                </p>
+                <div style="display: flex; gap: 10px; align-items: center; margin-top: 4px;">
+                   <button class="read-more-btn" style="margin-top:0;" onclick="toggleDesc('desc-{{ $loop->parent->index }}-{{ $loop->index }}', this)">Read more</button>
+                   @if(!empty($card['terms']))
+                     <button class="terms-btn" onclick="openTermsModal('terms-{{ $loop->parent->index }}-{{ $loop->index }}')">*T&Cs apply</button>
+                     <div id="terms-{{ $loop->parent->index }}-{{ $loop->index }}" style="display:none;">{!! $card['terms'] !!}</div>
+                   @endif
+                </div>
               </div>
             </div>
+
+            @if(!empty($card['coming_soon']))
+              <div class="coupon-right">
+                <div class="coupon-use">STATUS</div>
+                <div class="coupon-code" style="font-size: 11px; color: var(--gold);">DROPPING SOON</div>
+                <button class="coupon-btn" onclick="openNotifyModal()">NOTIFY ME</button>
+              </div>
+            @elseif(!empty($card['promo_code']))
+              <div class="coupon-right">
+                <div class="coupon-use">USE CODE</div>
+                <div class="coupon-code" id="code-{{ $loop->parent->index }}-{{ $loop->index }}">{{ $card['promo_code'] }}</div>
+                <button class="coupon-btn" onclick="copyCode(this, '{{ $card['promo_code'] }}')">COPY CODE</button>
+              </div>
+            @else
+              <div class="coupon-right">
+                <div class="coupon-use">VALID TILL</div>
+                <div class="coupon-code" style="font-size: 11px;">{{ $card['valid_to'] ?? 'LIMITED' }}</div>
+                <a href="{{ $card['enquire_link'] ?? $ctaWhatsapp }}" class="coupon-btn" target="_blank" rel="noopener">ENQUIRE</a>
+              </div>
+            @endif
 
           </div>
         @endforeach
@@ -575,11 +579,10 @@
     </div>
   @endforeach
 
-@endif
-
-{{-- BOTTOM CTA --}}
-<div class="bottom-section" id="notify">
+{{-- NOTIFY MODAL (Always rendered as a popup) --}}
+<div class="notify-modal" id="notifyModal" onclick="if(event.target===this) closeNotifyModal()">
   <div class="bottom-card">
+    <button class="notify-modal-close" onclick="closeNotifyModal()" aria-label="Close">&times;</button>
     @if(!empty($ctaTag))<span class="bc-tag">{{ $ctaTag }}</span>@endif
     @if(!empty($ctaHeading))<h3>{!! $ctaHeading !!}</h3>@endif
     @if(!empty($ctaBody))<p>{{ $ctaBody }}</p>@endif
@@ -593,6 +596,19 @@
       <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
       {{ $ctaWaLabel }}
     </a>
+  </div>
+</div>
+</div>
+
+{{-- TERMS MODAL --}}
+<div class="notify-modal" id="termsModal" onclick="if(event.target===this) closeTermsModal()">
+  <div class="bottom-card" style="max-width: 600px; text-align: left;">
+    <button class="notify-modal-close" onclick="closeTermsModal()" aria-label="Close">&times;</button>
+    <span class="bc-tag">Important Information</span>
+    <h3 style="margin-bottom: 1.5rem;">Terms &amp; Conditions</h3>
+    <div id="termsContent" style="font-size: 13px; color: var(--w80); line-height: 1.6; max-height: 50vh; overflow-y: auto; padding-right: 1rem;">
+       {{-- Content injected via JS --}}
+    </div>
   </div>
 </div>
 
@@ -632,12 +648,30 @@
   /* ── Filter ── */
   function filterOffers(cat, btn) {
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
+    if(btn) btn.classList.add('active');
+    
+    let visibleCount = 0;
     document.querySelectorAll('.slider-section').forEach(s => {
-      s.style.display = (cat === 'all' || s.dataset.category === cat) ? '' : 'none';
+      if (cat === 'all' || s.dataset.category === cat) {
+        s.style.display = '';
+        visibleCount++;
+      } else {
+        s.style.display = 'none';
+      }
     });
+    
     document.querySelectorAll('.s-divider').forEach(d => d.style.display = cat === 'all' ? '' : 'none');
+    
+    const emptyState = document.getElementById('dynamicEmptyState');
+    if(emptyState) {
+      emptyState.style.display = visibleCount === 0 ? 'flex' : 'none';
+    }
   }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    const activeBtn = document.querySelector('.filter-btn.active');
+    if (activeBtn) activeBtn.click();
+  });
 
   /* ── Notify Me ── */
   async function handleNotify(e) {
@@ -665,5 +699,70 @@
       showToast?.('Error', 'Something went wrong. Please try again.', 'error');
     }
   }
+
+  /* ── Notify Modal ── */
+  function openNotifyModal() {
+    const m = document.getElementById('notifyModal');
+    if(m) {
+      m.classList.add('active');
+      setTimeout(() => { document.getElementById('notifyPhone')?.focus(); }, 100);
+    }
+  }
+  function closeNotifyModal() {
+    const m = document.getElementById('notifyModal');
+    if(m) m.classList.remove('active');
+  }
+
+  /* ── Terms Modal ── */
+  function openTermsModal(contentId) {
+    const content = document.getElementById(contentId).innerHTML;
+    document.getElementById('termsContent').innerHTML = content;
+    const m = document.getElementById('termsModal');
+    if(m) m.classList.add('active');
+  }
+  function closeTermsModal() {
+    const m = document.getElementById('termsModal');
+    if(m) m.classList.remove('active');
+  }
+
+  /* ── Copy Promo Code ── */
+  function copyCode(el, code) {
+    navigator.clipboard.writeText(code).then(() => {
+      const orig = el.innerHTML;
+      el.innerHTML = '✓ Copied!';
+      setTimeout(() => el.innerHTML = orig, 2000);
+    });
+  }
+
+  /* ── Read More Toggle ── */
+  function toggleDesc(id, btn) {
+    const el = document.getElementById(id);
+    if (el.style.webkitLineClamp === '2' || el.style.webkitLineClamp === '') {
+        el.style.webkitLineClamp = 'unset';
+        btn.innerText = 'Read less';
+    } else {
+        el.style.webkitLineClamp = '2';
+        btn.innerText = 'Read more';
+    }
+  }
+
+  // Hide Read More if text doesn't overflow
+  window.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.coupon-desc').forEach(desc => {
+      // Temporarily remove clamp to measure full height
+      const originalClamp = desc.style.webkitLineClamp;
+      desc.style.webkitLineClamp = 'unset';
+      const fullHeight = desc.scrollHeight;
+      desc.style.webkitLineClamp = originalClamp;
+      
+      // If it doesn't overflow, hide the button
+      if (desc.scrollHeight <= desc.clientHeight + 2) {
+         const btn = desc.nextElementSibling;
+         if (btn && btn.classList.contains('read-more-btn')) {
+             btn.style.display = 'none';
+         }
+      }
+    });
+  });
 </script>
 @endpush

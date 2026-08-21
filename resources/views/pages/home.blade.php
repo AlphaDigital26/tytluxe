@@ -318,6 +318,7 @@
 </section>
 
 <!-- Offers Banner -->
+@if(\App\Models\Setting::get('offers_page.is_visible', '1') === '1')
 <section id="offers" style="background-color: #1a1a1a; padding: 40px 0;">
     <div class="container">
         <div class="cta-banner-inner" style="background-color: #2a241e; padding: 40px; border-radius: 8px;">
@@ -329,6 +330,7 @@
         </div>
     </div>
 </section>
+@endif
 
 <!-- Testimonials -->
 <section class="section-padding">
