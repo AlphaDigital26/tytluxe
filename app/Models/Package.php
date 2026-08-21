@@ -15,6 +15,7 @@ class Package extends Model
     protected $casts = [
         'departure_from' => 'array',
         'arrival_cities' => 'array',
+        'notes' => 'array',
     ];
 
     public function destination()   { return $this->belongsTo(Destination::class); }
