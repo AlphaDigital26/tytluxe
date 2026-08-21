@@ -32,193 +32,156 @@ class OfferForm
     {
         return $schema->components([
 
-            Tabs::make('Offer')
-                ->tabs([
+            Section::make('1. Basic Offer Details')
+                ->description('What is this offer and where does it belong?')
+                ->columnSpan('full')
+                ->schema([
+                    Grid::make(2)->schema([
+                        Select::make('category_key')
+                            ->label('Which Tab Should This Go In?')
+                            ->options(self::$categories)
+                            ->required()
+                            ->native(false),
 
-                    // ── TAB 1: Deal Details ─────────────────────────────
-                    Tab::make('Deal Details')
-                        ->icon('heroicon-o-tag')
-                        ->schema([
+                        TextInput::make('sort_order')
+                            ->label('Display Priority')
+                            ->helperText('Use 1 to show first, 2 for second, etc.')
+                            ->numeric()
+                            ->default(10)
+                            ->required(),
 
-                            Grid::make(2)->schema([
+                        TextInput::make('title')
+                            ->label('Main Big Golden Text')
+                            ->helperText('E.g. "$50 OFF" or "Luxury Maldives Escape"')
+                            ->required()
+                            ->columnSpan(2),
 
-                                Select::make('category_key')
-                                    ->label('Category')
-                                    ->helperText('Which section does this offer belong to?')
-                                    ->options(self::$categories)
-                                    ->required()
-                                    ->native(false),
+                        TextInput::make('subtitle')
+                            ->label('Small Subtitle')
+                            ->helperText('E.g. "INTERNATIONAL FLIGHTS" or "Limited Time Deal"')
+                            ->columnSpan(2),
+                    ]),
+                ]),
 
-                                TextInput::make('sort_order')
-                                    ->label('Sort Order')
-                                    ->helperText('Lower = first. Use 0, 10, 20…')
-                                    ->numeric()
-                                    ->default(0)
-                                    ->required(),
+            Section::make('2. Discount Details')
+                ->description('Configure how the discount is calculated.')
+                ->columnSpan('full')
+                ->schema([
+                    Grid::make(3)->schema([
+                        Select::make('discount_type')
+                            ->label('Discount Type')
+                            ->options([
+                                'percentage' => 'Percentage (%)',
+                                'fixed'      => 'Fixed Amount (₹)',
+                            ])
+                            ->default('percentage')
+                            ->required()
+                            ->native(false),
 
-                                TextInput::make('title')
-                                    ->label('Offer Title')
-                                    ->helperText('Main heading on the card. E.g. "Maldives Luxury Escape" or "Mumbai → Dubai"')
-                                    ->required()
-                                    ->placeholder('Maldives Luxury Escape')
-                                    ->columnSpan(2),
+                        TextInput::make('discount_value')
+                            ->label('Discount Value')
+                            ->helperText('E.g. 50 (for 50%) or 1000 (for ₹1000)')
+                            ->numeric()
+                            ->required(),
 
-                                TextInput::make('destination')
-                                    ->label('Destination')
-                                    ->helperText('Short destination label. E.g. "Maldives", "Dubai", "Goa → Sri Lanka"')
-                                    ->placeholder('Maldives')
-                                    ->nullable(),
+                        TextInput::make('min_order_value')
+                            ->label('Minimum Order Value (Optional)')
+                            ->helperText('E.g. 50000 for flights above 50,000rs')
+                            ->numeric()
+                            ->nullable(),
+                    ]),
 
-                                TextInput::make('duration')
-                                    ->label('Duration')
-                                    ->helperText('E.g. "5 Nights / 6 Days", "3 Hours", "7 Nights"')
-                                    ->placeholder('5 Nights / 6 Days')
-                                    ->nullable(),
+                    Grid::make(2)->schema([
+                        Toggle::make('is_upto')
+                            ->label('Is this an "Up to" offer?')
+                            ->helperText('Will display as "Up to X% OFF" instead of flat "X% OFF".')
+                            ->live(), // To toggle visibility of options
 
-                                TextInput::make('subtitle')
-                                    ->label('Subtitle / Inclusions')
-                                    ->helperText('Short line shown below title. E.g. "Breakfast · Seaplane · Sunset Dinner"')
-                                    ->placeholder('Breakfast · Airport Transfer · Sunset Dinner')
-                                    ->nullable()
-                                    ->columnSpan(2),
+                        \Filament\Forms\Components\TagsInput::make('upto_options')
+                            ->label('Randomized Discount Options')
+                            ->helperText('Type values and press Enter (e.g. 5, 10, 15, 20). Only used if "Up to" is enabled.')
+                            ->visible(fn ($get) => $get('is_upto')),
+                    ]),
+                ]),
 
-                                TextInput::make('display_price')
-                                    ->label('Price (display)')
-                                    ->helperText('E.g. "₹45,000 / person" or "From ₹3,50,000 / couple". Leave blank to show "Contact for Price".')
-                                    ->placeholder('₹45,000 / person')
-                                    ->nullable(),
+            Section::make('3. Description & Terms')
+                ->description('Provide the details of the offer.')
+                ->columnSpan('full')
+                ->schema([
+                    Grid::make(3)->schema([
+                        TextInput::make('destination')
+                            ->label('Destination (Optional)')
+                            ->placeholder('E.g. Maldives'),
 
-                                TextInput::make('enquire_link')
-                                    ->label('Enquire Button URL')
-                                    ->helperText('WhatsApp or page link. Leave blank to use the default WhatsApp from settings.')
-                                    ->url()
-                                    ->placeholder('https://wa.me/91XXXXXXXXXX')
-                                    ->nullable(),
+                        TextInput::make('duration')
+                            ->label('Duration (Optional)')
+                            ->placeholder('E.g. 5 Nights / 6 Days'),
 
-                            ]),
+                        TextInput::make('display_price')
+                            ->label('Price (Optional)')
+                            ->placeholder('E.g. ₹45,000 / person'),
+                    ]),
 
-                            // ── Badge ────────────────────────────────────
-                            Section::make('Deal Badge')
-                                ->description('Optional coloured label on the card image.')
-                                ->collapsible()
-                                ->collapsed()
-                                ->schema([
-                                    Grid::make(2)->schema([
-                                        TextInput::make('badge_label')
-                                            ->label('Badge Text')
-                                            ->placeholder('HOT DEAL')
-                                            ->nullable(),
+                    Textarea::make('description')
+                        ->label('Short Description')
+                        ->helperText('Keep it brief to fit on the coupon card.')
+                        ->rows(3)
+                        ->nullable(),
 
-                                        Select::make('badge_type')
-                                            ->label('Badge Colour')
-                                            ->options([
-                                                'badge-gold' => '🟡 Gold',
-                                                'badge-hot'  => '🔴 Hot (Red)',
-                                                'badge-new'  => '🟢 New (Green)',
-                                            ])
-                                            ->default('badge-gold')
-                                            ->native(false),
-                                    ]),
-                                ]),
+                    RichEditor::make('terms_and_conditions')
+                        ->label('Terms & Conditions (Optional)')
+                        ->helperText('If you add terms, a clickable "*T&Cs apply" link will appear.')
+                        ->toolbarButtons(['bold', 'italic', 'bulletList', 'orderedList', 'link'])
+                        ->nullable(),
+                ]),
 
-                            // ── Promo Code ───────────────────────────────
-                            Section::make('Promo Code (optional)')
-                                ->description('Add a promo/coupon code to display on this offer card.')
-                                ->collapsible()
-                                ->collapsed()
-                                ->schema([
-                                    Grid::make(3)->schema([
-                                        Select::make('discount_type')
-                                            ->label('Discount Type')
-                                            ->options([
-                                                'percentage' => '% Percentage',
-                                                'fixed'      => '₹ Fixed Amount',
-                                            ])
-                                            ->default('percentage')
-                                            ->native(false),
+            Section::make('4. Promo Code & Call-to-Action')
+                ->description('How do customers claim this offer?')
+                ->columnSpan('full')
+                ->schema([
+                    Grid::make(2)->schema([
+                        TextInput::make('promo_code')
+                            ->label('Promo Code')
+                            ->helperText('E.g. "SUMMER20". If left blank, it will show an "ENQUIRE" button instead.')
+                            ->nullable()
+                            ->unique(ignoreRecord: true),
 
-                                        TextInput::make('discount_value')
-                                            ->label('Discount Value')
-                                            ->numeric()
-                                            ->minValue(0)
-                                            ->placeholder('20'),
+                        TextInput::make('enquire_link')
+                            ->label('Custom Enquire URL (Optional)')
+                            ->helperText('Leave blank to use the default WhatsApp number.')
+                            ->url()
+                            ->nullable(),
+                    ]),
+                ]),
 
-                                        TextInput::make('promo_code')
-                                            ->label('Promo Code')
-                                            ->placeholder('SUMMER20')
-                                            ->nullable()
-                                            ->unique(ignoreRecord: true),
-                                    ]),
-                                ]),
+            Section::make('5. Status & Expiry')
+                ->description('When should this offer be shown?')
+                ->columnSpan('full')
+                ->schema([
+                    Grid::make(2)->schema([
+                        DatePicker::make('valid_to')
+                            ->label('Expiry Date')
+                            ->helperText('After this date, the offer will automatically disappear.')
+                            ->native(false)
+                            ->required(),
 
-                            Toggle::make('coming_soon')
-                                ->label('"Deal Coming Soon" — hides the price and enquire button')
-                                ->helperText('Use for upcoming deals you want to tease on the website.')
-                                ->default(false),
+                        DatePicker::make('valid_from')
+                            ->label('Start Date (Optional)')
+                            ->native(false)
+                            ->default(now()),
+                    ]),
 
-                            RichEditor::make('terms_and_conditions')
-                                ->label('Terms & Conditions')
-                                ->toolbarButtons([
-                                    'bold', 'italic', 'underline', 'bulletList', 'orderedList', 'link', 'redo', 'undo',
-                                ])
-                                ->columnSpanFull()
-                                ->nullable(),
+                    Grid::make(2)->schema([
+                        Toggle::make('coming_soon')
+                            ->label('Mark as "Coming Soon"')
+                            ->helperText('Shows a "Dropping Soon" label instead of the code.'),
 
-                        ]),
-
-                    // ── TAB 2: Card Image ───────────────────────────────
-                    Tab::make('Card Image')
-                        ->icon('heroicon-o-photo')
-                        ->schema([
-                            Section::make()
-                                ->description('Upload a photo OR paste an external URL. Uploaded image takes priority.')
-                                ->schema([
-                                    FileUpload::make('image_path')
-                                        ->label('Upload Image')
-                                        ->image()
-                                        ->saveUploadedFileUsing(fn ($file) => app(\App\Services\ImageOptimizer::class)->optimizeAndSave($file, 'thumbnail', 'offer-cards'))
-                                        ->imagePreviewHeight('220')
-                                        ->maxSize(5120)
-                                        ->columnSpanFull(),
-
-                                    TextInput::make('image_url')
-                                        ->label('External Image URL')
-                                        ->url()
-                                        ->placeholder('https://images.unsplash.com/photo-...')
-                                        ->nullable()
-                                        ->columnSpanFull(),
-                                ]),
-                        ]),
-
-                    // ── TAB 3: Validity & Status ────────────────────────
-                    Tab::make('Validity & Status')
-                        ->icon('heroicon-o-calendar-days')
-                        ->schema([
-                            Grid::make(2)->schema([
-
-                                DatePicker::make('valid_from')
-                                    ->label('Offer Starts On')
-                                    ->helperText('The offer is published from this date. Leave it as today if you want it live immediately.')
-                                    ->required()
-                                    ->native(false)
-                                    ->default(now()),
-
-                                DatePicker::make('valid_to')
-                                    ->label('Offer Expires On')
-                                    ->helperText('The offer is automatically hidden after this date.')
-                                    ->required()
-                                    ->native(false)
-                                    ->afterOrEqual('valid_from'),
-                            ]),
-
-                            Toggle::make('is_active')
-                                ->label('Active — show on the Offers page')
-                                ->helperText('Turn off to temporarily hide this offer without deleting it.')
-                                ->default(true)
-                                ->columnSpanFull(),
-                        ]),
-
-                ])->columnSpanFull(),
+                        Toggle::make('is_active')
+                            ->label('Offer is Active')
+                            ->helperText('Turn off to hide this offer immediately.')
+                            ->default(true),
+                    ]),
+                ]),
 
         ]);
     }

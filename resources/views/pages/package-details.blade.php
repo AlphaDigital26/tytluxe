@@ -838,7 +838,7 @@
     <span onclick="document.getElementById('itineraryDownloadModal').style.display='none'" style="position: absolute; top: 15px; right: 25px; font-size: 28px; cursor: pointer; color: var(--gold);">&times;</span>
     <h3 style="color: var(--gold); margin-bottom: 15px; font-family: 'Cinzel', serif; font-size: 1.5rem;">Download Itinerary</h3>
     <p style="color: var(--white-80); margin-bottom: 25px; font-size: 0.95rem; line-height: 1.5;">Please enter your details to download the detailed itinerary for this package.</p>
-    <form action="{{ route('package.download.guest', $package->id) }}" method="POST">
+    <form action="{{ route('package.download.guest', $package->slug) }}" method="POST">
       @csrf
       <input type="text" name="name" required placeholder="Your Name" style="width: 100%; padding: 14px; margin-bottom: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--white-20); color: #fff; border-radius: 4px; font-family: 'Jost', sans-serif;">
       <input type="tel" name="phone" required placeholder="Your Phone Number" style="width: 100%; padding: 14px; margin-bottom: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--white-20); color: #fff; border-radius: 4px; font-family: 'Jost', sans-serif;">

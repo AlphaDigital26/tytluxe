@@ -50,9 +50,12 @@ class OffersTable
 
                 TextColumn::make('discount_value')
                     ->label('Discount')
-                    ->formatStateUsing(fn ($record) => $record->discount_type === 'percentage'
-                        ? $record->discount_value . '%'
-                        : '₹' . number_format($record->discount_value, 0))
+                    ->formatStateUsing(function ($record) {
+                        $prefix = $record->is_upto ? 'Up to ' : '';
+                        return $record->discount_type === 'percentage'
+                            ? $prefix . $record->discount_value . '%'
+                            : $prefix . '₹' . number_format($record->discount_value, 0);
+                    })
                     ->badge()
                     ->color('success'),
 

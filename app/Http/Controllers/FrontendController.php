@@ -162,6 +162,10 @@ class FrontendController extends Controller
         $s = fn (string $key, mixed $default = '') => Setting::get($key, $default);
         $j = fn (string $key, mixed $default = []) => Setting::getJson($key, $default);
 
+        if ($s('offers_page.is_visible', '1') !== '1') {
+            abort(404);
+        }
+
         // ── Hero ──────────────────────────────────────────────────────────
         $heroEyebrow  = $s('offers_page.hero_eyebrow',  'Limited Time Deals');
         $heroTitle    = $s('offers_page.hero_title',    'Exclusive Deals. <em>Unforgettable</em> Experiences.');

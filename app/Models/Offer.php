@@ -20,6 +20,9 @@ class Offer extends Model
         'coming_soon'  => 'boolean',
         'discount_value' => 'decimal:2',
         'sort_order'   => 'integer',
+        'is_upto'      => 'boolean',
+        'min_order_value' => 'decimal:2',
+        'upto_options' => 'array',
     ];
 
     // ── Relationships ────────────────────────────────────────────────
@@ -42,14 +45,33 @@ class Offer extends Model
     }
 
     /**
-     * Human-readable discount label e.g. "20% OFF" or "₹500 OFF"
+     * Human-readable discount label e.g. "20% OFF" or "₹500 OFF" or "Up to 50% OFF"
      */
     public function getDiscountLabelAttribute(): string
     {
+        $prefix = $this->is_upto ? 'Up to ' : '';
         if ($this->discount_type === 'percentage') {
-            return $this->discount_value . '% OFF';
+            return $prefix . $this->discount_value . '% OFF';
         }
-        return '₹' . number_format($this->discount_value, 0) . ' OFF';
+        return $prefix . '₹' . number_format($this->discount_value, 0) . ' OFF';
+    }
+
+    /**
+     * Calculates the actual discount value based on order amount and 'up to' logic.
+     */
+    public function calculateAppliedDiscount($orderValue = 0)
+    {
+        if ($this->min_order_value && $orderValue < $this->min_order_value) {
+            return 0; // Does not meet minimum order value
+        }
+
+        if (!$this->is_upto || empty($this->upto_options)) {
+            return $this->discount_value;
+        }
+
+        // Randomly select one of the valid options
+        $options = $this->upto_options;
+        return $options[array_rand($options)];
     }
 
     /**
