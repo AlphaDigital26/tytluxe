@@ -601,7 +601,7 @@
                 <i class="fa-brands fa-whatsapp"></i> WhatsApp Us
               </a>
                 @auth
-                  <a href="{{ route('package.download', ['slug' => $package->slug]) }}" class="pd-btn-outline" target="_blank" download>
+                  <a href="{{ route('package.download', ['slug' => $package->slug]) }}" class="pd-btn-outline" target="_blank">
                     <i class="fa-solid fa-download"></i> Download Itinerary
                   </a>
                 @else

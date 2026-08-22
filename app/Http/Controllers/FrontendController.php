@@ -299,7 +299,7 @@ class FrontendController extends Controller
                 })
                 ->name($filename)
                 ->download();
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return back()->with('error', 'PDF Error on Server: ' . $e->getMessage());
         }
     }
@@ -341,7 +341,7 @@ class FrontendController extends Controller
                 })
                 ->name($filename)
                 ->download();
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return back()->with('error', 'PDF Error on Server: ' . $e->getMessage());
         }
     }
