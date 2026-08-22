@@ -2533,28 +2533,35 @@ input:checked+.profile-slider:before {
     .auth-page-wrapper {
         flex-direction: column;
         background-color: #f9f9f9;
+        height: auto;
+        min-height: 100vh;
+        overflow: visible;
+        position: relative;
     }
 
     .auth-image-side {
         min-height: 350px;
         flex: none;
-        border-radius: 0 0 50% 50% / 0 0 40px 40px;
+        border-radius: 0 0 24px 24px;
         padding: 20px;
         position: relative;
-        z-index: 1;
+        z-index: 20;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.15);
     }
 
     .auth-form-side {
         max-width: 100%;
         padding: 0 20px 40px;
         background-color: transparent;
+        position: relative;
+        z-index: 10;
     }
 
     .auth-form-container {
         background: #fff;
         border-radius: 16px;
-        padding: 30px 20px;
-        margin-top: -40px;
+        padding: 60px 20px 30px;
+        margin-top: -30px;
         position: relative;
         z-index: 10;
         box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08);
@@ -2564,6 +2571,21 @@ input:checked+.profile-slider:before {
         height: 60px;
         margin-bottom: 30px;
         filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
+    }
+
+    .auth-back-btn {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        right: auto;
+        margin-bottom: 0;
+        z-index: 50;
+        color: #fff;
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(10px);
+        padding: 10px 16px;
+        border-radius: 100px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
     }
 
     .auth-form-container .auth-form-group input {
@@ -2595,14 +2617,14 @@ input:checked+.profile-slider:before {
     }
 
     .auth-social-btn {
-        border-radius: 50%;
-        width: 50px;
-        height: 50px;
+        border-radius: 4px;
+        width: 100%;
+        height: auto;
         flex: none;
-        padding: 0;
+        padding: 12px;
         justify-content: center;
         margin: 0 auto;
-        color: transparent;
+        color: #333;
     }
 
     .auth-social-btn img,
