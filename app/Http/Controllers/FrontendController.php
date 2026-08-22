@@ -286,6 +286,16 @@ class FrontendController extends Controller
                 ->withBrowsershot(function (\Spatie\Browsershot\Browsershot $browsershot) {
                     $browsershot->noSandbox();
                     $browsershot->newHeadless();
+                    $browsershot->addChromiumArguments([
+                        '--disable-crash-reporter',
+                        '--disable-dev-shm-usage',
+                        '--disable-extensions',
+                        '--disable-gpu',
+                        '--disable-setuid-sandbox',
+                        '--no-first-run',
+                        '--no-zygote',
+                        '--single-process',
+                    ]);
                     
                     if (env('NODE_PATH')) {
                         $browsershot->setNodeBinary(env('NODE_PATH'));
@@ -332,6 +342,16 @@ class FrontendController extends Controller
                 ->withBrowsershot(function (\Spatie\Browsershot\Browsershot $browsershot) {
                     $browsershot->noSandbox();
                     $browsershot->newHeadless();
+                    $browsershot->addChromiumArguments([
+                        '--disable-crash-reporter',
+                        '--disable-dev-shm-usage',
+                        '--disable-extensions',
+                        '--disable-gpu',
+                        '--disable-setuid-sandbox',
+                        '--no-first-run',
+                        '--no-zygote',
+                        '--single-process',
+                    ]);
                     
                     // Force Node/NPM paths if defined in ENV (helps on Hostinger VPS)
                     if (env('NODE_PATH')) {
