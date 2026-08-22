@@ -283,6 +283,9 @@ class FrontendController extends Controller
         $filename = ($package->slug ?? 'package') . '-itinerary.pdf';
         
         return \Spatie\LaravelPdf\Facades\Pdf::view('pdf.sample-itinerary', compact('package'))
+            ->withBrowsershot(function (\Spatie\Browsershot\Browsershot $browsershot) {
+                $browsershot->noSandbox();
+            })
             ->name($filename)
             ->download();
     }
@@ -307,6 +310,9 @@ class FrontendController extends Controller
         $filename = ($package->slug ?? 'package') . '-itinerary.pdf';
         
         return \Spatie\LaravelPdf\Facades\Pdf::view('pdf.sample-itinerary', compact('package'))
+            ->withBrowsershot(function (\Spatie\Browsershot\Browsershot $browsershot) {
+                $browsershot->noSandbox();
+            })
             ->name($filename)
             ->download();
     }
