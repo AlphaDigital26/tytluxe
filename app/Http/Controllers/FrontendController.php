@@ -280,14 +280,28 @@ class FrontendController extends Controller
     {
         $package = \App\Models\Package::where('slug', $slug)->firstOrFail();
 
-        $filename = ($package->slug ?? 'package') . '-itinerary.pdf';
-        
-        return \Spatie\LaravelPdf\Facades\Pdf::view('pdf.sample-itinerary', compact('package'))
-            ->withBrowsershot(function (\Spatie\Browsershot\Browsershot $browsershot) {
-                $browsershot->noSandbox();
-            })
-            ->name($filename)
-            ->download();
+        try {
+            $filename = ($package->slug ?? 'package') . '-itinerary.pdf';
+            
+            return \Spatie\LaravelPdf\Facades\Pdf::view('pdf.sample-itinerary', compact('package'))
+                ->withBrowsershot(function (\Spatie\Browsershot\Browsershot $browsershot) {
+                    $browsershot->noSandbox();
+                    
+                    if (env('NODE_PATH')) {
+                        $browsershot->setNodeBinary(env('NODE_PATH'));
+                    }
+                    if (env('NPM_PATH')) {
+                        $browsershot->setNpmBinary(env('NPM_PATH'));
+                    }
+                    if (env('CHROME_PATH')) {
+                        $browsershot->setChromePath(env('CHROME_PATH'));
+                    }
+                })
+                ->name($filename)
+                ->download();
+        } catch (\Exception $e) {
+            die("<h2>PDF Generation Failed on Server!</h2><p><strong>Error Details:</strong> " . $e->getMessage() . "</p><p>Please share this error message so we can fix the server configuration.</p>");
+        }
     }
 
     public function guestDownloadItinerary(Request $request, $slug)
@@ -307,14 +321,30 @@ class FrontendController extends Controller
             'email'        => $request->email,
         ]);
 
-        $filename = ($package->slug ?? 'package') . '-itinerary.pdf';
-        
-        return \Spatie\LaravelPdf\Facades\Pdf::view('pdf.sample-itinerary', compact('package'))
-            ->withBrowsershot(function (\Spatie\Browsershot\Browsershot $browsershot) {
-                $browsershot->noSandbox();
-            })
-            ->name($filename)
-            ->download();
+        try {
+            $filename = ($package->slug ?? 'package') . '-itinerary.pdf';
+            
+            return \Spatie\LaravelPdf\Facades\Pdf::view('pdf.sample-itinerary', compact('package'))
+                ->withBrowsershot(function (\Spatie\Browsershot\Browsershot $browsershot) {
+                    $browsershot->noSandbox();
+                    
+                    // Force Node/NPM paths if defined in ENV (helps on Hostinger VPS)
+                    if (env('NODE_PATH')) {
+                        $browsershot->setNodeBinary(env('NODE_PATH'));
+                    }
+                    if (env('NPM_PATH')) {
+                        $browsershot->setNpmBinary(env('NPM_PATH'));
+                    }
+                    if (env('CHROME_PATH')) {
+                        $browsershot->setChromePath(env('CHROME_PATH'));
+                    }
+                })
+                ->name($filename)
+                ->download();
+        } catch (\Exception $e) {
+            // Display the actual error so we know EXACTLY what is missing on the VPS
+            die("<h2>PDF Generation Failed on Server!</h2><p><strong>Error Details:</strong> " . $e->getMessage() . "</p><p>Please share this error message so we can fix the server configuration.</p>");
+        }
     }
 
     public function storeReview(Request $request, $slug)
