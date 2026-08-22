@@ -283,9 +283,10 @@ class FrontendController extends Controller
         try {
             $filename = ($package->slug ?? 'package') . '-itinerary.pdf';
             
-            return \Spatie\LaravelPdf\Facades\Pdf::view('pdf.sample-itinerary', compact('package'))
+            $pdfContent = \Spatie\LaravelPdf\Facades\Pdf::view('pdf.sample-itinerary', compact('package'))
                 ->withBrowsershot(function (\Spatie\Browsershot\Browsershot $browsershot) {
                     $browsershot->noSandbox();
+                    $browsershot->newHeadless();
                     
                     if (env('NODE_PATH')) {
                         $browsershot->setNodeBinary(env('NODE_PATH'));
@@ -297,9 +298,12 @@ class FrontendController extends Controller
                         $browsershot->setChromePath(env('CHROME_PATH'));
                     }
                 })
-                ->name($filename)
-                ->download();
-        } catch (\Exception $e) {
+                ->generatePdfContent();
+
+            return response()->streamDownload(function () use ($pdfContent) {
+                echo $pdfContent;
+            }, $filename, ['Content-Type' => 'application/pdf']);
+        } catch (\Throwable $e) {
             return back()->with('error', 'PDF Error on Server: ' . $e->getMessage());
         }
     }
@@ -324,9 +328,10 @@ class FrontendController extends Controller
         try {
             $filename = ($package->slug ?? 'package') . '-itinerary.pdf';
             
-            return \Spatie\LaravelPdf\Facades\Pdf::view('pdf.sample-itinerary', compact('package'))
+            $pdfContent = \Spatie\LaravelPdf\Facades\Pdf::view('pdf.sample-itinerary', compact('package'))
                 ->withBrowsershot(function (\Spatie\Browsershot\Browsershot $browsershot) {
                     $browsershot->noSandbox();
+                    $browsershot->newHeadless();
                     
                     // Force Node/NPM paths if defined in ENV (helps on Hostinger VPS)
                     if (env('NODE_PATH')) {
@@ -339,9 +344,12 @@ class FrontendController extends Controller
                         $browsershot->setChromePath(env('CHROME_PATH'));
                     }
                 })
-                ->name($filename)
-                ->download();
-        } catch (\Exception $e) {
+                ->generatePdfContent();
+
+            return response()->streamDownload(function () use ($pdfContent) {
+                echo $pdfContent;
+            }, $filename, ['Content-Type' => 'application/pdf']);
+        } catch (\Throwable $e) {
             return back()->with('error', 'PDF Error on Server: ' . $e->getMessage());
         }
     }
