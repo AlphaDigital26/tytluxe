@@ -278,9 +278,8 @@ class FrontendController extends Controller
     }
     public function downloadItinerary($slug)
     {
-        $package = \App\Models\Package::where('slug', $slug)->firstOrFail();
-
         try {
+            $package = \App\Models\Package::where('slug', $slug)->firstOrFail();
             $filename = ($package->slug ?? 'package') . '-itinerary.pdf';
             
             return \Spatie\LaravelPdf\Facades\Pdf::view('pdf.sample-itinerary', compact('package'))
@@ -300,28 +299,29 @@ class FrontendController extends Controller
                 ->name($filename)
                 ->download();
         } catch (\Throwable $e) {
-            return back()->with('error', 'PDF Error on Server: ' . $e->getMessage());
+            return response("PDF GENERATION FATAL ERROR: " . $e->getMessage() . " at " . $e->getFile() . ":" . $e->getLine(), 500)
+                ->header('Content-Type', 'text/plain');
         }
     }
 
     public function guestDownloadItinerary(Request $request, $slug)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'phone' => 'required|string|max:20',
-            'email' => 'required|email|max:255'
-        ]);
-
-        $package = \App\Models\Package::where('slug', $slug)->firstOrFail();
-
-        \App\Models\ItineraryDownload::create([
-            'package_id'   => $package->id,
-            'name'         => $request->name,
-            'phone'        => $request->phone,
-            'email'        => $request->email,
-        ]);
-
         try {
+            $request->validate([
+                'name' => 'required|string|max:255',
+                'phone' => 'required|string|max:20',
+                'email' => 'required|email|max:255'
+            ]);
+
+            $package = \App\Models\Package::where('slug', $slug)->firstOrFail();
+
+            \App\Models\ItineraryDownload::create([
+                'package_id'   => $package->id,
+                'name'         => $request->name,
+                'phone'        => $request->phone,
+                'email'        => $request->email,
+            ]);
+
             $filename = ($package->slug ?? 'package') . '-itinerary.pdf';
             
             return \Spatie\LaravelPdf\Facades\Pdf::view('pdf.sample-itinerary', compact('package'))
@@ -342,7 +342,8 @@ class FrontendController extends Controller
                 ->name($filename)
                 ->download();
         } catch (\Throwable $e) {
-            return back()->with('error', 'PDF Error on Server: ' . $e->getMessage());
+            return response("PDF GENERATION FATAL ERROR: " . $e->getMessage() . " at " . $e->getFile() . ":" . $e->getLine(), 500)
+                ->header('Content-Type', 'text/plain');
         }
     }
 
