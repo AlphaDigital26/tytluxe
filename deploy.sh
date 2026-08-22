@@ -25,6 +25,7 @@ composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
 # Install/Update Node.js dependencies and build assets
 echo "🎨 Building frontend assets..."
 npm ci
+npx puppeteer browsers install chrome
 npm run build
 
 # Run database migrations
