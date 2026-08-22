@@ -278,33 +278,19 @@ class FrontendController extends Controller
     }
     public function downloadItinerary($slug)
     {
-        $package = \App\Models\Package::where('slug', $slug)->firstOrFail();
+        $package = \App\Models\Package::with([
+            'destination', 'images', 'inclusions', 'exclusions', 'itineraryDays', 'departures'
+        ])->where('slug', $slug)->firstOrFail();
 
         try {
             $filename = ($package->slug ?? 'package') . '-itinerary.pdf';
-            
-            $pdfContent = \Spatie\LaravelPdf\Facades\Pdf::view('pdf.sample-itinerary', compact('package'))
-                ->withBrowsershot(function (\Spatie\Browsershot\Browsershot $browsershot) {
-                    $browsershot->noSandbox();
-                    $browsershot->newHeadless();
-                    
-                    if (env('NODE_PATH')) {
-                        $browsershot->setNodeBinary(env('NODE_PATH'));
-                    }
-                    if (env('NPM_PATH')) {
-                        $browsershot->setNpmBinary(env('NPM_PATH'));
-                    }
-                    if (env('CHROME_PATH')) {
-                        $browsershot->setChromePath(env('CHROME_PATH'));
-                    }
-                })
-                ->generatePdfContent();
 
-            return response()->streamDownload(function () use ($pdfContent) {
-                echo $pdfContent;
-            }, $filename, ['Content-Type' => 'application/pdf']);
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.sample-itinerary', compact('package'))
+                ->setPaper('a4', 'portrait');
+
+            return $pdf->download($filename);
         } catch (\Throwable $e) {
-            return back()->with('error', 'PDF Error on Server: ' . $e->getMessage());
+            return back()->with('error', 'PDF Error: ' . $e->getMessage());
         }
     }
 
@@ -316,7 +302,9 @@ class FrontendController extends Controller
             'email' => 'required|email|max:255'
         ]);
 
-        $package = \App\Models\Package::where('slug', $slug)->firstOrFail();
+        $package = \App\Models\Package::with([
+            'destination', 'images', 'inclusions', 'exclusions', 'itineraryDays', 'departures'
+        ])->where('slug', $slug)->firstOrFail();
 
         \App\Models\ItineraryDownload::create([
             'package_id'   => $package->id,
@@ -327,30 +315,13 @@ class FrontendController extends Controller
 
         try {
             $filename = ($package->slug ?? 'package') . '-itinerary.pdf';
-            
-            $pdfContent = \Spatie\LaravelPdf\Facades\Pdf::view('pdf.sample-itinerary', compact('package'))
-                ->withBrowsershot(function (\Spatie\Browsershot\Browsershot $browsershot) {
-                    $browsershot->noSandbox();
-                    $browsershot->newHeadless();
-                    
-                    // Force Node/NPM paths if defined in ENV (helps on Hostinger VPS)
-                    if (env('NODE_PATH')) {
-                        $browsershot->setNodeBinary(env('NODE_PATH'));
-                    }
-                    if (env('NPM_PATH')) {
-                        $browsershot->setNpmBinary(env('NPM_PATH'));
-                    }
-                    if (env('CHROME_PATH')) {
-                        $browsershot->setChromePath(env('CHROME_PATH'));
-                    }
-                })
-                ->generatePdfContent();
 
-            return response()->streamDownload(function () use ($pdfContent) {
-                echo $pdfContent;
-            }, $filename, ['Content-Type' => 'application/pdf']);
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.sample-itinerary', compact('package'))
+                ->setPaper('a4', 'portrait');
+
+            return $pdf->download($filename);
         } catch (\Throwable $e) {
-            return back()->with('error', 'PDF Error on Server: ' . $e->getMessage());
+            return back()->with('error', 'PDF Error: ' . $e->getMessage());
         }
     }
 
