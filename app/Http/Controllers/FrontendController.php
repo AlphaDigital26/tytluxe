@@ -279,7 +279,9 @@ class FrontendController extends Controller
     public function downloadItinerary($slug)
     {
         try {
-            $package = \App\Models\Package::where('slug', $slug)->firstOrFail();
+            $package = \App\Models\Package::with([
+                'destination', 'images', 'inclusions', 'exclusions', 'itineraryDays', 'departures'
+            ])->where('slug', $slug)->firstOrFail();
             $filename = ($package->slug ?? 'package') . '-itinerary.pdf';
             
             $pdfContent = \Spatie\LaravelPdf\Facades\Pdf::view('pdf.sample-itinerary', compact('package'))
@@ -327,7 +329,9 @@ class FrontendController extends Controller
                 'email' => 'required|email|max:255'
             ]);
 
-            $package = \App\Models\Package::where('slug', $slug)->firstOrFail();
+            $package = \App\Models\Package::with([
+                'destination', 'images', 'inclusions', 'exclusions', 'itineraryDays', 'departures'
+            ])->where('slug', $slug)->firstOrFail();
 
             \App\Models\ItineraryDownload::create([
                 'package_id'   => $package->id,
