@@ -285,8 +285,11 @@ class FrontendController extends Controller
         try {
             $filename = ($package->slug ?? 'package') . '-itinerary.pdf';
 
+            // Use a custom tall paper [width, height] in points (1pt = 1/72 inch).
+            // A4 width = 595pt. Height 5000pt ≈ 1.76 m — enough for any itinerary.
+            // This forces all content onto a single page with no breaks.
             $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.sample-itinerary', compact('package'))
-                ->setPaper('a4', 'portrait');
+                ->setPaper([0, 0, 595.28, 5000]);
 
             return $pdf->download($filename);
         } catch (\Throwable $e) {
@@ -316,8 +319,9 @@ class FrontendController extends Controller
         try {
             $filename = ($package->slug ?? 'package') . '-itinerary.pdf';
 
+            // Custom tall paper — same A4 width, tall enough for all content on 1 page.
             $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.sample-itinerary', compact('package'))
-                ->setPaper('a4', 'portrait');
+                ->setPaper([0, 0, 595.28, 5000]);
 
             return $pdf->download($filename);
         } catch (\Throwable $e) {
