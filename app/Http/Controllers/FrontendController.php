@@ -300,7 +300,7 @@ class FrontendController extends Controller
                 ->name($filename)
                 ->download();
         } catch (\Exception $e) {
-            die("<h2>PDF Generation Failed on Server!</h2><p><strong>Error Details:</strong> " . $e->getMessage() . "</p><p>Please share this error message so we can fix the server configuration.</p>");
+            return back()->with('error', 'PDF Error on Server: ' . $e->getMessage());
         }
     }
 
@@ -342,8 +342,7 @@ class FrontendController extends Controller
                 ->name($filename)
                 ->download();
         } catch (\Exception $e) {
-            // Display the actual error so we know EXACTLY what is missing on the VPS
-            die("<h2>PDF Generation Failed on Server!</h2><p><strong>Error Details:</strong> " . $e->getMessage() . "</p><p>Please share this error message so we can fix the server configuration.</p>");
+            return back()->with('error', 'PDF Error on Server: ' . $e->getMessage());
         }
     }
 
