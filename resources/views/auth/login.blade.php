@@ -75,6 +75,7 @@
 <body>
 
 <div class="auth-page-wrapper">
+    <a href="{{ url('/') }}" class="auth-back-btn"><i class="fa-solid fa-arrow-left"></i> Back to Home</a>
     <!-- Right Side: Animated Grid Scroll -->
     <div class="auth-image-side" style="padding: 0; position: relative; background: #000; overflow: hidden;">
         <!-- Scrolling image grid -->
@@ -121,7 +122,6 @@
 
     <!-- Right Side: Form -->
     <div class="auth-form-side">
-        <a href="{{ url('/') }}" class="auth-back-btn"><i class="fa-solid fa-arrow-left"></i> Back to Home</a>
         
         <div class="auth-form-container">
             
@@ -154,8 +154,8 @@
                 </div>
 
                 <div class="auth-form-group-header" style="margin-bottom: 25px;">
-                    <label class="terms-label" style="text-transform: none; font-weight: normal; font-size: 13px; color: #666;">
-                        <input type="checkbox" name="remember" style="width: auto;"> Remember Me
+                    <label class="terms-label" style="text-transform: none; font-weight: normal; font-size: 13px; color: #666; display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" name="remember" style="width: auto;"> <span>Remember Me</span>
                     </label>
                     @if (Route::has('password.request'))
                         <a href="{{ route('password.request') }}" style="font-size: 13px; color: #666; text-decoration: none;">Forgot Password?</a>

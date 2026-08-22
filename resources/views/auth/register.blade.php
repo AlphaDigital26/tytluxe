@@ -85,6 +85,7 @@
 <body>
 
 <div class="auth-page-wrapper">
+    <a href="{{ url('/') }}" class="auth-back-btn"><i class="fa-solid fa-arrow-left"></i> Back to Home</a>
     <!-- Right Side: Animated Grid Scroll -->
     <div class="auth-image-side" style="padding: 0; position: relative; background: #000; overflow: hidden;">
         <!-- Scrolling image grid -->
@@ -131,7 +132,6 @@
 
     <!-- Right Side: Form -->
     <div class="auth-form-side">
-        <a href="{{ url('/') }}" class="auth-back-btn"><i class="fa-solid fa-arrow-left"></i> Back to Home</a>
         
         <div class="auth-form-container">
             
@@ -180,14 +180,16 @@
                 </div>
 
                 <div class="auth-form-group-header" style="margin-bottom: 15px;">
-                    <label class="terms-label" style="text-transform: none; font-weight: normal; font-size: 13px; color: #666;">
-                        <input type="checkbox" name="terms" required style="width: auto;"> I agree to <a href="{{ url('/terms-and-conditions') }}" target="_blank" class="auth-terms-link">Terms & Conditions</a> and <a href="{{ url('/privacy-policy') }}" target="_blank" class="auth-terms-link">Privacy Policy</a> <span style="color: red;">*</span>
+                    <label class="terms-label" style="text-transform: none; font-weight: normal; font-size: 13px; color: #666; display: flex; align-items: flex-start; gap: 8px;">
+                        <input type="checkbox" name="terms" required style="width: auto; margin-top: 3px;"> 
+                        <span>I agree to <a href="{{ url('/terms-and-conditions') }}" target="_blank" class="auth-terms-link" style="text-decoration: underline;">Terms & Conditions</a> and <a href="{{ url('/privacy-policy') }}" target="_blank" class="auth-terms-link" style="text-decoration: underline;">Privacy Policy</a> <span style="color: red;">*</span></span>
                     </label>
                 </div>
 
                 <div class="auth-form-group-header" style="margin-bottom: 25px;">
-                    <label class="terms-label" style="text-transform: none; font-weight: normal; font-size: 13px; color: #666;">
-                        <input type="checkbox" name="subscribe_newsletter" style="width: auto;"> Subscribe to our Newsletter
+                    <label class="terms-label" style="text-transform: none; font-weight: normal; font-size: 13px; color: #666; display: flex; align-items: flex-start; gap: 8px;">
+                        <input type="checkbox" name="subscribe_newsletter" style="width: auto; margin-top: 3px;"> 
+                        <span>Subscribe to our Newsletter</span>
                     </label>
                 </div>
 
