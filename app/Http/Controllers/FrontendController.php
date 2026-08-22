@@ -282,8 +282,9 @@ class FrontendController extends Controller
 
         $filename = ($package->slug ?? 'package') . '-itinerary.pdf';
         
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.sample-itinerary', compact('package'));
-        return $pdf->download($filename);
+        return \Spatie\LaravelPdf\Facades\Pdf::view('pdf.sample-itinerary', compact('package'))
+            ->name($filename)
+            ->download();
     }
 
     public function guestDownloadItinerary(Request $request, $slug)
@@ -304,8 +305,10 @@ class FrontendController extends Controller
         ]);
 
         $filename = ($package->slug ?? 'package') . '-itinerary.pdf';
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.sample-itinerary', compact('package'));
-        return $pdf->download($filename);
+        
+        return \Spatie\LaravelPdf\Facades\Pdf::view('pdf.sample-itinerary', compact('package'))
+            ->name($filename)
+            ->download();
     }
 
     public function storeReview(Request $request, $slug)
