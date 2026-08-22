@@ -278,104 +278,50 @@ class FrontendController extends Controller
     }
     public function downloadItinerary($slug)
     {
-        try {
-            $package = \App\Models\Package::with([
-                'destination', 'images', 'inclusions', 'exclusions', 'itineraryDays', 'departures'
-            ])->where('slug', $slug)->firstOrFail();
-            $filename = ($package->slug ?? 'package') . '-itinerary.pdf';
-            
-            $pdfContent = \Spatie\LaravelPdf\Facades\Pdf::view('pdf.sample-itinerary', compact('package'))
-                ->withBrowsershot(function (\Spatie\Browsershot\Browsershot $browsershot) {
-                    $browsershot->noSandbox();
-                    $browsershot->newHeadless();
-                    $browsershot->addChromiumArguments([
-                        '--disable-crash-reporter',
-                        '--disable-dev-shm-usage',
-                        '--disable-extensions',
-                        '--disable-gpu',
-                        '--disable-setuid-sandbox',
-                        '--no-first-run',
-                        '--no-zygote',
-                        '--single-process',
-                    ]);
-                    
-                    if (env('NODE_PATH')) {
-                        $browsershot->setNodeBinary(env('NODE_PATH'));
-                    }
-                    if (env('NPM_PATH')) {
-                        $browsershot->setNpmBinary(env('NPM_PATH'));
-                    }
-                    if (env('CHROME_PATH')) {
-                        $browsershot->setChromePath(env('CHROME_PATH'));
-                    }
-                })
-                ->generatePdfContent();
+        $package = \App\Models\Package::with([
+            'destination', 'images', 'inclusions', 'exclusions', 'itineraryDays', 'departures'
+        ])->where('slug', $slug)->firstOrFail();
 
-            return response()->streamDownload(function () use ($pdfContent) {
-                echo $pdfContent;
-            }, $filename, ['Content-Type' => 'application/pdf']);
+        try {
+            $filename = ($package->slug ?? 'package') . '-itinerary.pdf';
+
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.sample-itinerary', compact('package'))
+                ->setPaper('a4', 'portrait');
+
+            return $pdf->download($filename);
         } catch (\Throwable $e) {
-            return response("PDF GENERATION FATAL ERROR: " . $e->getMessage() . " at " . $e->getFile() . ":" . $e->getLine(), 500)
-                ->header('Content-Type', 'text/plain');
+            return back()->with('error', 'PDF Error: ' . $e->getMessage());
         }
     }
 
     public function guestDownloadItinerary(Request $request, $slug)
     {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'phone' => 'required|string|max:20',
+            'email' => 'required|email|max:255'
+        ]);
+
+        $package = \App\Models\Package::with([
+            'destination', 'images', 'inclusions', 'exclusions', 'itineraryDays', 'departures'
+        ])->where('slug', $slug)->firstOrFail();
+
+        \App\Models\ItineraryDownload::create([
+            'package_id'   => $package->id,
+            'name'         => $request->name,
+            'phone'        => $request->phone,
+            'email'        => $request->email,
+        ]);
+
         try {
-            $request->validate([
-                'name' => 'required|string|max:255',
-                'phone' => 'required|string|max:20',
-                'email' => 'required|email|max:255'
-            ]);
-
-            $package = \App\Models\Package::with([
-                'destination', 'images', 'inclusions', 'exclusions', 'itineraryDays', 'departures'
-            ])->where('slug', $slug)->firstOrFail();
-
-            \App\Models\ItineraryDownload::create([
-                'package_id'   => $package->id,
-                'name'         => $request->name,
-                'phone'        => $request->phone,
-                'email'        => $request->email,
-            ]);
-
             $filename = ($package->slug ?? 'package') . '-itinerary.pdf';
-            
-            $pdfContent = \Spatie\LaravelPdf\Facades\Pdf::view('pdf.sample-itinerary', compact('package'))
-                ->withBrowsershot(function (\Spatie\Browsershot\Browsershot $browsershot) {
-                    $browsershot->noSandbox();
-                    $browsershot->newHeadless();
-                    $browsershot->addChromiumArguments([
-                        '--disable-crash-reporter',
-                        '--disable-dev-shm-usage',
-                        '--disable-extensions',
-                        '--disable-gpu',
-                        '--disable-setuid-sandbox',
-                        '--no-first-run',
-                        '--no-zygote',
-                        '--single-process',
-                    ]);
-                    
-                    // Force Node/NPM paths if defined in ENV (helps on Hostinger VPS)
-                    if (env('NODE_PATH')) {
-                        $browsershot->setNodeBinary(env('NODE_PATH'));
-                    }
-                    if (env('NPM_PATH')) {
-                        $browsershot->setNpmBinary(env('NPM_PATH'));
-                    }
-                    if (env('CHROME_PATH')) {
-                        $browsershot->setChromePath(env('CHROME_PATH'));
-                    }
-                })
-                ->generatePdfContent();
 
-            return response()->streamDownload(function () use ($pdfContent) {
-                echo $pdfContent;
-            }, $filename, ['Content-Type' => 'application/pdf']);
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.sample-itinerary', compact('package'))
+                ->setPaper('a4', 'portrait');
+
+            return $pdf->download($filename);
         } catch (\Throwable $e) {
-            return response("PDF GENERATION FATAL ERROR: " . $e->getMessage() . " at " . $e->getFile() . ":" . $e->getLine(), 500)
-                ->header('Content-Type', 'text/plain');
+            return back()->with('error', 'PDF Error: ' . $e->getMessage());
         }
     }
 
