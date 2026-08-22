@@ -345,6 +345,11 @@
       <div class="pd-eyebrow">{{ $package->destination->name }}</div>
     @endif
     <h1 class="pd-hero-title">{!! nl2br(e($package->title)) !!}</h1>
+    @if (session('error'))
+        <div style="background: rgba(192, 57, 43, 0.9); color: white; padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; font-family: 'Jost', sans-serif; font-weight: 500;">
+            <i class="fas fa-exclamation-triangle" style="margin-right: 8px;"></i> {{ session('error') }}
+        </div>
+    @endif
     <div class="pd-hero-pills">
       @if($package->duration_nights)
         <div class="pd-pill"><i class="fa-regular fa-moon"></i> {{ $package->duration_nights }} Night{{ $package->duration_nights > 1 ? 's' : '' }}</div>
