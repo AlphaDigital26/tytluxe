@@ -357,17 +357,6 @@
 </head>
 <body>
 
-    {{-- ─── Fixed footer appears on every page ─── --}}
-    <div id="pdf-footer">
-        <span class="brand">TYT LUXE</span>
-        &nbsp;&nbsp;|&nbsp;&nbsp;
-        +91 98750 73788
-        &nbsp;&nbsp;|&nbsp;&nbsp;
-        takeyourtrip7@gmail.com
-        &nbsp;&nbsp;|&nbsp;&nbsp;
-        www.tytluxe.in
-    </div>
-
     @php
         $package->loadMissing(['itineraryDays', 'inclusions', 'exclusions', 'departures', 'images']);
 
@@ -375,10 +364,15 @@
         $allowedInlineTags = '<strong><b><em><i><br>';
 
         // Cover image – absolute local path so dompdf can read it
-        $firstImg  = $package->images->sortBy('sort_order')->first();
-        $coverImg  = ($firstImg && file_exists(public_path('storage/' . $firstImg->image)))
-                     ? public_path('storage/' . $firstImg->image)
-                     : null;
+        $coverImg = null;
+        if (!empty($package->hero_bg_image) && file_exists(public_path('storage/' . $package->hero_bg_image))) {
+            $coverImg = public_path('storage/' . $package->hero_bg_image);
+        } else {
+            $firstImg = $package->images->sortBy('sort_order')->first();
+            if ($firstImg && !empty($firstImg->path) && file_exists(public_path('storage/' . $firstImg->path))) {
+                $coverImg = public_path('storage/' . $firstImg->path);
+            }
+        }
 
         // Logo
         $logoPath   = public_path('assets/images/tyt-logo.png');
@@ -721,6 +715,17 @@
 
         </div>
     </div>{{-- /PAGE 3 --}}
+
+    {{-- ─── Footer at the end of the document ─── --}}
+    <div id="pdf-footer">
+        <span class="brand">TYT LUXE</span>
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        +91 98750 73788
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        takeyourtrip7@gmail.com
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        www.tytluxe.in
+    </div>
 
 </body>
 </html>
