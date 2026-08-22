@@ -213,7 +213,7 @@
         @if(!empty($item['resolved_image']))
           <img src="{{ $item['resolved_image'] }}" alt="{{ $item['name'] }}" loading="lazy">
         @endif
-        <div class="tc-dining-card-body"><h3>{{ $item['name'] }}</h3><p>{{ $item['description'] }}</p></div>
+        <div class="tc-dining-card-body"><h3>{{ $item['name'] }}</h3><p>{!! $item['description'] !!}</p></div>
       </div>
       @endforeach
     </div>
@@ -229,7 +229,7 @@
       <div class="tc-exp-card">
         <div class="tc-exp-card-icon">{{ $item['icon'] ?? '' }}</div>
         <h3>{{ $item['name'] }}</h3>
-        <p>{{ $item['description'] }}</p>
+        <p>{!! $item['description'] !!}</p>
       </div>
       @endforeach
     </div>
@@ -245,7 +245,7 @@
       <div class="tc-exp-card">
         <div class="tc-exp-card-icon">{{ $item['icon'] ?? '' }}</div>
         <h3>{{ $item['name'] }}</h3>
-        <p>{{ $item['description'] }}</p>
+        <p>{!! $item['description'] !!}</p>
       </div>
       @endforeach
     </div>
@@ -261,7 +261,7 @@
       <div class="tc-exp-card">
         <div class="tc-exp-card-icon">{{ $item['icon'] ?? '' }}</div>
         <h3>{{ $item['name'] }}</h3>
-        <p>{{ $item['description'] }}</p>
+        <p>{!! $item['description'] !!}</p>
       </div>
       @endforeach
     </div>
@@ -274,7 +274,7 @@
       <div class="tc-exp-card">
         <div class="tc-exp-card-icon">{{ $item['icon'] ?? '' }}</div>
         <h3>{{ $item['name'] }}</h3>
-        <p>{{ $item['description'] }}</p>
+        <p>{!! $item['description'] !!}</p>
       </div>
       @endforeach
     </div>
@@ -300,7 +300,7 @@
           @endif
           <h3>{{ $cabin->name }}</h3>
           @if($cabin->description)
-            <p>{{ $cabin->description }}</p>
+            <p>{!! $cabin->description !!}</p>
           @endif
           @if($cabin->size_info)
             <span class="tc-cabin-size">{{ $cabin->size_info }}</span>

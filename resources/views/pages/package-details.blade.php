@@ -106,6 +106,7 @@
 .pd-page { background: var(--dark); }
 .pd-container { max-width: 1200px; margin: 0 auto; padding: 0 40px; }
 .pd-layout { display: grid; grid-template-columns: 1fr 360px; gap: 48px; padding: 64px 0; }
+.pd-layout > div { min-width: 0; }
 
 /* ===== SECTIONS ===== */
 .pd-section { padding: 64px 0; border-bottom: 1px solid var(--white-10); }
@@ -118,13 +119,15 @@
   font-family: 'Cormorant Garamond', serif;
   font-size: clamp(2rem, 3.5vw, 2.8rem); font-weight: 500;
   color: #fff; line-height: 1.1; margin-bottom: 32px;
+  word-wrap: break-word; overflow-wrap: break-word;
 }
 .pd-section-title em { font-style: italic; color: var(--gold-light); }
 
 /* ===== ABOUT ===== */
 .pd-about-text {
   font-family: 'Jost', sans-serif; font-size: 17px; line-height: 1.9;
-  color: var(--white-60); font-weight: 400; text-align: justify;
+  color: var(--white-60); font-weight: 400; text-align: left;
+  word-wrap: break-word; overflow-wrap: break-word;
 }
 
 /* ===== HIGHLIGHTS ===== */
@@ -305,8 +308,8 @@
   .pd-hero-title { font-size: 2.4rem; }
   .pd-sticky-nav-inner { padding: 0 20px; }
   .pd-highlights { grid-template-columns: 1fr; }
-  .pd-payment-grid { grid-template-columns: 1fr 1fr 1fr; }
-  .pd-dates-grid { grid-template-columns: 1fr 1fr; }
+  .pd-payment-grid { grid-template-columns: 1fr; }
+  .pd-dates-grid { grid-template-columns: 1fr; }
 }
 </style>
 @endpush
@@ -342,6 +345,11 @@
       <div class="pd-eyebrow">{{ $package->destination->name }}</div>
     @endif
     <h1 class="pd-hero-title">{!! nl2br(e($package->title)) !!}</h1>
+    @if (session('error'))
+        <div style="background: rgba(192, 57, 43, 0.9); color: white; padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; font-family: 'Jost', sans-serif; font-weight: 500;">
+            <i class="fas fa-exclamation-triangle" style="margin-right: 8px;"></i> {{ session('error') }}
+        </div>
+    @endif
     <div class="pd-hero-pills">
       @if($package->duration_nights)
         <div class="pd-pill"><i class="fa-regular fa-moon"></i> {{ $package->duration_nights }} Night{{ $package->duration_nights > 1 ? 's' : '' }}</div>

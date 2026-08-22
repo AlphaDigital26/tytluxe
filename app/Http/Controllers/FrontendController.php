@@ -282,9 +282,10 @@ class FrontendController extends Controller
             $package = \App\Models\Package::where('slug', $slug)->firstOrFail();
             $filename = ($package->slug ?? 'package') . '-itinerary.pdf';
             
-            return \Spatie\LaravelPdf\Facades\Pdf::view('pdf.sample-itinerary', compact('package'))
+            $pdfContent = \Spatie\LaravelPdf\Facades\Pdf::view('pdf.sample-itinerary', compact('package'))
                 ->withBrowsershot(function (\Spatie\Browsershot\Browsershot $browsershot) {
                     $browsershot->noSandbox();
+                    $browsershot->newHeadless();
                     
                     if (env('NODE_PATH')) {
                         $browsershot->setNodeBinary(env('NODE_PATH'));
@@ -296,8 +297,11 @@ class FrontendController extends Controller
                         $browsershot->setChromePath(env('CHROME_PATH'));
                     }
                 })
-                ->name($filename)
-                ->download();
+                ->generatePdfContent();
+
+            return response()->streamDownload(function () use ($pdfContent) {
+                echo $pdfContent;
+            }, $filename, ['Content-Type' => 'application/pdf']);
         } catch (\Throwable $e) {
             return response("PDF GENERATION FATAL ERROR: " . $e->getMessage() . " at " . $e->getFile() . ":" . $e->getLine(), 500)
                 ->header('Content-Type', 'text/plain');
@@ -324,9 +328,10 @@ class FrontendController extends Controller
 
             $filename = ($package->slug ?? 'package') . '-itinerary.pdf';
             
-            return \Spatie\LaravelPdf\Facades\Pdf::view('pdf.sample-itinerary', compact('package'))
+            $pdfContent = \Spatie\LaravelPdf\Facades\Pdf::view('pdf.sample-itinerary', compact('package'))
                 ->withBrowsershot(function (\Spatie\Browsershot\Browsershot $browsershot) {
                     $browsershot->noSandbox();
+                    $browsershot->newHeadless();
                     
                     // Force Node/NPM paths if defined in ENV (helps on Hostinger VPS)
                     if (env('NODE_PATH')) {
@@ -339,8 +344,11 @@ class FrontendController extends Controller
                         $browsershot->setChromePath(env('CHROME_PATH'));
                     }
                 })
-                ->name($filename)
-                ->download();
+                ->generatePdfContent();
+
+            return response()->streamDownload(function () use ($pdfContent) {
+                echo $pdfContent;
+            }, $filename, ['Content-Type' => 'application/pdf']);
         } catch (\Throwable $e) {
             return response("PDF GENERATION FATAL ERROR: " . $e->getMessage() . " at " . $e->getFile() . ":" . $e->getLine(), 500)
                 ->header('Content-Type', 'text/plain');

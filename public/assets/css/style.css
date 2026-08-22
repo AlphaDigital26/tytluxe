@@ -167,6 +167,13 @@ img {
     margin-bottom: 50px;
 }
 
+.section-header-split {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 40px;
+}
+
 .section-subtitle {
     color: var(--primary);
     text-transform: uppercase;
@@ -449,6 +456,9 @@ header {
     display: none;
     font-size: 28px;
     color: var(--text-light);
+    background: transparent;
+    border: none;
+    padding: 0;
     cursor: pointer;
 }
 
@@ -1085,24 +1095,24 @@ main {
         margin-top: 3px;
     }
 
-    .nav-dropdown-menu {
+    .nav-menu .nav-dropdown-menu {
         position: static;
         transform: none !important;
         opacity: 1;
         pointer-events: all;
-        background: rgba(255, 255, 255, 0.04);
-        border: none;
-        border-left: 2px solid rgba(201, 168, 76, 0.4);
-        border-radius: 0;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
         box-shadow: none;
         backdrop-filter: none;
-        padding: 8px 0 8px 12px;
-        margin-top: 8px;
+        padding: 12px;
+        margin-top: 15px;
+        margin-left: 0;
+        margin-bottom: 5px;
         display: none;
         flex-direction: column;
-        gap: 0;
+        gap: 8px;
     }
-
     .nav-dropdown-menu::before {
         display: none;
     }
@@ -1162,6 +1172,10 @@ main {
         margin-bottom: 40px;
     }
 
+    .feature-item {
+        border-right: none;
+    }
+
     .feature-item i {
         font-size: 32px;
     }
@@ -1197,13 +1211,20 @@ main {
     }
 
     .footer-grid {
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: 1fr;
+        gap: 40px;
     }
 
     .cta-banner-inner {
         flex-direction: column;
         text-align: center;
         gap: 30px;
+    }
+
+    .section-header-split {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 20px;
     }
 
     .cruise-grid {
@@ -2512,28 +2533,35 @@ input:checked+.profile-slider:before {
     .auth-page-wrapper {
         flex-direction: column;
         background-color: #f9f9f9;
+        height: auto;
+        min-height: 100vh;
+        overflow: visible;
+        position: relative;
     }
 
     .auth-image-side {
         min-height: 350px;
         flex: none;
-        border-radius: 0 0 50% 50% / 0 0 40px 40px;
+        border-radius: 0 0 24px 24px;
         padding: 20px;
         position: relative;
-        z-index: 1;
+        z-index: 20;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.15);
     }
 
     .auth-form-side {
         max-width: 100%;
         padding: 0 20px 40px;
         background-color: transparent;
+        position: relative;
+        z-index: 10;
     }
 
     .auth-form-container {
         background: #fff;
         border-radius: 16px;
-        padding: 30px 20px;
-        margin-top: -40px;
+        padding: 60px 20px 30px;
+        margin-top: -30px;
         position: relative;
         z-index: 10;
         box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08);
@@ -2543,6 +2571,21 @@ input:checked+.profile-slider:before {
         height: 60px;
         margin-bottom: 30px;
         filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
+    }
+
+    .auth-back-btn {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        right: auto;
+        margin-bottom: 0;
+        z-index: 50;
+        color: #fff;
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(10px);
+        padding: 10px 16px;
+        border-radius: 100px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
     }
 
     .auth-form-container .auth-form-group input {
@@ -2574,14 +2617,14 @@ input:checked+.profile-slider:before {
     }
 
     .auth-social-btn {
-        border-radius: 50%;
-        width: 50px;
-        height: 50px;
+        border-radius: 4px;
+        width: 100%;
+        height: auto;
         flex: none;
-        padding: 0;
+        padding: 12px;
         justify-content: center;
         margin: 0 auto;
-        color: transparent;
+        color: #333;
     }
 
     .auth-social-btn img,
