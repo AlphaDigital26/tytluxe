@@ -19,15 +19,10 @@
             color: #2d2621;
             font-size: 12px;
             line-height: 1.65;
-            margin-bottom: 40px;
         }
 
-        /* ═══ Footer — pinned to bottom of the single page ═══ */
+        /* ═══ Footer — flow directly after content ═══ */
         #pdf-footer {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
             width: 100%;
             height: 30px;
             background-color: #1e1613;
@@ -36,6 +31,7 @@
             letter-spacing: 0.12em;
             color: #8a7d6e;
             padding-top: 10px;
+            margin-top: 20px;
         }
         #pdf-footer .brand { color: #c19a6b; font-weight: bold; letter-spacing: 0.16em; }
 
