@@ -286,10 +286,23 @@ class FrontendController extends Controller
             $filename = ($package->slug ?? 'package') . '-itinerary.pdf';
 
             // Use a custom tall paper [width, height] in points (1pt = 1/72 inch).
-            // A4 width = 595pt. Height 5000pt ≈ 1.76 m — enough for any itinerary.
-            // This forces all content onto a single page with no breaks.
+            // Dynamically calculate required paper height based on content
+            $daysCount = $package->itineraryDays->count();
+            $incCount = $package->inclusions->count();
+            $excCount = $package->exclusions->count();
+            $textLength = strlen(strip_tags($package->description ?? ''));
+            
+            $aboutHeight = max(80, ($textLength / 100) * 20); // roughly 20pt per 100 chars
+            $baseHeight = 1050; // hero + meta + titles + pricing + contact + margins
+            $daysHeight = $daysCount * 230; // brief row + detailed card
+            $incExcHeight = ($incCount + $excCount) * 26; // bullet points
+            
+            $totalHeight = $baseHeight + $aboutHeight + $daysHeight + $incExcHeight;
+            // Add a generous safety buffer so the footer fits perfectly without spilling to page 2
+            $calculatedHeight = $totalHeight * 1.25;
+
             $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.sample-itinerary', compact('package'))
-                ->setPaper([0, 0, 595.28, 2500]);
+                ->setPaper([0, 0, 595.28, $calculatedHeight]);
 
             return $pdf->download($filename);
         } catch (\Throwable $e) {
@@ -319,9 +332,23 @@ class FrontendController extends Controller
         try {
             $filename = ($package->slug ?? 'package') . '-itinerary.pdf';
 
-            // Custom tall paper — same A4 width, tall enough for all content on 1 page.
+            // Dynamically calculate required paper height based on content
+            $daysCount = $package->itineraryDays->count();
+            $incCount = $package->inclusions->count();
+            $excCount = $package->exclusions->count();
+            $textLength = strlen(strip_tags($package->description ?? ''));
+            
+            $aboutHeight = max(80, ($textLength / 100) * 20);
+            $baseHeight = 1050;
+            $daysHeight = $daysCount * 230;
+            $incExcHeight = ($incCount + $excCount) * 26;
+            
+            $totalHeight = $baseHeight + $aboutHeight + $daysHeight + $incExcHeight;
+            // Add a generous safety buffer so the footer fits perfectly without spilling to page 2
+            $calculatedHeight = $totalHeight * 1.25;
+
             $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.sample-itinerary', compact('package'))
-                ->setPaper([0, 0, 595.28, 2500]);
+                ->setPaper([0, 0, 595.28, $calculatedHeight]);
 
             return $pdf->download($filename);
         } catch (\Throwable $e) {
