@@ -22,7 +22,7 @@
             margin-bottom: 40px;
         }
 
-        /* ═══ Footer — fixed to bottom of every page in dompdf ═══ */
+        /* ═══ Footer — pinned to bottom of the single page ═══ */
         #pdf-footer {
             position: fixed;
             bottom: 0;
@@ -40,7 +40,7 @@
         #pdf-footer .brand { color: #c19a6b; font-weight: bold; letter-spacing: 0.16em; }
 
         /* ═══ Page break ═══ */
-        .page-break { page-break-after: always; }
+        .page-break { }
 
         /* Top header bar: solid dark, separate from hero image */
         .hero-bg {

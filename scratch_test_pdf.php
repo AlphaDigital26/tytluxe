@@ -6,7 +6,7 @@ $kernel->bootstrap();
 
 $package = \App\Models\Package::first();
 $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.sample-itinerary', compact('package'))
-    ->setPaper('a4', 'portrait');
+    ->setPaper([0, 0, 595.28, 2500]);
 
 $pdf->save(public_path('test_a4_itinerary.pdf'));
 echo "PDF Generated!\n";
