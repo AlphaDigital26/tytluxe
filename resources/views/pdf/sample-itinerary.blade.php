@@ -19,11 +19,15 @@
             color: #2d2621;
             font-size: 12px;
             line-height: 1.65;
+            margin-bottom: 40px;
         }
 
-        /* ═══ Footer — static, at natural bottom of single-page doc ═══ */
+        /* ═══ Footer — fixed to bottom of every page in dompdf ═══ */
         #pdf-footer {
-            position: static;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
             width: 100%;
             height: 30px;
             background-color: #1e1613;
@@ -31,19 +35,17 @@
             font-size: 8.5px;
             letter-spacing: 0.12em;
             color: #8a7d6e;
-            line-height: 30px;
+            padding-top: 10px;
         }
         #pdf-footer .brand { color: #c19a6b; font-weight: bold; letter-spacing: 0.16em; }
 
         /* ═══ Page break ═══ */
-        .page-break { /* Removed page-break-after: always to make it flow like 1 page */ }
+        .page-break { page-break-after: always; }
 
-        /* ═══ PAGE 1 COVER ═══ */
-
-        /* Top header bar: dark, logo left, contact right */
+        /* Top header bar: solid dark, separate from hero image */
         .hero-bg {
             width: 100%;
-            height: 520px;
+            height: 440px;
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
@@ -51,25 +53,26 @@
         }
 
         .topbar-overlay {
-            background: linear-gradient(to bottom, rgba(30,22,19,0.95) 0%, rgba(30,22,19,0.6) 50%, rgba(30,22,19,0) 100%);
-            padding: 18px 26px 50px;
+            background-color: #1a1410;
+            padding: 20px 26px;
         }
 
         .topbar-contact {
-            font-size: 10px;
+            font-size: 11px;
             color: #d4cfc7;
-            line-height: 1.8;
+            line-height: 1.7;
             text-align: right;
+            font-weight: 500;
         }
 
-        /* Dark gradient overlay caption */
+        /* Dark gradient overlay caption — bottom of hero only */
         .caption-overlay {
-            background: linear-gradient(to top, rgba(30,22,19,1) 0%, rgba(30,22,19,0.85) 50%, rgba(30,22,19,0) 100%);
-            padding: 120px 26px 20px;
+            background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 55%, rgba(0,0,0,0) 100%);
+            padding: 230px 26px 20px;
         }
         .region-badge {
             display: inline-block;
-            border: 1px solid rgba(255,255,255,0.6);
+            border: 1px solid rgba(255,255,255,0.55);
             border-radius: 100px;
             padding: 4px 14px;
             font-size: 9px;
@@ -80,24 +83,24 @@
             margin-bottom: 12px;
         }
         .hero-title {
-            font-size: 34px;
+            font-size: 36px;
             font-weight: bold;
             color: #ffffff;
             line-height: 1.1;
-            margin-bottom: 0px;
+            margin-bottom: 2px;
         }
         .hero-nights {
-            font-size: 30px;
+            font-size: 36px;
             font-weight: bold;
             color: #ffffff;
             line-height: 1.1;
-            margin-bottom: 12px;
+            margin-bottom: 14px;
         }
         .hero-tagline {
             font-size: 12.5px;
             color: #c8b9a8;
-            line-height: 1.5;
-            max-width: 500px;
+            line-height: 1.55;
+            max-width: 520px;
         }
 
         /* Metadata bar */
@@ -131,7 +134,7 @@
 
         /* ═══ WHITE CONTENT AREA ═══ */
         .content {
-            padding: 26px 26px 20px;
+            padding: 20px 26px 12px;
             background: #ffffff;
         }
 
@@ -309,8 +312,8 @@
         .contact-card {
             background-color: #f6f2eb;
             border-radius: 9px;
-            padding: 18px 20px 14px;
-            margin-bottom: 22px;
+            padding: 14px 20px 10px;
+            margin-bottom: 14px;
         }
         .contact-title {
             font-size: 15px;
@@ -401,33 +404,29 @@
     ════════════════════════════════════════════════════════ --}}
     <div class="page-break">
 
-        <div class="hero-bg" style="background-image: url('{{ $coverImg }}');">
-            {{-- Top bar: logo + contact with top-to-bottom gradient --}}
-            <div class="topbar-overlay">
-                <table width="100%" cellpadding="0" cellspacing="0">
-                    <tr>
-                        <td valign="middle">
-                            @if($logoExists)
-                                <img src="{{ $logoPath }}" alt="TYT Luxe" style="height:36px; object-fit:contain;">
-                            @else
-                                <span style="font-size:18px; font-weight:bold; color:#c19a6b; letter-spacing:0.08em;">TYT</span>
-                            @endif
-                        </td>
-                        <td valign="middle" class="topbar-contact">
-                            +91 98750 73788<br>
-                            takeyourtrip7@gmail.com<br>
-                            www.tytluxe.in
-                        </td>
-                    </tr>
-                </table>
-            </div>
-
-            {{-- Spacer to push the caption down --}}
-            <table width="100%" height="220" cellpadding="0" cellspacing="0">
-                <tr><td></td></tr>
+        {{-- TOP DARK HEADER BAR: separate from the hero image --}}
+        <div class="topbar-overlay">
+            <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td valign="middle">
+                        @if($logoExists)
+                            <img src="{{ $logoPath }}" alt="TYT Luxe" style="height:75px; object-fit:contain;">
+                        @else
+                            <span style="font-size:18px; font-weight:bold; color:#c19a6b; letter-spacing:0.08em;">TYT</span>
+                        @endif
+                    </td>
+                    <td valign="middle" class="topbar-contact">
+                        +91 98750 73788<br>
+                        takeyourtrip7@gmail.com<br>
+                        www.tytluxe.in
+                    </td>
+                </tr>
             </table>
+        </div>
 
-            {{-- Caption overlay with bottom-to-top gradient --}}
+        {{-- HERO IMAGE with text overlay at bottom only --}}
+        <div class="hero-bg" style="background-image: url('{{ $coverImg }}'); position: relative;">
+            {{-- Bottom gradient + text --}}
             <div class="caption-overlay">
                 @if(!empty($package->hero_eyebrow) || !empty($package->region_type))
                     <div class="region-badge">{{ $package->hero_eyebrow ?? strtoupper($package->region_type ?? '') }}</div>
@@ -440,6 +439,7 @@
                 @endif
             </div>
         </div>
+
 
         {{-- Metadata bar --}}
         <table class="meta-table" cellpadding="0" cellspacing="0">
@@ -674,7 +674,7 @@
                     <td width="12"></td>
                     <td class="pay-pill" style="text-align:center;">GPay / PhonePe</td>
                     <td width="12"></td>
-                    <td class="pay-pill" style="text-align:right;">Paytm / UPI</td>
+                    <td class="pay-pill" style="text-align:center;">Paytm / UPI</td>
                 </tr>
             </table>
 

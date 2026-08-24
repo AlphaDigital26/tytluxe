@@ -30,7 +30,7 @@ class PackagePolicy
      */
     public function create(Admin $user): bool
     {
-        return $user->role === 'Super Admin';
+        return in_array($user->role, ['Super Admin', 'Operations', 'Support', 'Finance', 'Content', 'Analyst']);
     }
 
     /**

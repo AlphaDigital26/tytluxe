@@ -12,5 +12,5 @@ class PackageInclusion extends Model
 
     protected $guarded = [];
 
-    public function packageModel() { return $this->belongsTo(Package::class, 'package_id'); }
+    public function package() { return $this->belongsTo(Package::class, 'package_id'); }
 }
