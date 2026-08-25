@@ -16,4 +16,11 @@ class ListHotels extends ListRecords
             CreateAction::make(),
         ];
     }
+
+    protected function getFooterWidgets(): array
+    {
+        return [
+            \App\Filament\Resources\Hotels\Widgets\DraftHotelWidget::class,
+        ];
+    }
 }
