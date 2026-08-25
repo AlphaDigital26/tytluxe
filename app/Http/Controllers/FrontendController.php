@@ -278,33 +278,35 @@ class FrontendController extends Controller
     }
     public function downloadItinerary($slug)
     {
-        $package = \App\Models\Package::where('slug', $slug)->firstOrFail();
+        $package = \App\Models\Package::with([
+            'destination', 'images', 'inclusions', 'exclusions', 'itineraryDays', 'departures'
+        ])->where('slug', $slug)->firstOrFail();
 
         try {
             $filename = ($package->slug ?? 'package') . '-itinerary.pdf';
-            
-            $pdfContent = \Spatie\LaravelPdf\Facades\Pdf::view('pdf.sample-itinerary', compact('package'))
-                ->withBrowsershot(function (\Spatie\Browsershot\Browsershot $browsershot) {
-                    $browsershot->noSandbox();
-                    $browsershot->newHeadless();
-                    
-                    if (env('NODE_PATH')) {
-                        $browsershot->setNodeBinary(env('NODE_PATH'));
-                    }
-                    if (env('NPM_PATH')) {
-                        $browsershot->setNpmBinary(env('NPM_PATH'));
-                    }
-                    if (env('CHROME_PATH')) {
-                        $browsershot->setChromePath(env('CHROME_PATH'));
-                    }
-                })
-                ->generatePdfContent();
 
-            return response()->streamDownload(function () use ($pdfContent) {
-                echo $pdfContent;
-            }, $filename, ['Content-Type' => 'application/pdf']);
+            // Use a custom tall paper [width, height] in points (1pt = 1/72 inch).
+            // Dynamically calculate required paper height based on content
+            $daysCount = $package->itineraryDays->count();
+            $incCount = $package->inclusions->count();
+            $excCount = $package->exclusions->count();
+            $textLength = strlen(strip_tags($package->description ?? ''));
+            
+            $aboutHeight = max(80, ($textLength / 100) * 20); // roughly 20pt per 100 chars
+            $baseHeight = 1050; // hero + meta + titles + pricing + contact + margins
+            $daysHeight = $daysCount * 230; // brief row + detailed card
+            $incExcHeight = ($incCount + $excCount) * 26; // bullet points
+            
+            $totalHeight = $baseHeight + $aboutHeight + $daysHeight + $incExcHeight;
+            // Add a generous safety buffer so the footer fits perfectly without spilling to page 2
+            $calculatedHeight = $totalHeight * 1.25;
+
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.sample-itinerary', compact('package'))
+                ->setPaper([0, 0, 595.28, $calculatedHeight]);
+
+            return $pdf->download($filename);
         } catch (\Throwable $e) {
-            return back()->with('error', 'PDF Error on Server: ' . $e->getMessage());
+            return back()->with('error', 'PDF Error: ' . $e->getMessage());
         }
     }
 
@@ -316,7 +318,9 @@ class FrontendController extends Controller
             'email' => 'required|email|max:255'
         ]);
 
-        $package = \App\Models\Package::where('slug', $slug)->firstOrFail();
+        $package = \App\Models\Package::with([
+            'destination', 'images', 'inclusions', 'exclusions', 'itineraryDays', 'departures'
+        ])->where('slug', $slug)->firstOrFail();
 
         \App\Models\ItineraryDownload::create([
             'package_id'   => $package->id,
@@ -327,30 +331,28 @@ class FrontendController extends Controller
 
         try {
             $filename = ($package->slug ?? 'package') . '-itinerary.pdf';
-            
-            $pdfContent = \Spatie\LaravelPdf\Facades\Pdf::view('pdf.sample-itinerary', compact('package'))
-                ->withBrowsershot(function (\Spatie\Browsershot\Browsershot $browsershot) {
-                    $browsershot->noSandbox();
-                    $browsershot->newHeadless();
-                    
-                    // Force Node/NPM paths if defined in ENV (helps on Hostinger VPS)
-                    if (env('NODE_PATH')) {
-                        $browsershot->setNodeBinary(env('NODE_PATH'));
-                    }
-                    if (env('NPM_PATH')) {
-                        $browsershot->setNpmBinary(env('NPM_PATH'));
-                    }
-                    if (env('CHROME_PATH')) {
-                        $browsershot->setChromePath(env('CHROME_PATH'));
-                    }
-                })
-                ->generatePdfContent();
 
-            return response()->streamDownload(function () use ($pdfContent) {
-                echo $pdfContent;
-            }, $filename, ['Content-Type' => 'application/pdf']);
+            // Dynamically calculate required paper height based on content
+            $daysCount = $package->itineraryDays->count();
+            $incCount = $package->inclusions->count();
+            $excCount = $package->exclusions->count();
+            $textLength = strlen(strip_tags($package->description ?? ''));
+            
+            $aboutHeight = max(80, ($textLength / 100) * 20);
+            $baseHeight = 1050;
+            $daysHeight = $daysCount * 230;
+            $incExcHeight = ($incCount + $excCount) * 26;
+            
+            $totalHeight = $baseHeight + $aboutHeight + $daysHeight + $incExcHeight;
+            // Add a generous safety buffer so the footer fits perfectly without spilling to page 2
+            $calculatedHeight = $totalHeight * 1.25;
+
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.sample-itinerary', compact('package'))
+                ->setPaper([0, 0, 595.28, $calculatedHeight]);
+
+            return $pdf->download($filename);
         } catch (\Throwable $e) {
-            return back()->with('error', 'PDF Error on Server: ' . $e->getMessage());
+            return back()->with('error', 'PDF Error: ' . $e->getMessage());
         }
     }
 

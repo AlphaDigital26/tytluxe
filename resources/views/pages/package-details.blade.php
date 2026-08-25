@@ -63,7 +63,7 @@
 .pd-eyebrow::before { content: ''; display: inline-block; width: 32px; height: 1px; background: var(--gold); }
 .pd-hero-title {
   font-family: 'Cormorant Garamond', serif;
-  font-size: clamp(3rem, 7vw, 6rem); font-weight: 500;
+  font-size: clamp(2rem, 5vw, 4rem); font-weight: 500;
   color: #fff; line-height: 1.0; margin-bottom: 28px;
 }
 .pd-hero-title em { font-style: italic; color: var(--gold-light); }
@@ -305,7 +305,7 @@
 @media (max-width: 640px) {
   .pd-hero-content { padding: 0 20px 56px; }
   .pd-container { padding: 0 20px; }
-  .pd-hero-title { font-size: 2.4rem; }
+  .pd-hero-title { font-size: 1.8rem; }
   .pd-sticky-nav-inner { padding: 0 20px; }
   .pd-highlights { grid-template-columns: 1fr; }
   .pd-payment-grid { grid-template-columns: 1fr; }
@@ -556,7 +556,7 @@
               <div class="pd-contact-item"><i class="fa-solid fa-phone"></i> +91 9875073788</div>
               <div class="pd-contact-item"><i class="fa-solid fa-envelope"></i> takeyourtrip7@gmail.com</div>
               <div class="pd-contact-item"><i class="fa-solid fa-globe"></i> www.tytluxe.in</div>
-              <div class="pd-contact-item"><i class="fa-solid fa-location-dot"></i>Cabin No - 9, 4th Floor, Surana Supremus,  Near Safal Square, Vesu, Surat 394518</div>
+              <div class="pd-contact-item"><i class="fa-solid fa-location-dot"></i> Cabin No - 9, 4th Floor, Surana Supremus,  Near Safal Square, Vesu, Surat 394518</div>
             </div>
             <div class="pd-contact-card">
               <div class="pd-contact-title">Why TYTLuxe?</div>
