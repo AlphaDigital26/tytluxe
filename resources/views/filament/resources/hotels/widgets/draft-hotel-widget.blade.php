@@ -18,14 +18,10 @@
                     Resume Draft
                 </x-filament::button>
 
-                <x-filament::button
-                    color="danger"
-                    wire:click="clearDraft"
-                    wire:confirm="Are you sure you want to discard this draft?"
-                >
-                    Discard Draft
-                </x-filament::button>
+                {{ $this->discardDraftAction }}
             </div>
         </x-filament::section>
     @endif
+
+    <x-filament-actions::modals />
 </x-filament-widgets::widget>
