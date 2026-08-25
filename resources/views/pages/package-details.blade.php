@@ -556,7 +556,7 @@
               <div class="pd-contact-item"><i class="fa-solid fa-phone"></i> +91 9875073788</div>
               <div class="pd-contact-item"><i class="fa-solid fa-envelope"></i> takeyourtrip7@gmail.com</div>
               <div class="pd-contact-item"><i class="fa-solid fa-globe"></i> www.tytluxe.in</div>
-              <div class="pd-contact-item"><i class="fa-solid fa-location-dot"></i> 831, Tower C, Bhutani Alphathum, Sector 90, Noida UP-201305</div>
+              <div class="pd-contact-item"><i class="fa-solid fa-location-dot"></i> Cabin No - 9, 4th Floor, Surana Supremus,  Near Safal Square, Vesu, Surat 394518</div>
             </div>
             <div class="pd-contact-card">
               <div class="pd-contact-title">Why TYTLuxe?</div>
