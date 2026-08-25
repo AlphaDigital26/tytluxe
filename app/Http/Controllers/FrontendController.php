@@ -276,116 +276,35 @@ class FrontendController extends Controller
 
         return view('pages.blog', compact('categories', 'trendingPosts', 'posts', 'destinations'));
     }
-    private function estimatePackagePdfHeight($package)
-    {
-        $height = 0;
-        
-        // --- PAGE 1 ---
-        $height += 520; // hero-bg
-        $height += 55;  // meta-table
-        
-        $height += 26; // content padding-top
-        $height += 14; // eyebrow
-        $height += 35; // section-h1
-        
-        $aboutText = strip_tags($package->description ?? '');
-        $lines = max(1, ceil(strlen($aboutText) / 90));
-        $height += ($lines * 21) + 28;
-        
-        if ($package->itineraryDays->count() > 0) {
-            $height += 14; // eyebrow
-            $height += 33; // section-h2
-            $height += $package->itineraryDays->count() * 32; // brief rows
-            $height += 10; // separators margin
-        }
-        $height += 20; // content padding-bottom
-        
-        // --- PAGE 2 ---
-        if ($package->itineraryDays->count() > 0) {
-            $height += 26; // padding-top
-            $height += 14; 
-            $height += 35; 
-            
-            foreach ($package->itineraryDays as $day) {
-                $dayText = strip_tags($day->description ?? '');
-                $dayLines = max(1, ceil(strlen($dayText) / 75));
-                $bodyHeight = ($dayLines * 20.5) + 22;
-                
-                $hasImage = ($day->image && file_exists(public_path('storage/' . $day->image)));
-                if ($hasImage) {
-                    $cardHeight = max(130, 35 + $bodyHeight);
-                } else {
-                    $cardHeight = 35 + $bodyHeight;
-                }
-                $height += $cardHeight + 14; 
-            }
-            
-            if ($package->departures->count() > 0) {
-                $height += 26;
-                $height += 14;
-                $height += 33;
-                $maxDeps = 2;
-                $grouped = $package->departures->sortBy('start_date')
-                            ->groupBy(fn($d) => \Carbon\Carbon::parse($d->start_date)->format('F Y'))->take(2);
-                foreach ($grouped as $deps) {
-                    $maxDeps = max($maxDeps, count($deps));
-                }
-                $height += 30 + ($maxDeps * 17) + 16;
-            }
-            $height += 20; // padding-bottom
-        }
-        
-        // --- PAGE 3 ---
-        $height += 26; 
-        $height += 14; 
-        $height += 35; 
-        
-        $incCount = $package->inclusions->count() ?: 6;
-        $excCount = $package->exclusions->count() ?: 6;
-        $maxIncExc = max($incCount, $excCount);
-        $height += 30 + ($maxIncExc * 19) + 30; // incl/excl block
-        
-        $height += 14; 
-        $height += 33; 
-        $height += 70; // price card
-        
-        $height += 14; 
-        $height += 33; 
-        $height += 65; // booking text
-        $height += 35; // payment pills
-        
-        $height += 120; // contact card
-        
-        if (!empty($package->notes) && is_array($package->notes) && count($package->notes) > 0) {
-            $height += 35; 
-            $height += count($package->notes) * 17;
-        }
-        
-        $height += 20; // padding-bottom
-        $height += 30; // footer
-        
-        // Return calculated height + small safety buffer to prevent unwanted page breaks
-        return $height + 60;
-    }
-
     public function downloadItinerary($slug)
     {
-        $package = \App\Models\Package::with([
-            'destination', 'images', 'inclusions', 'exclusions', 'itineraryDays', 'departures'
-        ])->where('slug', $slug)->firstOrFail();
+        $package = \App\Models\Package::where('slug', $slug)->firstOrFail();
 
         try {
             $filename = ($package->slug ?? 'package') . '-itinerary.pdf';
+            
+            $pdfContent = \Spatie\LaravelPdf\Facades\Pdf::view('pdf.sample-itinerary', compact('package'))
+                ->withBrowsershot(function (\Spatie\Browsershot\Browsershot $browsershot) {
+                    $browsershot->noSandbox();
+                    $browsershot->newHeadless();
+                    
+                    if (env('NODE_PATH')) {
+                        $browsershot->setNodeBinary(env('NODE_PATH'));
+                    }
+                    if (env('NPM_PATH')) {
+                        $browsershot->setNpmBinary(env('NPM_PATH'));
+                    }
+                    if (env('CHROME_PATH')) {
+                        $browsershot->setChromePath(env('CHROME_PATH'));
+                    }
+                })
+                ->generatePdfContent();
 
-            // Calculate exact required height to eliminate extra white space at the bottom
-            $calculatedHeight = $this->estimatePackagePdfHeight($package);
-
-            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.sample-itinerary', compact('package'))
-                ->setPaper([0, 0, 595.28, $calculatedHeight]);
-
-            return $pdf->download($filename);
+            return response()->streamDownload(function () use ($pdfContent) {
+                echo $pdfContent;
+            }, $filename, ['Content-Type' => 'application/pdf']);
         } catch (\Throwable $e) {
-            return back()->with('error', 'PDF Error: ' . $e->getMessage());
+            return back()->with('error', 'PDF Error on Server: ' . $e->getMessage());
         }
     }
 
@@ -397,9 +316,7 @@ class FrontendController extends Controller
             'email' => 'required|email|max:255'
         ]);
 
-        $package = \App\Models\Package::with([
-            'destination', 'images', 'inclusions', 'exclusions', 'itineraryDays', 'departures'
-        ])->where('slug', $slug)->firstOrFail();
+        $package = \App\Models\Package::where('slug', $slug)->firstOrFail();
 
         \App\Models\ItineraryDownload::create([
             'package_id'   => $package->id,
@@ -410,16 +327,30 @@ class FrontendController extends Controller
 
         try {
             $filename = ($package->slug ?? 'package') . '-itinerary.pdf';
+            
+            $pdfContent = \Spatie\LaravelPdf\Facades\Pdf::view('pdf.sample-itinerary', compact('package'))
+                ->withBrowsershot(function (\Spatie\Browsershot\Browsershot $browsershot) {
+                    $browsershot->noSandbox();
+                    $browsershot->newHeadless();
+                    
+                    // Force Node/NPM paths if defined in ENV (helps on Hostinger VPS)
+                    if (env('NODE_PATH')) {
+                        $browsershot->setNodeBinary(env('NODE_PATH'));
+                    }
+                    if (env('NPM_PATH')) {
+                        $browsershot->setNpmBinary(env('NPM_PATH'));
+                    }
+                    if (env('CHROME_PATH')) {
+                        $browsershot->setChromePath(env('CHROME_PATH'));
+                    }
+                })
+                ->generatePdfContent();
 
-            // Calculate exact required height to eliminate extra white space at the bottom
-            $calculatedHeight = $this->estimatePackagePdfHeight($package);
-
-            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.sample-itinerary', compact('package'))
-                ->setPaper([0, 0, 595.28, $calculatedHeight]);
-
-            return $pdf->download($filename);
+            return response()->streamDownload(function () use ($pdfContent) {
+                echo $pdfContent;
+            }, $filename, ['Content-Type' => 'application/pdf']);
         } catch (\Throwable $e) {
-            return back()->with('error', 'PDF Error: ' . $e->getMessage());
+            return back()->with('error', 'PDF Error on Server: ' . $e->getMessage());
         }
     }
 

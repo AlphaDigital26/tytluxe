@@ -6,18 +6,23 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    /**
+     * Run the migrations.
+     */
     public function up(): void
     {
         Schema::table('package_itinerary_days', function (Blueprint $table) {
-            // Stores the relative path under storage/ (e.g. "packages/itinerary/day1.jpg")
-            $table->string('image')->nullable()->after('description');
+            //
         });
     }
 
+    /**
+     * Reverse the migrations.
+     */
     public function down(): void
     {
         Schema::table('package_itinerary_days', function (Blueprint $table) {
-            $table->dropColumn('image');
+            //
         });
     }
 };
