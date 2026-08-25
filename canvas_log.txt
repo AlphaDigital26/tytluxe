@@ -1,0 +1,118 @@
+y=8000 desc=filled_rect bottom w=595.28 h=8000
+y=2747.771538 desc=filled_rect bottom w=595.28 h=865.2810225
+y=2012.1270495 desc=text: ✓
+y=2012.1270495 desc=text: 3-Star camps
+y=2035.598742 desc=text: ✓
+y=2035.598742 desc=text: Luxury Swiss Camps (
+y=2059.0704345 desc=text: ✓
+y=2059.0704345 desc=text: Meals: 2 Breakfasts 
+y=2082.542127 desc=text: ✓
+y=2082.542127 desc=text: Traditional Welcome 
+y=2106.0138195 desc=text: ✓
+y=2106.0138195 desc=text: Camel Safari & Jeep 
+y=2129.485512 desc=text: ✓
+y=2129.485512 desc=text: Folk Dance & DJ Nigh
+y=2152.9572045 desc=text: ✓
+y=2152.9572045 desc=text: Tour Guide Services
+y=2176.428897 desc=text: ✓
+y=2176.428897 desc=text: All Taxes, Tolls & P
+y=2012.1270495 desc=text: ✗
+y=2012.1270495 desc=text: Any personalexpenses
+y=2035.598742 desc=text: ✗
+y=2035.598742 desc=text: Travel Insurance / M
+y=2059.0704345 desc=text: ✗
+y=2059.0704345 desc=text: Meals during transit
+y=2077.292127 desc=text: itinerary
+y=2100.7638195 desc=text: ✗
+y=2100.7638195 desc=text: Entry fees, monument
+y=2118.985512 desc=text: than tempo traveler
+y=2221.2168015 desc=text: PRICING
+y=2235.912039 desc=text: Package Price
+y=2263.671063 desc=filled_rect y1
+y=2346.5826555 desc=filled_rect bottom w=556.28 h=82.9115925
+y=2287.352175 desc=text: ₹8,999 / person
+y=2320.278615 desc=text: Starting from · inc
+y=2291.94781875 desc=text: Booking Amount: 
+y=2291.94781875 desc=text: ₹2,000 / person
+y=2310.75052125 desc=text: Balance payable befo
+y=2369.4367215 desc=text: HOW TO BOOK
+y=2384.131959 desc=text: Booking Process
+y=2417.312313 desc=text: To book this package
+y=2436.6383505 desc=text: required to confirm 
+y=2463.293058 desc=filled_rect y1
+y=2495.0147505 desc=filled_rect bottom w=178.30915387903 h=31.7216925
+y=2462.918058 desc=line y1
+y=2462.918058 desc=line y2
+y=2495.3897505 desc=line y1
+y=2495.3897505 desc=line y2
+y=2462.543058 desc=line y1
+y=2495.7647505 desc=line y2
+y=2474.580912 desc=text: Bank Transfer
+y=2462.918058 desc=line y1
+y=2495.3897505 desc=line y2
+y=2463.293058 desc=filled_rect y1
+y=2495.0147505 desc=filled_rect bottom w=194.59233986283 h=31.7216925
+y=2462.918058 desc=line y1
+y=2462.918058 desc=line y2
+y=2495.3897505 desc=line y1
+y=2495.3897505 desc=line y2
+y=2462.543058 desc=line y1
+y=2495.7647505 desc=line y2
+y=2474.580912 desc=text: GPay / PhonePe
+y=2462.918058 desc=line y1
+y=2495.3897505 desc=line y2
+y=2463.293058 desc=filled_rect y1
+y=2495.0147505 desc=filled_rect bottom w=154.87850625814 h=31.7216925
+y=2462.918058 desc=line y1
+y=2462.918058 desc=line y2
+y=2495.3897505 desc=line y1
+y=2495.3897505 desc=line y2
+y=2462.543058 desc=line y1
+y=2495.7647505 desc=line y2
+y=2462.543058 desc=line y1
+y=2495.7647505 desc=line y2
+y=2474.580912 desc=text: Paytm / UPI
+y=2513.7647505 desc=filled_rect y1
+y=2716.271538 desc=filled_rect bottom w=556.28 h=202.5067875
+y=2533.1836905 desc=text: Get In Touch
+y=2565.9916455 desc=text: PHONE
+y=2580.979152 desc=text: +91 98750 73788
+y=2606.986938 desc=text: WEBSITE
+y=2621.9744445 desc=text: www.tytluxe.in
+y=2565.9916455 desc=text: EMAIL
+y=2580.979152 desc=text: takeyourtrip7@gmail.
+y=2606.986938 desc=text: ADDRESS
+y=2621.9744445 desc=text: Surana Supremus, 4th
+y=2639.8360245 desc=text: Safal Square, Vesu, 
+y=2672.2593405 desc=line y1
+y=2672.2593405 desc=line y2
+y=2675.006901 desc=filled_rect y1
+y=2700.6440985 desc=filled_rect bottom w=122.775 h=25.6371975
+y=2675.381901 desc=line y1
+y=2675.381901 desc=line y2
+y=2700.2690985 desc=line y1
+y=2700.2690985 desc=line y2
+y=2685.832659 desc=text: ●
+y=2683.650159 desc=text: Instagram @tytluxe_
+y=2690.1680985 desc=text:  
+y=2675.006901 desc=filled_rect y1
+y=2700.6440985 desc=filled_rect bottom w=157.511625 h=25.6371975
+y=2675.381901 desc=line y1
+y=2675.381901 desc=line y2
+y=2700.2690985 desc=line y1
+y=2700.2690985 desc=line y2
+y=2685.832659 desc=text: ●
+y=2683.650159 desc=text: WhatsApp +91 98750 7
+y=2690.1680985 desc=text:  
+y=2675.006901 desc=filled_rect y1
+y=2700.6440985 desc=filled_rect bottom w=116.986875 h=25.6371975
+y=2675.381901 desc=line y1
+y=2675.381901 desc=line y2
+y=2700.2690985 desc=line y1
+y=2700.2690985 desc=line y2
+y=2685.832659 desc=text: ●
+y=2683.650159 desc=text: Facebook /TYTLuxe
+y=2747.771538 desc=filled_rect y1
+y=2770.271538 desc=filled_rect bottom w=595.28 h=22.5
+y=2763.398238 desc=text: TYT LUXE
+y=2763.398238 desc=text:    |   +91 98750
