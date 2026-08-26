@@ -233,6 +233,7 @@ class PackageForm
                                         ->columnSpanFull(),
 
                                     FileUpload::make('image')
+->disk('public')
                                         ->label('Day Photo  (optional)')
                                         ->helperText('An optional image for this specific day.')
                                         ->image()
@@ -383,6 +384,7 @@ class PackageForm
                         ->schema([
 
                             FileUpload::make('hero_bg_image')
+->disk('public')
                                 ->label('Hero Banner Image')
                                 ->helperText('The large background image at the top of the package page. Best size: 1920 × 1080 px (landscape/wide photo).')
                                 ->image()
@@ -397,6 +399,7 @@ class PackageForm
                                 ->schema([
 
                                     FileUpload::make('path')
+->disk('public')
                                         ->label('Photo')
                                         ->helperText('Upload a photo from your computer.')
                                         ->image()
