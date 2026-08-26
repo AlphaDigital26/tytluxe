@@ -6,9 +6,13 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    /**
+     * This migration ensures the `image` column exists in `package_itinerary_days`.
+     * The original migration (2026_08_22_104552) was accidentally left empty,
+     * so the column was never created on the live server.
+     */
     public function up(): void
     {
-        // Only add the column if it doesn't already exist (safe to run on both local and live)
         if (!Schema::hasColumn('package_itinerary_days', 'image')) {
             Schema::table('package_itinerary_days', function (Blueprint $table) {
                 $table->string('image')->nullable()->after('description');
@@ -16,10 +20,15 @@ return new class extends Migration
         }
     }
 
+    /**
+     * Reverse the migrations.
+     */
     public function down(): void
     {
-        Schema::table('package_itinerary_days', function (Blueprint $table) {
-            $table->dropColumn('image');
-        });
+        if (Schema::hasColumn('package_itinerary_days', 'image')) {
+            Schema::table('package_itinerary_days', function (Blueprint $table) {
+                $table->dropColumn('image');
+            });
+        }
     }
 };
