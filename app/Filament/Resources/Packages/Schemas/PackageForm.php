@@ -41,7 +41,7 @@ class PackageForm
                                 ->helperText('The full name of this trip, exactly as it appears on the brochure or PDF.')
                                 ->required()
                                 ->live(onBlur: true)
-                                ->afterStateUpdated(fn (?string $state, $set) => $set('slug', $state ? Str::slug($state) : null))
+                                ->afterStateUpdated(fn (string $state, $set) => $set('slug', Str::slug($state)))
                                 ->columnSpanFull(),
 
                             TextInput::make('slug')
@@ -233,12 +233,11 @@ class PackageForm
                                         ->columnSpanFull(),
 
                                     FileUpload::make('image')
-                                        ->label('Day Photo  (shown in PDF)')
-                                        ->helperText('Upload a photo for this day. It will appear on the left side of this day\'s card in the downloaded itinerary PDF.')
+                                        ->label('Day Photo  (optional)')
+                                        ->helperText('An optional image for this specific day.')
                                         ->image()
-                                        ->imagePreviewHeight('120')
+                                        ->imagePreviewHeight('150')
                                         ->saveUploadedFileUsing(fn ($file) => app(\App\Services\ImageOptimizer::class)->optimizeAndSave($file, 'thumbnail', 'packages/itinerary'))
-                                        ->nullable()
                                         ->columnSpanFull(),
 
                                     TagsInput::make('chips')

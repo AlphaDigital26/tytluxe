@@ -526,9 +526,11 @@ body { background: var(--dark); color: #fff; }
 
 /* ===== RESPONSIVE ===== */
 @media (max-width: 1024px) {
-  .hd-layout { grid-template-columns: 1fr; padding: 40px 24px 60px; gap: 40px; }
+  .hd-layout { grid-template-columns: 1fr; padding: 40px 24px 100px; gap: 40px; }
   .hd-book-card { position: static; }
   .hd-gallery-hero-info { padding: 32px 24px 28px; }
+  /* Hide right column booking card on small screens — sticky bar handles the CTA */
+  .hd-right { display: none; }
 }
 @media (max-width: 768px) {
   .hd-back { padding: 18px 20px 0; }
@@ -542,6 +544,46 @@ body { background: var(--dark); color: #fff; }
   .hd-mform-btn { justify-content: center; }
   .hd-modal { padding: 28px 20px; }
 }
+
+/* ===== STICKY MOBILE CTA BAR ===== */
+.hd-sticky-cta {
+  display: none; /* Hidden on desktop */
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 500;
+  background: rgba(13,13,13,0.96); backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(201,168,76,0.25);
+  padding: 12px 20px 14px;
+}
+@media (max-width: 1024px) {
+  .hd-sticky-cta { display: flex; align-items: center; gap: 10px; }
+}
+.hd-sticky-cta-info {
+  flex: 1; min-width: 0;
+  font-family: 'Jost', sans-serif;
+}
+.hd-sticky-cta-name {
+  font-size: 13px; font-weight: 600; color: #fff;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.hd-sticky-cta-price {
+  font-size: 11px; color: var(--gold); font-weight: 400; margin-top: 1px;
+}
+.hd-sticky-cta-btn {
+  display: inline-flex; align-items: center; gap: 7px; flex-shrink: 0;
+  padding: 12px 22px; border-radius: 100px;
+  background: var(--gold); color: var(--dark);
+  font-family: 'Jost', sans-serif; font-size: 12px; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  border: none; cursor: pointer; transition: all var(--tr);
+}
+.hd-sticky-cta-btn:hover { background: var(--gold-light); }
+.hd-sticky-cta-wa {
+  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  width: 44px; height: 44px; border-radius: 50%;
+  background: #25D366; color: #fff;
+  font-size: 18px; text-decoration: none;
+  transition: background var(--tr);
+}
+.hd-sticky-cta-wa:hover { background: #20c45b; }
 </style>
 @endpush
 
@@ -948,6 +990,24 @@ body { background: var(--dark); color: #fff; }
 
 </div>
 
+
+<!-- ===================================================
+     STICKY MOBILE CTA BAR (shown only on ≤1024px)
+=================================================== -->
+<div class="hd-sticky-cta" id="hdStickyCta">
+  <div class="hd-sticky-cta-info">
+    <div class="hd-sticky-cta-name">{{ $hotel->title }}</div>
+    <div class="hd-sticky-cta-price">Price on Request · {{ $destination }}</div>
+  </div>
+  <button class="hd-sticky-cta-btn" id="hdStickyEnquireBtn">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+    Enquire
+  </button>
+  <a href="https://wa.me/919875073788?text={{ $waText }}" class="hd-sticky-cta-wa" target="_blank" aria-label="Chat on WhatsApp">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+  </a>
+</div>
+
 <!-- ===================================================
      ENQUIRY MODAL
 =================================================== -->
@@ -1079,6 +1139,9 @@ body { background: var(--dark); color: #fff; }
 
   if (openBtn)  openBtn.addEventListener('click', openModal);
   if (closeBtn) closeBtn.addEventListener('click', closeModal);
+  // Also wire the sticky mobile CTA button
+  const stickyEnquireBtn = document.getElementById('hdStickyEnquireBtn');
+  if (stickyEnquireBtn) stickyEnquireBtn.addEventListener('click', openModal);
   modal?.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
   
   /* ===== ROOM DETAILS MODALS ===== */
