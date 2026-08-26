@@ -130,7 +130,7 @@ body { background: var(--dark); color: #fff; }
 .hd-layout {
   max-width: 1280px; margin: 0 auto;
   padding: 56px 40px 80px;
-  display: grid; grid-template-columns: 1fr 380px; gap: 56px; align-items: start;
+  display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 56px; align-items: start;
 }
 .hd-section { margin-bottom: 52px; }
 .hd-section:last-child { margin-bottom: 0; }
@@ -159,7 +159,9 @@ body { background: var(--dark); color: #fff; }
 /* ===== DESCRIPTION ===== */
 .hd-desc {
   font-family: 'Jost', sans-serif; font-size: 15.5px; font-weight: 300;
-  line-height: 1.85; color: var(--white-80);
+  line-height: 1.85; color: var(--white-80); overflow-wrap: break-word; word-wrap: break-word;
+}
+.hd-desc img, .hd-desc iframe, .hd-desc table { max-width: 100%; height: auto; display: block; 
 }
 
 /* ===== AMENITIES ===== */
@@ -167,7 +169,9 @@ body { background: var(--dark); color: #fff; }
 .hd-amenity {
   display: inline-flex; align-items: center; gap: 8px;
   border: 1px solid rgba(255,255,255,0.12); padding: 10px 18px; border-radius: 100px;
-  font-family: 'Jost', sans-serif; font-size: 13.5px; font-weight: 400; color: var(--white-80);
+  font-family: 'Jost', sans-serif; font-size: 13.5px; font-weight: 400; color: var(--white-80); overflow-wrap: break-word; word-wrap: break-word;
+}
+.hd-desc img, .hd-desc iframe, .hd-desc table { max-width: 100%; height: auto; display: block; 
   transition: border-color var(--tr), background var(--tr);
 }
 .hd-amenity:hover { border-color: var(--gold); background: var(--gold-dim); }
@@ -203,7 +207,9 @@ body { background: var(--dark); color: #fff; }
 }
 .hd-room-spec {
   display: flex; align-items: center; gap: 6px;
-  font-family: 'Jost', sans-serif; font-size: 13px; color: var(--white-80);
+  font-family: 'Jost', sans-serif; font-size: 13px; color: var(--white-80); overflow-wrap: break-word; word-wrap: break-word;
+}
+.hd-desc img, .hd-desc iframe, .hd-desc table { max-width: 100%; height: auto; display: block; 
 }
 .hd-room-spec svg { width: 14px; height: 14px; color: var(--gold); }
 .hd-room-desc-text {
@@ -283,7 +289,9 @@ body { background: var(--dark); color: #fff; }
 .hd-place-info { flex: 1; min-width: 0; }
 .hd-place-name {
   font-family: 'Jost', sans-serif; font-size: 13px; font-weight: 500;
-  color: var(--white-80); line-height: 1.4;
+  color: var(--white-80); overflow-wrap: break-word; word-wrap: break-word;
+}
+.hd-desc img, .hd-desc iframe, .hd-desc table { max-width: 100%; height: auto; display: block;  line-height: 1.4;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .hd-place-dist {
@@ -525,11 +533,14 @@ body { background: var(--dark); color: #fff; }
 .hd-mform-success p { font-family: 'Jost', sans-serif; font-size: 13.5px; color: var(--white-60); font-weight: 300; }
 
 /* ===== RESPONSIVE ===== */
-@media (max-width: 1024px) {
+@media (max-width: 1150px) {
+  .hd-layout { grid-template-columns: minmax(0, 1fr) 330px; gap: 30px; }
+}
+@media (max-width: 900px) {
   .hd-layout { grid-template-columns: 1fr; padding: 40px 24px 100px; gap: 40px; }
   .hd-book-card { position: static; }
   .hd-gallery-hero-info { padding: 32px 24px 28px; }
-  /* Hide right column booking card on small screens — sticky bar handles the CTA */
+  /* Hide right column booking card on small screens */
   .hd-right { display: none; }
 }
 @media (max-width: 768px) {
@@ -553,7 +564,7 @@ body { background: var(--dark); color: #fff; }
   border-top: 1px solid rgba(201,168,76,0.25);
   padding: 12px 20px 14px;
 }
-@media (max-width: 1024px) {
+@media (max-width: 900px) {
   .hd-sticky-cta { display: flex; align-items: center; gap: 10px; }
 }
 .hd-sticky-cta-info {
@@ -814,7 +825,9 @@ body { background: var(--dark); color: #fff; }
               
               @if($room->description)
                 <h3 style="font-family: 'Jost', sans-serif; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--gold); margin-bottom: 12px;">About this room</h3>
-                <p style="font-family: 'Jost', sans-serif; font-size: 14px; color: var(--white-80); line-height: 1.6; margin-bottom: 24px;">
+                <p style="font-family: 'Jost', sans-serif; font-size: 14px; color: var(--white-80); overflow-wrap: break-word; word-wrap: break-word;
+}
+.hd-desc img, .hd-desc iframe, .hd-desc table { max-width: 100%; height: auto; display: block;  line-height: 1.6; margin-bottom: 24px;">
                     {!! $room->description !!}
                 </p>
               @endif

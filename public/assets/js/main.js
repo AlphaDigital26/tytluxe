@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const header = document.querySelector('header');
     window.addEventListener('scroll', function() {
         if (window.scrollY > 50) {
-            header.style.background = 'rgba(18, 18, 18, 0.95)';
+            header.style.background = '#121212';
             header.style.padding = '10px 0';
         } else {
             header.style.background = 'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 100%)';
