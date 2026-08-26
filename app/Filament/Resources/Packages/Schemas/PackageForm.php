@@ -232,6 +232,14 @@ class PackageForm
                                         ->rows(4)
                                         ->columnSpanFull(),
 
+                                    FileUpload::make('image')
+                                        ->label('Day Photo  (optional)')
+                                        ->helperText('An optional image for this specific day.')
+                                        ->image()
+                                        ->imagePreviewHeight('150')
+                                        ->saveUploadedFileUsing(fn ($file) => app(\App\Services\ImageOptimizer::class)->optimizeAndSave($file, 'thumbnail', 'packages/itinerary'))
+                                        ->columnSpanFull(),
+
                                     TagsInput::make('chips')
                                         ->label('Activity Tags  (optional)')
                                         ->placeholder('Type an activity and press Enter  —  e.g.  Jibhi Waterfall')
