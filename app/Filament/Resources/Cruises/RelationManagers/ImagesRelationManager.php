@@ -28,6 +28,7 @@ class ImagesRelationManager extends RelationManager
                     ->columnSpanFull()
                     ->schema([
                         FileUpload::make('path')
+->disk('public')
                             ->label('Upload Image')
                             ->image()
                             ->saveUploadedFileUsing(fn ($file) => app(\App\Services\ImageOptimizer::class)->optimizeAndSave($file, 'hero', 'cruise-hero'))

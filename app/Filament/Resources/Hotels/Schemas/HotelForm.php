@@ -184,6 +184,7 @@ class HotelForm
                                     ->relationship('images')
                                     ->schema([
                                         FileUpload::make('path')
+->disk('public')
                                             ->label('Photo')
                                             ->image()
                                             ->saveUploadedFileUsing(fn ($file) => app(\App\Services\ImageOptimizer::class)->optimizeAndSave($file, 'hero', 'hotels'))

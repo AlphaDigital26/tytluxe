@@ -42,10 +42,12 @@ class RoomTypesRelationManager extends RelationManager
                         ->maxLength(255)
                         ->columnSpanFull(),
                     FileUpload::make('image_path')
+->disk('public')
                         ->label('Main Thumbnail')
                         ->image()
                         ->saveUploadedFileUsing(fn ($file) => app(\App\Services\ImageOptimizer::class)->optimizeAndSave($file, 'thumbnail', 'room-images')),
                     FileUpload::make('images')
+->disk('public')
                         ->label('Gallery Images (Multiple)')
                         ->multiple()
                         ->image()

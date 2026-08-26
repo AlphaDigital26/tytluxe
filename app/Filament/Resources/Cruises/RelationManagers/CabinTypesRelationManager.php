@@ -53,6 +53,7 @@ class CabinTypesRelationManager extends RelationManager
                     ->columnSpanFull()
                     ->schema([
                         FileUpload::make('image_path')
+->disk('public')
                             ->label('Upload Image')
                             ->image()
                             ->saveUploadedFileUsing(fn ($file) => app(\App\Services\ImageOptimizer::class)->optimizeAndSave($file, 'thumbnail', 'cruise-cabins'))

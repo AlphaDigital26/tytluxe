@@ -50,6 +50,7 @@ class ReviewForm
                     ->required()
                     ->columnSpanFull(),
                 \Filament\Forms\Components\FileUpload::make('images')
+->disk('public')
                     ->multiple()
                     ->image()
                     ->saveUploadedFileUsing(fn ($file) => app(\App\Services\ImageOptimizer::class)->optimizeAndSave($file, 'thumbnail', 'reviews'))
