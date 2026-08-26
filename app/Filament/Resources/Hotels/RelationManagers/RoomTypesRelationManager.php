@@ -88,7 +88,7 @@ class RoomTypesRelationManager extends RelationManager
                             'non_refundable'    => '❌  Non-Refundable (no refund on cancellation)',
                             'partial'           => '⚠️  Partial Refund (partial amount returned)',
                         ])
-                        ->required()
+                        ->nullable()
                         ->native(false),
                     TagsInput::make('inclusions')
                         ->label("What's Included in this Room?")
