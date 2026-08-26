@@ -26,49 +26,10 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Table;
-use Filament\Notifications\Notification;
 
 class RoomTypesRelationManager extends RelationManager
 {
     protected static string $relationship = 'roomTypes';
-
-    // ─── Draft helpers ────────────────────────────────────────────────────────
-
-    private function draftKey(): string
-    {
-        return 'draft_room_' . auth()->id() . '_hotel_' . $this->getOwnerRecord()->id;
-    }
-
-    private function getDraft(): ?array
-    {
-        return cache()->get($this->draftKey());
-    }
-
-    private function saveDraft(array $data): void
-    {
-        $serializable = $this->serializableData($data);
-        cache()->put($this->draftKey(), $serializable, now()->addHours(24));
-    }
-
-    private function clearDraft(): void
-    {
-        cache()->forget($this->draftKey());
-    }
-
-    private function serializableData(array $data): array
-    {
-        $result = [];
-        foreach ($data as $key => $value) {
-            if (is_array($value)) {
-                $result[$key] = $this->serializableData($value);
-            } elseif (!is_object($value)) {
-                $result[$key] = $value;
-            }
-        }
-        return $result;
-    }
-
-    // ─── Form ─────────────────────────────────────────────────────────────────
 
     public function form(Schema $schema): Schema
     {
@@ -79,9 +40,7 @@ class RoomTypesRelationManager extends RelationManager
                     TextInput::make('name')
                         ->required()
                         ->maxLength(255)
-                        ->columnSpanFull()
-                        ->live(onBlur: true)
-                        ->afterStateUpdated(fn ($state, $get) => $this->saveDraft(array_merge($this->getDraft() ?? [], ['name' => $state]))),
+                        ->columnSpanFull(),
                     FileUpload::make('image_path')
                         ->label('Main Thumbnail')
                         ->image()
@@ -94,32 +53,22 @@ class RoomTypesRelationManager extends RelationManager
                         ->saveUploadedFileUsing(fn ($file) => app(\App\Services\ImageOptimizer::class)->optimizeAndSave($file, 'thumbnail', 'room-images')),
                     Textarea::make('description')
                         ->rows(3)
-                        ->columnSpanFull()
-                        ->live(onBlur: true)
-                        ->afterStateUpdated(fn ($state) => $this->saveDraft(array_merge($this->getDraft() ?? [], ['description' => $state]))),
+                        ->columnSpanFull(),
                 ])->columns(2),
 
                 Section::make('Specifications & Occupancy')->schema([
                     TextInput::make('room_size')
-                        ->placeholder('e.g. 300 sq.ft')
-                        ->live(onBlur: true)
-                        ->afterStateUpdated(fn ($state) => $this->saveDraft(array_merge($this->getDraft() ?? [], ['room_size' => $state]))),
+                        ->placeholder('e.g. 300 sq.ft'),
                     TextInput::make('bed_type')
-                        ->placeholder('e.g. 1 King Bed')
-                        ->live(onBlur: true)
-                        ->afterStateUpdated(fn ($state) => $this->saveDraft(array_merge($this->getDraft() ?? [], ['bed_type' => $state]))),
+                        ->placeholder('e.g. 1 King Bed'),
                     TextInput::make('occupancy_adults')
                         ->required()
                         ->numeric()
-                        ->default(2)
-                        ->live(onBlur: true)
-                        ->afterStateUpdated(fn ($state) => $this->saveDraft(array_merge($this->getDraft() ?? [], ['occupancy_adults' => $state]))),
+                        ->default(2),
                     TextInput::make('occupancy_children')
                         ->required()
                         ->numeric()
-                        ->default(0)
-                        ->live(onBlur: true)
-                        ->afterStateUpdated(fn ($state) => $this->saveDraft(array_merge($this->getDraft() ?? [], ['occupancy_children' => $state]))),
+                        ->default(0),
                 ])->columns(2),
 
                 Section::make('Room Settings')->schema([
@@ -140,29 +89,21 @@ class RoomTypesRelationManager extends RelationManager
                             'partial'           => '⚠️  Partial Refund (partial amount returned)',
                         ])
                         ->nullable()
-                        ->native(false)
-                        ->live()
-                        ->afterStateUpdated(fn ($state) => $this->saveDraft(array_merge($this->getDraft() ?? [], ['cancellation_policy' => $state]))),
+                        ->native(false),
                     TagsInput::make('inclusions')
                         ->label("What's Included in this Room?")
                         ->helperText('Type each inclusion and press Enter — e.g. Free Breakfast, Free WiFi, Swimming Pool Access')
                         ->placeholder('Type and press Enter...')
-                        ->columnSpanFull()
-                        ->live(onBlur: true)
-                        ->afterStateUpdated(fn ($state) => $this->saveDraft(array_merge($this->getDraft() ?? [], ['inclusions' => $state]))),
+                        ->columnSpanFull(),
                     Toggle::make('is_active')
                         ->label('Show this Room on the Website')
                         ->helperText('Turn OFF to hide this room type from customers without deleting it.')
                         ->default(true)
                         ->required()
-                        ->columnSpanFull()
-                        ->live()
-                        ->afterStateUpdated(fn ($state) => $this->saveDraft(array_merge($this->getDraft() ?? [], ['is_active' => $state]))),
+                        ->columnSpanFull(),
                 ])->columns(2),
             ]);
     }
-
-    // ─── Table ────────────────────────────────────────────────────────────────
 
     public function table(Table $table): Table
     {
@@ -213,35 +154,7 @@ class RoomTypesRelationManager extends RelationManager
             ])
             ->headerActions([
                 CreateAction::make()
-                    ->label(fn () => $this->getDraft() ? '📝 Resume Room Draft' : 'New room type')
-                    ->fillForm(function (array $arguments): array {
-                        // Pre-fill modal with saved draft if it exists
-                        return $this->getDraft() ?? [];
-                    })
-                    ->after(function () {
-                        // Clear draft after successfully saving the room
-                        $this->clearDraft();
-                    })
                     ->after(fn () => redirect(HotelResource::getUrl('index'))),
-
-                \Filament\Actions\Action::make('discard_room_draft')
-                    ->label('Discard Room Draft')
-                    ->color('danger')
-                    ->icon('heroicon-o-trash')
-                    ->requiresConfirmation()
-                    ->modalHeading('Discard Room Draft?')
-                    ->modalDescription('Are you sure you want to discard the saved room draft? All unsaved data will be permanently lost.')
-                    ->modalSubmitActionLabel('Yes, Discard Draft')
-                    ->modalIcon('heroicon-o-exclamation-triangle')
-                    ->modalIconColor('danger')
-                    ->visible(fn () => (bool) $this->getDraft())
-                    ->action(function () {
-                        $this->clearDraft();
-                        Notification::make()
-                            ->title('Room draft discarded.')
-                            ->warning()
-                            ->send();
-                    }),
             ])
             ->recordActions([
                 EditAction::make()
@@ -255,4 +168,3 @@ class RoomTypesRelationManager extends RelationManager
             ]);
     }
 }
-
