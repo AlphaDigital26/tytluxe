@@ -170,8 +170,6 @@ body { background: var(--dark); color: #fff; }
   display: inline-flex; align-items: center; gap: 8px;
   border: 1px solid rgba(255,255,255,0.12); padding: 10px 18px; border-radius: 100px;
   font-family: 'Jost', sans-serif; font-size: 13.5px; font-weight: 400; color: var(--white-80); overflow-wrap: break-word; word-wrap: break-word;
-}
-.hd-desc img, .hd-desc iframe, .hd-desc table { max-width: 100%; height: auto; display: block; 
   transition: border-color var(--tr), background var(--tr);
 }
 .hd-amenity:hover { border-color: var(--gold); background: var(--gold-dim); }
@@ -208,8 +206,6 @@ body { background: var(--dark); color: #fff; }
 .hd-room-spec {
   display: flex; align-items: center; gap: 6px;
   font-family: 'Jost', sans-serif; font-size: 13px; color: var(--white-80); overflow-wrap: break-word; word-wrap: break-word;
-}
-.hd-desc img, .hd-desc iframe, .hd-desc table { max-width: 100%; height: auto; display: block; 
 }
 .hd-room-spec svg { width: 14px; height: 14px; color: var(--gold); }
 .hd-room-desc-text {
@@ -257,12 +253,29 @@ body { background: var(--dark); color: #fff; }
   display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 12px;
   margin-bottom: 20px; padding-bottom: 8px;
   -ms-overflow-style: none; scrollbar-width: none;
+  cursor: grab;
+}
+.hd-room-gallery:active {
+  cursor: grabbing;
 }
 .hd-room-gallery::-webkit-scrollbar { display: none; }
 .hd-room-gallery img {
   width: 100%; flex-shrink: 0; scroll-snap-align: start;
   border-radius: 12px; max-height: 280px; object-fit: cover;
+  user-select: none; -webkit-user-drag: none;
 }
+.hd-rg-btn {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+  color: #fff; border: 1px solid rgba(255,255,255,0.2);
+  width: 36px; height: 36px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; z-index: 10; transition: all 0.2s;
+  font-size: 14px;
+}
+.hd-rg-btn:hover { background: var(--gold); border-color: var(--gold); color: var(--dark); }
+.hd-rg-prev { left: 10px; }
+.hd-rg-next { right: 10px; }
 
 /* ===== PLACES SECTIONS (Nearby, Restaurants, Top Attractions) ===== */
 .hd-places-grid {
@@ -290,8 +303,7 @@ body { background: var(--dark); color: #fff; }
 .hd-place-name {
   font-family: 'Jost', sans-serif; font-size: 13px; font-weight: 500;
   color: var(--white-80); overflow-wrap: break-word; word-wrap: break-word;
-}
-.hd-desc img, .hd-desc iframe, .hd-desc table { max-width: 100%; height: auto; display: block;  line-height: 1.4;
+  line-height: 1.4;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .hd-place-dist {
@@ -806,10 +818,20 @@ body { background: var(--dark); color: #fff; }
               @endphp
 
               @if($roomImages->count() > 0)
-                <div class="hd-room-gallery">
-                  @foreach($roomImages as $img)
-                    <img src="{{ Storage::disk('public')->url($img) }}" alt="{{ $room->name }} Image">
-                  @endforeach
+                <div class="hd-room-gallery-wrap" style="position: relative; margin-bottom: 20px;">
+                  @if($roomImages->count() > 1)
+                    <button type="button" class="hd-rg-btn hd-rg-prev" aria-label="Previous">❮</button>
+                  @endif
+                  
+                  <div class="hd-room-gallery" style="margin-bottom: 0;">
+                    @foreach($roomImages as $img)
+                      <img src="{{ Storage::disk('public')->url($img) }}" alt="{{ $room->name }} Image">
+                    @endforeach
+                  </div>
+
+                  @if($roomImages->count() > 1)
+                    <button type="button" class="hd-rg-btn hd-rg-next" aria-label="Next">❯</button>
+                  @endif
                 </div>
               @endif
               
@@ -825,9 +847,7 @@ body { background: var(--dark); color: #fff; }
               
               @if($room->description)
                 <h3 style="font-family: 'Jost', sans-serif; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--gold); margin-bottom: 12px;">About this room</h3>
-                <p style="font-family: 'Jost', sans-serif; font-size: 14px; color: var(--white-80); overflow-wrap: break-word; word-wrap: break-word;
-}
-.hd-desc img, .hd-desc iframe, .hd-desc table { max-width: 100%; height: auto; display: block;  line-height: 1.6; margin-bottom: 24px;">
+                <p style="font-family: 'Jost', sans-serif; font-size: 14px; color: var(--white-80); overflow-wrap: break-word; word-wrap: break-word; line-height: 1.6; margin-bottom: 24px;">
                     {!! $room->description !!}
                 </p>
               @endif
@@ -1441,6 +1461,57 @@ body { background: var(--dark); color: #fff; }
       checkinInput.addEventListener('click', () => fp.open());
       checkoutInput.addEventListener('click', () => fp.open());
     }
+
+    /* ===== MOUSE DRAG TO SCROLL FOR GALLERY ===== */
+    document.querySelectorAll('.hd-room-gallery').forEach(slider => {
+      let isDown = false;
+      let startX;
+      let scrollLeft;
+
+      slider.addEventListener('mousedown', (e) => {
+        isDown = true;
+        slider.style.scrollSnapType = 'none';
+        startX = e.pageX - slider.offsetLeft;
+        scrollLeft = slider.scrollLeft;
+      });
+      
+      slider.addEventListener('mouseleave', () => {
+        isDown = false;
+        slider.style.scrollSnapType = 'x mandatory';
+      });
+      
+      slider.addEventListener('mouseup', () => {
+        isDown = false;
+        slider.style.scrollSnapType = 'x mandatory';
+      });
+      
+      slider.addEventListener('mousemove', (e) => {
+        if (!isDown) return;
+        e.preventDefault();
+        const x = e.pageX - slider.offsetLeft;
+        const walk = (x - startX) * 2; // Scroll-fast
+        slider.scrollLeft = scrollLeft - walk;
+      });
+    });
+
+    /* ===== ARROW BUTTONS FOR GALLERY ===== */
+    document.querySelectorAll('.hd-room-gallery-wrap').forEach(wrap => {
+      const slider = wrap.querySelector('.hd-room-gallery');
+      const prevBtn = wrap.querySelector('.hd-rg-prev');
+      const nextBtn = wrap.querySelector('.hd-rg-next');
+      
+      if (!slider || !prevBtn || !nextBtn) return;
+      
+      prevBtn.addEventListener('click', () => {
+        const scrollAmount = slider.clientWidth; // Scroll one image width
+        slider.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+      });
+      
+      nextBtn.addEventListener('click', () => {
+        const scrollAmount = slider.clientWidth;
+        slider.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+      });
+    });
   });
 </script>
 @endpush
