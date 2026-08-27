@@ -190,20 +190,20 @@ body { background: var(--dark); color: #fff; }
 @media (min-width: 768px) { .hd-room-img { width: 260px; height: auto; flex-shrink: 0; } }
 .hd-room-img img { width: 100%; height: 100%; object-fit: cover; }
 .hd-room-content {
-  padding: 22px; display: flex; flex-direction: column; gap: 20px; flex: 1;
+  padding: 16px; display: flex; flex-direction: column; gap: 16px; flex: 1;
 }
 @media (min-width: 992px) {
   .hd-room-content { flex-direction: row; justify-content: space-between; align-items: center; }
 }
-.hd-room-info { flex: 1; border-bottom: 1px dashed rgba(255,255,255,0.1); padding-bottom: 20px; }
+.hd-room-info { flex: 1; border-bottom: 1px dashed rgba(255,255,255,0.1); padding-bottom: 16px; }
 @media (min-width: 992px) {
-  .hd-room-info { border-bottom: none; border-right: 1px dashed rgba(255,255,255,0.1); padding-bottom: 0; padding-right: 24px; margin-right: 24px; }
+  .hd-room-info { border-bottom: none; border-right: 1px dashed rgba(255,255,255,0.1); padding-bottom: 0; padding-right: 20px; margin-right: 20px; }
 }
 .hd-room-title {
-  font-family: 'Cormorant Garamond', serif; font-size: 1.6rem; color: #fff; margin-bottom: 10px; line-height: 1.2;
+  font-family: 'Cormorant Garamond', serif; font-size: 1.6rem; color: #fff; margin-bottom: 8px; line-height: 1.2;
 }
 .hd-room-specs {
-  display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 14px;
+  display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 10px;
 }
 .hd-room-spec {
   display: flex; align-items: center; gap: 6px;
@@ -213,7 +213,7 @@ body { background: var(--dark); color: #fff; }
 }
 .hd-room-spec svg { width: 14px; height: 14px; color: var(--gold); }
 .hd-room-desc-text {
-  font-size: 13px; margin-bottom: 14px; color: var(--white-60); line-height: 1.5;
+  font-size: 13px; margin-bottom: 10px; color: var(--white-60); line-height: 1.5;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
 .hd-room-inc {
@@ -249,7 +249,7 @@ body { background: var(--dark); color: #fff; }
 .hd-room-more-btn {
   display: inline-block; font-family: 'Jost', sans-serif; font-size: 12.5px;
   color: var(--gold); text-decoration: none; border-bottom: 1px dashed var(--gold);
-  margin-top: -4px; margin-bottom: 14px; cursor: pointer; transition: all var(--tr);
+  margin-top: -4px; margin-bottom: 10px; cursor: pointer; transition: all var(--tr);
 }
 .hd-room-more-btn:hover { color: #fff; border-bottom-color: #fff; }
 
