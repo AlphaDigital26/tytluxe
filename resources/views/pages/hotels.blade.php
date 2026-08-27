@@ -267,6 +267,8 @@
 .htl-amenity-chips {
   display: flex; flex-wrap: wrap; gap: 7px;
   margin-bottom: 18px; flex: 1;
+  align-items: flex-start;
+  align-content: flex-start;
 }
 .htl-amenity-chip {
   background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.09);
