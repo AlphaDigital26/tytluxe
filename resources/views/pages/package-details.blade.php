@@ -609,9 +609,9 @@
                 <i class="fa-brands fa-whatsapp"></i> WhatsApp Us
               </a>
                 @auth
-                  <a href="{{ route('package.download', ['slug' => $package->slug]) }}" class="pd-btn-outline" target="_blank" download>
+                  <button type="button" class="pd-btn-outline" onclick="downloadItineraryPdf('{{ route('package.download', ['slug' => $package->slug]) }}', '{{ $package->slug }}')">
                     <i class="fa-solid fa-download"></i> Download Itinerary
-                  </a>
+                  </button>
                 @else
                   <button type="button" onclick="document.getElementById('itineraryDownloadModal').style.display='flex'" class="pd-btn-outline">
                     <i class="fa-solid fa-download"></i> Download Itinerary
@@ -861,6 +861,28 @@
 </div>
 
 <script>
+// Fetches the itinerary PDF and only triggers a save if it actually came back
+// as a PDF — avoids the browser silently saving a failed request's HTML page.
+function downloadItineraryPdf(url, slug) {
+  fetch(url)
+    .then(async (res) => {
+      const blob = await res.blob();
+      if (!res.ok || blob.type !== 'application/pdf') {
+        throw new Error('Itinerary PDF request failed');
+      }
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = slug + '-itinerary.pdf';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(link.href);
+    })
+    .catch(() => {
+      alert('Sorry, the itinerary PDF could not be generated right now. Please try again shortly.');
+    });
+}
+
 function toggleReviewText(btn) {
   const textDiv = btn.previousElementSibling;
   if (textDiv.style.webkitLineClamp === 'unset') {
