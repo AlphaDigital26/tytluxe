@@ -298,46 +298,22 @@ class FrontendController extends Controller
     }
 
     /**
-     * Render a single-page itinerary PDF sized exactly to its real content height,
-     * so the footer always lands at the bottom with no blank gap or overflow page.
+     * Render the itinerary as a standard multi-page A4 PDF using DomPDF
+     * (pure PHP — no headless browser / Chrome binary required on the server).
      */
     private function renderItineraryPdf(string $view, array $data): string
     {
         $html = view($view, $data)->render();
-        $widthPx = 794; // 210mm at 96dpi
 
-        $configure = function (\Spatie\Browsershot\Browsershot $shot) {
-            $shot->noSandbox()->newHeadless();
+        $dompdf = new \Dompdf\Dompdf([
+            'isRemoteEnabled' => true,
+            'defaultPaperSize' => 'a4',
+        ]);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('a4');
+        $dompdf->render();
 
-            // Prefer an explicitly configured Chrome/Chromium binary (e.g. one installed
-            // via apt on the server) over puppeteer's own downloaded browser, which may
-            // be missing if it failed to download during deploy.
-            $chromePath = env('CHROME_PATH') ?: collect([
-                '/usr/bin/google-chrome-stable',
-                '/usr/bin/google-chrome',
-                '/usr/bin/chromium-browser',
-                '/usr/bin/chromium',
-            ])->first(fn ($path) => is_file($path) && is_executable($path));
-
-            if ($chromePath) {
-                $shot->setChromePath($chromePath);
-            }
-
-            return $shot;
-        };
-
-        $heightPx = $configure(\Spatie\Browsershot\Browsershot::html($html))
-            ->windowSize($widthPx, 1200)
-            ->evaluate('document.body.scrollHeight');
-
-        $heightMm = ($heightPx / 96) * 25.4;
-
-        return $configure(\Spatie\Browsershot\Browsershot::html($html))
-            ->windowSize($widthPx, (int) $heightPx)
-            ->showBackground()
-            ->paperSize(210, $heightMm, 'mm')
-            ->margins(0, 0, 0, 0)
-            ->pdf();
+        return $dompdf->output();
     }
 
     public function guestDownloadItinerary(Request $request, $slug)
