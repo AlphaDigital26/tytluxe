@@ -343,7 +343,7 @@ class FrontendController extends Controller
     public function guestDownloadItinerary(Request $request, $slug)
     {
         $request->validate([
-            'name' => 'required|string|max:255',
+            'name'  => 'required|string|max:255',
             'phone' => 'required|string|max:20',
             'email' => 'required|email|max:255'
         ]);
@@ -353,10 +353,10 @@ class FrontendController extends Controller
         ])->where('slug', $slug)->firstOrFail();
 
         \App\Models\ItineraryDownload::create([
-            'package_id'   => $package->id,
-            'name'         => $request->name,
-            'phone'        => $request->phone,
-            'email'        => $request->email,
+            'package_id' => $package->id,
+            'name'       => $request->name,
+            'phone'      => $request->phone,
+            'email'      => $request->email,
         ]);
 
         try {
@@ -365,11 +365,17 @@ class FrontendController extends Controller
             $pdf = $this->renderItineraryPdf('pdf.sample-itinerary', compact('package'));
 
             return response($pdf, 200, [
-                'Content-Type' => 'application/pdf',
+                'Content-Type'        => 'application/pdf',
                 'Content-Disposition' => 'attachment; filename="' . $filename . '"',
             ]);
         } catch (\Throwable $e) {
             \Log::error('Itinerary PDF generation failed: ' . $e->getMessage());
+
+            // AJAX request (fetch from the modal) — return HTTP 500 so JS catch() handles it
+            if ($request->expectsJson() || $request->ajax()) {
+                return response('PDF generation failed. Please try again shortly.', 500);
+            }
+
             return back()->with('error', 'Sorry, the itinerary PDF could not be generated right now. Please try again shortly.');
         }
     }

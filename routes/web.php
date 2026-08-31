@@ -30,16 +30,21 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-    
+
     Route::post('/profile/traveller', [ProfileController::class, 'storeTraveller'])->name('profile.traveller.store');
     Route::patch('/profile/traveller/{traveller}', [ProfileController::class, 'updateTraveller'])->name('profile.traveller.update');
     Route::delete('/profile/traveller/{traveller}', [ProfileController::class, 'deleteTraveller'])->name('profile.traveller.destroy');
     Route::post('/profile/logout-other-devices', [ProfileController::class, 'logoutOtherDevices'])->name('profile.logout-other-devices');
-    
+
     Route::post('/packages/{slug}/reviews', [FrontendController::class, 'storeReview'])->name('package.reviews.store');
+
+    // Authenticated users download directly — no lead capture needed
+    Route::get('/packages/{slug}/download-itinerary', [FrontendController::class, 'downloadItinerary'])->name('package.download');
 });
 
-Route::get('/packages/{slug}/download-itinerary', [FrontendController::class, 'downloadItinerary'])->name('package.download');
-Route::post('/packages/{slug}/download-itinerary-guest', [FrontendController::class, 'guestDownloadItinerary'])->name('package.download.guest');
+// Guest itinerary download — collects lead, then streams PDF (rate-limited to 5/min per IP)
+Route::post('/packages/{slug}/download-itinerary-guest', [FrontendController::class, 'guestDownloadItinerary'])
+    ->name('package.download.guest')
+    ->middleware('throttle:5,1');
 
 require __DIR__.'/auth.php';

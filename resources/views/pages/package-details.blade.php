@@ -20,6 +20,7 @@
   --white-80: rgba(255,255,255,0.8);
   --white-60: rgba(255,255,255,0.6);
   --white-30: rgba(255,255,255,0.3);
+  --white-20: rgba(255,255,255,0.2);
   --white-10: rgba(255,255,255,0.08);
   --green: #4caf82;
   --red: #e05c5c;
@@ -841,18 +842,100 @@
 {{-- Guest Download Modal --}}
 <div id="itineraryDownloadModal" style="display: none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); align-items: center; justify-content: center;">
   <div style="background: var(--dark-3); padding: 40px; border-radius: 8px; max-width: 450px; width: 90%; border: 1px solid var(--gold); position: relative;">
-    <span onclick="document.getElementById('itineraryDownloadModal').style.display='none'" style="position: absolute; top: 15px; right: 25px; font-size: 28px; cursor: pointer; color: var(--gold);">&times;</span>
+    <span onclick="closeItineraryModal()" style="position: absolute; top: 15px; right: 25px; font-size: 28px; cursor: pointer; color: var(--gold);">&times;</span>
     <h3 style="color: var(--gold); margin-bottom: 15px; font-family: 'Cinzel', serif; font-size: 1.5rem;">Download Itinerary</h3>
     <p style="color: var(--white-80); margin-bottom: 25px; font-size: 0.95rem; line-height: 1.5;">Please enter your details to download the detailed itinerary for this package.</p>
-    <form action="{{ route('package.download.guest', $package->slug) }}" method="POST">
+
+    {{-- Inline feedback message --}}
+    <div id="itineraryModalMsg" style="display:none; padding: 12px 16px; border-radius: 6px; margin-bottom: 16px; font-family: 'Jost', sans-serif; font-size: 14px;"></div>
+
+    <form id="itineraryDownloadForm">
       @csrf
-      <input type="text" name="name" required placeholder="Your Name" style="width: 100%; padding: 14px; margin-bottom: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--white-20); color: #fff; border-radius: 4px; font-family: 'Jost', sans-serif;">
-      <input type="tel" name="phone" required placeholder="Your Phone Number" style="width: 100%; padding: 14px; margin-bottom: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--white-20); color: #fff; border-radius: 4px; font-family: 'Jost', sans-serif;">
-      <input type="email" name="email" required placeholder="Your Email Address" style="width: 100%; padding: 14px; margin-bottom: 20px; background: rgba(255,255,255,0.05); border: 1px solid var(--white-20); color: #fff; border-radius: 4px; font-family: 'Jost', sans-serif;">
-      <button type="submit" class="pd-btn" style="width: 100%; cursor: pointer;">Download Now</button>
+      <input type="text" name="name" id="idf_name" required placeholder="Your Name"
+        style="width: 100%; padding: 14px; margin-bottom: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--white-20); color: #fff; border-radius: 4px; font-family: 'Jost', sans-serif;">
+      <input type="tel" name="phone" id="idf_phone" required placeholder="Your Phone Number"
+        style="width: 100%; padding: 14px; margin-bottom: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--white-20); color: #fff; border-radius: 4px; font-family: 'Jost', sans-serif;">
+      <input type="email" name="email" id="idf_email" required placeholder="Your Email Address"
+        style="width: 100%; padding: 14px; margin-bottom: 20px; background: rgba(255,255,255,0.05); border: 1px solid var(--white-20); color: #fff; border-radius: 4px; font-family: 'Jost', sans-serif;">
+      <button type="submit" id="idf_submit" class="pd-btn" style="width: 100%; cursor: pointer;">
+        <i class="fa-solid fa-download"></i> <span id="idf_btn_text">Download Now</span>
+      </button>
     </form>
   </div>
 </div>
+
+<script>
+function closeItineraryModal() {
+  document.getElementById('itineraryDownloadModal').style.display = 'none';
+  // Reset feedback when closing
+  var msg = document.getElementById('itineraryModalMsg');
+  msg.style.display = 'none';
+  msg.textContent = '';
+}
+
+// Close when clicking the dark backdrop
+document.getElementById('itineraryDownloadModal').addEventListener('click', function(e) {
+  if (e.target === this) closeItineraryModal();
+});
+
+document.getElementById('itineraryDownloadForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+
+  var form    = this;
+  var btn     = document.getElementById('idf_submit');
+  var btnText = document.getElementById('idf_btn_text');
+  var msg     = document.getElementById('itineraryModalMsg');
+
+  // Show loading state
+  btn.disabled = true;
+  btnText.textContent = 'Generating PDF…';
+  msg.style.display = 'none';
+
+  var csrfToken  = form.querySelector('input[name="_token"]').value;
+  var formData   = new FormData(form);
+
+  fetch('{{ route('package.download.guest', $package->slug) }}', {
+    method: 'POST',
+    headers: { 'X-CSRF-TOKEN': csrfToken },
+    body: formData,
+  })
+  .then(function(response) {
+    if (response.status === 429) {
+      throw new Error('Too many requests. Please wait a minute and try again.');
+    }
+    if (!response.ok) {
+      return response.text().then(function(text) {
+        throw new Error('PDF generation failed. Please try again shortly.');
+      });
+    }
+    return response.blob();
+  })
+  .then(function(blob) {
+    // Trigger browser download of the PDF blob
+    var url      = URL.createObjectURL(blob);
+    var anchor   = document.createElement('a');
+    anchor.href  = url;
+    anchor.download = '{{ $package->slug }}-itinerary.pdf';
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+
+    // Show success, close modal after 1.5s
+    msg.style.cssText = 'display:block; background:rgba(76,175,130,0.15); border:1px solid #4caf82; color:#4caf82;';
+    msg.textContent = '✓ Your itinerary is downloading!';
+    setTimeout(closeItineraryModal, 1500);
+  })
+  .catch(function(error) {
+    msg.style.cssText = 'display:block; background:rgba(224,92,92,0.15); border:1px solid #e05c5c; color:#e05c5c;';
+    msg.textContent = '✗ ' + error.message;
+  })
+  .finally(function() {
+    btn.disabled = false;
+    btnText.textContent = 'Download Now';
+  });
+});
+</script>
 
 {{-- Image Modal --}}
 <div id="reviewImageModal" style="display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.9); align-items: center; justify-content: center;">
