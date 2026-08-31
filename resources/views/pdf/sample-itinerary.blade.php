@@ -38,10 +38,12 @@
         /* ═══ Page break ═══ */
         .page-break { }
 
-        /* Top header bar: solid dark, separate from hero image */
+        /* Full-bleed hero photo — logo bar and caption float on top of it */
         .hero-bg {
             width: 100%;
-            height: 440px;
+            height: 480px;
+            position: relative;
+            overflow: hidden;
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
@@ -49,13 +51,16 @@
         }
 
         .topbar-overlay {
-            background-color: #1a1410;
-            padding: 20px 26px;
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            background: rgba(20,16,12,0.55);
+            padding: 10px 26px;
+            z-index: 2;
         }
 
         .topbar-contact {
             font-size: 11px;
-            color: #d4cfc7;
+            color: #f0ede8;
             line-height: 1.7;
             text-align: right;
             font-weight: 500;
@@ -63,13 +68,16 @@
 
         /* Dark gradient overlay caption — bottom of hero only */
         .caption-overlay {
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
             background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 55%, rgba(0,0,0,0) 100%);
-            padding: 230px 26px 20px;
+            padding: 90px 26px 20px;
         }
         .region-badge {
             display: inline-block;
             border: 1px solid rgba(255,255,255,0.55);
             border-radius: 100px;
+            background: rgba(0,0,0,0.55);
             padding: 4px 14px;
             font-size: 9px;
             font-weight: bold;
@@ -362,20 +370,35 @@
         // Allowed inline tags for rich-text day descriptions
         $allowedInlineTags = '<strong><b><em><i><br>';
 
-        // Cover image – absolute local path so dompdf can read it
+        // Local images must be embedded as data URIs — a raw filesystem path
+        // renders fine in dompdf but is not a valid URL for a Chromium/Browsershot render.
+        $toDataUri = function (?string $path): ?string {
+            if (!$path || !file_exists($path)) {
+                return null;
+            }
+            $mime = match (strtolower(pathinfo($path, PATHINFO_EXTENSION))) {
+                'png' => 'image/png',
+                'webp' => 'image/webp',
+                'gif' => 'image/gif',
+                default => 'image/jpeg',
+            };
+            return 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($path));
+        };
+
+        // Cover image
         $coverImg = null;
         if (!empty($package->hero_bg_image) && file_exists(public_path('storage/' . $package->hero_bg_image))) {
-            $coverImg = public_path('storage/' . $package->hero_bg_image);
+            $coverImg = $toDataUri(public_path('storage/' . $package->hero_bg_image));
         } else {
             $firstImg = $package->images->sortBy('sort_order')->first();
             if ($firstImg && !empty($firstImg->path) && file_exists(public_path('storage/' . $firstImg->path))) {
-                $coverImg = public_path('storage/' . $firstImg->path);
+                $coverImg = $toDataUri(public_path('storage/' . $firstImg->path));
             }
         }
 
         // Logo
-        $logoPath   = public_path('assets/images/tyt-logo.png');
-        $logoExists = file_exists($logoPath);
+        $logoPath   = $toDataUri(public_path('assets/images/tyt-logo.png'));
+        $logoExists = !empty($logoPath);
 
         // Departure
         $departureCity = is_array($package->departure_from)
@@ -400,28 +423,28 @@
     ════════════════════════════════════════════════════════ --}}
     <div class="page-break">
 
-        {{-- TOP DARK HEADER BAR: separate from the hero image --}}
-        <div class="topbar-overlay">
-            <table width="100%" cellpadding="0" cellspacing="0">
-                <tr>
-                    <td valign="middle">
-                        @if($logoExists)
-                            <img src="{{ $logoPath }}" alt="TYT Luxe" style="height:75px; object-fit:contain;">
-                        @else
-                            <span style="font-size:18px; font-weight:bold; color:#c19a6b; letter-spacing:0.08em;">TYT</span>
-                        @endif
-                    </td>
-                    <td valign="middle" class="topbar-contact">
-                        +91 98750 73788<br>
-                        takeyourtrip7@gmail.com<br>
-                        www.tytluxe.in
-                    </td>
-                </tr>
-            </table>
-        </div>
+        {{-- HERO IMAGE, full-bleed, with logo bar and caption floating on top --}}
+        <div class="hero-bg" style="background-image: url('{{ $coverImg }}');">
+            {{-- Logo + contact bar overlaid on the image --}}
+            <div class="topbar-overlay">
+                <table width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                        <td valign="middle">
+                            @if($logoExists)
+                                <img src="{{ $logoPath }}" alt="TYT Luxe" style="height:55px; object-fit:contain;">
+                            @else
+                                <span style="font-size:18px; font-weight:bold; color:#c19a6b; letter-spacing:0.08em;">TYT</span>
+                            @endif
+                        </td>
+                        <td valign="middle" class="topbar-contact">
+                            +91 98750 73788<br>
+                            takeyourtrip7@gmail.com<br>
+                            www.tytluxe.in
+                        </td>
+                    </tr>
+                </table>
+            </div>
 
-        {{-- HERO IMAGE with text overlay at bottom only --}}
-        <div class="hero-bg" style="background-image: url('{{ $coverImg }}'); position: relative;">
             {{-- Bottom gradient + text --}}
             <div class="caption-overlay">
                 @if(!empty($package->hero_eyebrow) || !empty($package->region_type))
@@ -508,7 +531,7 @@
                     // Only use the image explicitly uploaded for this day.
                     // No fallback to cover image — if none uploaded, show no image.
                     $dayImgPath = ($day->image && file_exists(public_path('storage/' . $day->image)))
-                                  ? public_path('storage/' . $day->image)
+                                  ? $toDataUri(public_path('storage/' . $day->image))
                                   : null;
                 @endphp
                 <div class="day-card">

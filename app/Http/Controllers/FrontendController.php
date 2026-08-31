@@ -285,29 +285,42 @@ class FrontendController extends Controller
         try {
             $filename = ($package->slug ?? 'package') . '-itinerary.pdf';
 
-            // Use a custom tall paper [width, height] in points (1pt = 1/72 inch).
-            // Dynamically calculate required paper height based on content
-            $daysCount = $package->itineraryDays->count();
-            $incCount = $package->inclusions->count();
-            $excCount = $package->exclusions->count();
-            $textLength = strlen(strip_tags($package->description ?? ''));
-            
-            $aboutHeight = max(80, ($textLength / 100) * 20); // roughly 20pt per 100 chars
-            $baseHeight = 1050; // hero + meta + titles + pricing + contact + margins
-            $daysHeight = $daysCount * 230; // brief row + detailed card
-            $incExcHeight = ($incCount + $excCount) * 26; // bullet points
-            
-            $totalHeight = $baseHeight + $aboutHeight + $daysHeight + $incExcHeight;
-            // Add a generous safety buffer so the footer fits perfectly without spilling to page 2
-            $calculatedHeight = $totalHeight * 1.25;
+            $pdf = $this->renderItineraryPdf('pdf.sample-itinerary', compact('package'));
 
-            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.sample-itinerary', compact('package'))
-                ->setPaper([0, 0, 595.28, $calculatedHeight]);
-
-            return $pdf->download($filename);
+            return response($pdf, 200, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            ]);
         } catch (\Throwable $e) {
             return back()->with('error', 'PDF Error: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Render a single-page itinerary PDF sized exactly to its real content height,
+     * so the footer always lands at the bottom with no blank gap or overflow page.
+     */
+    private function renderItineraryPdf(string $view, array $data): string
+    {
+        $html = view($view, $data)->render();
+        $widthPx = 794; // 210mm at 96dpi
+
+        $heightPx = \Spatie\Browsershot\Browsershot::html($html)
+            ->windowSize($widthPx, 1200)
+            ->noSandbox()
+            ->newHeadless()
+            ->evaluate('document.body.scrollHeight');
+
+        $heightMm = ($heightPx / 96) * 25.4;
+
+        return \Spatie\Browsershot\Browsershot::html($html)
+            ->windowSize($widthPx, (int) $heightPx)
+            ->noSandbox()
+            ->newHeadless()
+            ->showBackground()
+            ->paperSize(210, $heightMm, 'mm')
+            ->margins(0, 0, 0, 0)
+            ->pdf();
     }
 
     public function guestDownloadItinerary(Request $request, $slug)
@@ -332,25 +345,12 @@ class FrontendController extends Controller
         try {
             $filename = ($package->slug ?? 'package') . '-itinerary.pdf';
 
-            // Dynamically calculate required paper height based on content
-            $daysCount = $package->itineraryDays->count();
-            $incCount = $package->inclusions->count();
-            $excCount = $package->exclusions->count();
-            $textLength = strlen(strip_tags($package->description ?? ''));
-            
-            $aboutHeight = max(80, ($textLength / 100) * 20);
-            $baseHeight = 1050;
-            $daysHeight = $daysCount * 230;
-            $incExcHeight = ($incCount + $excCount) * 26;
-            
-            $totalHeight = $baseHeight + $aboutHeight + $daysHeight + $incExcHeight;
-            // Add a generous safety buffer so the footer fits perfectly without spilling to page 2
-            $calculatedHeight = $totalHeight * 1.25;
+            $pdf = $this->renderItineraryPdf('pdf.sample-itinerary', compact('package'));
 
-            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.sample-itinerary', compact('package'))
-                ->setPaper([0, 0, 595.28, $calculatedHeight]);
-
-            return $pdf->download($filename);
+            return response($pdf, 200, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            ]);
         } catch (\Throwable $e) {
             return back()->with('error', 'PDF Error: ' . $e->getMessage());
         }
