@@ -307,16 +307,22 @@ class FrontendController extends Controller
         $widthPx = 794; // 210mm at 96dpi
 
         $configure = function (\Spatie\Browsershot\Browsershot $shot) {
-            $shot->noSandbox()->newHeadless();
+            $shot->noSandbox()->newHeadless()
+                 // Required on VPS/Docker: prevents Chrome from crashing when
+                 // /dev/shm is too small (default 64MB, often not enough).
+                 ->addChromiumArguments(['--disable-dev-shm-usage', '--disable-setuid-sandbox'])
+                 // Ensure correct node/npm binaries are found when PHP runs as www-data
+                 // with a restricted PATH (common on Nginx/Apache VPS setups).
+                 ->setNodeBinary(exec('which node') ?: '/usr/bin/node')
+                 ->setNpmBinary(exec('which npm') ?: '/usr/bin/npm');
 
-            // Prefer an explicitly configured Chrome/Chromium binary (e.g. one installed
-            // via apt on the server) over puppeteer's own downloaded browser, which may
-            // be missing if it failed to download during deploy.
+            // Prefer an explicitly configured Chrome binary (set CHROME_PATH in .env).
+            // Falls back to probing common install locations.
             $chromePath = env('CHROME_PATH') ?: collect([
                 '/usr/bin/google-chrome-stable',
                 '/usr/bin/google-chrome',
-                '/usr/bin/chromium-browser',
                 '/usr/bin/chromium',
+                '/usr/bin/chromium-browser',
             ])->first(fn ($path) => is_file($path) && is_executable($path));
 
             if ($chromePath) {
