@@ -292,7 +292,8 @@ class FrontendController extends Controller
                 'Content-Disposition' => 'attachment; filename="' . $filename . '"',
             ]);
         } catch (\Throwable $e) {
-            return back()->with('error', 'PDF Error: ' . $e->getMessage());
+            \Log::error('Itinerary PDF generation failed: ' . $e->getMessage());
+            return back()->with('error', 'Sorry, the itinerary PDF could not be generated right now. Please try again shortly.');
         }
     }
 
@@ -305,18 +306,34 @@ class FrontendController extends Controller
         $html = view($view, $data)->render();
         $widthPx = 794; // 210mm at 96dpi
 
-        $heightPx = \Spatie\Browsershot\Browsershot::html($html)
+        $configure = function (\Spatie\Browsershot\Browsershot $shot) {
+            $shot->noSandbox()->newHeadless();
+
+            // Prefer an explicitly configured Chrome/Chromium binary (e.g. one installed
+            // via apt on the server) over puppeteer's own downloaded browser, which may
+            // be missing if it failed to download during deploy.
+            $chromePath = env('CHROME_PATH') ?: collect([
+                '/usr/bin/google-chrome-stable',
+                '/usr/bin/google-chrome',
+                '/usr/bin/chromium-browser',
+                '/usr/bin/chromium',
+            ])->first(fn ($path) => is_file($path) && is_executable($path));
+
+            if ($chromePath) {
+                $shot->setChromePath($chromePath);
+            }
+
+            return $shot;
+        };
+
+        $heightPx = $configure(\Spatie\Browsershot\Browsershot::html($html))
             ->windowSize($widthPx, 1200)
-            ->noSandbox()
-            ->newHeadless()
             ->evaluate('document.body.scrollHeight');
 
         $heightMm = ($heightPx / 96) * 25.4;
 
-        return \Spatie\Browsershot\Browsershot::html($html)
+        return $configure(\Spatie\Browsershot\Browsershot::html($html))
             ->windowSize($widthPx, (int) $heightPx)
-            ->noSandbox()
-            ->newHeadless()
             ->showBackground()
             ->paperSize(210, $heightMm, 'mm')
             ->margins(0, 0, 0, 0)
@@ -352,7 +369,8 @@ class FrontendController extends Controller
                 'Content-Disposition' => 'attachment; filename="' . $filename . '"',
             ]);
         } catch (\Throwable $e) {
-            return back()->with('error', 'PDF Error: ' . $e->getMessage());
+            \Log::error('Itinerary PDF generation failed: ' . $e->getMessage());
+            return back()->with('error', 'Sorry, the itinerary PDF could not be generated right now. Please try again shortly.');
         }
     }
 
