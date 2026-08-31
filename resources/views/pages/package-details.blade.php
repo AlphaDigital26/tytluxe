@@ -609,7 +609,7 @@
                 <i class="fa-brands fa-whatsapp"></i> WhatsApp Us
               </a>
                 @auth
-                  <a href="{{ route('package.download', ['slug' => $package->slug]) }}" class="pd-btn-outline" onclick="return downloadItineraryPdf(event, this.href, '{{ $package->slug }}-itinerary.pdf')">
+                  <a href="{{ route('package.download', ['slug' => $package->slug]) }}" class="pd-btn-outline" target="_blank" download>
                     <i class="fa-solid fa-download"></i> Download Itinerary
                   </a>
                 @else
@@ -861,41 +861,6 @@
 </div>
 
 <script>
-function downloadItineraryPdf(event, url, filename) {
-  event.preventDefault();
-  const link = event.currentTarget;
-  const originalHtml = link.innerHTML;
-  link.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Preparing...';
-
-  fetch(url, { headers: { 'Accept': 'application/pdf' } })
-    .then(async (res) => {
-      const contentType = res.headers.get('Content-Type') || '';
-      if (!res.ok || !contentType.includes('application/pdf')) {
-        const text = await res.text();
-        throw new Error(text || 'The itinerary PDF could not be generated right now. Please try again shortly.');
-      }
-      return res.blob();
-    })
-    .then((blob) => {
-      const blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = blobUrl;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(blobUrl);
-    })
-    .catch((err) => {
-      alert(err.message || 'Sorry, the itinerary PDF could not be generated right now. Please try again shortly.');
-    })
-    .finally(() => {
-      link.innerHTML = originalHtml;
-    });
-
-  return false;
-}
-
 function toggleReviewText(btn) {
   const textDiv = btn.previousElementSibling;
   if (textDiv.style.webkitLineClamp === 'unset') {
