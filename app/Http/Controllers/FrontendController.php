@@ -292,8 +292,8 @@ class FrontendController extends Controller
                 'Content-Disposition' => 'attachment; filename="' . $filename . '"',
             ]);
         } catch (\Throwable $e) {
-            \Log::error('Itinerary PDF generation failed: ' . $e->getMessage());
-            return back()->with('error', 'Sorry, the itinerary PDF could not be generated right now. Please try again shortly.');
+            \Log::error('Itinerary PDF generation failed: ' . $e->getMessage(), ['exception' => $e]);
+            return response('PDF generation failed: ' . $e->getMessage(), 500);
         }
     }
 
@@ -307,7 +307,7 @@ class FrontendController extends Controller
         $widthPx = 794; // 210mm at 96dpi
 
         $configure = function (\Spatie\Browsershot\Browsershot $shot) {
-            $shot->noSandbox()->newHeadless();
+            $shot->noSandbox()->newHeadless()->timeout(120);
 
             // Prefer an explicitly configured Chrome/Chromium binary (e.g. one installed
             // via apt on the server) over puppeteer's own downloaded browser, which may
@@ -321,6 +321,32 @@ class FrontendController extends Controller
 
             if ($chromePath) {
                 $shot->setChromePath($chromePath);
+            }
+
+            // On many live servers PHP-FPM/www-data runs with a minimal PATH that
+            // does not include `node`/`npm`, even though they work fine from an
+            // interactive shell (which is why this only breaks in production).
+            // Allow explicit overrides via .env, with common install locations as fallback.
+            $nodePath = env('NODE_BINARY_PATH') ?: collect([
+                '/usr/bin/node',
+                '/usr/local/bin/node',
+                '/opt/plesk/node/20/bin/node',
+                '/opt/plesk/node/18/bin/node',
+            ])->first(fn ($path) => is_file($path) && is_executable($path));
+
+            if ($nodePath) {
+                $shot->setNodeBinary($nodePath);
+            }
+
+            $npmPath = env('NPM_BINARY_PATH') ?: collect([
+                '/usr/bin/npm',
+                '/usr/local/bin/npm',
+                '/opt/plesk/node/20/bin/npm',
+                '/opt/plesk/node/18/bin/npm',
+            ])->first(fn ($path) => is_file($path) && is_executable($path));
+
+            if ($npmPath) {
+                $shot->setNpmBinary($npmPath);
             }
 
             return $shot;
