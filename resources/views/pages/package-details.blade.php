@@ -896,7 +896,10 @@ document.getElementById('itineraryDownloadForm').addEventListener('submit', func
 
   fetch('{{ route('package.download.guest', $package->slug) }}', {
     method: 'POST',
-    headers: { 'X-CSRF-TOKEN': csrfToken },
+    headers: {
+      'X-CSRF-TOKEN': csrfToken,
+      'X-Requested-With': 'XMLHttpRequest', // Lets Laravel detect this as an AJAX request
+    },
     body: formData,
   })
   .then(function(response) {
@@ -904,9 +907,15 @@ document.getElementById('itineraryDownloadForm').addEventListener('submit', func
       throw new Error('Too many requests. Please wait a minute and try again.');
     }
     if (!response.ok) {
-      return response.text().then(function(text) {
+      return response.text().then(function() {
         throw new Error('PDF generation failed. Please try again shortly.');
       });
+    }
+    // Guard: if the response is not a PDF (e.g. an HTML redirect/error page),
+    // reject it so we never save a corrupt file to disk.
+    var contentType = response.headers.get('content-type') || '';
+    if (!contentType.includes('pdf')) {
+      throw new Error('PDF generation failed. Please try again shortly.');
     }
     return response.blob();
   })
