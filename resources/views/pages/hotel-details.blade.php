@@ -183,10 +183,37 @@ body { background: var(--dark); color: #fff; }
   background: var(--dark-2); border: 1px solid rgba(255,255,255,0.08);
   border-radius: 14px; overflow: hidden; display: flex; flex-direction: column;
 }
-@media (min-width: 768px) { .hd-room-card { flex-direction: row; } }
-.hd-room-img { width: 100%; height: 180px; }
-@media (min-width: 768px) { .hd-room-img { width: 260px; height: auto; flex-shrink: 0; } }
-.hd-room-img img { width: 100%; height: 100%; object-fit: cover; }
+@media (min-width: 768px) { 
+  .hd-room-card { 
+    flex-direction: row; 
+    align-items: stretch;
+  } 
+}
+.hd-room-img { 
+  width: 100%; 
+  height: 200px; 
+  position: relative; 
+  overflow: hidden; 
+  flex-shrink: 0;
+  background: var(--dark-3);
+}
+@media (min-width: 768px) { 
+  .hd-room-img { 
+    width: 260px; 
+    min-width: 260px;
+    max-width: 260px;
+    height: auto; 
+    min-height: 100%;
+  } 
+}
+.hd-room-img img { 
+  position: absolute; 
+  inset: 0; 
+  width: 100%; 
+  height: 100%; 
+  object-fit: cover; 
+  display: block;
+}
 .hd-room-content {
   padding: 16px; display: flex; flex-direction: column; gap: 16px; flex: 1;
 }
