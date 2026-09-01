@@ -7,19 +7,21 @@
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
-            font-family: DejaVu Sans, Arial, sans-serif;
+            font-family: Arial, Helvetica, sans-serif;
             background: #ffffff;
             color: #2d2621;
             font-size: 11px;
             line-height: 1.6;
             width: 794px;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
 
         /* ─── Hero block: photo with topbar + gradient caption overlaid on top ─── */
         .hero {
             position: relative;
             width: 100%;
-            height: 340px;
+            height: 500px;
             overflow: hidden;
         }
         .cover-crop {
@@ -27,23 +29,36 @@
             top: 0;
             left: 0;
             width: 100%;
-            height: 340px;
+            height: 500px;
             overflow: hidden;
-            text-align: center;
         }
+        .cover-crop img { width: 100%; height: 100%; object-fit: cover; display: block; }
         .cover-placeholder {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
-            height: 340px;
+            height: 500px;
             background-color: #362a20;
         }
 
-        /* Faux gradient — DomPDF has no linear-gradient, so stack translucent bands */
-        .hero-fade-1 { position: absolute; left: 0; bottom: 0; width: 100%; height: 220px; background-color: rgba(8,6,5,0.12); }
-        .hero-fade-2 { position: absolute; left: 0; bottom: 0; width: 100%; height: 160px; background-color: rgba(8,6,5,0.28); }
-        .hero-fade-3 { position: absolute; left: 0; bottom: 0; width: 100%; height: 100px; background-color: rgba(8,6,5,0.42); }
+        .hero-gradient {
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            width: 100%;
+            height: 260px;
+            background: linear-gradient(to top, rgba(8,6,5,0.82) 0%, rgba(8,6,5,0.45) 45%, rgba(8,6,5,0) 100%);
+        }
+
+        .hero-top-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 210px;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.75) 30%, rgba(0,0,0,0.30) 65%, rgba(0,0,0,0) 100%);
+        }
 
         /* ─── Topbar overlaid on hero photo ─── */
         .topbar {
@@ -51,7 +66,8 @@
             top: 0;
             left: 0;
             width: 100%;
-            padding: 16px 26px;
+            padding: 10px 26px;
+            background: rgba(0, 0, 0, 0.62);
         }
         .topbar-contact {
             font-size: 9.5px;
@@ -203,8 +219,8 @@
             min-width: 148px;
             height: 130px;
             overflow: hidden;
-            text-align: center;
         }
+        .day-card-img-crop img { width: 100%; height: 100%; object-fit: cover; display: block; }
         .day-card-head {
             background: #f6f2eb;
             padding: 9px 14px;
@@ -383,31 +399,6 @@
         return 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($path));
     };
 
-    // DomPDF does not support `object-fit` at all — it just stretches images to
-    // the given width/height, distorting anything that isn't already the exact
-    // target aspect ratio. This computes real "cover" dimensions from the actual
-    // image size so it can be cropped (not stretched) to fit a fixed box, used
-    // together with an overflow:hidden wrapper.
-    $coverFitStyle = function (?string $absPath, int $boxW, int $boxH): string {
-        $dim = $absPath ? @getimagesize($absPath) : false;
-        if (!$dim || $dim[0] <= 0 || $dim[1] <= 0) {
-            return "width:{$boxW}px; height:{$boxH}px;";
-        }
-        [$srcW, $srcH] = $dim;
-        $srcRatio = $srcW / $srcH;
-        $boxRatio = $boxW / $boxH;
-
-        if ($srcRatio > $boxRatio) {
-            // Source is relatively wider than the box — match height, let width
-            // overflow; the wrapper's text-align:center + overflow:hidden crops
-            // the excess evenly from both sides.
-            return "height:{$boxH}px; width:auto; display:inline-block;";
-        }
-        // Source is relatively taller (or equal) — match width, let height
-        // overflow downward (top-anchored crop).
-        return "width:{$boxW}px; height:auto; display:block;";
-    };
-
     // Cover image
     $coverImg = null;
     $coverImgAbsPath = null;
@@ -460,21 +451,20 @@
 <div class="hero">
     @if($coverImg)
         <div class="cover-crop">
-            <img src="{{ $coverImg }}" alt="{{ $destination }}" style="{{ $coverFitStyle($coverImgAbsPath, 794, 340) }}">
+            <img src="{{ $coverImg }}" alt="{{ $destination }}">
         </div>
     @else
         <div class="cover-placeholder"></div>
     @endif
 
-    <div class="hero-fade-1"></div>
-    <div class="hero-fade-2"></div>
-    <div class="hero-fade-3"></div>
+    <div class="hero-gradient"></div>
+    <div class="hero-top-overlay"></div>
 
     <table width="100%" cellpadding="0" cellspacing="0" class="topbar">
         <tr>
             <td valign="middle">
                 @if($logoExists)
-                    <img src="{{ $logoPath }}" alt="TYT Luxe" style="height:44px; object-fit:contain;">
+                    <img src="{{ $logoPath }}" alt="TYT Luxe" style="height:70px; object-fit:contain;">
                 @else
                     <span style="font-size:17px; font-weight:bold; color:#ffffff; letter-spacing:0.08em;">TYT LUXE</span>
                 @endif
@@ -495,9 +485,6 @@
         @endif
         <div class="caption-title">{{ $package->title }}</div>
         <div class="caption-nights">{{ $nights }} Nights / {{ $days }} Days</div>
-        @if($tagline)
-            <div class="caption-tagline">{{ $tagline }}</div>
-        @endif
     </div>
 </div>
 
@@ -575,7 +562,7 @@
                             @if($dayImgPath)
                             <td style="width:148px; padding:0; vertical-align:top;">
                                 <div class="day-card-img-crop">
-                                    <img src="{{ $dayImgPath }}" alt="Day {{ $day->day_number }}" style="{{ $coverFitStyle($dayImgAbsPath, 148, 130) }}">
+                                    <img src="{{ $dayImgPath }}" alt="Day {{ $day->day_number }}">
                                 </div>
                             </td>
                             @endif
