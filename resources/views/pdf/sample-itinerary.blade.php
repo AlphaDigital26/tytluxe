@@ -8,50 +8,71 @@
 
         body {
             font-family: DejaVu Sans, Arial, sans-serif;
-            background: #f5f3ef;
+            background: #ffffff;
             color: #2d2621;
             font-size: 11px;
             line-height: 1.6;
             width: 794px;
         }
 
-        /* ─── White header bar ─── */
-        .topbar {
-            background: #ffffff;
-            padding: 12px 26px;
-            border-bottom: 1px solid #e8e3da;
-        }
-        .topbar-contact {
-            font-size: 10px;
-            color: #5c5148;
-            text-align: right;
-            line-height: 1.65;
-        }
-
-        /* ─── Hero cover image ─── */
-        .cover-img {
+        /* ─── Hero block: photo with topbar + gradient caption overlaid on top ─── */
+        .hero {
+            position: relative;
             width: 100%;
-            height: 310px;
+            height: 340px;
+            overflow: hidden;
+        }
+        .cover-img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 340px;
             object-fit: cover;
             display: block;
         }
         .cover-placeholder {
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
-            height: 200px;
-            background: linear-gradient(135deg, #2b2118, #4a3e35);
+            height: 340px;
+            background-color: #362a20;
         }
 
-        /* ─── Dark caption band (overlaid feel via separate div) ─── */
+        /* Faux gradient — DomPDF has no linear-gradient, so stack translucent bands */
+        .hero-fade-1 { position: absolute; left: 0; bottom: 0; width: 100%; height: 220px; background-color: rgba(8,6,5,0.12); }
+        .hero-fade-2 { position: absolute; left: 0; bottom: 0; width: 100%; height: 160px; background-color: rgba(8,6,5,0.28); }
+        .hero-fade-3 { position: absolute; left: 0; bottom: 0; width: 100%; height: 100px; background-color: rgba(8,6,5,0.42); }
+
+        /* ─── Topbar overlaid on hero photo ─── */
+        .topbar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 16px 26px;
+        }
+        .topbar-contact {
+            font-size: 9.5px;
+            color: #ffffff;
+            text-align: right;
+            line-height: 1.65;
+        }
+
+        /* ─── Caption overlaid on the faded bottom of the hero photo ─── */
         .caption-band {
-            /* DomPDF does NOT support linear-gradient — use solid color */
-            background-color: #0d0b09;
-            padding: 20px 26px 18px;
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            width: 100%;
+            padding: 20px 26px 20px;
         }
         .region-badge {
             display: inline-block;
             border: 1px solid rgba(255,255,255,0.5);
             border-radius: 100px;
-            background: rgba(0,0,0,0.4);
+            background: rgba(0,0,0,0.35);
             padding: 3px 13px;
             font-size: 8.5px;
             font-weight: bold;
@@ -61,17 +82,24 @@
             margin-bottom: 9px;
         }
         .caption-title {
-            font-size: 30px;
+            font-size: 28px;
             font-weight: bold;
             color: #ffffff;
-            line-height: 1.15;
-            margin-bottom: 5px;
+            line-height: 1.18;
+            margin-bottom: 4px;
         }
         .caption-nights {
-            font-size: 18px;
+            font-size: 16px;
             font-weight: bold;
             color: #ffffff;
             line-height: 1.1;
+            margin-bottom: 6px;
+        }
+        .caption-tagline {
+            font-size: 10.5px;
+            color: rgba(255,255,255,0.88);
+            line-height: 1.55;
+            max-width: 520px;
         }
 
         /* ─── Meta bar ─── */
@@ -106,7 +134,7 @@
         /* ─── Main white content area ─── */
         .content {
             background: #ffffff;
-            padding: 22px 26px 18px;
+            padding: 22px 26px 4px;
         }
 
         /* ─── Eyebrow / section labels ─── */
@@ -225,6 +253,33 @@
             margin-bottom: 4px;
         }
 
+        /* ─── Inclusions / Exclusions ─── */
+        .io-heading {
+            font-size: 11.5px;
+            font-weight: bold;
+            padding-bottom: 6px;
+            border-bottom: 2px solid;
+            margin-bottom: 10px;
+        }
+        .io-heading.incl { color: #2f7d4f; border-color: #2f7d4f; }
+        .io-heading.excl { color: #b23b3b; border-color: #b23b3b; }
+        .io-row { font-size: 10.5px; color: #3b3028; line-height: 1.6; margin-bottom: 7px; }
+        .io-mark { font-weight: bold; padding-right: 6px; }
+        .io-mark.incl { color: #2f7d4f; }
+        .io-mark.excl { color: #b23b3b; }
+
+        /* ─── Pricing box ─── */
+        .price-box {
+            background: #1e1613;
+            border-radius: 8px;
+            padding: 18px 22px;
+            margin: 4px 0 20px;
+        }
+        .price-amount { font-size: 22px; font-weight: bold; color: #c19a6b; margin-bottom: 3px; }
+        .price-note { font-size: 9px; color: #a89a89; }
+        .price-side { font-size: 10px; color: #cfc4b7; text-align: right; line-height: 1.7; }
+        .price-side strong { color: #ffffff; }
+
         /* ─── Booking text ─── */
         .booking-p {
             font-size: 10.5px;
@@ -232,13 +287,25 @@
             line-height: 1.75;
             margin: 16px 0 18px;
         }
+        .pay-pill {
+            display: inline-block;
+            width: 31.5%;
+            text-align: center;
+            border: 1px solid #dedad2;
+            border-radius: 6px;
+            padding: 9px 6px;
+            font-size: 10px;
+            font-weight: bold;
+            color: #3b3028;
+            margin-right: 2%;
+        }
 
         /* ─── Get In Touch card ─── */
         .contact-card {
             background: #f6f2eb;
             border-radius: 9px;
             padding: 16px 20px 12px;
-            margin-bottom: 14px;
+            margin-bottom: 16px;
         }
         .contact-card-title {
             font-size: 15px;
@@ -275,14 +342,20 @@
         }
         .social-dot { color: #c19a6b; font-size: 8px; margin-right: 4px; }
 
+        /* ─── Notes ─── */
+        .notes-title { font-size: 10.5px; font-weight: bold; color: #1a1410; margin-bottom: 8px; }
+        .notes-list { font-size: 9.5px; color: #5c5148; line-height: 1.7; }
+        .notes-list div { padding-left: 12px; position: relative; margin-bottom: 3px; }
+        .notes-dot { position: absolute; left: 0; }
+
         /* ─── Footer ─── */
         .footer {
             background: #1e1613;
             text-align: center;
             font-size: 8.5px;
-            letter-spacing: 0.12em;
+            letter-spacing: 0.06em;
             color: #8a7d6e;
-            padding: 11px 20px;
+            padding: 12px 20px;
         }
         .footer .brand { color: #c19a6b; font-weight: bold; letter-spacing: 0.16em; }
 
@@ -339,47 +412,63 @@
     $nights  = (int)($package->duration_nights ?? 0);
     $days    = $nights + 1;
 
+    // Short tagline under the hero title, derived from the description
+    $plainDesc = trim(strip_tags($package->description ?? ''));
+    $tagline   = null;
+    if ($plainDesc) {
+        $tagline = mb_strlen($plainDesc) > 130 ? mb_substr($plainDesc, 0, 127) . '...' : $plainDesc;
+    }
+
     // Group departures by month (show max 2 months + "More Dates")
     $grouped = $package->departures
         ->sortBy('start_date')
         ->groupBy(fn($d) => \Carbon\Carbon::parse($d->start_date)->format('F Y'))
         ->take(2);
+
+    $notes = is_array($package->notes) ? array_filter($package->notes) : [];
 @endphp
 
-{{-- ══════════════════ WHITE TOPBAR ══════════════════ --}}
-<table width="100%" cellpadding="0" cellspacing="0" class="topbar">
-    <tr>
-        <td valign="middle">
-            @if($logoExists)
-                <img src="{{ $logoPath }}" alt="TYT Luxe" style="height:52px; object-fit:contain;">
-            @else
-                <span style="font-size:17px; font-weight:bold; color:#c19a6b; letter-spacing:0.08em;">TYT LUXE</span>
-            @endif
-        </td>
-        <td valign="middle" class="topbar-contact">
-            +91 98750 73788<br>
-            takeyourtrip7@gmail.com<br>
-            www.tytluxe.in
-        </td>
-    </tr>
-</table>
-
-{{-- ══════════════════ HERO COVER IMAGE ══════════════════ --}}
-@if($coverImg)
-    <img src="{{ $coverImg }}" class="cover-img" alt="{{ $destination }}">
-@else
-    <div class="cover-placeholder"></div>
-@endif
-
-{{-- ══════════════════ DARK CAPTION BAND ══════════════════ --}}
-<div class="caption-band">
-    @if(!empty($package->hero_eyebrow) || !empty($package->region_type) || $package->destination)
-        <div class="region-badge">
-            {{ $package->hero_eyebrow ?? strtoupper($package->destination?->name ?? $package->region_type ?? 'India') }}
-        </div><br>
+{{-- ══════════════════ HERO: photo + overlaid topbar + overlaid caption ══════════════════ --}}
+<div class="hero">
+    @if($coverImg)
+        <img src="{{ $coverImg }}" class="cover-img" alt="{{ $destination }}">
+    @else
+        <div class="cover-placeholder"></div>
     @endif
-    <div class="caption-title">{{ $package->title }}</div>
-    <div class="caption-nights">{{ $nights }} Nights / {{ $days }} Days</div>
+
+    <div class="hero-fade-1"></div>
+    <div class="hero-fade-2"></div>
+    <div class="hero-fade-3"></div>
+
+    <table width="100%" cellpadding="0" cellspacing="0" class="topbar">
+        <tr>
+            <td valign="middle">
+                @if($logoExists)
+                    <img src="{{ $logoPath }}" alt="TYT Luxe" style="height:44px; object-fit:contain;">
+                @else
+                    <span style="font-size:17px; font-weight:bold; color:#ffffff; letter-spacing:0.08em;">TYT LUXE</span>
+                @endif
+            </td>
+            <td valign="middle" class="topbar-contact">
+                +91 98750 73788<br>
+                takeyourtrip7@gmail.com<br>
+                www.tytluxe.in
+            </td>
+        </tr>
+    </table>
+
+    <div class="caption-band">
+        @if(!empty($package->hero_eyebrow) || !empty($package->region_type) || $package->destination)
+            <div class="region-badge">
+                {{ $package->hero_eyebrow ?? strtoupper($package->destination?->name ?? $package->region_type ?? 'India') }}
+            </div><br>
+        @endif
+        <div class="caption-title">{{ $package->title }}</div>
+        <div class="caption-nights">{{ $nights }} Nights / {{ $days }} Days</div>
+        @if($tagline)
+            <div class="caption-tagline">{{ $tagline }}</div>
+        @endif
+    </div>
 </div>
 
 {{-- ══════════════════ META BAR ══════════════════ --}}
@@ -415,7 +504,7 @@
     @if($package->description)
         <div class="eyebrow">Discover</div>
         <div class="section-h1">About {{ $destination }}</div>
-        <p class="about-p">{{ strip_tags($package->description) }}</p>
+        <p class="about-p">{{ $plainDesc }}</p>
     @endif
 
     {{-- BRIEF ITINERARY --}}
@@ -440,41 +529,43 @@
 
     {{-- DETAILED ITINERARY (day cards with image) --}}
     @if($package->itineraryDays->count() > 0)
-        <div class="eyebrow mt20">In Detail</div>
-        <div class="section-h2">Your Itinerary, Day By Day</div>
-        @foreach($package->itineraryDays as $day)
-            @php
-                $dayImgPath = ($day->image && file_exists(public_path('storage/' . $day->image)))
-                              ? $toDataUri(public_path('storage/' . $day->image))
-                              : null;
-            @endphp
-            <div class="day-card">
-                <table width="100%" cellpadding="0" cellspacing="0">
-                    <tr>
-                        @if($dayImgPath)
-                        <td style="width:148px; padding:0; vertical-align:top;">
-                            <img src="{{ $dayImgPath }}" class="day-card-img" alt="Day {{ $day->day_number }}">
-                        </td>
-                        @endif
-                        <td style="padding:0; vertical-align:top;">
-                            <div class="day-card-head">
-                                <table width="100%" cellpadding="0" cellspacing="0">
-                                    <tr>
-                                        <td width="52" valign="middle">
-                                            <span class="day-card-day-lbl">{{ $day->day_number == 0 ? 'DEP' : 'DAY ' . $day->day_number }}</span>
-                                        </td>
-                                        <td valign="middle" class="day-card-title">{{ $day->title }}</td>
-                                    </tr>
-                                </table>
-                            </div>
-                            <div class="day-card-body">
-                                {!! nl2br(strip_tags($day->description ?? '', $allowedInlineTags)) !!}
-                            </div>
-                        </td>
-                    </tr>
-                </table>
-            </div>
-        @endforeach
+        <div class="mt20">
+            <div class="eyebrow">In Detail</div>
+            <div class="section-h2">Your Itinerary, Day By Day</div>
+            @foreach($package->itineraryDays as $day)
+                @php
+                    $dayImgPath = ($day->image && file_exists(public_path('storage/' . $day->image)))
+                                  ? $toDataUri(public_path('storage/' . $day->image))
+                                  : null;
+                @endphp
+                <div class="day-card">
+                    <table width="100%" cellpadding="0" cellspacing="0">
+                        <tr>
+                            @if($dayImgPath)
+                            <td style="width:148px; padding:0; vertical-align:top;">
+                                <img src="{{ $dayImgPath }}" class="day-card-img" alt="Day {{ $day->day_number }}">
+                            </td>
+                            @endif
+                            <td style="padding:0; vertical-align:top;">
+                                <div class="day-card-head">
+                                    <table width="100%" cellpadding="0" cellspacing="0">
+                                        <tr>
+                                            <td width="52" valign="middle">
+                                                <span class="day-card-day-lbl">{{ $day->day_number == 0 ? 'DEP' : 'DAY ' . $day->day_number }}</span>
+                                            </td>
+                                            <td valign="middle" class="day-card-title">{{ $day->title }}</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                                <div class="day-card-body">
+                                    {!! nl2br(strip_tags($day->description ?? '', $allowedInlineTags)) !!}
+                                </div>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            @endforeach
+        </div>
     @endif
 
     {{-- TRAVEL DATES --}}
@@ -508,42 +599,108 @@
         </table>
     @endif
 
-    {{-- BOOKING TEXT --}}
-    <p class="booking-p">
-        To book this package, simply reach out to us on WhatsApp or call us directly.
-        @if($package->booking_amount)
-            A booking amount of <strong>&#8377;{{ number_format($package->booking_amount) }} per person</strong> is required to confirm your seat.
-        @endif
-        Our team will then share the full itinerary and payment details with you.
-    </p>
+    {{-- INCLUSIONS/EXCLUSIONS + PRICING + BOOKING + CONTACT + NOTES --}}
+    <div class="mt20">
 
-    {{-- GET IN TOUCH CARD --}}
-    <div class="contact-card">
-        <div class="contact-card-title">Get In Touch</div>
-        <table width="100%" cellpadding="0" cellspacing="0">
-            <tr>
-                <td width="50%" valign="top" style="padding-right:18px;">
-                    <div class="contact-lbl">Phone</div>
-                    <div class="contact-val">+91 98750 73788</div>
-                    <div class="contact-lbl">Website</div>
-                    <div class="contact-val">www.tytluxe.in</div>
-                </td>
-                <td width="50%" valign="top">
-                    <div class="contact-lbl">Email</div>
-                    <div class="contact-val">takeyourtrip7@gmail.com</div>
-                    <div class="contact-lbl">Address</div>
-                    <div class="contact-val" style="font-size:10.5px;">
-                        Surana Supremus, 4th Floor, Cabin No - 9,<br>
-                        Near Safal Square, Vesu, Surat 394518
-                    </div>
-                </td>
-            </tr>
-        </table>
-        <hr class="social-sep">
-        <span class="social-pill"><span class="social-dot">&#9679;</span>Instagram @tytluxe_</span>
-        <span class="social-pill"><span class="social-dot">&#9679;</span>WhatsApp +91 98750 73788</span>
-        <span class="social-pill"><span class="social-dot">&#9679;</span>Facebook /TYTLuxe</span>
+        {{-- INCLUSIONS / EXCLUSIONS --}}
+        @if($package->inclusions->count() > 0 || $package->exclusions->count() > 0)
+            <div class="eyebrow">What's Covered</div>
+            <div class="section-h2">Inclusions &amp; Exclusions</div>
+            <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 18px;">
+                <tr>
+                    <td width="50%" valign="top" style="padding-right: 16px;">
+                        <div class="io-heading incl">&#10003; What's Included</div>
+                        @foreach($package->inclusions as $inc)
+                            <div class="io-row"><span class="io-mark incl">&#10003;</span>{{ $inc->label }}</div>
+                        @endforeach
+                    </td>
+                    <td width="50%" valign="top">
+                        <div class="io-heading excl">&#10007; What's Excluded</div>
+                        @foreach($package->exclusions as $exc)
+                            <div class="io-row"><span class="io-mark excl">&#10007;</span>{{ $exc->name }}</div>
+                        @endforeach
+                    </td>
+                </tr>
+            </table>
+        @endif
+
+        {{-- PRICING --}}
+        @if($package->price_from)
+            <div class="eyebrow">Pricing</div>
+            <div class="section-h2">Package Price</div>
+            <div class="price-box">
+                <table width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                        <td valign="middle">
+                            <div class="price-amount">&#8377;{{ number_format($package->price_from) }} / person</div>
+                            <div class="price-note">Starting from &middot; inclusive of all taxes &middot; ex. {{ $departureCity }}</div>
+                        </td>
+                        @if($package->booking_amount)
+                            <td valign="middle" class="price-side">
+                                Booking Amount: <strong>&#8377;{{ number_format($package->booking_amount) }} / person</strong><br>
+                                Balance payable before departure
+                            </td>
+                        @endif
+                    </tr>
+                </table>
+            </div>
+        @endif
+
+        {{-- BOOKING PROCESS --}}
+        <div class="eyebrow">How To Book</div>
+        <div class="section-h2">Booking Process</div>
+        <p class="booking-p">
+            To book this package, simply reach out to us on WhatsApp or call us directly.
+            @if($package->booking_amount)
+                A booking amount of <strong>&#8377;{{ number_format($package->booking_amount) }} per person</strong> is required to confirm your seat.
+            @endif
+            Our team will then share the full itinerary and payment details with you.
+        </p>
+        <div style="margin-bottom: 18px;">
+            <span class="pay-pill">Bank Transfer</span><span class="pay-pill">GPay / PhonePe</span><span class="pay-pill" style="margin-right:0;">Paytm / UPI</span>
+        </div>
+
+        {{-- GET IN TOUCH CARD --}}
+        <div class="contact-card">
+            <div class="contact-card-title">Get In Touch</div>
+            <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td width="50%" valign="top" style="padding-right:18px;">
+                        <div class="contact-lbl">Phone</div>
+                        <div class="contact-val">+91 98750 73788</div>
+                        <div class="contact-lbl">Website</div>
+                        <div class="contact-val">www.tytluxe.in</div>
+                    </td>
+                    <td width="50%" valign="top">
+                        <div class="contact-lbl">Email</div>
+                        <div class="contact-val">takeyourtrip7@gmail.com</div>
+                        <div class="contact-lbl">Address</div>
+                        <div class="contact-val" style="font-size:10.5px;">
+                            Surana Supremus, 4th Floor, Cabin No - 9,<br>
+                            Near Safal Square, Vesu, Surat 394518
+                        </div>
+                    </td>
+                </tr>
+            </table>
+            <hr class="social-sep">
+            <span class="social-pill"><span class="social-dot">&#9679;</span>Instagram @tytluxe_</span>
+            <span class="social-pill"><span class="social-dot">&#9679;</span>WhatsApp +91 98750 73788</span>
+            <span class="social-pill"><span class="social-dot">&#9679;</span>Facebook /TYTLuxe</span>
+        </div>
+
+        {{-- NOTES --}}
+        @if(count($notes) > 0)
+            <div class="notes-title">Notes</div>
+            <div class="notes-list">
+                @foreach($notes as $note)
+                    <div><span class="notes-dot">&#8226;</span>{{ $note }}</div>
+                @endforeach
+            </div>
+        @endif
+
     </div>
+
+    <div id="end-marker" style="height:1px;"></div>
 
 </div>{{-- /content --}}
 
@@ -551,9 +708,7 @@
 <div class="footer">
     <span class="brand">TYT LUXE</span>
     &nbsp;&nbsp;|&nbsp;&nbsp;
-    +91 98750 73788
-    &nbsp;&nbsp;|&nbsp;&nbsp;
-    takeyourtrip7@gmail.com
+    Surana Supremus, 4th Floor, Vesu, Surat 394518
     &nbsp;&nbsp;|&nbsp;&nbsp;
     www.tytluxe.in
 </div>
