@@ -290,6 +290,7 @@ class FrontendController extends Controller
             return response($pdf, 200, [
                 'Content-Type' => 'application/pdf',
                 'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+                'Cache-Control' => 'no-store, no-cache, must-revalidate',
             ]);
         } catch (\Throwable $e) {
             \Log::error('Itinerary PDF generation failed: ' . $e->getMessage());
@@ -318,19 +319,26 @@ class FrontendController extends Controller
         $options->setDpi(96);
 
         // ── Pass 1: render tall to measure actual content height ────────────
+        // The raw frame tree is restructured/decorated during reflow, so walking
+        // it after render() no longer reflects the laid-out positions. Instead,
+        // hook the "end_frame" callback, which fires per-frame during the real
+        // reflow/paint pass with the frame's final computed position.
+        $markerBottom = null;
         $measure = new \Dompdf\Dompdf($options);
+        $measure->setCallbacks([
+            [
+                'event' => 'end_frame',
+                'f' => function (\Dompdf\Frame $frame) use (&$markerBottom) {
+                    $node = $frame->get_node();
+                    if ($node instanceof \DOMElement && $node->getAttribute('id') === 'end-marker') {
+                        $markerBottom = $frame->get_position('y') + $frame->get_margin_height();
+                    }
+                },
+            ],
+        ]);
         $measure->loadHtml($html, 'UTF-8');
         $measure->setPaper([0, 0, 595.28, 8000], 'portrait');
         $measure->render();
-
-        $markerBottom = null;
-        foreach ($measure->getTree()->get_frames() as $frame) {
-            $node = $frame->get_node();
-            if ($node->nodeType === XML_ELEMENT_NODE && $node->getAttribute('id') === 'end-marker') {
-                $markerBottom = $frame->get_position('y') + $frame->get_margin_height();
-                break;
-            }
-        }
 
         // Footer height (~46pt) + small buffer; fall back to a generous height if the marker wasn't found
         $heightPt = $markerBottom !== null ? (int) ceil($markerBottom + 60) : 3000;
