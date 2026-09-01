@@ -299,58 +299,46 @@ class FrontendController extends Controller
     }
 
     /**
-     * Render the itinerary PDF using DomPDF (pure PHP, no Chrome/Node needed),
+     * Render the itinerary PDF using headless Chrome (Browsershot/Puppeteer),
      * as a single continuous page with the footer flush at the bottom.
      *
-     * Two-pass: first render on an oversized page to measure where the real
-     * content ends (via an #end-marker element the view places just before
-     * the footer), then re-render at that exact height. This avoids both
-     * cut-off content and leftover blank space that a guessed height causes.
+     * Two-pass: first render off-screen to measure the real laid-out content
+     * height (Chrome does real layout, so this is exact — no DomPDF-style
+     * approximation needed), then render again at that exact page height.
      */
     private function renderItineraryPdf(string $view, array $data): string
     {
         $html = view($view, $data)->render();
 
-        $options = new \Dompdf\Options();
-        $options->setIsHtml5ParserEnabled(true);
-        $options->setIsRemoteEnabled(true);
-        $options->setDefaultFont('DejaVu Sans');
-        $options->setChroot(public_path());
-        $options->setDpi(96);
+        // Body is authored at a fixed 794px width (A4 width @ 96dpi).
+        $widthPx = 794;
+        $pxPerMm = 96 / 25.4;
+        $widthMm = round($widthPx / $pxPerMm, 2);
 
-        // ── Pass 1: render tall to measure actual content height ────────────
-        // The raw frame tree is restructured/decorated during reflow, so walking
-        // it after render() no longer reflects the laid-out positions. Instead,
-        // hook the "end_frame" callback, which fires per-frame during the real
-        // reflow/paint pass with the frame's final computed position.
-        $markerBottom = null;
-        $measure = new \Dompdf\Dompdf($options);
-        $measure->setCallbacks([
-            [
-                'event' => 'end_frame',
-                'f' => function (\Dompdf\Frame $frame) use (&$markerBottom) {
-                    $node = $frame->get_node();
-                    if ($node instanceof \DOMElement && $node->getAttribute('id') === 'end-marker') {
-                        $markerBottom = $frame->get_position('y') + $frame->get_margin_height();
-                    }
-                },
-            ],
-        ]);
-        $measure->loadHtml($html, 'UTF-8');
-        $measure->setPaper([0, 0, 595.28, 8000], 'portrait');
-        $measure->render();
+        $newBrowsershot = function () use ($html) {
+            $b = \Spatie\Browsershot\Browsershot::html($html);
+            if ($nodeBinary = env('NODE_BINARY_PATH')) {
+                $b->setNodeBinary($nodeBinary);
+            }
+            if ($chromePath = env('CHROME_PATH')) {
+                $b->setChromePath($chromePath);
+            }
+            return $b->noSandbox()->showBackground();
+        };
 
-        // Footer height (~46pt) + small buffer; fall back to a generous height if the marker wasn't found
-        $heightPt = $markerBottom !== null ? (int) ceil($markerBottom + 60) : 3000;
+        // ── Pass 1: render tall off-screen to measure real content height ───
+        $heightPx = (int) $newBrowsershot()
+            ->windowSize($widthPx, 200)
+            ->evaluate('document.documentElement.scrollHeight');
 
-        // ── Pass 2: render at the exact height ───────────────────────────────
-        $dompdf = new \Dompdf\Dompdf($options);
-        $dompdf->loadHtml($html, 'UTF-8');
-        // IMPORTANT: format is [x0, y0, x1, y1] — x0/y0 are always 0
-        $dompdf->setPaper([0, 0, 595.28, $heightPt], 'portrait');
-        $dompdf->render();
+        $heightMm = round(max($heightPx, 200) / $pxPerMm, 2);
 
-        return $dompdf->output();
+        // ── Pass 2: render the final PDF at the exact height ─────────────────
+        return $newBrowsershot()
+            ->windowSize($widthPx, $heightPx)
+            ->paperSize($widthMm, $heightMm, 'mm')
+            ->margins(0, 0, 0, 0)
+            ->pdf();
     }
 
     public function guestDownloadItinerary(Request $request, $slug)
