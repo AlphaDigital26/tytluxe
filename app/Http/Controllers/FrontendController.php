@@ -323,13 +323,27 @@ class FrontendController extends Controller
             if ($chromePath = env('CHROME_PATH')) {
                 $b->setChromePath($chromePath);
             }
-            return $b->noSandbox()->showBackground();
+            // newHeadless() sets Puppeteer's newHeadless:true option.
+            // addChromiumArguments() auto-prepends '--' — do NOT include it in values.
+            return $b
+                ->noSandbox()
+                ->showBackground()
+                ->newHeadless()
+                ->addChromiumArguments([
+                    'headless'        => 'new',   // --headless=new
+                    'disable-gpu',                 // --disable-gpu
+                    'disable-extensions',          // --disable-extensions
+                    'window-position' => '-10000,-10000', // off-screen safety net
+                ]);
         };
 
-        // ── Pass 1: render tall off-screen to measure real content height ───
+        // ── Pass 1: measure the exact bottom of the .footer element ──────────
+        // Using getBoundingClientRect().bottom instead of scrollHeight ensures
+        // the PDF is trimmed precisely at the footer's last pixel — no trailing
+        // whitespace, no matter how long or short the content is.
         $heightPx = (int) $newBrowsershot()
             ->windowSize($widthPx, 200)
-            ->evaluate('document.documentElement.scrollHeight');
+            ->evaluate('Math.ceil(document.querySelector(".footer").getBoundingClientRect().bottom)');
 
         $heightMm = round(max($heightPx, 200) / $pxPerMm, 2);
 

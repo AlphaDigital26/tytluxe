@@ -21,7 +21,7 @@
         .hero {
             position: relative;
             width: 100%;
-            height: 400px;
+            height: 500px;
             overflow: hidden;
         }
         .cover-crop {
@@ -29,7 +29,7 @@
             top: 0;
             left: 0;
             width: 100%;
-            height: 400px;
+            height: 500px;
             overflow: hidden;
         }
         .cover-crop img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -38,7 +38,7 @@
             top: 0;
             left: 0;
             width: 100%;
-            height: 400px;
+            height: 500px;
             background-color: #362a20;
         }
 
@@ -56,8 +56,8 @@
             top: 0;
             left: 0;
             width: 100%;
-            height: 130px;
-            background: linear-gradient(to bottom, rgba(6,4,3,0.65) 0%, rgba(6,4,3,0.3) 55%, rgba(6,4,3,0) 100%);
+            height: 210px;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.75) 30%, rgba(0,0,0,0.30) 65%, rgba(0,0,0,0) 100%);
         }
 
         /* ─── Topbar overlaid on hero photo ─── */
@@ -66,7 +66,8 @@
             top: 0;
             left: 0;
             width: 100%;
-            padding: 16px 26px;
+            padding: 10px 26px;
+            background: rgba(0, 0, 0, 0.62);
         }
         .topbar-contact {
             font-size: 9.5px;
@@ -463,7 +464,7 @@
         <tr>
             <td valign="middle">
                 @if($logoExists)
-                    <img src="{{ $logoPath }}" alt="TYT Luxe" style="height:44px; object-fit:contain;">
+                    <img src="{{ $logoPath }}" alt="TYT Luxe" style="height:70px; object-fit:contain;">
                 @else
                     <span style="font-size:17px; font-weight:bold; color:#ffffff; letter-spacing:0.08em;">TYT LUXE</span>
                 @endif
@@ -484,9 +485,6 @@
         @endif
         <div class="caption-title">{{ $package->title }}</div>
         <div class="caption-nights">{{ $nights }} Nights / {{ $days }} Days</div>
-        @if($tagline)
-            <div class="caption-tagline">{{ $tagline }}</div>
-        @endif
     </div>
 </div>
 
