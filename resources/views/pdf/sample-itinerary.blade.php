@@ -22,14 +22,14 @@
             height: 340px;
             overflow: hidden;
         }
-        .cover-img {
+        .cover-crop {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 340px;
-            object-fit: cover;
-            display: block;
+            overflow: hidden;
+            text-align: center;
         }
         .cover-placeholder {
             position: absolute;
@@ -198,12 +198,12 @@
             margin-bottom: 14px;
             background: #ffffff;
         }
-        .day-card-img {
-            display: block;
+        .day-card-img-crop {
             width: 148px;
             min-width: 148px;
             height: 130px;
-            object-fit: cover;
+            overflow: hidden;
+            text-align: center;
         }
         .day-card-head {
             background: #f6f2eb;
@@ -383,16 +383,44 @@
         return 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($path));
     };
 
+    // DomPDF does not support `object-fit` at all — it just stretches images to
+    // the given width/height, distorting anything that isn't already the exact
+    // target aspect ratio. This computes real "cover" dimensions from the actual
+    // image size so it can be cropped (not stretched) to fit a fixed box, used
+    // together with an overflow:hidden wrapper.
+    $coverFitStyle = function (?string $absPath, int $boxW, int $boxH): string {
+        $dim = $absPath ? @getimagesize($absPath) : false;
+        if (!$dim || $dim[0] <= 0 || $dim[1] <= 0) {
+            return "width:{$boxW}px; height:{$boxH}px;";
+        }
+        [$srcW, $srcH] = $dim;
+        $srcRatio = $srcW / $srcH;
+        $boxRatio = $boxW / $boxH;
+
+        if ($srcRatio > $boxRatio) {
+            // Source is relatively wider than the box — match height, let width
+            // overflow; the wrapper's text-align:center + overflow:hidden crops
+            // the excess evenly from both sides.
+            return "height:{$boxH}px; width:auto; display:inline-block;";
+        }
+        // Source is relatively taller (or equal) — match width, let height
+        // overflow downward (top-anchored crop).
+        return "width:{$boxW}px; height:auto; display:block;";
+    };
+
     // Cover image
     $coverImg = null;
+    $coverImgAbsPath = null;
     if (!empty($package->hero_bg_image) && file_exists(public_path('storage/' . $package->hero_bg_image))) {
-        $coverImg = $toDataUri(public_path('storage/' . $package->hero_bg_image));
+        $coverImgAbsPath = public_path('storage/' . $package->hero_bg_image);
+        $coverImg = $toDataUri($coverImgAbsPath);
     } else {
         $firstImg = $package->images->sortBy('sort_order')->first();
         if ($firstImg) {
             $imgPath = $firstImg->image_path ?? $firstImg->path ?? null;
             if ($imgPath && file_exists(public_path('storage/' . $imgPath))) {
-                $coverImg = $toDataUri(public_path('storage/' . $imgPath));
+                $coverImgAbsPath = public_path('storage/' . $imgPath);
+                $coverImg = $toDataUri($coverImgAbsPath);
             }
         }
     }
@@ -431,7 +459,9 @@
 {{-- ══════════════════ HERO: photo + overlaid topbar + overlaid caption ══════════════════ --}}
 <div class="hero">
     @if($coverImg)
-        <img src="{{ $coverImg }}" class="cover-img" alt="{{ $destination }}">
+        <div class="cover-crop">
+            <img src="{{ $coverImg }}" alt="{{ $destination }}" style="{{ $coverFitStyle($coverImgAbsPath, 794, 340) }}">
+        </div>
     @else
         <div class="cover-placeholder"></div>
     @endif
@@ -534,16 +564,19 @@
             <div class="section-h2">Your Itinerary, Day By Day</div>
             @foreach($package->itineraryDays as $day)
                 @php
-                    $dayImgPath = ($day->image && file_exists(public_path('storage/' . $day->image)))
-                                  ? $toDataUri(public_path('storage/' . $day->image))
+                    $dayImgAbsPath = ($day->image && file_exists(public_path('storage/' . $day->image)))
+                                  ? public_path('storage/' . $day->image)
                                   : null;
+                    $dayImgPath = $dayImgAbsPath ? $toDataUri($dayImgAbsPath) : null;
                 @endphp
                 <div class="day-card">
                     <table width="100%" cellpadding="0" cellspacing="0">
                         <tr>
                             @if($dayImgPath)
                             <td style="width:148px; padding:0; vertical-align:top;">
-                                <img src="{{ $dayImgPath }}" class="day-card-img" alt="Day {{ $day->day_number }}">
+                                <div class="day-card-img-crop">
+                                    <img src="{{ $dayImgPath }}" alt="Day {{ $day->day_number }}" style="{{ $coverFitStyle($dayImgAbsPath, 148, 130) }}">
+                                </div>
                             </td>
                             @endif
                             <td style="padding:0; vertical-align:top;">
