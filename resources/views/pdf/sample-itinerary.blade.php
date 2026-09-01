@@ -419,44 +419,59 @@
 
 
     {{-- ════════════════════════════════════════════════════════
-         PAGE 1 — COVER
+         PAGE 1 — COVER  (DomPDF-compatible, no position:absolute)
     ════════════════════════════════════════════════════════ --}}
     <div class="page-break">
 
-        {{-- HERO IMAGE, full-bleed, with logo bar and caption floating on top --}}
-        <div class="hero-bg" style="background-image: url('{{ $coverImg }}');">
-            {{-- Logo + contact bar overlaid on the image --}}
-            <div class="topbar-overlay">
-                <table width="100%" cellpadding="0" cellspacing="0">
-                    <tr>
-                        <td valign="middle">
-                            @if($logoExists)
-                                <img src="{{ $logoPath }}" alt="TYT Luxe" style="height:55px; object-fit:contain;">
-                            @else
-                                <span style="font-size:18px; font-weight:bold; color:#c19a6b; letter-spacing:0.08em;">TYT</span>
-                            @endif
-                        </td>
-                        <td valign="middle" class="topbar-contact">
-                            +91 98750 73788<br>
-                            takeyourtrip7@gmail.com<br>
-                            www.tytluxe.in
-                        </td>
-                    </tr>
-                </table>
-            </div>
+        {{-- TOP BAR: logo left, contact right --}}
+        <table width="100%" cellpadding="0" cellspacing="0"
+               style="background-color:#1e1613; padding:12px 26px;">
+            <tr>
+                <td valign="middle">
+                    @if($logoExists)
+                        <img src="{{ $logoPath }}" alt="TYT Luxe" style="height:50px; object-fit:contain;">
+                    @else
+                        <span style="font-size:18px; font-weight:bold; color:#c19a6b; letter-spacing:0.08em;">TYT LUXE</span>
+                    @endif
+                </td>
+                <td valign="middle" style="font-size:11px; color:#f0ede8; line-height:1.7; text-align:right; font-weight:500;">
+                    +91 98750 73788<br>
+                    takeyourtrip7@gmail.com<br>
+                    www.tytluxe.in
+                </td>
+            </tr>
+        </table>
 
-            {{-- Bottom gradient + text --}}
-            <div class="caption-overlay">
-                @if(!empty($package->hero_eyebrow) || !empty($package->region_type))
-                    <div class="region-badge">{{ $package->hero_eyebrow ?? strtoupper($package->region_type ?? '') }}</div>
-                    <br style="line-height:4px;">
-                @endif
-                <div class="hero-title">{{ $destination }}</div>
-                <div class="hero-nights">{{ $nights }} Nights / {{ $days }} Days</div>
-                @if($tagline)
-                    <div class="hero-tagline">{{ $tagline }}</div>
-                @endif
+        {{-- COVER IMAGE (full-width, if available) --}}
+        @if($coverImg)
+        <div style="width:100%; line-height:0;">
+            <img src="{{ $coverImg }}" alt="{{ $destination }}"
+                 style="width:100%; height:340px; object-fit:cover; display:block;">
+        </div>
+        @endif
+
+        {{-- CAPTION BAND: dark background with destination/duration/tagline --}}
+        <div style="background-color:#1a1410; padding:22px 26px 20px;">
+            @if(!empty($package->hero_eyebrow) || !empty($package->region_type))
+                <div style="display:inline-block; border:1px solid rgba(255,255,255,0.55);
+                            border-radius:100px; background:rgba(0,0,0,0.55);
+                            padding:4px 14px; font-size:9px; font-weight:bold;
+                            letter-spacing:0.16em; text-transform:uppercase;
+                            color:#ffffff; margin-bottom:10px;">
+                    {{ $package->hero_eyebrow ?? strtoupper($package->region_type ?? '') }}
+                </div><br>
+            @endif
+            <div style="font-size:32px; font-weight:bold; color:#ffffff; line-height:1.1; margin-bottom:4px;">
+                {{ $destination }}
             </div>
+            <div style="font-size:22px; font-weight:bold; color:#c19a6b; margin-bottom:10px;">
+                {{ $nights }} Nights / {{ $days }} Days
+            </div>
+            @if($tagline)
+                <div style="font-size:12.5px; color:#c8b9a8; line-height:1.55; max-width:520px;">
+                    {{ $tagline }}
+                </div>
+            @endif
         </div>
 
 

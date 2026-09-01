@@ -298,52 +298,24 @@ class FrontendController extends Controller
     }
 
     /**
-     * Render a single-page itinerary PDF sized exactly to its real content height,
-     * so the footer always lands at the bottom with no blank gap or overflow page.
+     * Render the itinerary as a PDF using DomPDF (pure PHP — no Chrome or Node required).
+     * DomPDF is already installed via barryvdh/laravel-dompdf.
      */
     private function renderItineraryPdf(string $view, array $data): string
     {
         $html = view($view, $data)->render();
-        $widthPx = 794; // 210mm at 96dpi
 
-        $configure = function (\Spatie\Browsershot\Browsershot $shot) {
-            $shot->noSandbox()->newHeadless()
-                 // Required on VPS/Docker: prevents Chrome from crashing when
-                 // /dev/shm is too small (default 64MB, often not enough).
-                 ->addChromiumArguments(['--disable-dev-shm-usage', '--disable-setuid-sandbox'])
-                 // Ensure correct node/npm binaries are found when PHP runs as www-data
-                 // with a restricted PATH (common on Nginx/Apache VPS setups).
-                 ->setNodeBinary(exec('which node') ?: '/usr/bin/node')
-                 ->setNpmBinary(exec('which npm') ?: '/usr/bin/npm');
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html)
+            ->setPaper([0, 0, 595.28, 842], 'portrait') // A4
+            ->setOptions([
+                'isHtml5ParserEnabled' => true,
+                'isRemoteEnabled'      => true,
+                'defaultFont'          => 'DejaVu Sans',
+                'dpi'                  => 96,
+                'chroot'               => public_path(),
+            ]);
 
-            // Prefer an explicitly configured Chrome binary (set CHROME_PATH in .env).
-            // Falls back to probing common install locations.
-            $chromePath = env('CHROME_PATH') ?: collect([
-                '/usr/bin/google-chrome-stable',
-                '/usr/bin/google-chrome',
-                '/usr/bin/chromium',
-                '/usr/bin/chromium-browser',
-            ])->first(fn ($path) => is_file($path) && is_executable($path));
-
-            if ($chromePath) {
-                $shot->setChromePath($chromePath);
-            }
-
-            return $shot;
-        };
-
-        $heightPx = $configure(\Spatie\Browsershot\Browsershot::html($html))
-            ->windowSize($widthPx, 1200)
-            ->evaluate('document.body.scrollHeight');
-
-        $heightMm = ($heightPx / 96) * 25.4;
-
-        return $configure(\Spatie\Browsershot\Browsershot::html($html))
-            ->windowSize($widthPx, (int) $heightPx)
-            ->showBackground()
-            ->paperSize(210, $heightMm, 'mm')
-            ->margins(0, 0, 0, 0)
-            ->pdf();
+        return $pdf->output();
     }
 
     public function guestDownloadItinerary(Request $request, $slug)
