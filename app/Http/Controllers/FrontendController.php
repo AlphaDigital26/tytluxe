@@ -317,23 +317,29 @@ class FrontendController extends Controller
 
         $newBrowsershot = function () use ($html) {
             $b = \Spatie\Browsershot\Browsershot::html($html);
-            if ($nodeBinary = env('NODE_BINARY_PATH')) {
+
+            // Use config() — NOT env() — so values work even when config is cached
+            // (php artisan optimize caches config; direct env() calls return null in production)
+            if ($nodeBinary = config('browsershot.node_binary')) {
                 $b->setNodeBinary($nodeBinary);
             }
-            if ($chromePath = env('CHROME_PATH')) {
+            if ($chromePath = config('browsershot.chrome_path')) {
                 $b->setChromePath($chromePath);
             }
-            // newHeadless() sets Puppeteer's newHeadless:true option.
-            // addChromiumArguments() auto-prepends '--' — do NOT include it in values.
+
             return $b
                 ->noSandbox()
                 ->showBackground()
                 ->newHeadless()
                 ->addChromiumArguments([
-                    'headless'        => 'new',   // --headless=new
-                    'disable-gpu',                 // --disable-gpu
-                    'disable-extensions',          // --disable-extensions
-                    'window-position' => '-10000,-10000', // off-screen safety net
+                    'headless'              => 'new',  // --headless=new
+                    'disable-gpu',                      // --disable-gpu
+                    'disable-extensions',               // --disable-extensions
+                    'disable-dev-shm-usage',            // prevents /dev/shm crashes on VPS
+                    'disable-crash-reporter',           // stops crashpad trying to write files
+                    'no-first-run',                     // skips first-run setup dialogs
+                    'no-zygote',                        // needed in some containerised envs
+                    'user-data-dir' => config('browsershot.user_data_dir', '/tmp/chrome-userdata'),
                 ]);
         };
 
