@@ -43,7 +43,8 @@
 
         /* ─── Dark caption band (overlaid feel via separate div) ─── */
         .caption-band {
-            background: linear-gradient(to bottom, rgba(10,8,6,0.82) 0%, #0d0b09 100%);
+            /* DomPDF does NOT support linear-gradient — use solid color */
+            background-color: #0d0b09;
             padding: 20px 26px 18px;
         }
         .region-badge {
