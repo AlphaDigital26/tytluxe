@@ -299,23 +299,43 @@ class FrontendController extends Controller
 
     /**
      * Render the itinerary as a PDF using DomPDF (pure PHP — no Chrome or Node required).
-     * DomPDF is already installed via barryvdh/laravel-dompdf.
+     * Uses a custom-width page that grows to fit all content, so the footer always
+     * sits flush at the bottom with no blank space remaining.
      */
     private function renderItineraryPdf(string $view, array $data): string
     {
         $html = view($view, $data)->render();
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html)
-            ->setPaper([0, 0, 595.28, 842], 'portrait') // A4
-            ->setOptions([
-                'isHtml5ParserEnabled' => true,
-                'isRemoteEnabled'      => true,
-                'defaultFont'          => 'DejaVu Sans',
-                'dpi'                  => 96,
-                'chroot'               => public_path(),
-            ]);
+        // 794px = 210mm at 96dpi (A4 width).
+        // We use a very tall custom page so all content fits on ONE page
+        // with the footer flush at the bottom and no trailing blank space.
+        $widthPt  = 595.28;   // A4 width in points (1pt = 1/72 inch)
+        $heightPt = 5000;     // Tall enough for any package itinerary
 
-        return $pdf->output();
+        $options = new \Dompdf\Options();
+        $options->setIsHtml5ParserEnabled(true);
+        $options->setIsRemoteEnabled(true);
+        $options->setDefaultFont('DejaVu Sans');
+        $options->setChroot(public_path());
+        $options->setDpi(96);
+
+        $dompdf = new \Dompdf\Dompdf($options);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper([$widthPt, 0, $widthPt, $heightPt], 'portrait');
+        $dompdf->render();
+
+        // After render, get the actual rendered height from the canvas
+        // and re-render with that exact height so footer is flush at bottom.
+        $canvas      = $dompdf->getCanvas();
+        $actualHeight = $canvas->get_height();
+
+        // Re-render at exact content height
+        $dompdf2 = new \Dompdf\Dompdf($options);
+        $dompdf2->loadHtml($html);
+        $dompdf2->setPaper([$widthPt, 0, $widthPt, $actualHeight], 'portrait');
+        $dompdf2->render();
+
+        return $dompdf2->output();
     }
 
     public function guestDownloadItinerary(Request $request, $slug)
