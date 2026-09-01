@@ -298,19 +298,44 @@ class FrontendController extends Controller
     }
 
     /**
-     * Render the itinerary as a PDF using DomPDF (pure PHP — no Chrome or Node required).
-     * Uses a custom-width page that grows to fit all content, so the footer always
-     * sits flush at the bottom with no blank space remaining.
+     * Render the itinerary PDF using DomPDF (pure PHP, no Chrome/Node needed).
+     * Page height is estimated from actual content so the footer always sits
+     * flush at the bottom with minimal blank space.
      */
     private function renderItineraryPdf(string $view, array $data): string
     {
-        $html = view($view, $data)->render();
+        $html    = view($view, $data)->render();
+        $package = $data['package'];
 
-        // 794px = 210mm at 96dpi (A4 width).
-        // We use a very tall custom page so all content fits on ONE page
-        // with the footer flush at the bottom and no trailing blank space.
-        $widthPt  = 595.28;   // A4 width in points (1pt = 1/72 inch)
-        $heightPt = 5000;     // Tall enough for any package itinerary
+        // ── Estimate page height from real content ──────────────────────────
+        // Base overhead: topbar + cover image + caption + meta bar +
+        //                about header + brief header + dates + contact + footer
+        $heightPt = 870;
+
+        // Description lines (avg ~80 chars per line at ~11px → ~16pt per line)
+        $descChars  = mb_strlen(strip_tags($package->description ?? ''));
+        $heightPt  += max(1, ceil($descChars / 80)) * 16;
+
+        // Brief itinerary rows (section header ~50pt, each row ~28pt)
+        $dayCount   = $package->itineraryDays->count();
+        $heightPt  += ($dayCount > 0) ? (50 + $dayCount * 28) : 0;
+
+        // Detailed day cards: per-card header (~35pt) + description lines (~16pt each)
+        if ($dayCount > 0) {
+            $heightPt += 55; // "In Detail" section header
+            foreach ($package->itineraryDays as $day) {
+                $lines      = max(2, ceil(mb_strlen(strip_tags($day->description ?? '')) / 75));
+                $heightPt  += 35 + ($lines * 16) + 20; // header + desc + card margins
+            }
+        }
+
+        // Travel dates section
+        $heightPt += $package->departures->count() > 0 ? 110 : 0;
+
+        // Add 5% safety buffer so nothing gets cut off
+        $heightPt = (int) ($heightPt * 1.05);
+        $heightPt = max(900, min($heightPt, 4000));
+        // ─────────────────────────────────────────────────────────────────────
 
         $options = new \Dompdf\Options();
         $options->setIsHtml5ParserEnabled(true);
@@ -320,22 +345,12 @@ class FrontendController extends Controller
         $options->setDpi(96);
 
         $dompdf = new \Dompdf\Dompdf($options);
-        $dompdf->loadHtml($html);
-        $dompdf->setPaper([$widthPt, 0, $widthPt, $heightPt], 'portrait');
+        $dompdf->loadHtml($html, 'UTF-8');
+        // IMPORTANT: format is [x0, y0, x1, y1] — x0/y0 are always 0
+        $dompdf->setPaper([0, 0, 595.28, $heightPt], 'portrait');
         $dompdf->render();
 
-        // After render, get the actual rendered height from the canvas
-        // and re-render with that exact height so footer is flush at bottom.
-        $canvas      = $dompdf->getCanvas();
-        $actualHeight = $canvas->get_height();
-
-        // Re-render at exact content height
-        $dompdf2 = new \Dompdf\Dompdf($options);
-        $dompdf2->loadHtml($html);
-        $dompdf2->setPaper([$widthPt, 0, $widthPt, $actualHeight], 'portrait');
-        $dompdf2->render();
-
-        return $dompdf2->output();
+        return $dompdf->output();
     }
 
     public function guestDownloadItinerary(Request $request, $slug)
