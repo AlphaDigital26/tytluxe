@@ -10,6 +10,7 @@ class PackageItineraryDay extends Model
     use HasFactory;
 
     protected $guarded = [];
+    protected $touches = ['package'];
 
     protected $casts = [
         'chips' => 'array',

@@ -10,6 +10,7 @@ class PackageDeparture extends Model
     use HasFactory;
 
     protected $guarded = [];
+    protected $touches = ['package'];
 
     protected $casts = [
         'start_date' => 'date',

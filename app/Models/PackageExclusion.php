@@ -10,6 +10,7 @@ class PackageExclusion extends Model
     use HasFactory;
 
     protected $guarded = [];
+    protected $touches = ['package'];
 
     public function package() { return $this->belongsTo(Package::class); }
 }
