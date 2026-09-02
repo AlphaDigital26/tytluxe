@@ -930,10 +930,12 @@ document.getElementById('itineraryDownloadForm').addEventListener('submit', func
     document.body.removeChild(anchor);
     URL.revokeObjectURL(url);
 
-    // Show success, close modal after 1.5s
-    msg.style.cssText = 'display:block; background:rgba(76,175,130,0.15); border:1px solid #4caf82; color:#4caf82;';
-    msg.textContent = '✓ Your itinerary is downloading!';
-    setTimeout(closeItineraryModal, 1500);
+    // Close modal immediately and show toast notification
+    closeItineraryModal();
+    form.reset();
+    if (typeof showToast === 'function') {
+      showToast('Download Started', 'Your itinerary PDF is downloading now!', 'success');
+    }
   })
   .catch(function(error) {
     msg.style.cssText = 'display:block; background:rgba(224,92,92,0.15); border:1px solid #e05c5c; color:#e05c5c;';
