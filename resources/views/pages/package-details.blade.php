@@ -610,7 +610,7 @@
                 <i class="fa-brands fa-whatsapp"></i> WhatsApp Us
               </a>
                 @auth
-                  <a href="{{ route('package.download', ['slug' => $package->slug]) }}" onclick="showDownloadToast('Download Started', 'Your itinerary PDF is downloading now!')" class="pd-btn-outline" target="_blank" download>
+                  <a href="{{ route('package.download', ['slug' => $package->slug]) }}" onclick="if (typeof showToast === 'function') showToast('Download Started', 'Your itinerary PDF is downloading now!', 'success')" class="pd-btn-outline" target="_blank" download>
                     <i class="fa-solid fa-download"></i> Download Itinerary
                   </a>
                 @else
@@ -864,18 +864,6 @@
   </div>
 </div>
 
-{{-- Prominent Luxury Download Toast --}}
-<div id="itineraryDownloadToast" style="position: fixed; top: 25px; right: 25px; z-index: 999999; background: #1a1612; border: 1px solid rgba(193, 154, 107, 0.45); border-left: 4px solid #c19a6b; border-radius: 8px; padding: 14px 20px; box-shadow: 0 14px 40px rgba(0, 0, 0, 0.7); display: flex; align-items: center; gap: 14px; color: #fff; font-family: 'Jost', sans-serif; transform: translateY(-30px); opacity: 0; pointer-events: none; transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1); max-width: 420px; width: calc(100% - 50px);">
-  <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(193, 154, 107, 0.15); display: flex; align-items: center; justify-content: center; color: #c19a6b; font-size: 18px; flex-shrink: 0;">
-    <i class="fa-solid fa-circle-check"></i>
-  </div>
-  <div style="flex: 1;">
-    <div id="itd_toast_title" style="font-family: 'Cinzel', serif; font-size: 14px; font-weight: 700; color: #c19a6b; margin-bottom: 2px;">Download Started</div>
-    <div id="itd_toast_msg" style="font-size: 13px; color: rgba(255, 255, 255, 0.9); line-height: 1.35;">Your itinerary PDF is downloading now!</div>
-  </div>
-  <button type="button" onclick="hideDownloadToast()" style="background: transparent; border: none; color: rgba(255, 255, 255, 0.5); font-size: 22px; cursor: pointer; padding: 0 0 0 8px; line-height: 1;" aria-label="Close">&times;</button>
-</div>
-
 <script>
 function closeItineraryModal() {
   document.getElementById('itineraryDownloadModal').style.display = 'none';
@@ -942,10 +930,12 @@ document.getElementById('itineraryDownloadForm').addEventListener('submit', func
     document.body.removeChild(anchor);
     URL.revokeObjectURL(url);
 
-    // Close modal immediately and show toast notification
+    // Close modal immediately and show bottom-right toast notification
     closeItineraryModal();
     form.reset();
-    showDownloadToast('Download Started', 'Your itinerary PDF is downloading now!');
+    if (typeof showToast === 'function') {
+      showToast('Download Started', 'Your itinerary PDF is downloading now!', 'success');
+    }
   })
   .catch(function(error) {
     msg.style.cssText = 'display:block; background:rgba(224,92,92,0.15); border:1px solid #e05c5c; color:#e05c5c;';
@@ -956,33 +946,6 @@ document.getElementById('itineraryDownloadForm').addEventListener('submit', func
     btnText.textContent = 'Download Now';
   });
 });
-
-function showDownloadToast(title, message) {
-  var toast = document.getElementById('itineraryDownloadToast');
-  if (toast) {
-    if (title) document.getElementById('itd_toast_title').textContent = title;
-    if (message) document.getElementById('itd_toast_msg').textContent = message;
-    toast.style.transform = 'translateY(0)';
-    toast.style.opacity = '1';
-    toast.style.pointerEvents = 'auto';
-
-    clearTimeout(window._itineraryToastTimer);
-    window._itineraryToastTimer = setTimeout(hideDownloadToast, 4500);
-  }
-
-  // Also trigger layout toast as backup
-  if (typeof showToast === 'function') {
-    try { showToast(title, message, 'success'); } catch(e) {}
-  }
-}
-
-function hideDownloadToast() {
-  var toast = document.getElementById('itineraryDownloadToast');
-  if (!toast) return;
-  toast.style.transform = 'translateY(-30px)';
-  toast.style.opacity = '0';
-  toast.style.pointerEvents = 'none';
-}
 </script>
 
 {{-- Image Modal --}}
