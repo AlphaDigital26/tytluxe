@@ -888,7 +888,7 @@ document.getElementById('itineraryDownloadForm').addEventListener('submit', func
 
   // Show loading state
   btn.disabled = true;
-  btnText.textContent = 'Generating PDF…';
+  btnText.textContent = 'Downloading PDF…';
   msg.style.display = 'none';
 
   var csrfToken  = form.querySelector('input[name="_token"]').value;
