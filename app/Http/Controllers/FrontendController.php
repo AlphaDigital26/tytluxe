@@ -285,11 +285,10 @@ class FrontendController extends Controller
         try {
             $filename = ($package->slug ?? 'package') . '-itinerary.pdf';
 
-            $pdf = $this->getPdfForPackage($package);
+            $pdfPath = $this->ensurePdfPathForPackage($package);
 
-            return response($pdf, 200, [
+            return response()->download($pdfPath, $filename, [
                 'Content-Type' => 'application/pdf',
-                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
                 'Cache-Control' => 'no-store, no-cache, must-revalidate',
             ]);
         } catch (\Throwable $e) {
@@ -383,11 +382,10 @@ class FrontendController extends Controller
         try {
             $filename = ($package->slug ?? 'package') . '-itinerary.pdf';
 
-            $pdf = $this->getPdfForPackage($package);
+            $pdfPath = $this->ensurePdfPathForPackage($package);
 
-            return response($pdf, 200, [
-                'Content-Type'        => 'application/pdf',
-                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            return response()->download($pdfPath, $filename, [
+                'Content-Type' => 'application/pdf',
             ]);
         } catch (\Throwable $e) {
             \Log::error('Itinerary PDF generation failed: ' . $e->getMessage());
@@ -402,10 +400,10 @@ class FrontendController extends Controller
     }
 
     /**
-     * Retrieve the cached itinerary PDF or render and cache it.
-     * Caching makes downloads instantaneous (<50ms) after the first render.
+     * Ensure the package PDF exists on disk and return its full absolute path.
+     * Caching makes downloads instantaneous (<50ms) directly from disk.
      */
-    public function getPdfForPackage(\App\Models\Package $package, bool $forceRegenerate = false): string
+    public function ensurePdfPathForPackage(\App\Models\Package $package, bool $forceRegenerate = false): string
     {
         $cacheDir = storage_path('app/itineraries');
         if (!is_dir($cacheDir)) {
@@ -416,13 +414,22 @@ class FrontendController extends Controller
         $cacheFile = $cacheDir . '/' . $package->id . '-' . $timestamp . '.pdf';
 
         if (!$forceRegenerate && file_exists($cacheFile) && filesize($cacheFile) > 0) {
-            return file_get_contents($cacheFile);
+            return $cacheFile;
         }
 
         $pdf = $this->renderItineraryPdf('pdf.sample-itinerary', compact('package'));
-        @file_put_contents($cacheFile, $pdf);
+        file_put_contents($cacheFile, $pdf);
 
-        return $pdf;
+        return $cacheFile;
+    }
+
+    /**
+     * Retrieve the cached itinerary PDF binary data.
+     */
+    public function getPdfForPackage(\App\Models\Package $package, bool $forceRegenerate = false): string
+    {
+        $path = $this->ensurePdfPathForPackage($package, $forceRegenerate);
+        return file_get_contents($path);
     }
 
     public function storeReview(Request $request, $slug)

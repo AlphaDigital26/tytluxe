@@ -387,10 +387,41 @@
 
     $allowedInlineTags = '<strong><b><em><i><br>';
 
-    // Embed images as base64 data URIs
-    $toDataUri = function (?string $path): ?string {
+    // Embed images as base64 data URIs with smart compression to prevent Chrome memory freeze
+    $toDataUri = function (?string $path, int $maxWidth = 1000, int $quality = 78): ?string {
         if (!$path || !file_exists($path)) return null;
-        $mime = match (strtolower(pathinfo($path, PATHINFO_EXTENSION))) {
+
+        $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+
+        // Fast path for small images (under 120KB or SVG)
+        if (filesize($path) < 120 * 1024 || $ext === 'svg') {
+            $mime = match ($ext) {
+                'png'  => 'image/png',
+                'webp' => 'image/webp',
+                'gif'  => 'image/gif',
+                'svg'  => 'image/svg+xml',
+                default => 'image/jpeg',
+            };
+            return 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($path));
+        }
+
+        // Optimize large images to prevent Chrome memory bloat and 2-minute freezes
+        try {
+            if (class_exists(\Intervention\Image\ImageManager::class)) {
+                $driver = extension_loaded('imagick') 
+                    ? new \Intervention\Image\Drivers\Imagick\Driver() 
+                    : new \Intervention\Image\Drivers\Gd\Driver();
+                $manager = new \Intervention\Image\ImageManager($driver);
+                $image = $manager->read($path);
+                $image->scaleDown(width: $maxWidth);
+                $encoded = $image->toJpeg(quality: $quality);
+                return 'data:image/jpeg;base64,' . base64_encode((string) $encoded);
+            }
+        } catch (\Throwable $e) {
+            // Fallback to raw file if optimization fails
+        }
+
+        $mime = match ($ext) {
             'png'  => 'image/png',
             'webp' => 'image/webp',
             'gif'  => 'image/gif',
@@ -404,14 +435,14 @@
     $coverImgAbsPath = null;
     if (!empty($package->hero_bg_image) && file_exists(public_path('storage/' . $package->hero_bg_image))) {
         $coverImgAbsPath = public_path('storage/' . $package->hero_bg_image);
-        $coverImg = $toDataUri($coverImgAbsPath);
+        $coverImg = $toDataUri($coverImgAbsPath, 1000, 78);
     } else {
         $firstImg = $package->images->sortBy('sort_order')->first();
         if ($firstImg) {
             $imgPath = $firstImg->image_path ?? $firstImg->path ?? null;
             if ($imgPath && file_exists(public_path('storage/' . $imgPath))) {
                 $coverImgAbsPath = public_path('storage/' . $imgPath);
-                $coverImg = $toDataUri($coverImgAbsPath);
+                $coverImg = $toDataUri($coverImgAbsPath, 1000, 78);
             }
         }
     }
@@ -554,7 +585,7 @@
                     $dayImgAbsPath = ($day->image && file_exists(public_path('storage/' . $day->image)))
                                   ? public_path('storage/' . $day->image)
                                   : null;
-                    $dayImgPath = $dayImgAbsPath ? $toDataUri($dayImgAbsPath) : null;
+                    $dayImgPath = $dayImgAbsPath ? $toDataUri($dayImgAbsPath, 350, 75) : null;
                 @endphp
                 <div class="day-card">
                     <table width="100%" cellpadding="0" cellspacing="0">
