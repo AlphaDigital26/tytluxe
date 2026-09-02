@@ -410,10 +410,11 @@ class FrontendController extends Controller
             @mkdir($cacheDir, 0775, true);
         }
 
-        $timestamp = $package->updated_at ? $package->updated_at->timestamp : '0';
-        $cacheFile = $cacheDir . '/' . $package->id . '-' . $timestamp . '.pdf';
+        $cacheFile = $cacheDir . '/' . $package->id . '.pdf';
+        $packageTime = $package->updated_at ? $package->updated_at->timestamp : 0;
 
-        if (!$forceRegenerate && file_exists($cacheFile) && filesize($cacheFile) > 0) {
+        // If file exists, is not empty, and was generated after the package's last update
+        if (!$forceRegenerate && file_exists($cacheFile) && filesize($cacheFile) > 0 && filemtime($cacheFile) >= $packageTime) {
             return $cacheFile;
         }
 
