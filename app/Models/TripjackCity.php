@@ -6,5 +6,5 @@ use Illuminate\Database\Eloquent\Model;
 
 class TripjackCity extends Model
 {
-    //
+    protected $guarded = [];
 }
