@@ -14,14 +14,14 @@ class OptimizeExistingImages extends Command
      *
      * @var string
      */
-    protected $signature = 'images:optimize-existing';
+    protected $signature = 'images:optimize-existing {--force : Re-optimize even if already WebP (e.g. to upscale low-res hero banners)}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Optimize existing images in the database by converting them to WebP format';
+    protected $description = 'Optimize existing images in the database by converting to WebP and upscaling low-res hero banners';
 
     /**
      * Execute the console command.
@@ -145,14 +145,32 @@ class OptimizeExistingImages extends Command
 
     private function processPath(string $path, string $context, ImageOptimizer $optimizer): string
     {
-        // Check if it's a URL or already a WebP
-        if (Str::startsWith($path, ['http://', 'https://']) || Str::endsWith($path, '.webp')) {
+        // Check if it's an external URL
+        if (Str::startsWith($path, ['http://', 'https://'])) {
             return $path;
         }
 
         // Check if the file exists on the disk
         if (!Storage::disk('public')->exists($path)) {
             return $path;
+        }
+
+        $isWebp = Str::endsWith($path, '.webp');
+        $force = $this->option('force');
+
+        if ($isWebp && !$force) {
+            // If it's already WebP, check if it's a hero image that was saved at low resolution (< 1600px wide or < 900px high)
+            if ($context === 'hero') {
+                $fullPath = Storage::disk('public')->path($path);
+                $sz = @getimagesize($fullPath);
+                if ($sz && ($sz[0] < 1600 || $sz[1] < 900)) {
+                    // Re-optimize low-res hero banner to upscale and sharpen it!
+                } else {
+                    return $path;
+                }
+            } else {
+                return $path;
+            }
         }
 
         try {
@@ -162,8 +180,13 @@ class OptimizeExistingImages extends Command
                 $directory = 'optimized';
             }
 
-            // Optimize and generate webp. The old file is left untouched on the disk.
+            // Optimize and generate webp.
             $newPath = $optimizer->optimizeAndSave($path, $context, $directory, 'public');
+
+            // If an existing WebP was re-optimized and a new filename was generated, remove the old low-res WebP
+            if ($isWebp && $newPath !== $path && Storage::disk('public')->exists($path)) {
+                Storage::disk('public')->delete($path);
+            }
 
             return $newPath;
         } catch (\Exception $e) {

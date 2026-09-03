@@ -37,12 +37,19 @@
 .pd-hero-bg {
   position: absolute; inset: 0;
   background-size: cover; background-position: center; background-repeat: no-repeat;
-  transform: scale(1.05); animation: heroZoom 8s ease-out forwards;
+  transform: translate3d(0, 0, 0) scale(1.04);
+  animation: heroZoom 10s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+  will-change: transform;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: high-quality;
 }
-@keyframes heroZoom { to { transform: scale(1); } }
+@keyframes heroZoom { to { transform: translate3d(0, 0, 0) scale(1); } }
 .pd-hero-overlay {
   position: absolute; inset: 0;
-  background: linear-gradient(to top, rgba(13,13,13,1) 0%, rgba(13,13,13,0.55) 50%, rgba(13,13,13,0.15) 100%);
+  background: linear-gradient(to top, rgba(13,13,13,1) 0%, rgba(13,13,13,0.55) 50%, rgba(13,13,13,0.18) 100%);
+  pointer-events: none;
 }
 .pd-hero-content {
   position: relative; z-index: 2;

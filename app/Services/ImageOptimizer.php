@@ -23,33 +23,125 @@ class ImageOptimizer
      */
     public function optimizeAndSave($file, string $type = 'hero', string $directory = 'uploads', string $disk = 'public'): string
     {
-        // 1. Initialize Intervention Image Manager
-        // Auto-detect Imagick if available, otherwise fallback to standard GD
-        $driver = extension_loaded('imagick') ? new ImagickDriver() : new GdDriver();
-        $manager = new ImageManager($driver);
+        try {
+            // 1. Initialize Intervention Image Manager
+            $driver = extension_loaded('imagick') ? new ImagickDriver() : new GdDriver();
+            $manager = new ImageManager($driver);
 
-        // 2. Read the image
-        $imagePath = is_string($file) ? Storage::disk($disk)->path($file) : $file->getRealPath();
-        $image = $manager->read($imagePath);
+            // 2. Read the image
+            if (is_string($file)) {
+                $imagePath = file_exists($file) ? $file : Storage::disk($disk)->path($file);
+            } else {
+                $imagePath = $file->getRealPath();
+            }
+            $image = $manager->read($imagePath);
 
-        // 3. Metadata (EXIF) is typically stripped automatically on WebP conversion
+            // 3. Auto-orient based on EXIF (crucial for phone camera uploads)
+            $image->orient();
 
-        // 4. Resize based on type
-        // Use scaleDown to prevent upscaling small images, maintaining aspect ratio
-        $maxWidth = ($type === 'thumbnail') ? 800 : 1920;
-        $image->scaleDown(width: $maxWidth);
+            // 4. Intelligently process and resize based on context
+            if ($type === 'hero') {
+                $this->processHeroImage($image);
+                $quality = 85;
+            } else {
+                $this->processThumbnailImage($image);
+                $quality = 82;
+            }
 
-        // 5. Convert to WebP format
-        $encodedImage = $image->toWebp(quality: 80);
+            // 5. Convert to modern WebP format
+            $encodedImage = $image->toWebp(quality: $quality);
 
-        // 6. Generate a unique filename and path
-        // Ensure the directory structure exists
-        $filename = Str::uuid() . '.webp';
-        $path = trim($directory, '/') . '/' . $filename;
+            // 6. Generate unique filename and path
+            $filename = Str::uuid() . '.webp';
+            $path = trim($directory, '/') . '/' . $filename;
 
-        // 7. Save to disk
-        Storage::disk($disk)->put($path, (string) $encodedImage);
+            // 7. Save to disk
+            Storage::disk($disk)->put($path, (string) $encodedImage);
 
-        return $path;
+            return $path;
+        } catch (\Throwable $e) {
+            report($e);
+
+            // Graceful fallback for non-tech uploads (e.g. SVG or unreadable raw files)
+            if ($file instanceof UploadedFile || $file instanceof TemporaryUploadedFile) {
+                return $file->store($directory, $disk);
+            }
+
+            return is_string($file) ? $file : '';
+        }
+    }
+
+    /**
+     * Automatically handles hero banner images regardless of what the user uploads:
+     * - Upscales small images (like 600x600) with bicubic interpolation so they don't pixelate on 1080p/4K screens
+     * - Scales down massive camera/phone photos (3000px+) to save bandwidth
+     * - Applies subtle sharpening to preserve crisp texture and eliminate upscaling fuzziness
+     */
+    protected function processHeroImage($image): void
+    {
+        $targetWidth = 1920;
+        $targetHeight = 1080;
+
+        $width = $image->width();
+        $height = $image->height();
+
+        if ($width <= 0 || $height <= 0) {
+            return;
+        }
+
+        $aspectRatio = $width / $height;
+        $targetRatio = $targetWidth / $targetHeight; // ~1.778
+
+        $wasUpscaled = false;
+
+        // If the uploaded image is smaller than standard full-HD coverage
+        if ($width < $targetWidth || $height < $targetHeight) {
+            if ($aspectRatio >= $targetRatio) {
+                // Wide landscape: ensure height is at least 1080
+                if ($height < $targetHeight) {
+                    $image->scale(height: $targetHeight);
+                    $wasUpscaled = true;
+                }
+            } else {
+                // Square or portrait: ensure width is at least 1920
+                if ($width < $targetWidth) {
+                    $image->scale(width: $targetWidth);
+                    $wasUpscaled = true;
+                }
+            }
+        } else {
+            // Image is large: scale down gracefully without going below 1920x1080
+            if ($aspectRatio >= $targetRatio) {
+                if ($image->height() > 1440) {
+                    $image->scaleDown(height: 1440);
+                }
+                if ($image->width() > 2560) {
+                    $image->scaleDown(width: 2560);
+                }
+            } else {
+                if ($image->width() > $targetWidth) {
+                    $image->scaleDown(width: $targetWidth);
+                }
+            }
+        }
+
+        // If the image was upscaled, apply sharpening to enhance edge contrast and eliminate blur
+        if ($wasUpscaled) {
+            $image->sharpen(12);
+        }
+    }
+
+    /**
+     * Process gallery/card thumbnail images
+     */
+    protected function processThumbnailImage($image): void
+    {
+        $maxWidth = 800;
+        if ($image->width() > $maxWidth) {
+            $image->scaleDown(width: $maxWidth);
+        } elseif ($image->width() < 400) {
+            $image->scale(width: 600);
+            $image->sharpen(8);
+        }
     }
 }
