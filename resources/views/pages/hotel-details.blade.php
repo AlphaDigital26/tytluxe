@@ -269,6 +269,13 @@ body { background: var(--dark); color: #fff; }
   cursor: pointer; transition: all var(--tr); width: 100%;
 }
 .hd-room-btn:hover { background: var(--gold); color: var(--dark); }
+.hd-room-btn:disabled { opacity: 0.65; cursor: wait; }
+.hd-room-btn { gap: 8px; }
+.hd-room-btn-spinner { width: 13px; height: 13px; border: 2px solid rgba(201,168,76,0.3); border-top-color: var(--gold); border-radius: 50%; animation: hdBtnSpin 0.7s linear infinite; display: none; }
+.hd-room-btn.loading .hd-room-btn-spinner { display: inline-block; }
+.hd-room-btn.loading .hd-room-btn-label { display: none; }
+.hd-room-btn.loading:hover { background: transparent; color: var(--gold); }
+@keyframes hdBtnSpin { to { transform: rotate(360deg); } }
 .hd-room-more-btn {
   display: inline-block; font-family: 'Jost', sans-serif; font-size: 12.5px;
   color: var(--gold); text-decoration: none; border-bottom: 1px dashed var(--gold);
@@ -667,60 +674,87 @@ body { background: var(--dark); color: #fff; }
 
 @section('content')
 
+{{-- ===================================================
+     BREADCRUMB / BACK NAV
+=================================================== --}}
+<div style="background:var(--dark-2); border-bottom:1px solid rgba(255,255,255,0.05); padding:12px 48px;">
+  <a href="{{ route('hotels', array_filter(['destination' => $destination, 'check_in' => $checkIn, 'check_out' => $checkOut, 'adults' => $adults, 'children' => $children, 'rooms' => $roomCount])) }}"
+     style="display:inline-flex; align-items:center; gap:7px; font-family:'Jost',sans-serif; font-size:12.5px; color:rgba(255,255,255,0.5); text-decoration:none; transition:color 0.25s ease;"
+     onmouseover="this.style.color='#c9a84c'" onmouseout="this.style.color='rgba(255,255,255,0.5)'">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+    Hotels
+  </a>
+  <span style="margin:0 10px; color:rgba(255,255,255,0.2); font-size:12px;">&#47;</span>
+  <span style="font-family:'Jost',sans-serif; font-size:12.5px; color:rgba(255,255,255,0.35);">{{ $hotel->title }}</span>
+</div>
+
 <!-- ===================================================
-     HERO GALLERY
+     HERO GALLERY & HEADER
 =================================================== -->
-<div class="hd-gallery">
-  <div class="hd-gallery-main" id="hdGalleryMain">
+<div class="hd-layout-top" style="max-width:1280px; margin:0 auto; padding:40px 40px 0;">
+  
+  <div class="hd-badge-row" style="margin-bottom: 14px;">
+    <span class="hd-badge">{{ $catLabel }}</span>
+    @if($hotel->is_featured)
+      <span class="hd-badge-outline">Featured</span>
+    @endif
+  </div>
 
-    @if($imageCount > 0)
-      @foreach($images as $i => $img)
-        <div class="hd-gallery-slide {{ $i === 0 ? 'active' : '' }}" data-index="{{ $i }}">
-          <img src="{{ Storage::disk('public')->url($img->path) }}"
-               alt="{{ $img->alt_text ?: $hotel->title }}" />
+  <!-- Title & Location -->
+  <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px; flex-wrap:wrap; gap:16px;">
+    <div>
+      <div style="display:flex; align-items:center; gap:12px; margin-bottom:8px;">
+        <h1 class="hd-hero-title" style="margin:0; font-size:clamp(2rem, 4vw, 2.8rem); line-height:1.1;">{{ $hotel->title }}</h1>
+        <div class="hd-stars" style="display:flex; gap:3px; color:var(--gold); font-size:16px; margin-top:6px;">
+          @for($i = 0; $i < $stars; $i++) <span>★</span> @endfor
         </div>
-      @endforeach
-    @else
-      <div class="hd-gallery-slide active">
-        <img src="https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=1600&q=85"
-             alt="{{ $hotel->title }}" />
       </div>
-    @endif
+      <div style="font-family:'Jost',sans-serif; font-size:14.5px; color:var(--white-60); display:flex; align-items:center; gap:8px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+        {{ $hotel->address ?? $destination }}
+        <a href="#" style="color:var(--gold); text-decoration:none; border-bottom:1px dashed var(--gold); margin-left:8px;">Show on map</a>
+      </div>
+    </div>
+    <button class="hd-favourite-btn" style="background:transparent; border:1px solid rgba(255,255,255,0.2); color:#fff; border-radius:100px; padding:10px 18px; display:flex; align-items:center; gap:8px; font-family:'Jost',sans-serif; font-size:14px; cursor:pointer; transition:all 0.3s;" onmouseover="this.style.borderColor='var(--gold)'; this.style.color='var(--gold)';" onmouseout="this.style.borderColor='rgba(255,255,255,0.2)'; this.style.color='#fff';">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+      Favourite
+    </button>
+  </div>
 
-    <div class="hd-gallery-overlay"></div>
-
-    @if($imageCount > 1)
-    <button class="hd-gallery-prev" id="hdGallPrev" aria-label="Previous photo">&#8592;</button>
-    <button class="hd-gallery-next" id="hdGallNext" aria-label="Next photo">&#8594;</button>
-    <span class="hd-gallery-counter" id="hdGallCounter">1 / {{ $imageCount }}</span>
-    @endif
-
-    <div class="hd-gallery-hero-info">
-      <div>
-        <div class="hd-badge-row">
-          <span class="hd-badge">{{ $catLabel }}</span>
-          @if($hotel->is_featured)
-            <span class="hd-badge-outline">Featured</span>
-          @endif
-          <div class="hd-stars">
-            @for($i = 0; $i < $stars; $i++)
-              <span>★</span>
-            @endfor
-          </div>
-        </div>
-        <h1 class="hd-hero-title">{{ $hotel->title }}</h1>
-        <p class="hd-hero-location">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
-          {{ $destination }}
-          @if($hotel->address && $hotel->address !== $destination)
-            &nbsp;·&nbsp; {{ $hotel->address }}
-          @endif
-        </p>
+  <!-- Masonry Gallery -->
+  <div class="hd-masonry-gallery" style="display:grid; grid-template-columns: 2fr 1fr; gap:12px; height:50vh; min-height:400px; border-radius:24px; overflow:hidden;">
+    <!-- Large image -->
+    <div style="position:relative; width:100%; height:100%;">
+      @php
+        $mainImg = $imageCount > 0 ? $images[0] : null;
+        $mainImgUrl = $mainImg ? (Str::startsWith($mainImg->path, ['http://', 'https://']) ? $mainImg->path : Storage::disk('public')->url($mainImg->path)) : 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=1600&q=85';
+      @endphp
+      <img src="{{ $mainImgUrl }}" alt="{{ $hotel->title }}" style="width:100%; height:100%; object-fit:cover; display:block;" />
+    </div>
+    
+    <!-- Small images -->
+    <div style="display:grid; grid-template-rows:1fr 1fr; gap:12px; height:100%;">
+      @php
+        $img2 = $imageCount > 1 ? $images[1] : $mainImg;
+        $img2Url = $img2 ? (Str::startsWith($img2->path, ['http://', 'https://']) ? $img2->path : Storage::disk('public')->url($img2->path)) : $mainImgUrl;
+        
+        $img3 = $imageCount > 2 ? $images[2] : $mainImg;
+        $img3Url = $img3 ? (Str::startsWith($img3->path, ['http://', 'https://']) ? $img3->path : Storage::disk('public')->url($img3->path)) : $mainImgUrl;
+      @endphp
+      <div style="width:100%; height:100%; position:relative;">
+        <img src="{{ $img2Url }}" alt="{{ $hotel->title }}" style="width:100%; height:100%; object-fit:cover; display:block;" />
+      </div>
+      <div style="width:100%; height:100%; position:relative;">
+        <img src="{{ $img3Url }}" alt="{{ $hotel->title }}" style="width:100%; height:100%; object-fit:cover; display:block;" />
+        @if($imageCount > 3)
+          <button style="position:absolute; bottom:16px; right:16px; background:rgba(0,0,0,0.6); backdrop-filter:blur(8px); border:1px solid rgba(255,255,255,0.2); color:#fff; font-family:'Jost',sans-serif; font-size:13px; font-weight:600; padding:8px 16px; border-radius:100px; cursor:pointer; transition:all 0.3s;" onmouseover="this.style.background='var(--gold)'; this.style.color='var(--dark)';" onmouseout="this.style.background='rgba(0,0,0,0.6)'; this.style.color='#fff';">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle; margin-right:4px; margin-top:-2px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            +{{ $imageCount - 3 }} photos
+          </button>
+        @endif
       </div>
     </div>
   </div>
-
-
 </div>
 
 <!-- ===================================================
@@ -753,6 +787,16 @@ body { background: var(--dark); color: #fff; }
       <div class="hd-desc">{!! $hotel->description !!}</div>
     </div>
 
+    <!-- Mandatory Fees — charged at the property, not included in the room rate -->
+    @if(!empty($hotel->mandatory_fees))
+    <div class="hd-section">
+      <div style="padding:18px 20px; background:rgba(201,168,76,0.06); border:1px solid var(--gold-dim); border-radius:14px;">
+        <p style="font-family:'Jost',sans-serif; font-size:11px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--gold); margin-bottom:8px;">Fees Payable at the Property</p>
+        <div style="font-family:'Jost',sans-serif; font-size:13.5px; color:var(--white-80); line-height:1.6;">{!! $hotel->mandatory_fees !!}</div>
+      </div>
+    </div>
+    @endif
+
     <!-- Amenities -->
     @if($amenities->isNotEmpty())
     <div class="hd-section">
@@ -768,64 +812,222 @@ body { background: var(--dark); color: #fff; }
     </div>
     @endif
 
-    <!-- Room Categories / Types -->
-    @if($hotel->roomTypes && $hotel->roomTypes->where('is_active', true)->count() > 0)
-    <div class="hd-section">
-      <h2 class="hd-section-title">Select Room</h2>
+    <!-- Live TripJack Room Options -->
+    @if($hotel->source === 'tripjack')
+    <div class="hd-section" id="htl-room-section">
+      <h2 class="hd-section-title">Available Rooms</h2>
+
+      @if(session('booking_error'))
+      <div style="margin-bottom:18px; padding:14px 18px; border-radius:12px; background:rgba(220,80,80,0.08); border:1px solid rgba(220,80,80,0.3); color:#f3a3a3; font-family:'Jost',sans-serif; font-size:13.5px;">
+        {{ session('booking_error') }}
+      </div>
+      @endif
+
+      @if(($liveOptions ?? collect())->isNotEmpty())
       <div class="hd-room-list">
-        @foreach($hotel->roomTypes->where('is_active', true) as $room)
-          <div class="hd-room-card">
-            @if($room->image_path)
-            <div class="hd-room-img">
-              <img src="{{ Storage::disk('public')->url($room->image_path) }}" alt="{{ $room->name }}">
-            </div>
-            @endif
-            <div class="hd-room-content">
-              <div class="hd-room-info">
-                <h3 class="hd-room-title">{{ $room->name }}</h3>
-                <div class="hd-room-specs">
-                  @if($room->room_size)
-                  <span class="hd-room-spec">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z M4 9h16 M9 4v16"/></svg>
-                    {{ $room->room_size }}
-                  </span>
-                  @endif
-                  @if($room->bed_type)
-                  <span class="hd-room-spec">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4v16M22 4v16M2 8h20M6 4v4M18 4v4"/></svg>
-                    {{ $room->bed_type }}
-                  </span>
-                  @endif
-                  <span class="hd-room-spec">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/></svg>
-                    {{ $room->occupancy_adults }} Adults @if($room->occupancy_children) , {{ $room->occupancy_children }} Child @endif
-                  </span>
+        @php
+          $groupedOptions = collect($liveOptions)->groupBy(function($option) {
+              return collect($option['roomInfo'] ?? [])->pluck('name')->unique()->implode(' + ') ?: 'Standard Room';
+          });
+        @endphp
+
+        @foreach($groupedOptions as $roomName => $options)
+          @php
+            // Attempt to find a matching local room type to pull an image and description
+            $localRoom = null;
+            if($hotel->roomTypes) {
+                // simple fuzzy match on name
+                $localRoom = $hotel->roomTypes->first(function($rt) use ($roomName) {
+                    return str_contains(strtolower($roomName), strtolower($rt->name)) || str_contains(strtolower($rt->name), strtolower($roomName));
+                });
+            }
+            $roomImage = $localRoom && $localRoom->image_path ? Storage::disk('public')->url($localRoom->image_path) : 'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=600&q=80'; // Placeholder
+          @endphp
+          
+          <div class="hd-room-group-card" style="background: var(--dark-2); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; overflow: hidden; margin-bottom: 24px;">
+            <div style="display: flex; flex-direction: column; @media(min-width: 992px) { flex-direction: row; }">
+              
+              <!-- Left Column: Room Info -->
+              <div style="width: 100%; max-width: 320px; border-right: 1px solid rgba(255,255,255,0.08); padding: 20px;">
+                <h3 style="font-family: 'Cormorant Garamond', serif; font-size: 1.6rem; color: #fff; margin-bottom: 12px; line-height: 1.2;">{{ $roomName }}</h3>
+                <div style="border-radius: 12px; overflow: hidden; height: 180px; margin-bottom: 16px; position: relative;">
+                  <img src="{{ $roomImage }}" alt="{{ $roomName }}" style="width: 100%; height: 100%; object-fit: cover;">
                 </div>
-                @if($room->description)
-                  <div class="hd-room-desc-text">{!! $room->description !!}</div>
-                  <a class="hd-room-more-btn" data-modal="hdRoomModal_{{ $room->id }}">More Details</a>
-                @else
-                  <a class="hd-room-more-btn" data-modal="hdRoomModal_{{ $room->id }}">More Details</a>
-                @endif
-                @if($room->inclusions && count($room->inclusions) > 0)
-                <div class="hd-room-inc">
-                  @foreach(array_slice($room->inclusions, 0, 4) as $inc)
-                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg> {{ $inc }}</span>
-                  @endforeach
-                  @if(count($room->inclusions) > 4)
-                    <span style="background:transparent; padding:0; color:var(--white-60);">+{{ count($room->inclusions) - 4 }} more</span>
+                <div class="hd-room-specs" style="display: flex; flex-wrap: wrap; gap: 10px;">
+                  @if($localRoom && $localRoom->room_size)
+                  <span style="font-family: 'Jost', sans-serif; font-size: 13px; color: var(--white-80); display: flex; align-items: center; gap: 6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z M4 9h16 M9 4v16"/></svg>{{ $localRoom->room_size }}</span>
                   @endif
+                  @if($localRoom && $localRoom->bed_type)
+                  <span style="font-family: 'Jost', sans-serif; font-size: 13px; color: var(--white-80); display: flex; align-items: center; gap: 6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4v16M22 4v16M2 8h20M6 4v4M18 4v4"/></svg>{{ $localRoom->bed_type }}</span>
+                  @endif
+                </div>
+                @if($localRoom && $localRoom->description)
+                <div style="font-family: 'Jost', sans-serif; font-size: 12px; color: var(--white-60); margin-top: 12px; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
+                  {!! strip_tags($localRoom->description) !!}
                 </div>
                 @endif
               </div>
-              <div class="hd-room-price" style="display:flex; flex-direction:column; gap:10px; align-items:flex-start;">
-                @if($room->cancellation_policy)
-                <div class="hd-room-cancel @if($room->cancellation_policy == 'free_cancellation') text-green @endif" style="font-size:12px;">
-                  @if($room->cancellation_policy == 'free_cancellation') ✅ @elseif($room->cancellation_policy == 'non_refundable') ❌ @else ⚠️ @endif
-                  {{ str_replace('_', ' ', Str::title($room->cancellation_policy)) }}
+
+              <!-- Right Columns: Options List -->
+              <div style="flex: 1; display: flex; flex-direction: column;">
+                @foreach($options->sortBy('pricing.totalPrice') as $index => $option)
+                  @php
+                    $pricing = $option['pricing'] ?? [];
+                    $cancellation = $option['cancellation'] ?? [];
+                    $compliance = $option['compliance'] ?? [];
+                    $isRefundable = $cancellation['isRefundable'] ?? false;
+                    $freeUntil = collect($cancellation['penalties'] ?? [])->firstWhere('amount', 0);
+                    $mealBasis = $option['mealBasis'] ?? 'Room Only';
+                  @endphp
+                  
+                  <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); {{ $loop->last ? 'border-bottom: none;' : '' }}">
+                    
+                    <!-- Option Details (Middle Column) -->
+                    <div style="flex: 1; min-width: 200px; padding-right: 20px;">
+                      <div style="font-family: 'Jost', sans-serif; font-size: 14.5px; font-weight: 600; color: #fff; margin-bottom: 8px;">
+                        {{ $mealBasis }} | {{ $isRefundable ? 'Refundable' : 'Non-Refundable' }}
+                      </div>
+                      
+                      <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
+                        @if($isRefundable)
+                        <span style="display: inline-flex; align-items: center; gap: 4px; font-family: 'Jost', sans-serif; font-size: 11.5px; color: var(--green); background: rgba(74, 222, 128, 0.08); padding: 4px 10px; border-radius: 100px;">
+                          ✅ Free cancellation @if($freeUntil) until {{ \Illuminate\Support\Carbon::parse($freeUntil['to'])->format('d M') }} @endif
+                        </span>
+                        @else
+                        <span style="display: inline-flex; align-items: center; gap: 4px; font-family: 'Jost', sans-serif; font-size: 11.5px; color: #f87171; background: rgba(248, 113, 113, 0.08); padding: 4px 10px; border-radius: 100px;">
+                          ❌ Non-refundable
+                        </span>
+                        @endif
+                      </div>
+
+                      @if(!empty($option['inclusions']))
+                      <div class="hd-room-inc" style="margin-bottom: 8px;">
+                        @foreach(array_slice($option['inclusions'], 0, 3) as $inc)
+                          <span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg> {{ $inc }}</span>
+                        @endforeach
+                      </div>
+                      @endif
+                      
+                      @if(($compliance['panRequired'] ?? false) || ($compliance['passportRequired'] ?? false))
+                      <div style="font-family: 'Jost', sans-serif; font-size: 11.5px; color: var(--gold); margin-top: 8px;">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px; vertical-align:middle;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        @if($compliance['panRequired'] ?? false) PAN Required @endif
+                        @if($compliance['passportRequired'] ?? false) | Passport Required @endif
+                      </div>
+                      @endif
+                    </div>
+
+                    <!-- Pricing & Select (Right Column) -->
+                    <div style="text-align: right; min-width: 150px; border-left: 1px dashed rgba(255,255,255,0.1); padding-left: 20px;">
+                      <div style="font-family: 'Jost', sans-serif; font-size: 12px; color: var(--white-60); margin-bottom: 2px;">Total Price</div>
+                      <div style="font-family: 'Jost', sans-serif; font-size: 1.6rem; font-weight: 700; color: #fff; line-height: 1; margin-bottom: 12px;">
+                        {{ $pricing['currency'] ?? 'INR' }} {{ number_format($pricing['totalPrice'] ?? 0) }}
+                      </div>
+                      <form method="POST" action="{{ route('hotel.review', $hotel->slug) }}" class="hd-select-room-form">
+                        @csrf
+                        <input type="hidden" name="option_id" value="{{ $option['optionId'] ?? '' }}">
+                        <input type="hidden" name="check_in" value="{{ $checkIn }}">
+                        <input type="hidden" name="check_out" value="{{ $checkOut }}">
+                        <input type="hidden" name="adults" value="{{ $adults }}">
+                        <input type="hidden" name="children" value="{{ $children }}">
+                        <input type="hidden" name="rooms" value="{{ $roomCount }}">
+                        <button type="submit" class="hd-room-btn" style="width: 100%; border-radius: 8px; padding: 10px 16px;">
+                          <span class="hd-room-btn-spinner"></span>
+                          <span class="hd-room-btn-label">Select Room</span>
+                        </button>
+                      </form>
+                    </div>
+
+                  </div>
+                @endforeach
+              </div>
+            </div>
+          </div>
+        @endforeach
+      </div>
+      @elseif(!empty($pricingError))
+      <div style="padding:20px 22px; background:rgba(201,168,76,0.06); border:1px solid var(--gold-dim); border-radius:14px; font-family:'Jost',sans-serif; font-size:13.5px; color:var(--white-60); line-height:1.6;">
+        {{ $pricingError }}
+      </div>
+      @elseif(!empty($checkIn) && !empty($checkOut))
+      <div style="padding:20px 22px; background:rgba(201,168,76,0.06); border:1px solid var(--gold-dim); border-radius:14px; font-family:'Jost',sans-serif; font-size:13.5px; color:var(--white-60); line-height:1.6;">
+        No rooms are available for this hotel on {{ $checkIn }} – {{ $checkOut }}.
+        <a href="{{ route('hotels', array_filter(['destination' => $destination, 'check_in' => $checkIn, 'check_out' => $checkOut])) }}" style="color:var(--gold);">Try different dates</a>, or send us an enquiry and we'll check alternatives for you.
+      </div>
+      @else
+      <div style="padding:20px 22px; background:rgba(201,168,76,0.06); border:1px solid var(--gold-dim); border-radius:14px; font-family:'Jost',sans-serif; font-size:13.5px; color:var(--white-60); line-height:1.6;">
+        <a href="{{ route('hotels', ['destination' => $destination]) }}" style="color:var(--gold);">Search dates for {{ $destination }}</a> to see available rooms, meal plans and live prices for this hotel.
+      </div>
+      @endif
+    </div>
+    @endif
+
+    <!-- Room Categories / Types -->
+    @if($hotel->roomTypes && $hotel->roomTypes->where('is_active', true)->count() > 0)
+    <div class="hd-section" id="htl-static-rooms-section">
+      {{-- Heading differs from the live TripJack section ("Available Rooms") to avoid confusion --}}
+      <h2 class="hd-section-title">Room Types</h2>
+      <div class="hd-room-list">
+        @foreach($hotel->roomTypes->where('is_active', true) as $room)
+          @php
+             $roomImage = $room->image_path ? Storage::disk('public')->url($room->image_path) : 'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=600&q=80';
+          @endphp
+          
+          <div class="hd-room-group-card" style="background: var(--dark-2); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; overflow: hidden; margin-bottom: 24px;">
+            <div style="display: flex; flex-direction: column; @media(min-width: 992px) { flex-direction: row; }">
+              
+              <!-- Left Column: Room Info -->
+              <div style="width: 100%; max-width: 320px; border-right: 1px solid rgba(255,255,255,0.08); padding: 20px;">
+                <h3 style="font-family: 'Cormorant Garamond', serif; font-size: 1.6rem; color: #fff; margin-bottom: 12px; line-height: 1.2;">{{ $room->name }}</h3>
+                <div style="border-radius: 12px; overflow: hidden; height: 180px; margin-bottom: 16px; position: relative;">
+                  <img src="{{ $roomImage }}" alt="{{ $room->name }}" style="width: 100%; height: 100%; object-fit: cover;">
                 </div>
+                <div class="hd-room-specs" style="display: flex; flex-wrap: wrap; gap: 10px;">
+                  @if($room->room_size)
+                  <span style="font-family: 'Jost', sans-serif; font-size: 13px; color: var(--white-80); display: flex; align-items: center; gap: 6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z M4 9h16 M9 4v16"/></svg>{{ $room->room_size }}</span>
+                  @endif
+                  @if($room->bed_type)
+                  <span style="font-family: 'Jost', sans-serif; font-size: 13px; color: var(--white-80); display: flex; align-items: center; gap: 6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4v16M22 4v16M2 8h20M6 4v4M18 4v4"/></svg>{{ $room->bed_type }}</span>
+                  @endif
+                </div>
+                @if($room->description)
+                <div style="font-family: 'Jost', sans-serif; font-size: 12px; color: var(--white-60); margin-top: 12px; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
+                  {!! strip_tags($room->description) !!}
+                </div>
+                <a class="hd-room-more-btn" data-modal="hdRoomModal_{{ $room->id }}" style="margin-top: 8px;">More Details</a>
                 @endif
-                <button class="hd-room-btn" onclick="document.getElementById('hdEnquireBtn').click()">Request Price</button>
+              </div>
+
+              <!-- Right Columns: Action -->
+              <div style="flex: 1; display: flex; flex-direction: column;">
+                <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; padding: 20px;">
+                  <div style="flex: 1; min-width: 200px; padding-right: 20px;">
+                    <div style="font-family: 'Jost', sans-serif; font-size: 14.5px; font-weight: 600; color: #fff; margin-bottom: 8px;">
+                      Standard Rate
+                    </div>
+                    @if($room->cancellation_policy)
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
+                      <span style="display: inline-flex; align-items: center; gap: 4px; font-family: 'Jost', sans-serif; font-size: 11.5px; color: {{ $room->cancellation_policy == 'free_cancellation' ? 'var(--green)' : '#f87171' }}; background: {{ $room->cancellation_policy == 'free_cancellation' ? 'rgba(74, 222, 128, 0.08)' : 'rgba(248, 113, 113, 0.08)' }}; padding: 4px 10px; border-radius: 100px;">
+                        @if($room->cancellation_policy == 'free_cancellation') ✅ @elseif($room->cancellation_policy == 'non_refundable') ❌ @else ⚠️ @endif
+                        {{ str_replace('_', ' ', Str::title($room->cancellation_policy)) }}
+                      </span>
+                    </div>
+                    @endif
+                    @if($room->inclusions && count($room->inclusions) > 0)
+                    <div class="hd-room-inc" style="margin-bottom: 8px;">
+                      @foreach(array_slice($room->inclusions, 0, 4) as $inc)
+                        <span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg> {{ $inc }}</span>
+                      @endforeach
+                    </div>
+                    @endif
+                  </div>
+                  
+                  <div style="text-align: right; min-width: 150px; border-left: 1px dashed rgba(255,255,255,0.1); padding-left: 20px;">
+                    <button class="hd-room-btn" type="button" style="width: 100%; border-radius: 8px; padding: 10px 16px;" onclick="document.getElementById('hdEnquirySection').scrollIntoView({behavior:'smooth', block:'start'})">
+                      Enquire
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -888,7 +1090,9 @@ body { background: var(--dark); color: #fff; }
                 </div>
               @endif
               
-              <button class="hd-room-btn" style="margin-top: 10px;" onclick="document.getElementById('hdRoomModal_{{ $room->id }}').classList.remove('open'); document.body.style.overflow=''; document.getElementById('hdEnquireBtn').click();">Enquire Now</button>
+              {{-- Close modal and scroll to enquiry section, not trigger the modal button --}}
+              <button class="hd-room-btn" style="margin-top: 10px;" type="button"
+                onclick="document.getElementById('hdRoomModal_{{ $room->id }}').classList.remove('open'); document.body.style.overflow=''; document.getElementById('hdEnquirySection').scrollIntoView({behavior:'smooth', block:'start'});">Enquire About This Room</button>
             </div>
           </div>
           
@@ -997,52 +1201,72 @@ body { background: var(--dark); color: #fff; }
 
   <!-- RIGHT COLUMN — Sticky Booking Card -->
   <div class="hd-right">
-    <div class="hd-book-card">
+    <div class="hd-book-card" style="padding: 24px;">
 
-      <p class="hd-book-card-loc">{{ $destination }}</p>
-      <h2 class="hd-book-card-title">{{ $hotel->title }}</h2>
+      @php
+        $cheapestLive = ($liveOptions ?? collect())->isNotEmpty()
+          ? ($liveOptions ?? collect())->sortBy('pricing.totalPrice')->first()
+          : null;
+        $cheapestRoomName = $cheapestLive ? collect($cheapestLive['roomInfo'] ?? [])->pluck('name')->unique()->implode(' + ') : 'Standard Room';
+      @endphp
 
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 20px;">
+        <div>
+          <h2 style="font-family: 'Cormorant Garamond', serif; font-size: 1.8rem; font-weight: 500; color: #fff; margin-bottom: 8px; line-height: 1.2;">{{ $cheapestRoomName ?: $hotel->title }}</h2>
+          <div style="font-family: 'Jost', sans-serif; font-size: 13px; color: var(--green); display: flex; align-items: center; gap: 4px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+            Best price available
+          </div>
+        </div>
+      </div>
+
+      @if($cheapestLive)
+      <!-- Live TripJack Price -->
+      <div style="margin-bottom: 24px;">
+        <div style="font-family: 'Jost', sans-serif; font-size: 2.2rem; font-weight: 700; color: #fff; line-height: 1;">
+          {{ $cheapestLive['pricing']['currency'] ?? 'INR' }} {{ number_format($cheapestLive['pricing']['totalPrice'] ?? 0) }}
+        </div>
+        <div style="font-family: 'Jost', sans-serif; font-size: 12px; color: var(--white-60); margin-top: 4px;">
+          Total for {{ $roomCount }} room, {{ $adults }} adults
+        </div>
+      </div>
+      @elseif(!empty($pricingError))
+      <div style="margin-bottom: 20px; padding: 16px; background: rgba(201,168,76,0.07); border: 1px solid rgba(201,168,76,0.28); border-radius: 12px;">
+        <p style="font-family:'Jost',sans-serif; font-size:13px; color:rgba(255,255,255,0.65); line-height:1.55; margin:0;">{{ $pricingError }}</p>
+      </div>
+      @else
       <!-- Price on Request -->
-      <div class="hd-book-price-row" style="margin-bottom: 20px; padding: 16px 18px; background: rgba(201,168,76,0.07); border: 1px solid rgba(201,168,76,0.28); border-radius: 12px;">
+      <div style="margin-bottom: 20px; padding: 16px; background: rgba(201,168,76,0.07); border: 1px solid rgba(201,168,76,0.28); border-radius: 12px;">
         <div style="display:flex; align-items:center; gap: 10px; margin-bottom: 6px;">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c9a84c" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
           <span style="font-family:'Jost',sans-serif; font-size:12px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:#c9a84c;">Price on Request</span>
         </div>
         <p style="font-family:'Jost',sans-serif; font-size:13px; color:rgba(255,255,255,0.65); line-height:1.55; margin:0;">Send us an enquiry or WhatsApp us and we'll share the best available rates for your dates.</p>
       </div>
+      @endif
 
-      <!-- Quick facts -->
-      <div class="hd-book-facts">
-        <div class="hd-book-fact">
-          <div class="hd-book-fact-label">Check-in</div>
-          <div class="hd-book-fact-val">{{ $hotel->check_in_time ?? '2:00 PM' }}</div>
-        </div>
-        <div class="hd-book-fact">
-          <div class="hd-book-fact-label">Check-out</div>
-          <div class="hd-book-fact-val">{{ $hotel->check_out_time ?? '11:00 AM' }}</div>
-        </div>
+      <!-- Call to Actions -->
+      <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px;">
+        <button onclick="document.getElementById('htl-room-section')?.scrollIntoView({behavior:'smooth', block:'start'})" style="background: var(--gold); color: var(--dark); border: none; padding: 14px; border-radius: 12px; font-family: 'Jost', sans-serif; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.3s; text-align: center; width: 100%;">
+          Select Room
+        </button>
+        
+        <a href="https://wa.me/919875073788?text={{ $waText }}" target="_blank" style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1); padding: 14px; border-radius: 12px; font-family: 'Jost', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.3s; text-align: center; text-decoration: none; display: flex; justify-content: center; align-items: center; gap: 8px;" onmouseover="this.style.borderColor='var(--gold)'; this.style.color='var(--gold)';" onmouseout="this.style.borderColor='rgba(255,255,255,0.1)'; this.style.color='#fff';">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          Send an Enquiry
+        </a>
       </div>
 
-      <!-- Perks -->
-      <div class="hd-book-perks">
-        <div class="hd-book-perk"><span class="hd-book-perk-dot"></span> Breakfast Included</div>
-        <div class="hd-book-perk"><span class="hd-book-perk-dot"></span> Best Rate Guarantee</div>
-        <div class="hd-book-perk"><span class="hd-book-perk-dot"></span> 24/7 Dedicated Support</div>
-      </div>
-
-      <!-- CTA -->
-      <button class="hd-book-enquire" id="hdEnquireBtn">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-        Send an Enquiry
-      </button>
-      <a href="https://wa.me/919875073788?text={{ $waText }}" class="hd-book-wa" target="_blank">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-        Chat on WhatsApp
-      </a>
-      <div class="hd-book-trust">
-        <div class="hd-trust-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg> No booking fees</div>
-        <div class="hd-trust-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg> Instant confirmation</div>
-        <div class="hd-trust-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg> Expert support</div>
+      <!-- Rating Section -->
+      <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 16px; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+            <span style="background: var(--gold); color: var(--dark); font-family: 'Jost', sans-serif; font-size: 14px; font-weight: 700; padding: 2px 6px; border-radius: 4px;">{{ $ratingScore }}</span>
+            <span style="font-family: 'Jost', sans-serif; font-size: 14px; font-weight: 600; color: #fff;">{{ $ratingLabel }}</span>
+          </div>
+          <div style="font-family: 'Jost', sans-serif; font-size: 12px; color: var(--white-60);">Based on guest reviews</div>
+        </div>
+        <a href="#" style="font-family: 'Jost', sans-serif; font-size: 13px; color: var(--gold); text-decoration: underline;">Read all</a>
       </div>
 
     </div>
@@ -1067,6 +1291,11 @@ body { background: var(--dark); color: #fff; }
     <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
   </a>
 </div>
+
+<!-- ===================================================
+     ENQUIRY SECTION ANCHOR (used by scroll targets on this page)
+=================================================== -->
+<div id="hdEnquirySection" style="scroll-margin-top:80px;"></div>
 
 <!-- ===================================================
      ENQUIRY MODAL
@@ -1159,6 +1388,16 @@ body { background: var(--dark); color: #fff; }
 @push('scripts')
 <script>
 (function () {
+
+  /* ===== SELECT ROOM: LOADING STATE ===== */
+  document.querySelectorAll('.hd-select-room-form').forEach(function (form) {
+    form.addEventListener('submit', function () {
+      const btn = form.querySelector('.hd-room-btn');
+      if (!btn) return;
+      btn.classList.add('loading');
+      btn.disabled = true;
+    });
+  });
 
   /* ===== GALLERY SLIDER ===== */
   const slides   = document.querySelectorAll('.hd-gallery-slide');

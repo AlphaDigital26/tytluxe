@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 
 <style>
 /* ===== VARIABLES ===== */
@@ -72,45 +73,180 @@
 }
 .htl-divider span { color: var(--gold); font-size: 16px; }
 
-/* ===== SEARCH ===== */
-.htl-search-wrap {
-  max-width: 720px; margin: 0 auto 28px;
-  display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center;
+/* ===== SEARCH BAR (OTA-style: MakeMyTrip / Agoda layout) ===== */
+.htl-searchbar {
+  max-width: 1180px; margin: 0 auto 18px;
+  background: var(--dark-2); border: 1px solid rgba(201,168,76,0.28);
+  border-radius: 20px; padding: 18px; box-shadow: 0 24px 60px rgba(0,0,0,0.45);
+}
+.htl-searchbar-row { display: flex; align-items: stretch; gap: 12px; flex-wrap: wrap; }
+.htl-sb-field {
+  position: relative; flex: 1 1 190px; min-width: 160px;
+  display: flex; flex-direction: column; justify-content: center; gap: 5px;
+  padding: 14px 20px; border-radius: 14px; cursor: pointer;
+  background: rgba(255,255,255,0.035); border: 1.5px solid rgba(255,255,255,0.09);
+  transition: all var(--transition);
+}
+.htl-sb-field:hover, .htl-sb-field.open {
+  background: rgba(201,168,76,0.07); border-color: rgba(201,168,76,0.45);
+}
+.htl-sb-field.htl-sb-dest { flex: 1.7 1 260px; }
+.htl-sb-label {
+  font-family: 'Jost', sans-serif; font-size: 11px; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold);
+  display: flex; align-items: center; gap: 7px;
+}
+.htl-sb-label svg { width: 14px; height: 14px; flex-shrink: 0; }
+.htl-sb-field input[type="text"],
+.htl-sb-field input[type="date"] {
+  border: none; outline: none; background: transparent; color: #fff;
+  font-family: 'Jost', sans-serif; font-size: 16px; font-weight: 500; padding: 0; width: 100%;
+  cursor: pointer; color-scheme: dark;
+}
+.htl-sb-field input::placeholder { color: var(--white-30); font-weight: 400; }
+.htl-sb-field input[readonly] { cursor: pointer; }
+#htlGuestSummary { font-family: 'Jost', sans-serif; font-size: 16px; font-weight: 500; color: #fff; }
+.htl-sb-nights-badge {
+  position: absolute; top: 12px; right: 16px;
+  background: rgba(201,168,76,0.15); border: 1px solid rgba(201,168,76,0.35);
+  color: var(--gold); font-family: 'Jost', sans-serif; font-size: 11px; font-weight: 700;
+  padding: 3px 10px; border-radius: 100px;
+}
+.htl-sb-divider { display: none; }
+.htl-sb-submit {
+  align-self: center; height: 50px;
+  flex: 0 0 auto; min-width: 140px; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 0 24px; border-radius: 100px; border: none; cursor: pointer;
+  background: linear-gradient(90deg, #c9a84c, #e8c96b); color: var(--dark);
+  font-family: 'Jost', sans-serif; font-size: 14px; font-weight: 700;
+  letter-spacing: 0.06em; text-transform: uppercase; transition: all var(--transition);
+  box-shadow: 0 8px 24px rgba(201,168,76,0.25); white-space: nowrap;
+}
+.htl-sb-submit svg { width: 16px; height: 16px; flex-shrink: 0; }
+.htl-sb-submit:hover { background: linear-gradient(90deg, #d8b753, #eecd74); transform: translateY(-2px); box-shadow: 0 12px 30px rgba(201,168,76,0.4); }
+
+/* Guests popover */
+.htl-guest-popover {
+  position: absolute; top: calc(100% + 8px); left: 0; width: 320px; z-index: 60;
+  background: #1c1c1c; border: 1px solid rgba(201,168,76,0.3); border-radius: 14px;
+  padding: 16px; box-shadow: 0 20px 44px rgba(0,0,0,0.6);
+  display: none; max-height: 420px; overflow-y: auto;
+}
+.htl-guest-popover.open { display: block; }
+.htl-guest-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.htl-guest-row:last-child { margin-bottom: 0; }
+.htl-guest-row-label { font-family: 'Jost', sans-serif; font-size: 13px; color: #fff; display: flex; flex-direction: column; }
+.htl-guest-row-label small { font-size: 10.5px; color: var(--white-30); font-weight: 400; margin-top: 2px; }
+.htl-guest-ctrl { display: flex; align-items: center; gap: 12px; }
+.htl-guest-ctrl button {
   background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 100px; padding: 8px 8px 8px 22px;
+  color: #fff; width: 26px; height: 26px; border-radius: 6px; cursor: pointer; font-size: 14px;
 }
-.htl-search-wrap label { position: absolute; width: 1px; height: 1px; overflow: hidden; }
-.htl-search-wrap input {
-  width: 100%; min-height: 42px; border: none; outline: none;
-  background: transparent; color: #fff;
-  font-family: 'Jost', sans-serif; font-size: 14px;
-}
-.htl-search-wrap input::placeholder { color: var(--white-60); }
-.htl-search-pill {
-  display: inline-flex; align-items: center; justify-content: center;
-  min-height: 42px; padding: 0 18px; border-radius: 100px;
-  background: var(--gold); color: var(--dark);
-  font-family: 'Jost', sans-serif; font-size: 12px; font-weight: 700;
-  letter-spacing: .08em; text-transform: uppercase;
-}
+.htl-guest-ctrl button:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); }
+.htl-guest-ctrl button:disabled { opacity: 0.3; cursor: not-allowed; }
+.htl-guest-ctrl span { color: #fff; font-family: 'Jost', sans-serif; font-size: 13px; width: 16px; text-align: center; }
 
-/* ===== FILTER TABS ===== */
-.htl-filter-tabs {
-  display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-bottom: 56px;
+/* Room blocks (multi-room) */
+.htl-room-block { border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 14px; margin-bottom: 12px; background: rgba(255,255,255,0.02); }
+.htl-room-block-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px dashed rgba(255,255,255,0.1); }
+.htl-room-block-title { font-family: 'Jost', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gold); }
+.htl-room-block-remove { background: transparent; border: none; color: var(--white-30); font-size: 13px; cursor: pointer; padding: 2px 6px; }
+.htl-room-block-remove:hover { color: #f3a3a3; }
+.htl-child-ages { margin-top: 10px; padding-top: 10px; border-top: 1px dashed rgba(255,255,255,0.08); display: flex; flex-direction: column; gap: 8px; }
+.htl-child-age-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.htl-child-age-select {
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.14); border-radius: 6px;
+  color: #fff; font-family: 'Jost', sans-serif; font-size: 12px; padding: 5px 8px; cursor: pointer;
 }
-.htl-tab {
-  padding: 10px 24px; border-radius: 100px; border: 1px solid var(--white-30);
-  background: transparent; color: var(--white-60);
-  font-family: 'Jost', sans-serif; font-size: 12.5px; font-weight: 500;
-  letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; transition: all var(--transition);
+.htl-child-age-select option { background: var(--dark-3); color: #fff; }
+.htl-guest-actions { display: flex; align-items: center; justify-content: space-between; padding-top: 6px; margin-top: 4px; border-top: 1px solid rgba(255,255,255,0.08); }
+.htl-guest-add-btn {
+  background: transparent; border: none; color: var(--gold); font-family: 'Jost', sans-serif;
+  font-size: 12px; font-weight: 700; letter-spacing: 0.05em; cursor: pointer; padding: 0;
 }
-.htl-tab:hover { border-color: var(--gold); color: var(--gold); }
-.htl-tab.active { background: var(--gold); border-color: var(--gold); color: var(--dark); }
+.htl-guest-add-btn:hover { color: var(--gold-light); }
+.htl-guest-apply-btn {
+  background: var(--gold); color: var(--dark); border: none; border-radius: 100px;
+  font-family: 'Jost', sans-serif; font-size: 11.5px; font-weight: 800; letter-spacing: 0.08em;
+  text-transform: uppercase; padding: 9px 20px; cursor: pointer;
+}
+.htl-guest-apply-btn:hover { background: var(--gold-light); }
 
-/* ===== HOTEL GRID ===== */
-.htl-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; }
+/* Flatpickr theme (dark/gold, matches site convention) */
+.flatpickr-calendar { background: #1c1c1c !important; border: 1px solid rgba(201,168,76,0.3) !important; box-shadow: 0 20px 44px rgba(0,0,0,0.7) !important; border-radius: 12px !important; }
+.flatpickr-months .flatpickr-month, .flatpickr-current-month { color: var(--gold) !important; fill: var(--gold) !important; }
+.flatpickr-current-month .flatpickr-monthDropdown-months, .flatpickr-current-month input.cur-year { font-family: 'Jost', sans-serif !important; color: var(--gold) !important; background: transparent !important; }
+.flatpickr-current-month .flatpickr-monthDropdown-months option { background: #1c1c1c; color: #fff; }
+span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost', sans-serif !important; font-weight: 500 !important; background: transparent !important; }
+.flatpickr-day { color: #fff !important; font-family: 'Jost', sans-serif !important; border-radius: 6px !important; }
+.flatpickr-day.inRange, .flatpickr-day.inRange:hover { background: rgba(201,168,76,0.15) !important; border-color: rgba(201,168,76,0.15) !important; box-shadow: -5px 0 0 rgba(201,168,76,0.15), 5px 0 0 rgba(201,168,76,0.15) !important; }
+.flatpickr-day.selected, .flatpickr-day.startRange, .flatpickr-day.endRange { background: var(--gold) !important; color: var(--dark) !important; border-color: var(--gold) !important; font-weight: 600 !important; }
+.flatpickr-day:hover { background: rgba(255,255,255,0.1) !important; }
+.flatpickr-day.flatpickr-disabled, .flatpickr-day.flatpickr-disabled:hover, .flatpickr-day.prevMonthDay, .flatpickr-day.nextMonthDay { color: rgba(255,255,255,0.2) !important; }
+.flatpickr-months .flatpickr-prev-month, .flatpickr-months .flatpickr-next-month { fill: var(--gold) !important; color: var(--gold) !important; }
+.flatpickr-months .flatpickr-prev-month:hover svg, .flatpickr-months .flatpickr-next-month:hover svg { fill: var(--gold-light) !important; }
+.flatpickr-innerContainer, .flatpickr-rContainer { background: transparent !important; }
+
+/* More Options row */
+.htl-more-options {
+  display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+  padding: 12px 8px 4px; font-family: 'Jost', sans-serif; font-size: 12.5px; color: var(--white-60);
+}
+.htl-more-options .htl-mo-label { font-weight: 600; letter-spacing: 0.05em; color: var(--white-60); }
+.htl-more-options select {
+  background: transparent; border: none; color: var(--white-60);
+  font-family: 'Jost', sans-serif; font-size: 12.5px; cursor: pointer; outline: none;
+}
+.htl-more-options select option { background: var(--dark-3); color: #fff; }
+.htl-mo-checkbox { display: flex; align-items: center; gap: 6px; cursor: not-allowed; opacity: 0.5; }
+.htl-mo-checkbox input { accent-color: var(--gold); }
+
+/* ===== HOTEL GRID & RESULTS LAYOUT ===== */
+.htl-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; margin-top: 48px; }
 @media (max-width: 1100px) { .htl-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 640px)  { .htl-grid { grid-template-columns: 1fr; } }
+
+.htl-results-layout {
+  display: grid; grid-template-columns: 280px 1fr; gap: 40px; margin-top: 40px;
+}
+@media (max-width: 992px) {
+  .htl-results-layout { grid-template-columns: 1fr; gap: 32px; }
+}
+
+.htl-results-layout .htl-grid {
+  grid-template-columns: repeat(3, 1fr); margin-top: 0; gap: 24px;
+}
+@media (max-width: 1400px) {
+  .htl-results-layout .htl-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 1100px) {
+  .htl-results-layout .htl-grid { grid-template-columns: 1fr; }
+}
+
+/* Sidebar */
+.htl-sidebar {
+  background: var(--dark-2); border: 1px solid var(--white-10); border-radius: 16px;
+  padding: 24px; height: max-content; position: sticky; top: 24px;
+}
+.htl-sidebar-title {
+  font-family: 'Jost', sans-serif; font-size: 16px; font-weight: 600; color: #fff;
+  margin-bottom: 24px; padding-bottom: 14px; border-bottom: 1px solid var(--white-10);
+}
+.htl-filter-group { margin-bottom: 28px; }
+.htl-filter-group:last-child { margin-bottom: 0; }
+.htl-filter-title {
+  font-family: 'Jost', sans-serif; font-size: 12px; font-weight: 700; color: var(--gold);
+  text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 14px;
+}
+.htl-filter-list { display: flex; flex-direction: column; gap: 12px; }
+.htl-filter-label {
+  display: flex; align-items: center; gap: 10px;
+  font-family: 'Jost', sans-serif; font-size: 14px; color: var(--white-60); cursor: pointer; transition: color 0.2s ease;
+}
+.htl-filter-label:hover { color: #fff; }
+.htl-filter-label input[type="radio"], .htl-filter-label input[type="checkbox"] {
+  accent-color: var(--gold); width: 16px; height: 16px; cursor: pointer;
+}
 
 /* ===== HOTEL CARD — Ultra Premium ===== */
 .htl-card {
@@ -441,10 +577,11 @@
   .htl-section { padding: 64px 20px; }
   .htl-grid { grid-template-columns: 1fr; }
   .htl-trust { padding: 16px 20px; }
+  .htl-searchbar { padding: 12px; border-radius: 16px; }
+  .htl-searchbar-row { gap: 10px; }
+  .htl-sb-field { flex: 1 1 100%; padding: 12px 16px; }
+  .htl-sb-submit { flex: 1 1 100%; padding: 14px; min-height: 50px; }
   .htl-trust-inner { gap: 24px; }
-  .htl-filter-tabs { gap: 6px; justify-content: flex-start; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding-bottom: 8px; flex-wrap: nowrap; }
-  .htl-filter-tabs::-webkit-scrollbar { display: none; }
-  .htl-tab { padding: 8px 16px; font-size: 11px; flex: 0 0 auto; }
   .htl-banner-inner { padding: 48px 20px; }
   .htl-cta { padding: 56px 20px; }
   .htl-enquiry { padding: 64px 20px; }
@@ -508,29 +645,203 @@
     <div class="htl-divider"><span>✦</span></div>
 
     <!-- Search -->
-    <div class="htl-search-wrap" role="search">
-      <label for="htlDestinationSearch">Search hotels by destination</label>
-      <input type="search" id="htlDestinationSearch" placeholder="Search Shimla, Manali, Goa, Udaipur, Jaipur..." autocomplete="off">
-      <span class="htl-search-pill">Search</span>
-    </div>
+    <form class="htl-searchbar" role="search" method="GET" action="{{ route('hotels') }}" id="htlSearchForm">
+      <div class="htl-searchbar-row">
 
-    <!-- Filter Tabs -->
-    <div class="htl-filter-tabs">
-      <button class="htl-tab active" data-filter="all">All Hotels</button>
-      <button class="htl-tab" data-filter="shimla">Shimla</button>
-      <button class="htl-tab" data-filter="manali">Manali</button>
-      <button class="htl-tab" data-filter="kasol">Kasol</button>
-      <button class="htl-tab" data-filter="mussoorie">Mussoorie</button>
-      <button class="htl-tab" data-filter="rishikesh">Rishikesh</button>
-      <button class="htl-tab" data-filter="bhimtal">Bhimtal</button>
-      <button class="htl-tab" data-filter="goa">Goa</button>
-      <button class="htl-tab" data-filter="jaipur">Jaipur</button>
-      <button class="htl-tab" data-filter="udaipur">Udaipur</button>
-      <button class="htl-tab" data-filter="jibhi">Jibhi</button>
-    </div>
+        <div class="htl-sb-field htl-sb-dest">
+          <label class="htl-sb-label" for="htlDestinationSearch">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            Destination
+          </label>
+          <input type="text" id="htlDestinationSearch" name="destination" placeholder="Where are you going?" autocomplete="off" list="htlDestinationList" value="{{ $destinationQuery ?? '' }}">
+          <datalist id="htlDestinationList">
+            @foreach($destinations ?? [] as $d)
+              <option value="{{ $d }}"></option>
+            @endforeach
+          </datalist>
+        </div>
 
-    <!-- Hotel Grid -->
-    <div class="htl-grid" id="htlGrid">
+        <div class="htl-sb-field" id="htlCheckInField">
+          <label class="htl-sb-label" for="htlCheckIn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+            Check-in
+          </label>
+          <input type="text" id="htlCheckIn" readonly placeholder="Select date" autocomplete="off">
+        </div>
+
+        <div class="htl-sb-field" id="htlCheckOutField" style="position:relative;">
+          <span class="htl-sb-nights-badge" id="htlNightsBadge" hidden></span>
+          <label class="htl-sb-label" for="htlCheckOut">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+            Check-out
+          </label>
+          <input type="text" id="htlCheckOut" readonly placeholder="Select date" autocomplete="off">
+        </div>
+
+        <input type="hidden" id="htlCheckInIso" name="check_in" value="{{ $checkIn ?? '' }}">
+        <input type="hidden" id="htlCheckOutIso" name="check_out" value="{{ $checkOut ?? '' }}">
+        <input type="text" id="htlDateRangePicker" style="position:absolute; width:0; height:0; opacity:0; pointer-events:none;" tabindex="-1">
+
+        <div class="htl-sb-field" id="htlGuestField">
+          <label class="htl-sb-label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Rooms &amp; Guests
+            <svg width="10" height="10" viewBox="0 0 12 12" style="margin-left:2px;"><path fill="currentColor" d="M6 8L1 3h10z"/></svg>
+          </label>
+          <span id="htlGuestSummary">{{ $roomCount ?? 1 }} Room, {{ $adults ?? 2 }} Adult{{ ($adults ?? 2) > 1 ? 's' : '' }}</span>
+
+          <input type="hidden" id="htlAdults" name="adults" value="{{ $adults ?? 2 }}">
+          <input type="hidden" id="htlChildren" name="children" value="{{ $children ?? 0 }}">
+          <input type="hidden" id="htlRooms" name="rooms" value="{{ $roomCount ?? 1 }}">
+          <input type="hidden" id="htlChildAges" name="child_ages" value="{{ implode(',', $childAges ?? []) }}">
+
+          <div class="htl-guest-popover" id="htlGuestPopover" onclick="event.stopPropagation()">
+            <div id="htlRoomBlocks"></div>
+            <div class="htl-guest-actions">
+              <button type="button" class="htl-guest-add-btn" id="htlAddRoomBtn">+ Add Room</button>
+              <button type="button" class="htl-guest-apply-btn" id="htlGuestApplyBtn">Apply</button>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="htl-sb-submit">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          Search
+        </button>
+      </div>
+
+      @if(empty($hasSearched))
+      <div class="htl-more-options">
+        <span class="htl-mo-label">More Options :</span>
+
+        <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+          Rating
+          <select name="min_rating">
+            <option value="0" {{ ($minRating ?? 0) == 0 ? 'selected' : '' }}>Any</option>
+            @for($r = 3; $r <= 5; $r++)
+              <option value="{{ $r }}" {{ ($minRating ?? 0) == $r ? 'selected' : '' }}>{{ $r }} Stars</option>
+            @endfor
+          </select>
+        </label>
+
+      </div>
+      @else
+      <!-- Hidden input to preserve min_rating when doing a new search from the results page -->
+      <input type="hidden" name="min_rating" id="hiddenMinRating" value="{{ $minRating ?? 0 }}">
+      @endif
+    </form>
+
+    @if(!empty($searchError))
+    <div style="max-width:720px; margin:0 auto 28px; padding:14px 20px; border-radius:12px; background:rgba(201,168,76,0.08); border:1px solid var(--gold-dim); color:var(--white-60); font-family:'Jost',sans-serif; font-size:13px; text-align:center;">
+      {{ $searchError }}
+    </div>
+    @endif
+
+    <!-- Hotel Grid or Results Layout -->
+    @if(!empty($hasSearched))
+    <div class="htl-results-layout">
+      <!-- Sidebar Filters -->
+      <aside class="htl-sidebar">
+        <div class="htl-sidebar-title">Filters</div>
+        
+        <div class="htl-filter-group">
+          <div class="htl-filter-title">Search by Name</div>
+          <input type="text" id="htlDestinationSearch" placeholder="E.g. Taj Dubai..." style="width:100%; padding: 12px 14px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius: 8px; color:#fff; font-family:'Jost', sans-serif; outline:none;" autocomplete="off">
+        </div>
+
+        <div class="htl-filter-group">
+          <div class="htl-filter-title">Star Rating</div>
+          <div class="htl-filter-list" id="htlRatingFilterGroup">
+            <label class="htl-filter-label">
+              <input type="radio" name="sidebar_rating" value="0" {{ ($minRating ?? 0) == 0 ? 'checked' : '' }}>
+              Any Rating
+            </label>
+            <label class="htl-filter-label">
+              <input type="radio" name="sidebar_rating" value="5" {{ ($minRating ?? 0) == 5 ? 'checked' : '' }}>
+              5 Stars
+            </label>
+            <label class="htl-filter-label">
+              <input type="radio" name="sidebar_rating" value="4" {{ ($minRating ?? 0) == 4 ? 'checked' : '' }}>
+              4 Stars
+            </label>
+            <label class="htl-filter-label">
+              <input type="radio" name="sidebar_rating" value="3" {{ ($minRating ?? 0) == 3 ? 'checked' : '' }}>
+              3 Stars
+            </label>
+          </div>
+        </div>
+
+        <div class="htl-filter-group">
+          <div class="htl-filter-title">Cancellation Policy</div>
+          <div class="htl-filter-list">
+            <label class="htl-filter-label">
+              <input type="checkbox" id="sidebar_free_cancellation" value="true">
+              Free Cancellation Available
+            </label>
+          </div>
+        </div>
+
+        <div class="htl-filter-group">
+          <div class="htl-filter-title">Price Range</div>
+          <div class="htl-filter-list">
+             <!-- Visual Slider -->
+             <div style="margin-bottom: 12px; padding:0 2px;">
+               <input type="range" id="filterPriceSlider" min="0" max="250000" step="5000" value="250000" style="width:100%; accent-color:var(--gold); cursor:pointer;">
+               <div style="display:flex; justify-content:space-between; font-family:'Jost',sans-serif; font-size:12px; color:var(--white-60); margin-top:6px;">
+                 <span>₹0</span>
+                 <span id="filterPriceLabel">₹250,000+</span>
+               </div>
+             </div>
+             <!-- Radio buckets (shortcuts) -->
+             <label class="htl-filter-label">
+              <input type="radio" name="sidebar_price" value="250000" checked>
+              Any Price
+            </label>
+            <label class="htl-filter-label">
+              <input type="radio" name="sidebar_price" value="10000">
+              Up to ₹10,000
+            </label>
+            <label class="htl-filter-label">
+              <input type="radio" name="sidebar_price" value="25000">
+              Up to ₹25,000
+            </label>
+            <label class="htl-filter-label">
+              <input type="radio" name="sidebar_price" value="50000">
+              Up to ₹50,000
+            </label>
+            <label class="htl-filter-label">
+              <input type="radio" name="sidebar_price" value="100000">
+              Up to ₹100,000
+            </label>
+          </div>
+        </div>
+
+        <div class="htl-filter-group">
+          <div class="htl-filter-title">Meal Basis</div>
+          <div class="htl-filter-list" id="htlMealFilterGroup">
+            <label class="htl-filter-label">
+              <input type="checkbox" name="sidebar_meal" value="room">
+              Room Only
+            </label>
+            <label class="htl-filter-label">
+              <input type="checkbox" name="sidebar_meal" value="breakfast">
+              Breakfast Included
+            </label>
+            <label class="htl-filter-label">
+              <input type="checkbox" name="sidebar_meal" value="half">
+              Half Board
+            </label>
+            <label class="htl-filter-label">
+              <input type="checkbox" name="sidebar_meal" value="full">
+              Full Board
+            </label>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Results -->
+      <main class="htl-results-main">
+        <div class="htl-grid" id="htlGrid">
 
       @forelse($hotels as $hotel)
       @php
@@ -538,10 +849,12 @@
         $slug         = Str::slug($destination);
         $images       = $hotel->images ?? collect();
         $imageCount   = $images->count();
-        $firstImage   = $imageCount > 0
-                          ? Storage::disk('public')->url($images->first()->path)
+        $firstImagePath = $imageCount > 0 ? $images->first()->path : null;
+        $firstImage   = $firstImagePath
+                          ? (Str::startsWith($firstImagePath, ['http://', 'https://']) ? $firstImagePath : Storage::disk('public')->url($firstImagePath))
                           : null;
         $stars        = min((int) $hotel->star_rating, 5);
+        $liveOption   = ($liveOptions ?? collect())->get((string) $hotel->tripjack_hotel_id);
         $amenities    = $hotel->amenities ?? collect();
         $amenityNames = $amenities->pluck('name')->take(5)->implode('  ');
         $starLabel    = match(true) {
@@ -563,18 +876,30 @@
             default           => null,
         };
       @endphp
-      <a href="{{ route('hotel.details', $hotel->slug) }}"
+      <a href="{{ route('hotel.details', array_filter([
+            'slug' => $hotel->slug,
+            'check_in' => $checkIn ?? null,
+            'check_out' => $checkOut ?? null,
+            'adults' => $adults ?? null,
+            'children' => $children ?? null,
+            'rooms' => $roomCount ?? null,
+            'child_ages' => !empty($childAges) ? implode(',', $childAges) : null,
+         ])) }}"
          class="htl-card"
          data-category="{{ $slug }}"
          data-name="{{ Str::slug($hotel->title) }}"
          data-location="{{ $slug }}"
          data-amenities="{{ Str::slug($amenityNames) }}"
+         data-rating="{{ $stars }}"
+         data-price="{{ $liveOption['totalPrice'] ?? 0 }}"
+         data-cancellation="{{ ($liveOption['isRefundable'] ?? false) ? 'true' : 'false' }}"
+         data-meal="{{ Str::slug($liveOption['mealBasis'] ?? 'none') }}"
          style="text-decoration: none;">
 
         <!-- Image with overlay info -->
-        <div class="htl-card-img-wrap">
+        <div class="htl-card-img-wrap" style="height: 220px; border-radius: 16px 16px 0 0; position:relative;">
           @if($firstImage)
-            <img src="{{ $firstImage }}" alt="{{ $hotel->title }}, {{ $destination }}" loading="lazy" />
+            <img src="{{ $firstImage }}" alt="{{ $hotel->title }}, {{ $destination }}" loading="lazy" style="width:100%; height:100%; object-fit:cover;" />
           @else
             <div style="width:100%; height:100%; background:linear-gradient(135deg,#1c1c1c,#252525); display:flex; align-items:center; justify-content:center; flex-direction:column; gap:12px;">
               <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="rgba(201,168,76,0.25)" stroke-width="1.2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
@@ -582,86 +907,153 @@
             </div>
           @endif
 
-          {{-- Gradient overlay --}}
-          <div class="htl-card-img-overlay"></div>
-
-          {{-- Category badge --}}
-          @if($categoryLabel)
-          <div class="htl-card-badge">{{ $categoryLabel }}</div>
-          @endif
-
-          {{-- Heart --}}
-          <button class="htl-heart" aria-label="Save to wishlist" onclick="event.preventDefault(); this.classList.toggle('active');">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-          </button>
-
-          {{-- Hotel name & location on image --}}
-          <div class="htl-card-img-info">
-            <div class="htl-card-img-name">{{ $hotel->title }}</div>
-            <div class="htl-card-img-loc">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-              {{ $destination }}
+          {{-- Top Left Badges --}}
+          <div style="position:absolute; top:12px; left:12px; display:flex; gap:8px; z-index:2;">
+            <div style="background:var(--gold); color:var(--dark); font-family:'Jost',sans-serif; font-size:11px; font-weight:700; padding:4px 8px; border-radius:4px; display:flex; align-items:center; gap:4px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+              Best Rate
             </div>
           </div>
 
-          {{-- Photo counter --}}
-          @if($imageCount > 1)
-          <span class="htl-img-counter">📷 {{ $imageCount }} Photos</span>
+          {{-- Heart --}}
+          <button class="htl-heart" aria-label="Save to wishlist" onclick="event.preventDefault(); this.classList.toggle('active');" style="top:12px; right:12px; background:none; border:none; color:#fff; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+          </button>
+
+          {{-- Image counter bottom center --}}
+          @if($imageCount > 0)
+          <div style="position:absolute; bottom:12px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.65); color:#fff; font-family:'Jost',sans-serif; font-size:11px; font-weight:600; padding:4px 10px; border-radius:12px; z-index:2; backdrop-filter:blur(4px);">
+            1 / {{ $imageCount }}
+          </div>
           @endif
+          
+          {{-- Right arrow --}}
+          <div style="position:absolute; top:50%; right:12px; transform:translateY(-50%); background:rgba(255,255,255,0.85); border-radius:50%; width:28px; height:28px; display:flex; align-items:center; justify-content:center; color:#000; z-index:2; cursor:pointer; backdrop-filter:blur(4px); transition:background 0.2s;" onmouseover="this.style.background='#fff';" onmouseout="this.style.background='rgba(255,255,255,0.85)';">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </div>
         </div>
 
         <!-- Body -->
-        <div class="htl-card-body">
-
-          {{-- Stars row --}}
-          @if($stars > 0)
-          <div class="htl-card-stars-row">
-            <div class="htl-card-stars">
-              @for($i = 0; $i < $stars; $i++) <span>★</span> @endfor
+        <div class="htl-card-body" style="padding: 16px; display:flex; flex-direction:column; flex-grow:1; background:var(--dark-2);">
+          
+          {{-- Title & Stars --}}
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:2px;">
+            <div style="font-family:'Cormorant Garamond', serif; font-size:22px; font-weight:600; color:#fff; line-height:1.15; padding-right:8px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">{{ $hotel->title }}</div>
+            <div style="display:flex; color:var(--gold); font-size:11px; margin-top:4px;">
+              @for($i = 0; $i < $stars; $i++) ★ @endfor
             </div>
-            <span class="htl-card-star-label">{{ $starLabel }}</span>
           </div>
-          @endif
+          
+          {{-- Location --}}
+          <div style="color:var(--white-60); font-family:'Jost',sans-serif; font-size:13.5px;">
+            {{ $destination }}
+          </div>
 
-          {{-- Amenity chips --}}
-          @if($amenities->isNotEmpty())
-          <div class="htl-amenity-chips">
-            @foreach($amenities->take(4) as $am)
-            <span class="htl-amenity-chip">{{ $am->name }}</span>
-            @endforeach
-            @if($amenities->count() > 4)
-            <span class="htl-amenity-chip" style="color:var(--gold); border-color:rgba(201,168,76,0.3); background:rgba(201,168,76,0.06);">+{{ $amenities->count() - 4 }} more</span>
+          {{-- Divider --}}
+          <div style="height:1px; background:rgba(255,255,255,0.1); margin:12px 0;"></div>
+
+          {{-- Bullet Lists (Meal & Cancellation) --}}
+          <ul style="list-style:disc; margin-left:16px; padding-left:4px; font-family:'Jost',sans-serif; font-size:12.5px; color:var(--white-60); margin-bottom:8px;">
+            @if($liveOption && !empty($liveOption['mealBasis']))
+              <li>{{ $liveOption['mealBasis'] }}</li>
+            @else
+              <li>Room Only</li>
             @endif
+            @if($liveOption && isset($liveOption['isRefundable']) && $liveOption['isRefundable'])
+              <li style="color:var(--green); font-weight:500;">Free Cancellation Available</li>
+            @endif
+          </ul>
+
+          {{-- Amenities (Small text string) --}}
+          <div style="font-family:'Jost',sans-serif; font-size:11.5px; font-weight:500; color:#fff; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">
+            {{ str_replace('  ', ' • ', $amenityNames) }}
           </div>
-          @else
-          <div style="flex:1;"></div>
-          @endif
 
-          {{-- Gold divider --}}
-          <div class="htl-card-divider"></div>
+          <div style="flex-grow:1;"></div>
 
-          <!-- Footer -->
-          <div class="htl-card-footer">
-            <div class="htl-star-badge">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
-              Price on Request
+          {{-- Bottom Section --}}
+          <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-top:16px;">
+            
+            {{-- Rating Box --}}
+            <div style="display:flex; gap:8px; align-items:center;">
+              @if($stars >= 4)
+              <div style="color:var(--gold); font-family:'Jost',sans-serif; font-weight:700; font-size:16px; line-height:1;">{{ number_format($stars + 0.2, 1) }}</div>
+              <div style="font-family:'Jost',sans-serif; font-size:12px; line-height:1.2;">
+                <div style="color:#fff; font-weight:500;">Excellent</div>
+              </div>
+              @else
+              <div style="color:var(--gold); font-family:'Jost',sans-serif; font-weight:700; font-size:16px; line-height:1;">{{ number_format($stars + 0.5, 1) }}</div>
+              <div style="font-family:'Jost',sans-serif; font-size:12px; line-height:1.2;">
+                <div style="color:#fff; font-weight:500;">Good</div>
+              </div>
+              @endif
             </div>
-            <button class="htl-req-btn" onclick="event.preventDefault(); window.location.href=this.closest('a').href;">
-              Enquire Now
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-            </button>
+
+            {{-- Pricing Info --}}
+            <div style="text-align:right; font-family:'Jost',sans-serif;">
+              @if($liveOption && $liveOption['totalPrice'])
+                @php 
+                   $nights = max(1, Carbon\Carbon::parse($checkOut ?? now())->diffInDays(Carbon\Carbon::parse($checkIn ?? now()->addDay()))); 
+                   $pricePerNight = round($liveOption['totalPrice'] / ($roomCount ?? 1) / $nights);
+                @endphp
+                <div style="font-size:12px; color:var(--white-60); margin-bottom:2px;">
+                  ₹ {{ number_format($pricePerNight) }} <span style="font-size:10px;">/night</span>
+                </div>
+                <div style="font-size:20px; font-weight:700; color:#fff; line-height:1.1;">
+                  ₹ {{ number_format($liveOption['totalPrice']) }} <span style="font-size:12px; font-weight:400; color:var(--white-60);">Total</span>
+                </div>
+                <div style="font-size:10px; color:var(--white-60); margin-top:2px;">
+                  (Incl. of all taxes)
+                </div>
+              @else
+                <div style="font-size:16px; font-weight:600; color:var(--gold); line-height:1.1;">
+                  Price on Request
+                </div>
+                <div style="font-size:11px; color:var(--white-60); margin-top:4px;">
+                  Contact us for details
+                </div>
+              @endif
+            </div>
           </div>
+
         </div>
       </a>
 
       @empty
+        @if(empty($hasSearched))
         <div style="grid-column: 1 / -1; text-align: center; padding: 60px 40px; color: var(--white-60);">
-          <p style="font-family: 'Cormorant Garamond', serif; font-size: 1.8rem; color: #fff; margin-bottom: 12px;">No hotels listed yet</p>
-          <p style="font-family: 'Jost', sans-serif; font-size: 14px; font-weight: 300;">Check back soon — our team is curating an exquisite collection for you.</p>
+          <div style="display:inline-flex; align-items:center; justify-content:center; width:64px; height:64px; border-radius:50%; background:rgba(201,168,76,0.1); color:var(--gold); margin-bottom:20px;">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          </div>
+          <p style="font-family: 'Cormorant Garamond', serif; font-size: 1.8rem; color: #fff; margin-bottom: 12px;">Discover Luxury Stays</p>
+          <p style="font-family: 'Jost', sans-serif; font-size: 14px; font-weight: 300;">Enter your destination and dates above to find the perfect hotel for your next trip.</p>
         </div>
+        @else
+        <div style="grid-column: 1 / -1; text-align: center; padding: 60px 40px; color: var(--white-60);">
+          <p style="font-family: 'Cormorant Garamond', serif; font-size: 1.8rem; color: #fff; margin-bottom: 12px;">No hotels found</p>
+          <p style="font-family: 'Jost', sans-serif; font-size: 14px; font-weight: 300;">We couldn't find any hotels matching your search criteria. Try adjusting your filters or destination.</p>
+        </div>
+        @endif
       @endforelse
 
+        </div>
+      </main>
     </div>
+    @else
+    <!-- Empty state wrapper when not searched -->
+    <div class="htl-grid" id="htlGrid">
+      @if(empty($hasSearched))
+      <div style="grid-column: 1 / -1; text-align: center; padding: 60px 40px; color: var(--white-60);">
+        <div style="display:inline-flex; align-items:center; justify-content:center; width:64px; height:64px; border-radius:50%; background:rgba(201,168,76,0.1); color:var(--gold); margin-bottom:20px;">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        </div>
+        <p style="font-family: 'Cormorant Garamond', serif; font-size: 1.8rem; color: #fff; margin-bottom: 12px;">Discover Luxury Stays</p>
+        <p style="font-family: 'Jost', sans-serif; font-size: 14px; font-weight: 300;">Enter your destination and dates above to find the perfect hotel for your next trip.</p>
+      </div>
+      @endif
+    </div>
+    @endif
+
   </div>
 </section>
 
@@ -706,30 +1098,320 @@
 @endsection
 
 @push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
 (function () {
 
-  /* ===== FILTER TABS ===== */
-  const tabs  = document.querySelectorAll('.htl-tab');
+  /* ===== SEARCH BAR: ROOMS & GUESTS (multi-room blocks) ===== */
+  const guestField = document.getElementById('htlGuestField');
+  const guestPopover = document.getElementById('htlGuestPopover');
+  const guestSummary = document.getElementById('htlGuestSummary');
+  const roomBlocksEl = document.getElementById('htlRoomBlocks');
+  const addRoomBtn = document.getElementById('htlAddRoomBtn');
+  const applyBtn = document.getElementById('htlGuestApplyBtn');
+
+  const initialRoomCount = parseInt(document.getElementById('htlRooms')?.value || '1', 10);
+  const initialAdults = parseInt(document.getElementById('htlAdults')?.value || '2', 10);
+  const initialChildren = parseInt(document.getElementById('htlChildren')?.value || '0', 10);
+  const initialAgesPool = (document.getElementById('htlChildAges')?.value || '')
+    .split(',').map(v => v.trim()).filter(v => v !== '').map(v => parseInt(v, 10));
+
+  // Distribute the flat adults/children/rooms (and any server-provided ages,
+  // e.g. from a prior search) across N room blocks for initial display.
+  let rooms = [];
+  {
+    let remA = initialAdults, remC = initialChildren;
+    let ageCursor = 0;
+    for (let i = 0; i < initialRoomCount; i++) {
+      const left = initialRoomCount - i;
+      const a = Math.max(1, Math.ceil(remA / left));
+      const c = Math.floor(remC / left);
+      const ages = [];
+      for (let k = 0; k < c; k++) {
+        ages.push(ageCursor < initialAgesPool.length ? initialAgesPool[ageCursor++] : null);
+      }
+      rooms.push({ adults: a, children: c, childAges: ages });
+      remA -= a; remC -= c;
+    }
+  }
+
+  function ageOptions(selected) {
+    let opts = '<option value="" disabled ' + (selected === null ? 'selected' : '') + '>Age</option>';
+    for (let age = 0; age <= 17; age++) {
+      opts += `<option value="${age}" ${selected === age ? 'selected' : ''}>${age} ${age === 1 ? 'yr' : 'yrs'}</option>`;
+    }
+    return opts;
+  }
+
+  function renderRoomBlocks() {
+    roomBlocksEl.innerHTML = '';
+    rooms.forEach((room, i) => {
+      const block = document.createElement('div');
+      block.className = 'htl-room-block';
+      const childAgeRows = room.children > 0 ? `
+        <div class="htl-child-ages">
+          ${room.childAges.map((age, ci) => `
+            <div class="htl-child-age-row">
+              <span class="htl-guest-row-label" style="font-size:12px;">Child ${ci + 1} Age</span>
+              <select data-room="${i}" data-child="${ci}" class="htl-child-age-select" required>${ageOptions(age)}</select>
+            </div>
+          `).join('')}
+        </div>` : '';
+      block.innerHTML = `
+        <div class="htl-room-block-header">
+          <span class="htl-room-block-title">Room ${i + 1}</span>
+          ${rooms.length > 1 ? `<button type="button" class="htl-room-block-remove" data-remove="${i}">Remove</button>` : ''}
+        </div>
+        <div class="htl-guest-row">
+          <span class="htl-guest-row-label">Adults</span>
+          <div class="htl-guest-ctrl">
+            <button type="button" data-room="${i}" data-key="adults" data-dir="-1" ${room.adults <= 1 ? 'disabled' : ''}>&minus;</button>
+            <span>${room.adults}</span>
+            <button type="button" data-room="${i}" data-key="adults" data-dir="1" ${room.adults >= 6 ? 'disabled' : ''}>+</button>
+          </div>
+        </div>
+        <div class="htl-guest-row">
+          <span class="htl-guest-row-label">Children<small>0-17 years old</small></span>
+          <div class="htl-guest-ctrl">
+            <button type="button" data-room="${i}" data-key="children" data-dir="-1" ${room.children <= 0 ? 'disabled' : ''}>&minus;</button>
+            <span>${room.children}</span>
+            <button type="button" data-room="${i}" data-key="children" data-dir="1" ${room.children >= 4 ? 'disabled' : ''}>+</button>
+          </div>
+        </div>
+        ${childAgeRows}
+      `;
+      roomBlocksEl.appendChild(block);
+    });
+
+    roomBlocksEl.querySelectorAll('[data-key]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const i = parseInt(btn.dataset.room, 10);
+        const key = btn.dataset.key;
+        const dir = parseInt(btn.dataset.dir, 10);
+        const max = key === 'adults' ? 6 : 4;
+        const min = key === 'adults' ? 1 : 0;
+        rooms[i][key] = Math.min(max, Math.max(min, rooms[i][key] + dir));
+        if (key === 'children') {
+          const c = rooms[i].children;
+          const ages = rooms[i].childAges;
+          rooms[i].childAges = c > ages.length ? ages.concat(new Array(c - ages.length).fill(null)) : ages.slice(0, c);
+        }
+        renderRoomBlocks();
+        syncGuestFields();
+      });
+    });
+    roomBlocksEl.querySelectorAll('[data-remove]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        rooms.splice(parseInt(btn.dataset.remove, 10), 1);
+        renderRoomBlocks();
+        syncGuestFields();
+      });
+    });
+    roomBlocksEl.querySelectorAll('.htl-child-age-select').forEach(sel => {
+      sel.addEventListener('change', () => {
+        const i = parseInt(sel.dataset.room, 10);
+        const ci = parseInt(sel.dataset.child, 10);
+        rooms[i].childAges[ci] = sel.value === '' ? null : parseInt(sel.value, 10);
+        syncGuestFields();
+      });
+    });
+  }
+  renderRoomBlocks();
+
+  if (addRoomBtn) {
+    addRoomBtn.addEventListener('click', () => {
+      if (rooms.length >= 9) return;
+      rooms.push({ adults: 1, children: 0, childAges: [] });
+      renderRoomBlocks();
+      syncGuestFields();
+    });
+  }
+
+  // Syncs the hidden form fields + summary text from current room state.
+  // Safe to call anytime (page load, every stepper click) — no validation.
+  function syncGuestFields() {
+    const totalAdults = rooms.reduce((s, r) => s + r.adults, 0);
+    const totalChildren = rooms.reduce((s, r) => s + r.children, 0);
+    const allAges = rooms.flatMap(r => r.childAges).filter(a => a !== null);
+    document.getElementById('htlRooms').value = rooms.length;
+    document.getElementById('htlAdults').value = totalAdults;
+    document.getElementById('htlChildren').value = totalChildren;
+    document.getElementById('htlChildAges').value = allAges.join(',');
+    let summary = rooms.length + (rooms.length === 1 ? ' Room, ' : ' Rooms, ') + totalAdults + (totalAdults === 1 ? ' Adult' : ' Adults');
+    if (totalChildren > 0) summary += ', ' + totalChildren + (totalChildren === 1 ? ' Child' : ' Children');
+    if (guestSummary) guestSummary.textContent = summary;
+  }
+  syncGuestFields();
+
+  // Called only by the Apply button — this is where missing ages actually block.
+  function applyGuestState() {
+    const missingAge = rooms.some(r => r.childAges.some(a => a === null));
+    if (missingAge) {
+      alert('Please select an age for every child before applying.');
+      return false;
+    }
+    syncGuestFields();
+    return true;
+  }
+
+  if (applyBtn) {
+    applyBtn.addEventListener('click', () => {
+      if (!applyGuestState()) return;
+      guestPopover.classList.remove('open');
+      guestField.classList.remove('open');
+    });
+  }
+  if (guestField) {
+    guestField.addEventListener('click', (e) => {
+      guestPopover.classList.toggle('open');
+      guestField.classList.toggle('open');
+    });
+  }
+  document.addEventListener('click', (e) => {
+    if (guestPopover && !guestField.contains(e.target)) { 
+      guestPopover.classList.remove('open'); 
+      guestField.classList.remove('open'); 
+    }
+  });
+
+  /* ===== SEARCH BAR: DATE RANGE CALENDAR (flatpickr) ===== */
+  function initHotelSearchDatePicker() {
+    const rangeInput = document.getElementById('htlDateRangePicker');
+    const checkInDisplay = document.getElementById('htlCheckIn');
+    const checkOutDisplay = document.getElementById('htlCheckOut');
+    const checkInIso = document.getElementById('htlCheckInIso');
+    const checkOutIso = document.getElementById('htlCheckOutIso');
+    const nightsBadge = document.getElementById('htlNightsBadge');
+    if (!rangeInput || typeof flatpickr === 'undefined') return;
+
+    const initialCheckIn = checkInIso.value || null;
+    const initialCheckOut = checkOutIso.value || null;
+
+    const fp = flatpickr(rangeInput, {
+      mode: 'range',
+      minDate: 'today',
+      dateFormat: 'Y-m-d',
+      showMonths: window.innerWidth > 768 ? 2 : 1,
+      positionElement: document.getElementById('htlCheckInField'),
+      defaultDate: initialCheckIn && initialCheckOut ? [initialCheckIn, initialCheckOut] : null,
+      onChange: function (selectedDates, dateStr, instance) {
+        if (selectedDates.length >= 1) {
+          checkInDisplay.value = instance.formatDate(selectedDates[0], 'D, j M Y');
+          checkInIso.value = instance.formatDate(selectedDates[0], 'Y-m-d');
+        } else {
+          checkInDisplay.value = ''; checkInIso.value = '';
+        }
+        if (selectedDates.length === 2) {
+          checkOutDisplay.value = instance.formatDate(selectedDates[1], 'D, j M Y');
+          checkOutIso.value = instance.formatDate(selectedDates[1], 'Y-m-d');
+          const nights = Math.round((selectedDates[1] - selectedDates[0]) / 86400000);
+          nightsBadge.textContent = nights + 'N';
+          nightsBadge.hidden = false;
+        } else {
+          checkOutDisplay.value = ''; checkOutIso.value = '';
+          nightsBadge.hidden = true;
+        }
+      },
+    });
+
+    [checkInDisplay, checkOutDisplay].forEach(el => {
+      if (el) el.addEventListener('click', (e) => { e.stopPropagation(); fp.open(); });
+    });
+
+    if (initialCheckIn && initialCheckOut) {
+      const d1 = new Date(initialCheckIn);
+      const d2 = new Date(initialCheckOut);
+      checkInDisplay.value = fp.formatDate(d1, 'D, j M Y');
+      checkOutDisplay.value = fp.formatDate(d2, 'D, j M Y');
+      const nights = Math.round((d2 - d1) / 86400000);
+      if (nights > 0) { nightsBadge.textContent = nights + 'N'; nightsBadge.hidden = false; }
+    }
+  }
+  initHotelSearchDatePicker();
+
+  /* ===== QUICK FILTERS (live, no page reload) ===== */
   const cards = document.querySelectorAll('.htl-card');
   const destinationSearch = document.getElementById('htlDestinationSearch');
+  
+  // Depending on layout, we either have a select or radio buttons
+  const ratingSelect = document.querySelector('select[name="min_rating"]');
+  const ratingRadios = document.querySelectorAll('input[name="sidebar_rating"]');
+  const hiddenMinRating = document.getElementById('hiddenMinRating');
 
-  function applyHotelFilters(activeFilter) {
+  // New filters
+  const freeCancelCheckbox = document.getElementById('sidebar_free_cancellation');
+  const priceSlider = document.getElementById('filterPriceSlider');
+  const priceRadios = document.querySelectorAll('input[name="sidebar_price"]');
+  const priceLabel = document.getElementById('filterPriceLabel');
+  const mealCheckboxes = document.querySelectorAll('input[name="sidebar_meal"]');
+
+  // Sync price radios with slider
+  priceRadios.forEach(radio => {
+    radio.addEventListener('change', (e) => {
+      if (priceSlider) {
+        priceSlider.value = e.target.value;
+        priceLabel.textContent = e.target.value == 250000 ? '₹250,000+' : 'Up to ₹' + parseInt(e.target.value).toLocaleString();
+        applyHotelFilters();
+      }
+    });
+  });
+
+  if (priceSlider) {
+    priceSlider.addEventListener('input', (e) => {
+      priceLabel.textContent = e.target.value == 250000 ? '₹250,000+' : 'Up to ₹' + parseInt(e.target.value).toLocaleString();
+      // Uncheck radios when slider moves manually
+      const matchingRadio = document.querySelector(`input[name="sidebar_price"][value="${e.target.value}"]`);
+      if (matchingRadio) matchingRadio.checked = true;
+      else {
+        const anyChecked = document.querySelector('input[name="sidebar_price"]:checked');
+        if (anyChecked) anyChecked.checked = false;
+      }
+      applyHotelFilters();
+    });
+  }
+
+  function getMinRating() {
+    if (ratingSelect) return parseInt(ratingSelect.value, 10) || 0;
+    const checkedRadio = document.querySelector('input[name="sidebar_rating"]:checked');
+    if (checkedRadio) return parseInt(checkedRadio.value, 10) || 0;
+    return 0;
+  }
+
+  function applyHotelFilters() {
     const search = destinationSearch ? destinationSearch.value.trim().toLowerCase() : '';
+    const minRating = getMinRating();
+    const requireFreeCancel = freeCancelCheckbox ? freeCancelCheckbox.checked : false;
+    const maxPrice = priceSlider ? parseInt(priceSlider.value, 10) : 250000;
+    const selectedMeals = Array.from(mealCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
+
     let delay = 0;
 
+    // Sync hidden input for form submission
+    if (hiddenMinRating) {
+      hiddenMinRating.value = minRating;
+    }
+
     cards.forEach(card => {
-      const categoryMatch = activeFilter === 'all' || card.dataset.category === activeFilter;
       const searchText = [
         card.dataset.location,
         card.dataset.name,
         card.dataset.category,
         card.dataset.amenities,
       ].join(' ').toLowerCase();
-      const searchMatch = !search || searchText.includes(search);
-      const match = categoryMatch && searchMatch;
+      
+      const textMatch = !search || searchText.includes(search);
+      const ratingMatch = minRating === 0 || parseInt(card.dataset.rating || 0, 10) === minRating;
+      
+      const cardPrice = parseInt(card.dataset.price || 0, 10);
+      // Hide 'Price on request' (cardPrice === 0) if a specific price filter is applied
+      const priceMatch = maxPrice === 250000 || (cardPrice > 0 && cardPrice <= maxPrice);
 
-      if (match) {
+      const cancelMatch = !requireFreeCancel || card.dataset.cancellation === 'true';
+
+      const cardMeal = card.dataset.meal || '';
+      const mealMatch = selectedMeals.length === 0 || selectedMeals.some(m => cardMeal.includes(m));
+
+      if (textMatch && ratingMatch && priceMatch && cancelMatch && mealMatch) {
         card.classList.remove('htl-hidden');
         card.style.animation = 'none';
         card.offsetHeight;
@@ -741,20 +1423,17 @@
     });
   }
 
-  tabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      tabs.forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      applyHotelFilters(tab.dataset.filter);
-    });
-  });
-
   if (destinationSearch) {
-    destinationSearch.addEventListener('input', () => {
-      const activeTab = document.querySelector('.htl-tab.active');
-      applyHotelFilters(activeTab ? activeTab.dataset.filter : 'all');
-    });
+    destinationSearch.addEventListener('input', applyHotelFilters);
   }
+  if (ratingSelect) {
+    ratingSelect.addEventListener('change', applyHotelFilters);
+  }
+  ratingRadios.forEach(radio => {
+    radio.addEventListener('change', applyHotelFilters);
+  });
+  if (freeCancelCheckbox) freeCancelCheckbox.addEventListener('change', applyHotelFilters);
+  mealCheckboxes.forEach(cb => cb.addEventListener('change', applyHotelFilters));
 
   /* ===== SCROLL REVEAL ===== */
   const revealObs = new IntersectionObserver((entries) => {
