@@ -23,6 +23,13 @@ class ImageOptimizer
      */
     public function optimizeAndSave($file, string $type = 'hero', string $directory = 'uploads', string $disk = 'public'): string
     {
+        // Temporarily increase memory and execution time limits to prevent 502 Bad Gateway 
+        // when processing large high-resolution images on the server.
+        if (function_exists('ini_set')) {
+            @ini_set('memory_limit', '512M');
+            @ini_set('max_execution_time', '120');
+        }
+
         try {
             // 1. Initialize Intervention Image Manager
             $driver = extension_loaded('imagick') ? new ImagickDriver() : new GdDriver();
