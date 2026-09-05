@@ -321,7 +321,7 @@ class FrontendController extends Controller
             );
         } catch (TripJackException $e) {
             $errorCode = $e instanceof TripJackApiException ? $e->errorCode : null;
-            $described = TripJackErrorCatalog::describe($errorCode, $e->getMessage());
+            $described = TripJackErrorCatalog::describe($errorCode);
             $this->logTripjackFailure($described['logLevel'], 'review_failed', ['hid' => $hotel->tripjack_hotel_id, 'optionId' => $optionId, 'errorCode' => $errorCode, 'message' => $e->getMessage()]);
 
             return $backToDetails->with('booking_error', $described['message']);
@@ -484,7 +484,7 @@ class FrontendController extends Controller
             );
         } catch (TripJackException $e) {
             $errorCode = $e instanceof TripJackApiException ? $e->errorCode : null;
-            $described = TripJackErrorCatalog::describe($errorCode, $e->getMessage());
+            $described = TripJackErrorCatalog::describe($errorCode);
             $this->logTripjackFailure($described['logLevel'], 'book_failed', ['bookingId' => $draft['bookingId'], 'errorCode' => $errorCode, 'message' => $e->getMessage()]);
 
             return back()->withInput()->with('booking_error', $described['message']);
