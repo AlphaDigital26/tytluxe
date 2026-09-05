@@ -698,6 +698,9 @@ body { background: var(--dark); color: #fff; }
     @if($hotel->is_featured)
       <span class="hd-badge-outline">Featured</span>
     @endif
+    @if(!empty($hotel->chain_name))
+      <span class="hd-badge-outline">{{ $hotel->chain_name }}</span>
+    @endif
   </div>
 
   <!-- Title & Location -->
@@ -797,6 +800,26 @@ body { background: var(--dark); color: #fff; }
     </div>
     @endif
 
+    <!-- Good to Know — special instructions, pre-arrival info, house rules -->
+    @if(!empty($hotel->special_instructions) || !empty($hotel->know_before_you_go) || !empty($hotel->house_rules))
+    <div class="hd-section">
+      <h2 class="hd-section-title">Good to Know</h2>
+      @if(!empty($hotel->special_instructions))
+        <div class="hd-desc" style="margin-bottom:16px;">{!! $hotel->special_instructions !!}</div>
+      @endif
+      @if(!empty($hotel->know_before_you_go))
+        <div class="hd-desc" style="margin-bottom:16px;">{!! $hotel->know_before_you_go !!}</div>
+      @endif
+      @if(!empty($hotel->house_rules) && is_array($hotel->house_rules))
+        <div class="hd-amenities">
+          @foreach($hotel->house_rules as $rule => $value)
+            <span class="hd-amenity"><span class="hd-amenity-dot"></span>{{ Str::title(str_replace('_',' ', $rule)) }}: {{ is_bool($value) ? ($value ? 'Yes' : 'No') : $value }}</span>
+          @endforeach
+        </div>
+      @endif
+    </div>
+    @endif
+
     <!-- Amenities -->
     @if($amenities->isNotEmpty())
     <div class="hd-section">
@@ -841,7 +864,11 @@ body { background: var(--dark); color: #fff; }
                     return str_contains(strtolower($roomName), strtolower($rt->name)) || str_contains(strtolower($rt->name), strtolower($roomName));
                 });
             }
-            $roomImage = $localRoom && $localRoom->image_path ? Storage::disk('public')->url($localRoom->image_path) : 'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=600&q=80'; // Placeholder
+            $roomImage = match(true) {
+                empty($localRoom?->image_path) => 'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=600&q=80', // Placeholder
+                Str::startsWith($localRoom->image_path, ['http://', 'https://']) => $localRoom->image_path,
+                default => Storage::disk('public')->url($localRoom->image_path),
+            };
           @endphp
           
           <div class="hd-room-group-card" style="background: var(--dark-2); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; overflow: hidden; margin-bottom: 24px;">
@@ -962,15 +989,23 @@ body { background: var(--dark); color: #fff; }
     </div>
     @endif
 
-    <!-- Room Categories / Types -->
-    @if($hotel->roomTypes && $hotel->roomTypes->where('is_active', true)->count() > 0)
+    <!-- Room Categories / Types — only when there's no live TripJack pricing already
+         shown above (that section already pulls a matching photo from this same
+         static catalogue), otherwise this would just repeat the same rooms
+         price-less right below the priced ones. Fallback for: manual hotels,
+         and TripJack hotels with no live options yet (e.g. no dates picked). -->
+    @if($hotel->roomTypes && $hotel->roomTypes->where('is_active', true)->count() > 0 && ($hotel->source !== 'tripjack' || ($liveOptions ?? collect())->isEmpty()))
     <div class="hd-section" id="htl-static-rooms-section">
       {{-- Heading differs from the live TripJack section ("Available Rooms") to avoid confusion --}}
       <h2 class="hd-section-title">Room Types</h2>
       <div class="hd-room-list">
         @foreach($hotel->roomTypes->where('is_active', true) as $room)
           @php
-             $roomImage = $room->image_path ? Storage::disk('public')->url($room->image_path) : 'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=600&q=80';
+             $roomImage = match(true) {
+                 empty($room->image_path) => 'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=600&q=80',
+                 Str::startsWith($room->image_path, ['http://', 'https://']) => $room->image_path,
+                 default => Storage::disk('public')->url($room->image_path),
+             };
           @endphp
           
           <div class="hd-room-group-card" style="background: var(--dark-2); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; overflow: hidden; margin-bottom: 24px;">
@@ -1054,7 +1089,7 @@ body { background: var(--dark); color: #fff; }
                   
                   <div class="hd-room-gallery" style="margin-bottom: 0;">
                     @foreach($roomImages as $img)
-                      <img src="{{ Storage::disk('public')->url($img) }}" alt="{{ $room->name }} Image">
+                      <img src="{{ Str::startsWith($img, ['http://', 'https://']) ? $img : Storage::disk('public')->url($img) }}" alt="{{ $room->name }} Image">
                     @endforeach
                   </div>
 

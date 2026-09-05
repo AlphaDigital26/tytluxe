@@ -12,6 +12,10 @@ class Hotel extends Model
 
     protected $guarded = [];
 
+    protected $casts = [
+        'house_rules' => 'array',
+    ];
+
     public function destination() { return $this->belongsTo(Destination::class); }
     public function roomTypes() { return $this->hasMany(RoomType::class); }
     public function images() { return $this->hasMany(HotelImage::class); }
