@@ -1423,6 +1423,22 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
     });
   }
 
+  /* ===== SEARCH FORM VALIDATION ===== */
+  const htlSearchForm = document.getElementById('htlSearchForm');
+  if (htlSearchForm && destinationSearch) {
+    htlSearchForm.addEventListener('submit', (e) => {
+      const value = destinationSearch.value.trim();
+      const validOptions = Array.from(document.querySelectorAll('#htlDestinationList option')).map(o => o.value);
+      const isValid = value !== '' && validOptions.includes(value);
+
+      if (!isValid) {
+        e.preventDefault();
+        showToast('Search Error', 'Please pick a valid city/hotel.', 'error');
+        destinationSearch.focus();
+      }
+    });
+  }
+
   if (destinationSearch) {
     destinationSearch.addEventListener('input', applyHotelFilters);
   }
