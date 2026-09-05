@@ -97,6 +97,16 @@
   display: flex; align-items: center; gap: 7px;
 }
 .htl-sb-label svg { width: 14px; height: 14px; flex-shrink: 0; }
+.htl-sb-required { color: #f3a3a3; font-weight: 700; }
+.htl-sb-field.htl-sb-error {
+  border-color: #f3a3a3 !important; background: rgba(243,163,163,0.06) !important;
+  animation: htlShake 0.35s ease;
+}
+@keyframes htlShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
 .htl-sb-field input[type="text"],
 .htl-sb-field input[type="date"] {
   border: none; outline: none; background: transparent; color: #fff;
@@ -213,14 +223,46 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
   .htl-results-layout { grid-template-columns: 1fr; gap: 32px; }
 }
 
+/* Results render as a vertical list of horizontal rows (OTA-style), not a card grid */
 .htl-results-layout .htl-grid {
-  grid-template-columns: repeat(3, 1fr); margin-top: 0; gap: 24px;
+  grid-template-columns: 1fr; margin-top: 0; gap: 20px;
 }
-@media (max-width: 1400px) {
-  .htl-results-layout .htl-grid { grid-template-columns: repeat(2, 1fr); }
+/* Fixed row height (not min-height) is deliberate: without a hard-defined
+   ancestor height, img{height:100%} can't resolve, so the browser falls back
+   to the photo's own intrinsic aspect ratio at 280px wide — tall/portrait
+   source photos then dictate the whole row's height. A fixed height breaks
+   that dependency outright; overflow:hidden on the text columns clips any
+   hotel with unusually long content instead of growing the row. */
+.htl-results-layout .htl-card {
+  flex-direction: row; align-items: stretch; height: 232px;
 }
-@media (max-width: 1100px) {
-  .htl-results-layout .htl-grid { grid-template-columns: 1fr; }
+.htl-list-thumb {
+  width: 280px; height: 100%; flex-shrink: 0; position: relative; overflow: hidden;
+  border-radius: 22px 0 0 22px;
+}
+.htl-list-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.htl-list-mid {
+  flex: 1; min-width: 0; height: 100%; padding: 18px 20px; display: flex; flex-direction: column;
+  border-right: 1px solid rgba(255,255,255,0.07); overflow: hidden;
+}
+.htl-list-title {
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden; word-break: break-word;
+}
+.htl-list-amenities {
+  display: flex; flex-wrap: nowrap; gap: 6px; margin-top: auto;
+  overflow: hidden; white-space: nowrap;
+}
+.htl-list-amenities > span { flex-shrink: 0; }
+.htl-list-side {
+  width: 210px; height: 100%; flex-shrink: 0; padding: 18px 20px; overflow: hidden;
+  display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; text-align: right;
+}
+@media (max-width: 900px) {
+  .htl-results-layout .htl-card { flex-direction: column; height: auto; }
+  .htl-list-thumb { width: 100%; height: 220px; border-radius: 22px 22px 0 0; }
+  .htl-list-mid { height: auto; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.07); }
+  .htl-list-side { width: 100%; height: auto; flex-direction: row-reverse; align-items: center; }
 }
 
 /* Sidebar */
@@ -653,7 +695,7 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
             Destination
           </label>
-          <input type="text" id="htlDestinationSearch" name="destination" placeholder="Where are you going?" autocomplete="off" list="htlDestinationList" value="{{ $destinationQuery ?? '' }}">
+          <input type="text" id="htlDestinationSearch" name="destination" placeholder="Where are you going?" autocomplete="off" list="htlDestinationList" value="{{ $destinationQuery ?? '' }}" required>
           <datalist id="htlDestinationList">
             @foreach($destinations ?? [] as $d)
               <option value="{{ $d }}"></option>
@@ -666,7 +708,7 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
             Check-in
           </label>
-          <input type="text" id="htlCheckIn" readonly placeholder="Select date" autocomplete="off">
+          <input type="text" id="htlCheckIn" readonly placeholder="Select date" autocomplete="off" required>
         </div>
 
         <div class="htl-sb-field" id="htlCheckOutField" style="position:relative;">
@@ -675,7 +717,7 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
             Check-out
           </label>
-          <input type="text" id="htlCheckOut" readonly placeholder="Select date" autocomplete="off">
+          <input type="text" id="htlCheckOut" readonly placeholder="Select date" autocomplete="off" required>
         </div>
 
         <input type="hidden" id="htlCheckInIso" name="check_in" value="{{ $checkIn ?? '' }}">
@@ -896,8 +938,8 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
          data-meal="{{ Str::slug($liveOption['mealBasis'] ?? 'none') }}"
          style="text-decoration: none;">
 
-        <!-- Image with overlay info -->
-        <div class="htl-card-img-wrap" style="height: 220px; border-radius: 16px 16px 0 0; position:relative;">
+        <!-- Thumbnail -->
+        <div class="htl-list-thumb">
           @if($firstImage)
             <img src="{{ $firstImage }}" alt="{{ $hotel->title }}, {{ $destination }}" loading="lazy" style="width:100%; height:100%; object-fit:cover;" />
           @else
@@ -907,17 +949,9 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
             </div>
           @endif
 
-          {{-- Top Left Badges --}}
-          <div style="position:absolute; top:12px; left:12px; display:flex; gap:8px; z-index:2;">
-            <div style="background:var(--gold); color:var(--dark); font-family:'Jost',sans-serif; font-size:11px; font-weight:700; padding:4px 8px; border-radius:4px; display:flex; align-items:center; gap:4px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
-              Best Rate
-            </div>
-          </div>
-
           {{-- Heart --}}
-          <button class="htl-heart" aria-label="Save to wishlist" onclick="event.preventDefault(); this.classList.toggle('active');" style="top:12px; right:12px; background:none; border:none; color:#fff; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+          <button class="htl-heart" aria-label="Save to wishlist" onclick="event.preventDefault(); this.classList.toggle('active');" style="top:12px; right:12px; width:32px; height:32px; background:rgba(0,0,0,0.45); backdrop-filter:blur(6px);">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
           </button>
 
           {{-- Image counter bottom center --}}
@@ -926,96 +960,83 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
             1 / {{ $imageCount }}
           </div>
           @endif
-          
-          {{-- Right arrow --}}
-          <div style="position:absolute; top:50%; right:12px; transform:translateY(-50%); background:rgba(255,255,255,0.85); border-radius:50%; width:28px; height:28px; display:flex; align-items:center; justify-content:center; color:#000; z-index:2; cursor:pointer; backdrop-filter:blur(4px); transition:background 0.2s;" onmouseover="this.style.background='#fff';" onmouseout="this.style.background='rgba(255,255,255,0.85)';">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
-          </div>
         </div>
 
-        <!-- Body -->
-        <div class="htl-card-body" style="padding: 16px; display:flex; flex-direction:column; flex-grow:1; background:var(--dark-2);">
-          
-          {{-- Title & Stars --}}
-          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:2px;">
-            <div style="font-family:'Cormorant Garamond', serif; font-size:22px; font-weight:600; color:#fff; line-height:1.15; padding-right:8px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">{{ $hotel->title }}</div>
-            <div style="display:flex; color:var(--gold); font-size:11px; margin-top:4px;">
+        <!-- Middle: name, location, rating, meal/cancellation, amenities -->
+        <div class="htl-list-mid">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
+            <div class="htl-list-title" style="flex:1; min-width:0; font-family:'Cormorant Garamond', serif; font-size:20px; font-weight:600; color:#fff; line-height:1.25;">{{ $hotel->title }}</div>
+            <div style="display:flex; gap:2px; color:var(--gold); font-size:13px; flex-shrink:0; white-space:nowrap; margin-top:4px;">
               @for($i = 0; $i < $stars; $i++) ★ @endfor
             </div>
           </div>
-          
-          {{-- Location --}}
-          <div style="color:var(--white-60); font-family:'Jost',sans-serif; font-size:13.5px;">
+
+          <div style="color:var(--white-60); font-family:'Jost',sans-serif; font-size:13.5px; display:flex; align-items:center; gap:5px; margin-top:4px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
             {{ $destination }}
           </div>
 
-          {{-- Divider --}}
-          <div style="height:1px; background:rgba(255,255,255,0.1); margin:12px 0;"></div>
+          <div style="height:1px; background:rgba(255,255,255,0.08); margin:14px 0;"></div>
 
-          {{-- Bullet Lists (Meal & Cancellation) --}}
-          <ul style="list-style:disc; margin-left:16px; padding-left:4px; font-family:'Jost',sans-serif; font-size:12.5px; color:var(--white-60); margin-bottom:8px;">
+          {{-- Meal & cancellation --}}
+          <ul style="list-style:disc; margin-left:16px; padding-left:4px; font-family:'Jost',sans-serif; font-size:12.5px; color:var(--white-60); margin-bottom:10px;">
             @if($liveOption && !empty($liveOption['mealBasis']))
               <li>{{ $liveOption['mealBasis'] }}</li>
             @else
               <li>Room Only</li>
             @endif
-            @if($liveOption && isset($liveOption['isRefundable']) && $liveOption['isRefundable'])
-              <li style="color:var(--green); font-weight:500;">Free Cancellation Available</li>
+            @if($liveOption && isset($liveOption['isRefundable']))
+              @if($liveOption['isRefundable'])
+                <li style="color:var(--green); font-weight:500;">Free Cancellation Available</li>
+              @else
+                <li style="color:#f3a3a3;">Non-Refundable</li>
+              @endif
             @endif
           </ul>
 
-          {{-- Amenities (Small text string) --}}
-          <div style="font-family:'Jost',sans-serif; font-size:11.5px; font-weight:500; color:#fff; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">
-            {{ str_replace('  ', ' • ', $amenityNames) }}
+          {{-- Amenity chips --}}
+          @if($amenities->isNotEmpty())
+          <div class="htl-list-amenities" data-extra-count="{{ max(0, $amenities->count() - 12) }}">
+            @foreach($amenities->take(12) as $am)
+              <span class="htl-amenity-chip" style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.09); color:rgba(255,255,255,0.65); font-family:'Jost',sans-serif; font-size:11px; padding:4px 11px; border-radius:100px; white-space:nowrap;">{{ $am->name }}</span>
+            @endforeach
+            <span class="htl-amenity-more" style="display:none; color:var(--gold); font-family:'Jost',sans-serif; font-size:11px; padding:4px 4px; white-space:nowrap; flex-shrink:0;"></span>
           </div>
+          @endif
+        </div>
 
-          <div style="flex-grow:1;"></div>
-
-          {{-- Bottom Section --}}
-          <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-top:16px;">
-            
-            {{-- Rating Box --}}
-            <div style="display:flex; gap:8px; align-items:center;">
-              @if($stars >= 4)
-              <div style="color:var(--gold); font-family:'Jost',sans-serif; font-weight:700; font-size:16px; line-height:1;">{{ number_format($stars + 0.2, 1) }}</div>
-              <div style="font-family:'Jost',sans-serif; font-size:12px; line-height:1.2;">
-                <div style="color:#fff; font-weight:500;">Excellent</div>
-              </div>
-              @else
-              <div style="color:var(--gold); font-family:'Jost',sans-serif; font-weight:700; font-size:16px; line-height:1;">{{ number_format($stars + 0.5, 1) }}</div>
-              <div style="font-family:'Jost',sans-serif; font-size:12px; line-height:1.2;">
-                <div style="color:#fff; font-weight:500;">Good</div>
-              </div>
-              @endif
-            </div>
-
-            {{-- Pricing Info --}}
-            <div style="text-align:right; font-family:'Jost',sans-serif;">
-              @if($liveOption && $liveOption['totalPrice'])
-                @php 
-                   $nights = max(1, Carbon\Carbon::parse($checkOut ?? now())->diffInDays(Carbon\Carbon::parse($checkIn ?? now()->addDay()))); 
-                   $pricePerNight = round($liveOption['totalPrice'] / ($roomCount ?? 1) / $nights);
-                @endphp
-                <div style="font-size:12px; color:var(--white-60); margin-bottom:2px;">
-                  ₹ {{ number_format($pricePerNight) }} <span style="font-size:10px;">/night</span>
-                </div>
-                <div style="font-size:20px; font-weight:700; color:#fff; line-height:1.1;">
-                  ₹ {{ number_format($liveOption['totalPrice']) }} <span style="font-size:12px; font-weight:400; color:var(--white-60);">Total</span>
-                </div>
-                <div style="font-size:10px; color:var(--white-60); margin-top:2px;">
-                  (Incl. of all taxes)
-                </div>
-              @else
-                <div style="font-size:16px; font-weight:600; color:var(--gold); line-height:1.1;">
-                  Price on Request
-                </div>
-                <div style="font-size:11px; color:var(--white-60); margin-top:4px;">
-                  Contact us for details
-                </div>
-              @endif
-            </div>
+        <!-- Right: star rating label + price -->
+        <div class="htl-list-side">
+          @if($stars > 0)
+          <div style="font-family:'Jost',sans-serif; font-size:12px; color:var(--white-60); font-weight:500; text-align:right;">
+            {{ $starLabel }}
           </div>
+          @endif
 
+          <div style="font-family:'Jost',sans-serif;">
+            @if($liveOption && $liveOption['totalPrice'])
+              @php
+                 // Carbon v3's diffInDays() is signed (unlike v2's always-absolute
+                 // default) — calling it in the wrong order silently returned a
+                 // negative number here, which max(1, ...) then floored to 1,
+                 // making per-night always equal the total regardless of stay length.
+                 $nights = max(1, abs(Carbon\Carbon::parse($checkIn ?? now())->diffInDays(Carbon\Carbon::parse($checkOut ?? now()->addDay()))));
+                 $pricePerNight = round($liveOption['totalPrice'] / $nights);
+              @endphp
+              <div style="font-size:12px; color:var(--white-60); margin-bottom:2px;">
+                ₹ {{ number_format($pricePerNight) }} <span style="font-size:10px;">/night</span>
+              </div>
+              <div style="font-size:22px; font-weight:700; color:#fff; line-height:1.1;">
+                ₹ {{ number_format($liveOption['totalPrice']) }}
+              </div>
+              <div style="font-size:11px; color:var(--white-60); margin-top:2px;">Total (incl. taxes)</div>
+              <div class="htl-req-btn" style="margin-top:12px; display:inline-flex;">View Deal</div>
+            @else
+              <div style="font-size:16px; font-weight:600; color:var(--gold); line-height:1.1;">Price on Request</div>
+              <div style="font-size:11px; color:var(--white-60); margin-top:4px;">Contact us for details</div>
+              <div class="htl-req-btn" style="margin-top:12px; display:inline-flex;">Enquire Now</div>
+            @endif
+          </div>
         </div>
       </a>
 
@@ -1197,14 +1218,12 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
           rooms[i].childAges = c > ages.length ? ages.concat(new Array(c - ages.length).fill(null)) : ages.slice(0, c);
         }
         renderRoomBlocks();
-        syncGuestFields();
       });
     });
     roomBlocksEl.querySelectorAll('[data-remove]').forEach(btn => {
       btn.addEventListener('click', () => {
         rooms.splice(parseInt(btn.dataset.remove, 10), 1);
         renderRoomBlocks();
-        syncGuestFields();
       });
     });
     roomBlocksEl.querySelectorAll('.htl-child-age-select').forEach(sel => {
@@ -1212,7 +1231,6 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
         const i = parseInt(sel.dataset.room, 10);
         const ci = parseInt(sel.dataset.child, 10);
         rooms[i].childAges[ci] = sel.value === '' ? null : parseInt(sel.value, 10);
-        syncGuestFields();
       });
     });
   }
@@ -1223,12 +1241,13 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
       if (rooms.length >= 9) return;
       rooms.push({ adults: 1, children: 0, childAges: [] });
       renderRoomBlocks();
-      syncGuestFields();
     });
   }
 
   // Syncs the hidden form fields + summary text from current room state.
-  // Safe to call anytime (page load, every stepper click) — no validation.
+  // Only called on page load (to match server-rendered defaults) and when
+  // Apply is clicked — never on individual stepper/room clicks, so nothing
+  // is actually submitted/reflected in the summary until the user confirms.
   function syncGuestFields() {
     const totalAdults = rooms.reduce((s, r) => s + r.adults, 0);
     const totalChildren = rooms.reduce((s, r) => s + r.children, 0);
@@ -1312,11 +1331,28 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
           nightsBadge.hidden = true;
         }
       },
+      onClose: function (selectedDates) {
+        // Guided flow: once both check-in and check-out are picked (range
+        // complete, calendar auto-closes), open Rooms & Guests next.
+        if (selectedDates.length === 2 && guestField && guestPopover) {
+          guestPopover.classList.add('open');
+          guestField.classList.add('open');
+        }
+      },
     });
 
     [checkInDisplay, checkOutDisplay].forEach(el => {
       if (el) el.addEventListener('click', (e) => { e.stopPropagation(); fp.open(); });
     });
+
+    // Guided flow: once a destination is entered/selected, open the date
+    // picker automatically instead of making the user click it themselves.
+    const destInput = document.getElementById('htlDestinationSearch');
+    if (destInput) {
+      destInput.addEventListener('change', () => {
+        if (destInput.value.trim() && !checkInIso.value) fp.open();
+      });
+    }
 
     if (initialCheckIn && initialCheckOut) {
       const d1 = new Date(initialCheckIn);
@@ -1328,6 +1364,54 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
     }
   }
   initHotelSearchDatePicker();
+
+  /* ===== REQUIRE DESTINATION + DATES BEFORE SEARCH ===== */
+  (function () {
+    const form = document.getElementById('htlSearchForm');
+    if (!form) return;
+
+    function flagError(fieldEl) {
+      if (!fieldEl) return;
+      fieldEl.classList.add('htl-sb-error');
+      fieldEl.addEventListener('animationend', () => fieldEl.classList.remove('htl-sb-error'), { once: true });
+    }
+
+    form.addEventListener('submit', function (e) {
+      const destInput = document.getElementById('htlDestinationSearch');
+      const checkInIso = document.getElementById('htlCheckInIso');
+      const checkOutIso = document.getElementById('htlCheckOutIso');
+
+      let firstInvalid = null;
+      const missing = [];
+
+      if (!destInput || !destInput.value.trim()) {
+        flagError(destInput ? destInput.closest('.htl-sb-field') : null);
+        firstInvalid = firstInvalid || destInput;
+        missing.push('where you\'d like to go');
+      }
+      if (!checkInIso || !checkInIso.value) {
+        flagError(document.getElementById('htlCheckInField'));
+        firstInvalid = firstInvalid || document.getElementById('htlCheckIn');
+        missing.push('a check-in date');
+      }
+      if (!checkOutIso || !checkOutIso.value) {
+        flagError(document.getElementById('htlCheckOutField'));
+        firstInvalid = firstInvalid || document.getElementById('htlCheckOut');
+        missing.push('a check-out date');
+      }
+
+      if (firstInvalid) {
+        e.preventDefault();
+        firstInvalid.focus();
+        if (typeof showToast === 'function') {
+          const list = missing.length > 1
+            ? missing.slice(0, -1).join(', ') + ' and ' + missing[missing.length - 1]
+            : missing[0];
+          showToast('Almost there', `Let us know ${list} so we can find the best stays for you.`, 'error');
+        }
+      }
+    });
+  })();
 
   /* ===== QUICK FILTERS (live, no page reload) ===== */
   const cards = document.querySelectorAll('.htl-card');
@@ -1522,6 +1606,41 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
       }
     });
   }
+
+function truncateAmenityChips() {
+    document.querySelectorAll('.htl-list-amenities').forEach(function (container) {
+      var chips = Array.prototype.slice.call(container.querySelectorAll('.htl-amenity-chip'));
+      var moreBadge = container.querySelector('.htl-amenity-more');
+      if (!chips.length) return;
+
+      chips.forEach(function (chip) { chip.style.display = ''; });
+      if (moreBadge) moreBadge.style.display = 'none';
+
+      var containerWidth = container.clientWidth;
+      var reserved = 80; // space kept for the "+N more" badge
+      var gap = 6;
+      var used = 0;
+      var hiddenCount = parseInt(container.getAttribute('data-extra-count'), 10) || 0;
+
+      chips.forEach(function (chip, index) {
+        var chipWidth = chip.offsetWidth + (index > 0 ? gap : 0);
+        var budget = containerWidth - reserved;
+        if (index > 0 && used + chipWidth > budget) {
+          chip.style.display = 'none';
+          hiddenCount++;
+        } else {
+          used += chipWidth;
+        }
+      });
+
+      if (hiddenCount > 0 && moreBadge) {
+        moreBadge.textContent = '+' + hiddenCount + ' more';
+        moreBadge.style.display = 'inline-flex';
+      }
+    });
+  }
+  window.addEventListener('load', truncateAmenityChips);
+  window.addEventListener('resize', truncateAmenityChips);
 
 })();
 </script>
