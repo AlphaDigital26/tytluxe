@@ -55,7 +55,7 @@ body { background: var(--dark); color: #fff; }
 /* ===== HERO GALLERY ===== */
 .hd-gallery { position: relative; }
 .hd-gallery-main {
-  position: relative; width: 100%; height: 70vh; min-height: 480px; overflow: hidden;
+  position: relative; width: 100%; height: 78vh; min-height: 540px; overflow: hidden;
   background: var(--dark-2);
 }
 .hd-gallery-slide {
@@ -126,6 +126,29 @@ body { background: var(--dark); color: #fff; }
 }
 
 
+/* ===== SECTION NAV (sticky quick-jump bar) ===== */
+html { scroll-behavior: smooth; }
+.hd-section-nav {
+  position: sticky; top: 0; z-index: 50;
+  background: rgba(13,13,13,0.94); backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.hd-section-nav-inner {
+  max-width: 1280px; margin: 0 auto; padding: 0 40px;
+  display: flex; justify-content: center; gap: 6px; overflow-x: auto;
+  -ms-overflow-style: none; scrollbar-width: none;
+}
+.hd-section-nav-inner::-webkit-scrollbar { display: none; }
+.hd-section-nav a {
+  flex-shrink: 0; padding: 16px 18px; font-family: 'Jost', sans-serif;
+  font-size: 12.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--white-60); text-decoration: none; white-space: nowrap;
+  border-bottom: 2px solid transparent; transition: color var(--tr), border-color var(--tr);
+}
+.hd-section-nav a:hover, .hd-section-nav a.active { color: var(--gold); border-bottom-color: var(--gold); }
+@media (max-width: 900px) { .hd-section-nav-inner { padding: 0 20px; } .hd-section-nav a { padding: 13px 14px; font-size: 12px; } }
+[id^="hd-anchor-"] { scroll-margin-top: 76px; }
+
 /* ===== LAYOUT ===== */
 .hd-layout {
   max-width: 1280px; margin: 0 auto;
@@ -165,6 +188,32 @@ body { background: var(--dark); color: #fff; }
 }
 
 /* ===== AMENITIES ===== */
+.hd-amenity-groups { display: flex; flex-direction: column; gap: 26px; }
+.hd-amenity-group-head {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 14px;
+}
+.hd-amenity-group-head .hd-info-icon {
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  width: 32px; height: 32px; border-radius: 9px;
+  background: linear-gradient(160deg, rgba(201,168,76,0.18), rgba(201,168,76,0.05));
+  border: 1px solid rgba(201,168,76,0.25);
+}
+.hd-amenity-group-head svg { color: var(--gold); flex-shrink: 0; width: 15px; height: 15px; }
+/* Collapsible group content — truncated to first 6 items until "Read more" */
+.hd-collapsible.collapsed > *:nth-child(n+7) { display: none; }
+.hd-collapsible.collapsed .hd-fee-list li:nth-child(n+7) { display: none; }
+.hd-readmore-btn {
+  display: inline-block; margin-top: 12px; background: none; border: none; padding: 0;
+  font-family: 'Jost', sans-serif; font-size: 12.5px; font-weight: 600;
+  color: var(--gold); cursor: pointer; border-bottom: 1px dashed var(--gold);
+  transition: color var(--tr), border-color var(--tr);
+}
+.hd-readmore-btn:hover { color: var(--gold-light); border-bottom-color: var(--gold-light); }
+
+.hd-amenity-group-head h3 {
+  font-family: 'Jost', sans-serif; font-size: 12.5px; font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--gold-light); margin: 0;
+}
 .hd-amenities { display: flex; flex-wrap: wrap; gap: 10px; }
 .hd-amenity {
   display: inline-flex; align-items: center; gap: 8px;
@@ -175,6 +224,124 @@ body { background: var(--dark); color: #fff; }
 .hd-amenity:hover { border-color: var(--gold); background: var(--gold-dim); }
 .hd-amenity-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); flex-shrink: 0; }
 
+/* ===== ABOUT — INFO CARD GRID ===== */
+.hd-info-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px;
+}
+@media (max-width: 640px) { .hd-info-grid { grid-template-columns: 1fr; } }
+.hd-info-card {
+  position: relative; overflow: hidden;
+  background: linear-gradient(160deg, rgba(255,255,255,0.035), rgba(255,255,255,0.01));
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px; padding: 22px 24px;
+  transition: border-color var(--tr), background var(--tr), transform var(--tr), box-shadow var(--tr);
+}
+.hd-info-card::before {
+  content: ''; position: absolute; inset: 0 0 auto 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold) 50%, transparent);
+  opacity: 0; transition: opacity var(--tr);
+}
+.hd-info-card:hover {
+  border-color: rgba(201,168,76,0.35); background: rgba(255,255,255,0.045);
+  transform: translateY(-3px); box-shadow: 0 16px 32px rgba(0,0,0,0.35), 0 0 0 1px rgba(201,168,76,0.06);
+}
+.hd-info-card:hover::before { opacity: 1; }
+.hd-info-card.hd-info-card--wide { grid-column: 1 / -1; }
+.hd-info-card-head {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 14px;
+}
+.hd-info-card-head .hd-info-icon {
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  width: 36px; height: 36px; border-radius: 10px;
+  background: linear-gradient(160deg, rgba(201,168,76,0.18), rgba(201,168,76,0.05));
+  border: 1px solid rgba(201,168,76,0.25);
+}
+.hd-info-card-head svg { color: var(--gold); flex-shrink: 0; width: 17px; height: 17px; }
+.hd-info-card-head h3 {
+  font-family: 'Jost', sans-serif; font-size: 12.5px; font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--gold-light); margin: 0;
+}
+.hd-info-card .hd-desc { font-size: 14px; }
+.hd-info-chip-list { display: flex; flex-wrap: wrap; gap: 9px; }
+.hd-info-chip {
+  display: inline-flex; align-items: center; gap: 7px; border: 1px solid rgba(255,255,255,0.12);
+  padding: 8px 16px; border-radius: 100px; font-family: 'Jost', sans-serif;
+  font-size: 12.5px; color: var(--white-80); background: rgba(255,255,255,0.03);
+  transition: all var(--tr);
+}
+.hd-info-chip:hover { border-color: rgba(201,168,76,0.4); background: var(--gold-dim); color: #fff; }
+.hd-info-chip::before {
+  content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--gold); flex-shrink: 0;
+}
+
+/* Keyword point-list — sentence paragraphs distilled into scannable features */
+.hd-point-list {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px 20px;
+}
+@media (max-width: 640px) { .hd-point-list { grid-template-columns: 1fr; } }
+.hd-point {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 9px 0; font-family: 'Jost', sans-serif; font-size: 13.5px;
+  color: var(--white-80); line-height: 1.4; border-bottom: 1px solid rgba(255,255,255,0.06);
+  overflow-wrap: break-word; word-wrap: break-word;
+}
+.hd-point:nth-last-child(-n+2) { border-bottom: none; }
+.hd-point-icon {
+  flex-shrink: 0; width: 18px; height: 18px; border-radius: 50%; margin-top: 1px;
+  background: var(--gold-dim); color: var(--gold);
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* ===== PLACE LIST (Attractions/Renovations bottom sections) — pin-icon cards ===== */
+.hd-place-list {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px;
+}
+@media (max-width: 640px) { .hd-place-list { grid-template-columns: 1fr; } }
+.hd-place-list li {
+  display: grid; grid-template-columns: 44px 1fr; grid-template-rows: auto auto;
+  column-gap: 14px; row-gap: 3px; align-items: start;
+  background: var(--dark-2); border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px; padding: 18px;
+  font-family: 'Jost', sans-serif; font-size: 13.5px; color: var(--white-80);
+  transition: border-color var(--tr), transform var(--tr), box-shadow var(--tr);
+}
+.hd-place-list li:hover {
+  border-color: rgba(201,168,76,0.35); transform: translateY(-3px);
+  box-shadow: 0 12px 26px rgba(0,0,0,0.3);
+}
+.hd-place-list li::before {
+  content: '📍'; grid-row: 1 / 3; grid-column: 1;
+  width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 17px;
+  background: linear-gradient(160deg, rgba(201,168,76,0.18), rgba(201,168,76,0.05));
+  border: 1px solid rgba(201,168,76,0.25);
+}
+.hd-place-list li span:first-child {
+  grid-row: 1; grid-column: 2; overflow-wrap: anywhere;
+  font-weight: 700; color: #fff; font-size: 14.5px; line-height: 1.35;
+}
+.hd-place-list-dist {
+  grid-row: 2; grid-column: 2; justify-self: start;
+  color: var(--gold); white-space: nowrap; font-weight: 500; font-size: 12.5px;
+}
+
+/* ===== FEE / POLICY BULLET LIST ===== */
+.hd-fee-list {
+  list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px;
+}
+.hd-fee-list li {
+  position: relative; padding: 10px 0 10px 24px; font-family: 'Jost', sans-serif;
+  font-size: 13.5px; line-height: 1.6; color: var(--white-80);
+  border-bottom: 1px dashed rgba(255,255,255,0.07);
+}
+.hd-fee-list li:last-child { border-bottom: none; }
+.hd-fee-list li::before {
+  content: '✓'; position: absolute; left: 0; top: 9px;
+  width: 16px; height: 16px; border-radius: 50%; background: var(--gold-dim);
+  color: var(--gold); font-size: 10px; font-weight: 700; line-height: 16px; text-align: center;
+}
+
 /* ===== ROOM CATEGORIES ===== */
 .hd-room-cats { display: flex; flex-wrap: wrap; gap: 10px; }
 /* ===== ROOM CARDS ===== */
@@ -183,12 +350,14 @@ body { background: var(--dark); color: #fff; }
   background: var(--dark-2); border: 1px solid rgba(255,255,255,0.08);
   border-radius: 14px; overflow: hidden; display: flex; flex-direction: column;
 }
-@media (min-width: 768px) { 
-  .hd-room-card { 
-    flex-direction: row; 
+@media (min-width: 768px) {
+  .hd-room-card {
+    flex-direction: row;
     align-items: stretch;
-  } 
+  }
 }
+.hd-room-group-row { display: flex; flex-direction: column; }
+@media (min-width: 992px) { .hd-room-group-row { flex-direction: row; align-items: flex-start; } }
 .hd-room-img { 
   width: 100%; 
   height: 200px; 
@@ -235,6 +404,54 @@ body { background: var(--dark); color: #fff; }
   font-family: 'Jost', sans-serif; font-size: 13px; color: var(--white-80); overflow-wrap: break-word; word-wrap: break-word;
 }
 .hd-room-spec svg { width: 14px; height: 14px; color: var(--gold); }
+.hd-room-badge {
+  display: inline-flex; align-items: center; gap: 7px;
+  border: 1px solid rgba(255,255,255,0.14); border-radius: 100px;
+  padding: 7px 14px; font-family: 'Jost', sans-serif; font-size: 12.5px;
+  color: var(--white-80); background: rgba(255,255,255,0.03); white-space: nowrap;
+}
+.hd-room-badge svg { width: 14px; height: 14px; color: var(--gold); flex-shrink: 0; }
+
+/* ===== RATE PLAN ROW (per meal-basis / cancellation option) ===== */
+.hd-rate-row {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 18px 20px; background: rgba(255,255,255,0.025);
+  border: 1px solid rgba(255,255,255,0.08); border-radius: 14px;
+  transition: border-color var(--tr), background var(--tr);
+}
+.hd-rate-row:hover { border-color: rgba(201,168,76,0.3); background: rgba(255,255,255,0.045); }
+.hd-rate-room-name {
+  font-family: 'Cormorant Garamond', serif; font-size: 1.3rem; font-weight: 600;
+  color: #fff; margin-bottom: 6px; line-height: 1.2;
+}
+.hd-rate-title {
+  font-family: 'Jost', sans-serif; font-size: 14.5px; font-weight: 600; color: #fff;
+}
+.hd-rate-title .refundable { color: var(--green); }
+.hd-rate-title .non-refundable { color: #f87171; }
+.hd-rate-title .sep { color: rgba(255,255,255,0.25); margin: 0 6px; font-weight: 400; }
+.hd-rate-cancel {
+  display: flex; align-items: center; gap: 6px;
+  font-family: 'Jost', sans-serif; font-size: 12.5px; color: var(--green); margin-top: 8px;
+}
+.hd-rate-cancel svg { width: 14px; height: 14px; flex-shrink: 0; }
+.hd-rate-more {
+  display: inline-block; margin-top: 8px; font-family: 'Jost', sans-serif; font-size: 12.5px;
+  color: var(--gold); text-decoration: none; border-bottom: 1px dashed var(--gold); cursor: pointer;
+}
+.hd-rate-more:hover { color: var(--gold-light); border-bottom-color: var(--gold-light); }
+.hd-rate-price {
+  text-align: right; min-width: 170px;
+}
+.hd-rate-price-per-night {
+  font-family: 'Jost', sans-serif; font-size: 12px; color: var(--white-60); margin-bottom: 4px;
+}
+.hd-rate-price-total {
+  font-family: 'Jost', sans-serif; font-size: 1.5rem; font-weight: 700; color: #fff; line-height: 1;
+}
+.hd-rate-price-caption {
+  font-family: 'Jost', sans-serif; font-size: 11.5px; color: var(--white-60); margin: 4px 0 12px;
+}
 .hd-room-desc-text {
   font-size: 13px; margin-bottom: 10px; color: var(--white-60); line-height: 1.5;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
@@ -247,6 +464,15 @@ body { background: var(--dark); color: #fff; }
   font-family: 'Jost', sans-serif; font-size: 11.5px; color: var(--green);
   background: rgba(74, 222, 128, 0.08); padding: 4px 10px; border-radius: 100px;
 }
+/* Inclusions beyond the per-card limit stay hidden inline; "Read more" opens the full list in a popup */
+.hd-inc-hidden { display: none !important; }
+.hd-inc-readmore-btn {
+  display: inline-block; margin-top: 8px; background: none; border: none; padding: 0;
+  font-family: 'Jost', sans-serif; font-size: 12px; font-weight: 600;
+  color: var(--gold); cursor: pointer; border-bottom: 1px dashed var(--gold);
+  transition: color var(--tr), border-color var(--tr);
+}
+.hd-inc-readmore-btn:hover { color: var(--gold-light); border-bottom-color: var(--gold-light); }
 .hd-room-price {
   display: flex; flex-direction: column; justify-content: center; align-items: flex-start;
   min-width: 160px;
@@ -528,6 +754,34 @@ body { background: var(--dark); color: #fff; }
   font-family: 'Jost', sans-serif; font-size: 13px; color: var(--white-60); font-weight: 300;
   margin-bottom: 28px;
 }
+
+/* ===== ROOM AMENITIES POPUP ===== */
+.hd-amenities-modal { max-width: 640px; }
+.hd-amenities-modal-img {
+  border-radius: 14px; overflow: hidden; margin: 18px 0 20px;
+  height: 260px; background: var(--dark-3);
+}
+.hd-amenities-modal-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.hd-amenities-modal-meta {
+  display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 22px;
+}
+.hd-amenities-modal-meta span {
+  display: inline-flex; align-items: center; gap: 7px;
+  border: 1px solid rgba(255,255,255,0.14); border-radius: 100px;
+  padding: 7px 14px; font-family: 'Jost', sans-serif; font-size: 12.5px;
+  color: var(--white-80); background: rgba(255,255,255,0.03);
+}
+.hd-amenities-modal-meta span svg { width: 14px; height: 14px; color: var(--gold); flex-shrink: 0; }
+.hd-amenities-modal-subhead {
+  font-family: 'Jost', sans-serif; font-size: 12.5px; font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--gold-light); margin-bottom: 16px;
+  border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 18px;
+}
+.hd-amenities-modal-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px 20px;
+  padding-bottom: 4px;
+}
+@media (min-width: 560px) { .hd-amenities-modal-grid { grid-template-columns: repeat(3, 1fr); } }
 .hd-mform { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .hd-mform-group { display: flex; flex-direction: column; gap: 7px; }
 .hd-mform-group.full { grid-column: 1 / -1; }
@@ -602,6 +856,49 @@ body { background: var(--dark); color: #fff; }
   .hd-modal { padding: 28px 20px; }
 }
 
+/* ===== PHOTO LIGHTBOX ===== */
+.hd-view-all-btn {
+  margin-top: 16px; z-index: 3;
+  background: rgba(255,255,255,0.06); backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.25); color: #fff;
+  font-family: 'Jost', sans-serif; font-size: 12.5px; font-weight: 600;
+  padding: 10px 18px; border-radius: 100px; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 8px; transition: all var(--tr);
+}
+.hd-view-all-btn:hover { border-color: var(--gold); color: var(--gold); background: rgba(201,168,76,0.1); }
+.hd-view-all-btn svg { flex-shrink: 0; }
+@media (max-width: 768px) {
+  .hd-view-all-btn { margin-top: 12px; font-size: 12px; padding: 8px 14px; }
+}
+
+.hd-lightbox {
+  position: fixed; inset: 0; z-index: 9998; background: rgba(0,0,0,0.96);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+}
+.hd-lightbox.open { opacity: 1; pointer-events: all; }
+.hd-lightbox img { max-width: 90vw; max-height: 82vh; object-fit: contain; border-radius: 8px; }
+.hd-lightbox-close {
+  position: absolute; top: 20px; right: 24px; width: 42px; height: 42px; border-radius: 50%;
+  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); color: #fff;
+  font-size: 20px; display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.hd-lightbox-close:hover { border-color: var(--gold); color: var(--gold); }
+.hd-lightbox-counter {
+  position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
+  color: var(--white-60); font-family: 'Jost', sans-serif; font-size: 13px;
+}
+.hd-lightbox-prev, .hd-lightbox-next {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); color: #fff;
+  width: 46px; height: 46px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 18px;
+}
+.hd-lightbox-prev:hover, .hd-lightbox-next:hover { background: var(--gold); border-color: var(--gold); color: var(--dark); }
+.hd-lightbox-prev { left: 24px; } .hd-lightbox-next { right: 24px; }
+@media (max-width: 640px) { .hd-lightbox-prev { left: 8px; } .hd-lightbox-next { right: 8px; } }
+
+/* ===== EMBEDDED MAP ===== */
 /* ===== STICKY MOBILE CTA BAR ===== */
 .hd-sticky-cta {
   display: none; /* Hidden on desktop */
@@ -651,6 +948,47 @@ body { background: var(--dark); color: #fff; }
   $stars        = min((int) ($hotel->star_rating ?? 3), 5);
 
   $amenities    = $hotel->amenities ?? collect();
+  // "Rooms" and "Business Amenities" description sections read as facility
+  // listings, so they're folded into Amenities & Facilities instead of About.
+  $extraAmenitySections = collect($hotel->description_sections ?? [])->only(['Rooms', 'Business Amenities']);
+  $aboutSectionsToShow = collect($hotel->description_sections ?? [])->except(['Rooms', 'Business Amenities']);
+
+  // Group amenities into display categories (Property Facilities, Food & Beverage,
+  // etc.) by matching keywords against each amenity's name — the amenities table
+  // has no category column, so this buckets existing data without a migration.
+  $amenityCategoryMap = [
+    'Food & Beverage' => ['restaurant', 'breakfast', 'buffet', 'bar', 'lounge', 'snack', 'bakery', 'room service', 'dining', 'cuisine', 'kitchen', 'minibar', 'mini bar', 'coffee maker', 'tea/coffee', 'wine', 'bbq', 'barbecue'],
+    'Activities & Recreation' => ['pool', 'swimming', 'spa', 'sauna', 'steam room', 'gym', 'fitness', 'yoga', 'water sport', 'kids club', 'playground', 'game room', 'billiard', 'tennis', 'golf', 'hiking', 'cycling', 'bicycle', 'beach', 'nightclub', 'night club', 'casino', 'cinema', 'movie', 'entertainment', 'massage', 'salon'],
+    'Technology & Connectivity' => ['wifi', 'wi-fi', 'internet', 'wireless', 'television', 'tv', 'telephone', 'charging', 'air condition', 'a/c', 'computer'],
+    'Parking & Transport' => ['parking', 'valet', 'shuttle', 'airport transfer', 'transport', 'car rental', 'bicycle rental', 'taxi'],
+    'Family & Accessibility' => ['wheelchair', 'accessible', 'family room', 'crib', 'babysitting', 'child'],
+    'Property Facilities' => ['front desk', 'reception', 'elevator', 'lift', 'concierge', 'luggage', 'storage', 'atm', 'currency exchange', 'coffee shop', 'cafe', 'laundry', 'dry clean', 'smoking area', 'non-smoking', 'garden', 'terrace', 'business', 'meeting room', 'conference', 'banquet', 'safe deposit', 'locker', 'housekeeping', 'doctor', 'first aid', 'security', '24-hour', '24 hour', 'check-in', 'newspaper'],
+  ];
+  $amenityCategoryOrder = ['Property Facilities', 'Food & Beverage', 'Activities & Recreation', 'Technology & Connectivity', 'Parking & Transport', 'Family & Accessibility', 'Other Amenities'];
+  $groupedAmenities = $amenities->groupBy(function ($amenity) use ($amenityCategoryMap) {
+    $name = strtolower($amenity->name);
+    foreach ($amenityCategoryMap as $category => $keywords) {
+      foreach ($keywords as $keyword) {
+        // Leading word-boundary only (not trailing) so short keywords like "spa" or
+        // "tv" don't false-positive mid-word (e.g. inside "newspaper"), while still
+        // matching plurals/suffixes ("water sport" -> "water sports", "air condition" -> "air conditioning")
+        if (preg_match('/\b' . preg_quote($keyword, '/') . '/i', $name)) return $category;
+      }
+    }
+    return 'Other Amenities';
+  })->sortBy(function ($group, $category) use ($amenityCategoryOrder) {
+    $pos = array_search($category, $amenityCategoryOrder);
+    return $pos === false ? count($amenityCategoryOrder) : $pos;
+  }, SORT_REGULAR, false);
+  $amenityCategoryIcons = [
+    'Property Facilities' => '<rect x="3" y="10" width="18" height="10" rx="1"/><path d="M7 10V6a5 5 0 0110 0v4"/>',
+    'Food & Beverage' => '<path d="M6 2v7a2 2 0 002 2h0a2 2 0 002-2V2M8 11v11M18 2c-1.5 1-2 3-2 5v3a2 2 0 002 2v9"/>',
+    'Activities & Recreation' => '<path d="M12 2l2.4 7.2H22l-6 4.4 2.3 7.2L12 16.4 5.7 20.8 8 13.6l-6-4.4h7.6z"/>',
+    'Technology & Connectivity' => '<path d="M5 12.55a11 11 0 0114.08 0M1.42 9a16 16 0 0121.16 0M8.53 16.11a6 6 0 016.95 0M12 20h.01"/>',
+    'Parking & Transport' => '<rect x="1" y="6" width="15" height="12" rx="2"/><circle cx="6" cy="18" r="2"/><circle cx="16" cy="18" r="2"/><path d="M16 8h3l3 4v4h-2"/>',
+    'Family & Accessibility' => '<circle cx="9" cy="7" r="4"/><path d="M2 21v-2a4 4 0 014-4h6a4 4 0 014 4v2"/><circle cx="19" cy="8" r="2"/>',
+    'Other Amenities' => '<circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/>',
+  ];
   $cancelDate   = now()->addDays(14)->format('d M Y');
   $ratingScore  = number_format(min(5, max(1, ($stars * 0.92))), 1);
   $ratingLabel  = $stars >= 5 ? 'Exceptional' : ($stars >= 4 ? 'Excellent' : ($stars >= 3 ? 'Very Good' : 'Good'));
@@ -674,91 +1012,108 @@ body { background: var(--dark); color: #fff; }
 
 @section('content')
 
-{{-- ===================================================
-     BREADCRUMB / BACK NAV
-=================================================== --}}
-<div style="background:var(--dark-2); border-bottom:1px solid rgba(255,255,255,0.05); padding:12px 48px;">
-  <a href="{{ route('hotels', array_filter(['destination' => $destination, 'check_in' => $checkIn, 'check_out' => $checkOut, 'adults' => $adults, 'children' => $children, 'rooms' => $roomCount])) }}"
-     style="display:inline-flex; align-items:center; gap:7px; font-family:'Jost',sans-serif; font-size:12.5px; color:rgba(255,255,255,0.5); text-decoration:none; transition:color 0.25s ease;"
-     onmouseover="this.style.color='#c9a84c'" onmouseout="this.style.color='rgba(255,255,255,0.5)'">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-    Hotels
-  </a>
-  <span style="margin:0 10px; color:rgba(255,255,255,0.2); font-size:12px;">&#47;</span>
-  <span style="font-family:'Jost',sans-serif; font-size:12.5px; color:rgba(255,255,255,0.35);">{{ $hotel->title }}</span>
-</div>
-
 <!-- ===================================================
      HERO GALLERY & HEADER
 =================================================== -->
-<div class="hd-layout-top" style="max-width:1280px; margin:0 auto; padding:40px 40px 0;">
-  
-  <div class="hd-badge-row" style="margin-bottom: 14px;">
-    <span class="hd-badge">{{ $catLabel }}</span>
-    @if($hotel->is_featured)
-      <span class="hd-badge-outline">Featured</span>
-    @endif
-    @if(!empty($hotel->chain_name))
-      <span class="hd-badge-outline">{{ $hotel->chain_name }}</span>
-    @endif
-  </div>
+<div class="hd-gallery">
+  <div class="hd-gallery-main" id="hdGalleryMain">
+    @forelse($images as $i => $img)
+      @php
+        $slideUrl = Str::startsWith($img->path, ['http://', 'https://']) ? $img->path : Storage::disk('public')->url($img->path);
+      @endphp
+      <div class="hd-gallery-slide {{ $i === 0 ? 'active' : '' }}" data-index="{{ $i }}">
+        <img src="{{ $slideUrl }}" alt="{{ $hotel->title }}" loading="{{ $i === 0 ? 'eager' : 'lazy' }}">
+      </div>
+    @empty
+      <div class="hd-gallery-slide active" data-index="0">
+        <img src="https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=1600&q=85" alt="{{ $hotel->title }}">
+      </div>
+    @endforelse
 
-  <!-- Title & Location -->
-  <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px; flex-wrap:wrap; gap:16px;">
-    <div>
-      <div style="display:flex; align-items:center; gap:12px; margin-bottom:8px;">
-        <h1 class="hd-hero-title" style="margin:0; font-size:clamp(2rem, 4vw, 2.8rem); line-height:1.1;">{{ $hotel->title }}</h1>
-        <div class="hd-stars" style="display:flex; gap:3px; color:var(--gold); font-size:16px; margin-top:6px;">
-          @for($i = 0; $i < $stars; $i++) <span>★</span> @endfor
+    <div class="hd-gallery-overlay"></div>
+
+    @if($imageCount > 1)
+      <button type="button" class="hd-gallery-prev" id="hdGalleryPrev" aria-label="Previous photo">&#10094;</button>
+      <button type="button" class="hd-gallery-next" id="hdGalleryNext" aria-label="Next photo">&#10095;</button>
+      <div class="hd-gallery-counter" id="hdGalleryCounter">1 / {{ $imageCount }}</div>
+    @endif
+
+    <div class="hd-gallery-hero-info">
+      <div>
+        <div class="hd-badge-row">
+          <span class="hd-badge">{{ $catLabel }}</span>
+          @if($hotel->is_featured)
+            <span class="hd-badge-outline">Featured</span>
+          @endif
+          @if(!empty($hotel->chain_name))
+            <span class="hd-badge-outline">{{ $hotel->chain_name }}</span>
+          @endif
         </div>
-      </div>
-      <div style="font-family:'Jost',sans-serif; font-size:14.5px; color:var(--white-60); display:flex; align-items:center; gap:8px;">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
-        {{ $hotel->address ?? $destination }}
-        <a href="#" style="color:var(--gold); text-decoration:none; border-bottom:1px dashed var(--gold); margin-left:8px;">Show on map</a>
-      </div>
-    </div>
-    <button class="hd-favourite-btn" style="background:transparent; border:1px solid rgba(255,255,255,0.2); color:#fff; border-radius:100px; padding:10px 18px; display:flex; align-items:center; gap:8px; font-family:'Jost',sans-serif; font-size:14px; cursor:pointer; transition:all 0.3s;" onmouseover="this.style.borderColor='var(--gold)'; this.style.color='var(--gold)';" onmouseout="this.style.borderColor='rgba(255,255,255,0.2)'; this.style.color='#fff';">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-      Favourite
-    </button>
-  </div>
+        <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+          <h1 class="hd-hero-title">{{ $hotel->title }}</h1>
+          <div class="hd-stars">
+            @for($i = 0; $i < $stars; $i++) <span>★</span> @endfor
+          </div>
+        </div>
+        <div class="hd-hero-location">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+          {{ $hotel->address ?? $destination }}
+          <a href="#hd-anchor-location" style="color:var(--gold); text-decoration:none; border-bottom:1px dashed var(--gold); margin-left:8px;">Show on map</a>
+        </div>
 
-  <!-- Masonry Gallery -->
-  <div class="hd-masonry-gallery" style="display:grid; grid-template-columns: 2fr 1fr; gap:12px; height:50vh; min-height:400px; border-radius:24px; overflow:hidden;">
-    <!-- Large image -->
-    <div style="position:relative; width:100%; height:100%;">
-      @php
-        $mainImg = $imageCount > 0 ? $images[0] : null;
-        $mainImgUrl = $mainImg ? (Str::startsWith($mainImg->path, ['http://', 'https://']) ? $mainImg->path : Storage::disk('public')->url($mainImg->path)) : 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=1600&q=85';
-      @endphp
-      <img src="{{ $mainImgUrl }}" alt="{{ $hotel->title }}" style="width:100%; height:100%; object-fit:cover; display:block;" />
-    </div>
-    
-    <!-- Small images -->
-    <div style="display:grid; grid-template-rows:1fr 1fr; gap:12px; height:100%;">
-      @php
-        $img2 = $imageCount > 1 ? $images[1] : $mainImg;
-        $img2Url = $img2 ? (Str::startsWith($img2->path, ['http://', 'https://']) ? $img2->path : Storage::disk('public')->url($img2->path)) : $mainImgUrl;
-        
-        $img3 = $imageCount > 2 ? $images[2] : $mainImg;
-        $img3Url = $img3 ? (Str::startsWith($img3->path, ['http://', 'https://']) ? $img3->path : Storage::disk('public')->url($img3->path)) : $mainImgUrl;
-      @endphp
-      <div style="width:100%; height:100%; position:relative;">
-        <img src="{{ $img2Url }}" alt="{{ $hotel->title }}" style="width:100%; height:100%; object-fit:cover; display:block;" />
-      </div>
-      <div style="width:100%; height:100%; position:relative;">
-        <img src="{{ $img3Url }}" alt="{{ $hotel->title }}" style="width:100%; height:100%; object-fit:cover; display:block;" />
-        @if($imageCount > 3)
-          <button style="position:absolute; bottom:16px; right:16px; background:rgba(0,0,0,0.6); backdrop-filter:blur(8px); border:1px solid rgba(255,255,255,0.2); color:#fff; font-family:'Jost',sans-serif; font-size:13px; font-weight:600; padding:8px 16px; border-radius:100px; cursor:pointer; transition:all 0.3s;" onmouseover="this.style.background='var(--gold)'; this.style.color='var(--dark)';" onmouseout="this.style.background='rgba(0,0,0,0.6)'; this.style.color='#fff';">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle; margin-right:4px; margin-top:-2px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-            +{{ $imageCount - 3 }} photos
+        @if($imageCount > 1)
+          <button type="button" class="hd-view-all-btn" id="hdViewAllPhotos">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            View all {{ $imageCount }} photos
           </button>
         @endif
       </div>
+      <button class="hd-favourite-btn" style="background:transparent; border:1px solid rgba(255,255,255,0.2); color:#fff; border-radius:100px; padding:10px 18px; display:flex; align-items:center; gap:8px; font-family:'Jost',sans-serif; font-size:14px; cursor:pointer; transition:all 0.3s; margin-bottom:48px;" onmouseover="this.style.borderColor='var(--gold)'; this.style.color='var(--gold)';" onmouseout="this.style.borderColor='rgba(255,255,255,0.2)'; this.style.color='#fff';">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+        Favourite
+      </button>
     </div>
   </div>
 </div>
+
+<!-- Lightbox -->
+<div class="hd-lightbox" id="hdLightbox" role="dialog" aria-modal="true">
+  <button type="button" class="hd-lightbox-close" id="hdLightboxClose" aria-label="Close">&#10005;</button>
+  <button type="button" class="hd-lightbox-prev" id="hdLightboxPrev" aria-label="Previous">&#10094;</button>
+  <img id="hdLightboxImg" src="" alt="{{ $hotel->title }}">
+  <button type="button" class="hd-lightbox-next" id="hdLightboxNext" aria-label="Next">&#10095;</button>
+  <div class="hd-lightbox-counter" id="hdLightboxCounter"></div>
+</div>
+
+<!-- Amenities popup — shared modal, filled in by JS when a room card's "Read more" is clicked -->
+<div class="hd-modal-backdrop" id="hdAmenitiesModal" role="dialog" aria-modal="true">
+  <div class="hd-modal hd-amenities-modal">
+    <button type="button" class="hd-modal-close" id="hdAmenitiesModalClose" aria-label="Close">&#10005;</button>
+    <h2 class="hd-modal-title" id="hdAmenitiesModalTitle">Room Amenities</h2>
+
+    <div class="hd-amenities-modal-img" id="hdAmenitiesModalImgWrap" hidden>
+      <img id="hdAmenitiesModalImg" src="" alt="">
+    </div>
+
+    <div class="hd-amenities-modal-meta" id="hdAmenitiesModalMeta"></div>
+
+    <h3 class="hd-amenities-modal-subhead">Room Amenities</h3>
+    <div class="hd-amenities-modal-grid" id="hdAmenitiesModalList"></div>
+  </div>
+</div>
+
+<!-- Sticky section quick-jump nav -->
+<nav class="hd-section-nav" id="hdSectionNav">
+  <div class="hd-section-nav-inner">
+    @if($aboutSectionsToShow->isNotEmpty())<a href="#hd-anchor-overview">Overview</a>@endif
+    @if($amenities->isNotEmpty() || $extraAmenitySections->isNotEmpty())<a href="#hd-anchor-amenities">Amenities</a>@endif
+    <a href="{{ $hotel->source === 'tripjack' ? '#htl-room-section' : '#hd-anchor-rooms' }}">Rooms</a>
+    @if(count($nearbyAttr) > 0 || count($topAttractions) > 0 || count($restaurantsCafes) > 0)
+      <a href="#hd-anchor-location">Location</a>
+    @endif
+    <a href="#hd-anchor-policies">Policies</a>
+  </div>
+</nav>
 
 <!-- ===================================================
      MAIN LAYOUT (2-col: content + sticky booking card)
@@ -785,17 +1140,146 @@ body { background: var(--dark); color: #fff; }
     </div>
 
     <!-- About -->
-    <div class="hd-section">
+    @if($aboutSectionsToShow->isNotEmpty())
+    <div class="hd-section" id="hd-anchor-overview">
       <h2 class="hd-section-title">About This Hotel</h2>
-      <div class="hd-desc">{!! $hotel->description !!}</div>
+
+      @if(!empty($hotel->description_sections) && is_array($hotel->description_sections) && collect($hotel->description_sections)->except(['Rooms', 'Business Amenities'])->isNotEmpty())
+        @php
+          // Short comma-separated facts (Spoken Languages, Onsite Payments,
+          // sometimes Amenities) read far better as chips than as a
+          // paragraph — detected by "no sentence punctuation, has commas".
+          $isChipList = fn ($text) => ! str_contains($text, '.') && str_contains($text, ',') && strlen($text) < 200;
+
+          // Turn a sentence-style facility paragraph ("Make yourself at home in one
+          // of the 2 individually decorated guestrooms, featuring kitchens with
+          // full-sized refrigerators...") into short scannable keyword points —
+          // splits on sentence/comma/"and" boundaries, then strips generic
+          // lead-in phrasing so what's left is the actual feature.
+          $extractKeywords = function ($text) {
+            $text = trim(preg_replace('/\s+/', ' ', strip_tags($text)));
+            if ($text === '') return [];
+
+            $fillers = [
+              'make yourself at home in ', 'one of the ', 'featuring ', 'feature ', 'features ',
+              'furnished with ', 'while ',
+              'conveniences include ', 'convenience includes ', 'includes ',
+              'include ', 'including ', 'providing ',
+              'guests can enjoy ', 'guests will enjoy ', 'enjoy ', 'your ',
+              'all rooms are ', 'rooms are ', 'this room has ', 'this room includes ',
+              'complimentary ',
+            ];
+            $connectors = [' comes with ', ' come with ', ' furnished with ', ' provide ', ' provides ', ' keeps you connected', ' keep you connected'];
+            $dropExact = ['all', 'you', 'which', 'and', 'the'];
+
+            $stripFillers = function ($frag) use ($fillers) {
+              for ($i = 0; $i < 3; $i++) {
+                $matched = false;
+                foreach ($fillers as $f) {
+                  if (stripos($frag, $f) === 0) { $frag = trim(substr($frag, strlen($f))); $matched = true; break; }
+                }
+                if (! $matched) break;
+              }
+              return trim($frag);
+            };
+
+            $points = [];
+            foreach (preg_split('/(?<=[.!])\s+/', $text) as $sentence) {
+              $sentence = trim($sentence, " .\t\n\r\0\x0B");
+              if ($sentence === '') continue;
+              foreach (preg_split('/\s*,\s*(?:and\s+)?|\s+and\s+/i', $sentence) as $fragment) {
+                $fragment = $stripFillers(trim($fragment));
+
+                $subParts = [$fragment];
+                foreach ($connectors as $c) {
+                  if (stripos($fragment, $c) !== false) {
+                    $subParts = array_map('trim', preg_split('/' . preg_quote($c, '/') . '/i', $fragment, 2));
+                    break;
+                  }
+                }
+
+                foreach ($subParts as $sp) {
+                  $sp = $stripFillers($sp);
+                  if ($sp === '' || strlen($sp) < 3 || strlen($sp) > 70) continue;
+                  if (in_array(strtolower($sp), $dropExact, true)) continue;
+                  $sp = mb_strtoupper(mb_substr($sp, 0, 1)) . mb_substr($sp, 1);
+                  $points[] = $sp;
+                }
+              }
+            }
+            return array_values(array_unique($points));
+          };
+
+          $sectionIcons = [
+            'Location' => '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>',
+            'Amenities' => '<path d="M12 2l2.4 7.2H22l-6 4.4 2.3 7.2L12 16.4 5.7 20.8 8 13.6l-6-4.4h7.6z"/>',
+            'Rooms' => '<path d="M3 7v13M21 7v13M3 12h18M7 7v0a2 2 0 012-2h6a2 2 0 012 2v0"/>',
+            'Dining' => '<path d="M6 2v7a2 2 0 002 2h0a2 2 0 002-2V2M8 11v11M18 2c-1.5 1-2 3-2 5v3a2 2 0 002 2v9"/>',
+            'Business Amenities' => '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/>',
+            'Onsite Payments' => '<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>',
+            'Spoken Languages' => '<circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 010 20 15 15 0 010-20z"/>',
+          ];
+          $defaultIcon = '<circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/>';
+        @endphp
+        <div class="hd-info-grid">
+          @foreach($hotel->description_sections as $sectionTitle => $sectionText)
+            @continue(in_array($sectionTitle, ['Rooms', 'Business Amenities']))
+            @php
+              // Onsite Payments / Spoken Languages are always short label lists —
+              // force them into the narrow chip-list layout (two cards side by
+              // side) instead of the sentence-parsing heuristic, which can wrongly
+              // split multi-word items like "UnionPay" into separate chips.
+              $forceNarrowChips = in_array($sectionTitle, ['Onsite Payments', 'Spoken Languages']);
+              $wide = $forceNarrowChips ? false : ! $isChipList($sectionText);
+              $keywords = $wide ? $extractKeywords($sectionText) : [];
+              $useKeywords = count($keywords) >= 3;
+            @endphp
+            <div class="hd-info-card {{ $wide ? 'hd-info-card--wide' : '' }}">
+              <div class="hd-info-card-head">
+                <span class="hd-info-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">{!! $sectionIcons[$sectionTitle] ?? $defaultIcon !!}</svg></span>
+                <h3>{{ $sectionTitle }}</h3>
+              </div>
+              @if($useKeywords)
+                <div class="hd-point-list">
+                  @foreach($keywords as $point)
+                    <div class="hd-point"><span class="hd-point-icon"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span>{{ $point }}</div>
+                  @endforeach
+                </div>
+              @elseif($wide)
+                <div class="hd-desc">{!! $sectionText !!}</div>
+              @else
+                @php $chips = array_filter(array_map('trim', explode(',', $sectionText))); @endphp
+                <div class="hd-info-chip-list {{ count($chips) > 6 ? 'hd-collapsible collapsed' : '' }}">
+                  @foreach($chips as $chip)
+                    <span class="hd-info-chip">{{ $chip }}</span>
+                  @endforeach
+                </div>
+                @if(count($chips) > 6)
+                  <button type="button" class="hd-readmore-btn">Read more</button>
+                @endif
+              @endif
+            </div>
+          @endforeach
+        </div>
+      @endif
     </div>
+    @endif
+
+    <div id="hd-anchor-policies"></div>
 
     <!-- Mandatory Fees — charged at the property, not included in the room rate -->
     @if(!empty($hotel->mandatory_fees))
     <div class="hd-section">
-      <div style="padding:18px 20px; background:rgba(201,168,76,0.06); border:1px solid var(--gold-dim); border-radius:14px;">
-        <p style="font-family:'Jost',sans-serif; font-size:11px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--gold); margin-bottom:8px;">Fees Payable at the Property</p>
-        <div style="font-family:'Jost',sans-serif; font-size:13.5px; color:var(--white-80); line-height:1.6;">{!! $hotel->mandatory_fees !!}</div>
+      <div style="padding:20px 22px; background:rgba(201,168,76,0.06); border:1px solid var(--gold-dim); border-radius:14px;">
+        <div class="hd-info-card-head" style="margin-bottom:14px;">
+          <span class="hd-info-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg></span>
+          <h3>Fees Payable at the Property</h3>
+        </div>
+        @php $feeCount = substr_count($hotel->mandatory_fees, '<li'); @endphp
+        <div class="{{ $feeCount > 6 ? 'hd-collapsible collapsed' : '' }}">{!! $hotel->mandatory_fees !!}</div>
+        @if($feeCount > 6)
+          <button type="button" class="hd-readmore-btn">Read more</button>
+        @endif
       </div>
     </div>
     @endif
@@ -805,10 +1289,23 @@ body { background: var(--dark); color: #fff; }
     <div class="hd-section">
       <h2 class="hd-section-title">Good to Know</h2>
       @if(!empty($hotel->special_instructions))
-        <div class="hd-desc" style="margin-bottom:16px;">{!! $hotel->special_instructions !!}</div>
+        @php $siCount = substr_count($hotel->special_instructions, '<li'); @endphp
+        <div class="{{ $siCount > 6 ? 'hd-collapsible collapsed' : '' }}" style="margin-bottom:4px;">{!! $hotel->special_instructions !!}</div>
+        @if($siCount > 6)
+          <button type="button" class="hd-readmore-btn" style="margin-bottom:20px;">Read more</button>
+        @else
+          <div style="margin-bottom:16px;"></div>
+        @endif
       @endif
       @if(!empty($hotel->know_before_you_go))
-        <div class="hd-desc" style="margin-bottom:16px;">{!! $hotel->know_before_you_go !!}</div>
+        @php $kbygCount = substr_count($hotel->know_before_you_go, '<li'); @endphp
+        <h2 class="hd-section-title" style="margin-top:36px;">Know Before You Go</h2>
+        <div class="{{ $kbygCount > 6 ? 'hd-collapsible collapsed' : '' }}" style="margin-bottom:4px;">{!! $hotel->know_before_you_go !!}</div>
+        @if($kbygCount > 6)
+          <button type="button" class="hd-readmore-btn" style="margin-bottom:20px;">Read more</button>
+        @else
+          <div style="margin-bottom:16px;"></div>
+        @endif
       @endif
       @if(!empty($hotel->house_rules) && is_array($hotel->house_rules))
         <div class="hd-amenities">
@@ -820,181 +1317,75 @@ body { background: var(--dark); color: #fff; }
     </div>
     @endif
 
-    <!-- Amenities -->
-    @if($amenities->isNotEmpty())
-    <div class="hd-section">
+    <!-- Amenities — grouped by category (Property Facilities, Food & Beverage, etc.),
+         plus the "Rooms" and "Business Amenities" description sections folded in here
+         instead of under About, since they're facility listings too. -->
+    @if($amenities->isNotEmpty() || $extraAmenitySections->isNotEmpty())
+    <div class="hd-section" id="hd-anchor-amenities">
       <h2 class="hd-section-title">Amenities & Facilities</h2>
-      <div class="hd-amenities">
-        @foreach($amenities as $amenity)
-          <span class="hd-amenity">
-            <span class="hd-amenity-dot"></span>
-            {{ $amenity->name }}
-          </span>
-        @endforeach
-      </div>
-    </div>
-    @endif
-
-    <!-- Live TripJack Room Options -->
-    @if($hotel->source === 'tripjack')
-    <div class="hd-section" id="htl-room-section">
-      <h2 class="hd-section-title">Available Rooms</h2>
-
-      @if(session('booking_error'))
-      <div style="margin-bottom:18px; padding:14px 18px; border-radius:12px; background:rgba(220,80,80,0.08); border:1px solid rgba(220,80,80,0.3); color:#f3a3a3; font-family:'Jost',sans-serif; font-size:13.5px;">
-        {{ session('booking_error') }}
-      </div>
-      @endif
-
-      @if(($liveOptions ?? collect())->isNotEmpty())
-      <div class="hd-room-list">
-        @php
-          $groupedOptions = collect($liveOptions)->groupBy(function($option) {
-              return collect($option['roomInfo'] ?? [])->pluck('name')->unique()->implode(' + ') ?: 'Standard Room';
-          });
-        @endphp
-
-        @foreach($groupedOptions as $roomName => $options)
+      <div class="hd-amenity-groups">
+        @foreach($extraAmenitySections as $sectionTitle => $sectionText)
           @php
-            // Attempt to find a matching local room type to pull an image and description
-            $localRoom = null;
-            if($hotel->roomTypes) {
-                // simple fuzzy match on name
-                $localRoom = $hotel->roomTypes->first(function($rt) use ($roomName) {
-                    return str_contains(strtolower($roomName), strtolower($rt->name)) || str_contains(strtolower($rt->name), strtolower($roomName));
-                });
-            }
-            $roomImage = match(true) {
-                empty($localRoom?->image_path) => 'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=600&q=80', // Placeholder
-                Str::startsWith($localRoom->image_path, ['http://', 'https://']) => $localRoom->image_path,
-                default => Storage::disk('public')->url($localRoom->image_path),
-            };
+            $exWide = ! $isChipList($sectionText);
+            $exKeywords = $exWide ? $extractKeywords($sectionText) : [];
+            $exUseKeywords = count($exKeywords) >= 3;
           @endphp
-          
-          <div class="hd-room-group-card" style="background: var(--dark-2); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; overflow: hidden; margin-bottom: 24px;">
-            <div style="display: flex; flex-direction: column; @media(min-width: 992px) { flex-direction: row; }">
-              
-              <!-- Left Column: Room Info -->
-              <div style="width: 100%; max-width: 320px; border-right: 1px solid rgba(255,255,255,0.08); padding: 20px;">
-                <h3 style="font-family: 'Cormorant Garamond', serif; font-size: 1.6rem; color: #fff; margin-bottom: 12px; line-height: 1.2;">{{ $roomName }}</h3>
-                <div style="border-radius: 12px; overflow: hidden; height: 180px; margin-bottom: 16px; position: relative;">
-                  <img src="{{ $roomImage }}" alt="{{ $roomName }}" style="width: 100%; height: 100%; object-fit: cover;">
-                </div>
-                <div class="hd-room-specs" style="display: flex; flex-wrap: wrap; gap: 10px;">
-                  @if($localRoom && $localRoom->room_size)
-                  <span style="font-family: 'Jost', sans-serif; font-size: 13px; color: var(--white-80); display: flex; align-items: center; gap: 6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z M4 9h16 M9 4v16"/></svg>{{ $localRoom->room_size }}</span>
-                  @endif
-                  @if($localRoom && $localRoom->bed_type)
-                  <span style="font-family: 'Jost', sans-serif; font-size: 13px; color: var(--white-80); display: flex; align-items: center; gap: 6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4v16M22 4v16M2 8h20M6 4v4M18 4v4"/></svg>{{ $localRoom->bed_type }}</span>
-                  @endif
-                </div>
-                @if($localRoom && $localRoom->description)
-                <div style="font-family: 'Jost', sans-serif; font-size: 12px; color: var(--white-60); margin-top: 12px; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
-                  {!! strip_tags($localRoom->description) !!}
-                </div>
-                @endif
-              </div>
-
-              <!-- Right Columns: Options List -->
-              <div style="flex: 1; display: flex; flex-direction: column;">
-                @foreach($options->sortBy('pricing.totalPrice') as $index => $option)
-                  @php
-                    $pricing = $option['pricing'] ?? [];
-                    $cancellation = $option['cancellation'] ?? [];
-                    $compliance = $option['compliance'] ?? [];
-                    $isRefundable = $cancellation['isRefundable'] ?? false;
-                    $freeUntil = collect($cancellation['penalties'] ?? [])->firstWhere('amount', 0);
-                    $mealBasis = $option['mealBasis'] ?? 'Room Only';
-                  @endphp
-                  
-                  <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); {{ $loop->last ? 'border-bottom: none;' : '' }}">
-                    
-                    <!-- Option Details (Middle Column) -->
-                    <div style="flex: 1; min-width: 200px; padding-right: 20px;">
-                      <div style="font-family: 'Jost', sans-serif; font-size: 14.5px; font-weight: 600; color: #fff; margin-bottom: 8px;">
-                        {{ $mealBasis }} | {{ $isRefundable ? 'Refundable' : 'Non-Refundable' }}
-                      </div>
-                      
-                      <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
-                        @if($isRefundable)
-                        <span style="display: inline-flex; align-items: center; gap: 4px; font-family: 'Jost', sans-serif; font-size: 11.5px; color: var(--green); background: rgba(74, 222, 128, 0.08); padding: 4px 10px; border-radius: 100px;">
-                          ✅ Free cancellation @if($freeUntil) until {{ \Illuminate\Support\Carbon::parse($freeUntil['to'])->format('d M') }} @endif
-                        </span>
-                        @else
-                        <span style="display: inline-flex; align-items: center; gap: 4px; font-family: 'Jost', sans-serif; font-size: 11.5px; color: #f87171; background: rgba(248, 113, 113, 0.08); padding: 4px 10px; border-radius: 100px;">
-                          ❌ Non-refundable
-                        </span>
-                        @endif
-                      </div>
-
-                      @if(!empty($option['inclusions']))
-                      <div class="hd-room-inc" style="margin-bottom: 8px;">
-                        @foreach(array_slice($option['inclusions'], 0, 3) as $inc)
-                          <span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg> {{ $inc }}</span>
-                        @endforeach
-                      </div>
-                      @endif
-                      
-                      @if(($compliance['panRequired'] ?? false) || ($compliance['passportRequired'] ?? false))
-                      <div style="font-family: 'Jost', sans-serif; font-size: 11.5px; color: var(--gold); margin-top: 8px;">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px; vertical-align:middle;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                        @if($compliance['panRequired'] ?? false) PAN Required @endif
-                        @if($compliance['passportRequired'] ?? false) | Passport Required @endif
-                      </div>
-                      @endif
-                    </div>
-
-                    <!-- Pricing & Select (Right Column) -->
-                    <div style="text-align: right; min-width: 150px; border-left: 1px dashed rgba(255,255,255,0.1); padding-left: 20px;">
-                      <div style="font-family: 'Jost', sans-serif; font-size: 12px; color: var(--white-60); margin-bottom: 2px;">Total Price</div>
-                      <div style="font-family: 'Jost', sans-serif; font-size: 1.6rem; font-weight: 700; color: #fff; line-height: 1; margin-bottom: 12px;">
-                        {{ $pricing['currency'] ?? 'INR' }} {{ number_format($pricing['totalPrice'] ?? 0) }}
-                      </div>
-                      <form method="POST" action="{{ route('hotel.review', $hotel->slug) }}" class="hd-select-room-form">
-                        @csrf
-                        <input type="hidden" name="option_id" value="{{ $option['optionId'] ?? '' }}">
-                        <input type="hidden" name="check_in" value="{{ $checkIn }}">
-                        <input type="hidden" name="check_out" value="{{ $checkOut }}">
-                        <input type="hidden" name="adults" value="{{ $adults }}">
-                        <input type="hidden" name="children" value="{{ $children }}">
-                        <input type="hidden" name="rooms" value="{{ $roomCount }}">
-                        <button type="submit" class="hd-room-btn" style="width: 100%; border-radius: 8px; padding: 10px 16px;">
-                          <span class="hd-room-btn-spinner"></span>
-                          <span class="hd-room-btn-label">Select Room</span>
-                        </button>
-                      </form>
-                    </div>
-
-                  </div>
+          <div class="hd-amenity-group">
+            <div class="hd-amenity-group-head">
+              <span class="hd-info-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">{!! $sectionIcons[$sectionTitle] ?? $defaultIcon !!}</svg></span>
+              <h3>{{ $sectionTitle }}</h3>
+            </div>
+            @if($exUseKeywords)
+              <div class="hd-point-list {{ count($exKeywords) > 6 ? 'hd-collapsible collapsed' : '' }}">
+                @foreach($exKeywords as $point)
+                  <div class="hd-point"><span class="hd-point-icon"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span>{{ $point }}</div>
                 @endforeach
               </div>
+              @if(count($exKeywords) > 6)
+                <button type="button" class="hd-readmore-btn">Read more</button>
+              @endif
+            @elseif($exWide)
+              <div class="hd-desc">{!! $sectionText !!}</div>
+            @else
+              <div class="hd-info-chip-list">
+                @foreach(array_filter(array_map('trim', explode(',', $sectionText))) as $chip)
+                  <span class="hd-info-chip">{{ $chip }}</span>
+                @endforeach
+              </div>
+            @endif
+          </div>
+        @endforeach
+
+        @foreach($groupedAmenities as $category => $items)
+          <div class="hd-amenity-group">
+            <div class="hd-amenity-group-head">
+              <span class="hd-info-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">{!! $amenityCategoryIcons[$category] ?? $amenityCategoryIcons['Other Amenities'] !!}</svg></span>
+              <h3>{{ $category }}</h3>
             </div>
+            <div class="hd-amenities {{ $items->count() > 6 ? 'hd-collapsible collapsed' : '' }}">
+              @foreach($items as $amenity)
+                <span class="hd-amenity">
+                  <span class="hd-amenity-dot"></span>
+                  {{ $amenity->name }}
+                </span>
+              @endforeach
+            </div>
+            @if($items->count() > 6)
+              <button type="button" class="hd-readmore-btn">Read more</button>
+            @endif
           </div>
         @endforeach
       </div>
-      @elseif(!empty($pricingError))
-      <div style="padding:20px 22px; background:rgba(201,168,76,0.06); border:1px solid var(--gold-dim); border-radius:14px; font-family:'Jost',sans-serif; font-size:13.5px; color:var(--white-60); line-height:1.6;">
-        {{ $pricingError }}
-      </div>
-      @elseif(!empty($checkIn) && !empty($checkOut))
-      <div style="padding:20px 22px; background:rgba(201,168,76,0.06); border:1px solid var(--gold-dim); border-radius:14px; font-family:'Jost',sans-serif; font-size:13.5px; color:var(--white-60); line-height:1.6;">
-        No rooms are available for this hotel on {{ $checkIn }} – {{ $checkOut }}.
-        <a href="{{ route('hotels', array_filter(['destination' => $destination, 'check_in' => $checkIn, 'check_out' => $checkOut])) }}" style="color:var(--gold);">Try different dates</a>, or send us an enquiry and we'll check alternatives for you.
-      </div>
-      @else
-      <div style="padding:20px 22px; background:rgba(201,168,76,0.06); border:1px solid var(--gold-dim); border-radius:14px; font-family:'Jost',sans-serif; font-size:13.5px; color:var(--white-60); line-height:1.6;">
-        <a href="{{ route('hotels', ['destination' => $destination]) }}" style="color:var(--gold);">Search dates for {{ $destination }}</a> to see available rooms, meal plans and live prices for this hotel.
-      </div>
-      @endif
     </div>
     @endif
 
-    <!-- Room Categories / Types — only when there's no live TripJack pricing already
-         shown above (that section already pulls a matching photo from this same
-         static catalogue), otherwise this would just repeat the same rooms
-         price-less right below the priced ones. Fallback for: manual hotels,
-         and TripJack hotels with no live options yet (e.g. no dates picked). -->
-    @if($hotel->roomTypes && $hotel->roomTypes->where('is_active', true)->count() > 0 && ($hotel->source !== 'tripjack' || ($liveOptions ?? collect())->isEmpty()))
+    <div id="hd-anchor-rooms"></div>
+
+    <!-- Room Categories / Types — manual (non-TripJack) hotels only. TripJack
+         hotels always rely on the live "Available Rooms" section below, even
+         when it has no options for the picked dates, rather than falling back
+         to this price-less static catalogue. -->
+    @if($hotel->roomTypes && $hotel->roomTypes->where('is_active', true)->count() > 0 && $hotel->source !== 'tripjack')
     <div class="hd-section" id="htl-static-rooms-section">
       {{-- Heading differs from the live TripJack section ("Available Rooms") to avoid confusion --}}
       <h2 class="hd-section-title">Room Types</h2>
@@ -1008,9 +1399,9 @@ body { background: var(--dark); color: #fff; }
              };
           @endphp
           
-          <div class="hd-room-group-card" style="background: var(--dark-2); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; overflow: hidden; margin-bottom: 24px;">
-            <div style="display: flex; flex-direction: column; @media(min-width: 992px) { flex-direction: row; }">
-              
+          <div class="hd-room-group-card" data-room-title="{{ $room->name }}" data-room-image="{{ $roomImage }}" data-room-bed="{{ $room->bed_type }}" data-room-size="{{ $room->room_size }}" data-room-guests="{{ ($room->occupancy_adults ?? 0) + ($room->occupancy_children ?? 0) }}" style="background: var(--dark-2); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; overflow: hidden; margin-bottom: 24px;">
+            <div class="hd-room-group-row">
+
               <!-- Left Column: Room Info -->
               <div style="width: 100%; max-width: 320px; border-right: 1px solid rgba(255,255,255,0.08); padding: 20px;">
                 <h3 style="font-family: 'Cormorant Garamond', serif; font-size: 1.6rem; color: #fff; margin-bottom: 12px; line-height: 1.2;">{{ $room->name }}</h3>
@@ -1025,6 +1416,11 @@ body { background: var(--dark); color: #fff; }
                   <span style="font-family: 'Jost', sans-serif; font-size: 13px; color: var(--white-80); display: flex; align-items: center; gap: 6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4v16M22 4v16M2 8h20M6 4v4M18 4v4"/></svg>{{ $room->bed_type }}</span>
                   @endif
                 </div>
+                @if($room->occupancy_adults)
+                <div style="margin-top:10px; margin-bottom:2px;">
+                  <span style="font-family: 'Jost', sans-serif; font-size: 13px; color: var(--white-80); display: flex; align-items: center; gap: 6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/></svg>{{ $room->occupancy_adults }} Adult{{ $room->occupancy_adults > 1 ? 's' : '' }}@if($room->occupancy_children), {{ $room->occupancy_children }} Child{{ $room->occupancy_children > 1 ? 'ren' : '' }}@endif</span>
+                </div>
+                @endif
                 @if($room->description)
                 <div style="font-family: 'Jost', sans-serif; font-size: 12px; color: var(--white-60); margin-top: 12px; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
                   {!! strip_tags($room->description) !!}
@@ -1050,15 +1446,18 @@ body { background: var(--dark); color: #fff; }
                     @endif
                     @if($room->inclusions && count($room->inclusions) > 0)
                     <div class="hd-room-inc" style="margin-bottom: 8px;">
-                      @foreach(array_slice($room->inclusions, 0, 4) as $inc)
-                        <span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg> {{ $inc }}</span>
+                      @foreach($room->inclusions as $incIndex => $inc)
+                        <span class="{{ $incIndex >= 6 ? 'hd-inc-hidden' : '' }}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg> {{ $inc }}</span>
                       @endforeach
                     </div>
+                    @if(count($room->inclusions) > 6)
+                      <button type="button" class="hd-inc-readmore-btn">Read more</button>
+                    @endif
                     @endif
                   </div>
                   
                   <div style="text-align: right; min-width: 150px; border-left: 1px dashed rgba(255,255,255,0.1); padding-left: 20px;">
-                    <button class="hd-room-btn" type="button" style="width: 100%; border-radius: 8px; padding: 10px 16px;" onclick="document.getElementById('hdEnquirySection').scrollIntoView({behavior:'smooth', block:'start'})">
+                    <button class="hd-room-btn" type="button" style="width: 100%; border-radius: 100px; padding: 12px 16px;" onclick="document.getElementById('hdEnquirySection').scrollIntoView({behavior:'smooth', block:'start'})">
                       Enquire
                     </button>
                   </div>
@@ -1134,7 +1533,7 @@ body { background: var(--dark); color: #fff; }
         @endforeach
       </div>
     </div>
-    @elseif(isset($roomCats) && count($roomCats) > 0)
+    @elseif($hotel->source !== 'tripjack' && isset($roomCats) && count($roomCats) > 0)
     <div class="hd-section">
       <h2 class="hd-section-title">Room Types</h2>
       <div class="hd-room-list" style="display:flex; flex-direction:row; flex-wrap:wrap; gap:10px;">
@@ -1146,6 +1545,8 @@ body { background: var(--dark); color: #fff; }
       </div>
     </div>
     @endif
+
+    <div id="hd-anchor-location"></div>
 
     <!-- ===== NEARBY ATTRACTIONS ===== -->
     @if(count($nearbyAttr) > 0)
@@ -1308,6 +1709,228 @@ body { background: var(--dark); color: #fff; }
   </div>
 
 </div>
+
+<!-- ===================================================
+     LIVE TRIPJACK ROOM OPTIONS — full page width, below the
+     content/booking-card layout rather than squeezed into the
+     narrower left column.
+=================================================== -->
+@if($hotel->source === 'tripjack')
+<div style="max-width:1280px; margin:0 auto; padding:0 40px 40px;">
+  <div class="hd-section" id="htl-room-section" style="margin-bottom:0;">
+    <div style="display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; margin-bottom:24px;">
+      <h2 class="hd-section-title" style="margin:0;">Available Rooms</h2>
+      @if(($liveOptions ?? collect())->isNotEmpty())
+      <span style="font-family:'Jost',sans-serif; font-size:13px; color:var(--white-60);">Showing {{ $liveOptions->count() }} of {{ $liveOptions->count() }} room options</span>
+      @endif
+    </div>
+
+    @if(session('booking_error'))
+    <div style="margin-bottom:18px; padding:14px 18px; border-radius:12px; background:rgba(220,80,80,0.08); border:1px solid rgba(220,80,80,0.3); color:#f3a3a3; font-family:'Jost',sans-serif; font-size:13.5px;">
+      {{ session('booking_error') }}
+    </div>
+    @endif
+
+    @if(($liveOptions ?? collect())->isNotEmpty())
+    <div class="hd-room-list">
+      @php
+        $groupedOptions = collect($liveOptions)->groupBy(function($option) {
+            return collect($option['roomInfo'] ?? [])->pluck('name')->unique()->implode(' + ') ?: 'Standard Room';
+        });
+        $nights = max(1, \Illuminate\Support\Carbon::parse($checkIn)->diffInDays(\Illuminate\Support\Carbon::parse($checkOut)));
+      @endphp
+
+      @foreach($groupedOptions as $roomName => $options)
+        @php
+          // Attempt to find a matching local room type to pull an image and description
+          $localRoom = null;
+          if($hotel->roomTypes) {
+              // simple fuzzy match on name
+              $localRoom = $hotel->roomTypes->first(function($rt) use ($roomName) {
+                  return str_contains(strtolower($roomName), strtolower($rt->name)) || str_contains(strtolower($rt->name), strtolower($roomName));
+              });
+          }
+          $roomImage = match(true) {
+              empty($localRoom?->image_path) => 'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=600&q=80', // Placeholder
+              Str::startsWith($localRoom->image_path, ['http://', 'https://']) => $localRoom->image_path,
+              default => Storage::disk('public')->url($localRoom->image_path),
+          };
+          // More rate-option cards in a room group means less vertical room per
+          // card, so show fewer inclusion pills per card as the card count grows.
+          $incLimit = match(true) {
+              $options->count() <= 1 => 6,
+              $options->count() == 2 => 4,
+              default => 3,
+          };
+        @endphp
+
+        @php
+          $roomAdults = $localRoom->occupancy_adults ?? $adults;
+          $roomChildren = $localRoom->occupancy_children ?? $children;
+        @endphp
+        <div class="hd-room-group-card" data-room-title="{{ $roomName }}" data-room-image="{{ $roomImage }}" data-room-bed="{{ $localRoom->bed_type ?? '' }}" data-room-size="{{ $localRoom->room_size ?? '' }}" data-room-guests="{{ $roomAdults + $roomChildren }}" style="background: var(--dark-2); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; overflow: hidden; margin-bottom: 24px;">
+          <div class="hd-room-group-row">
+
+            <!-- Left Column: Room Info -->
+            <div style="width: 100%; max-width: 320px; border-right: 1px solid rgba(255,255,255,0.08); padding: 20px;">
+              <div style="border-radius: 12px; overflow: hidden; height: 180px; margin-bottom: 16px; position: relative;">
+                <img src="{{ $roomImage }}" alt="{{ $roomName }}" style="width: 100%; height: 100%; object-fit: cover;">
+              </div>
+              <div class="hd-room-specs" style="display: flex; flex-wrap: wrap; gap: 10px;">
+                @if($localRoom && $localRoom->bed_type)
+                <span class="hd-room-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4v16M22 4v16M2 8h20M6 4v4M18 4v4"/></svg>{{ $localRoom->bed_type }}</span>
+                @endif
+                @if($localRoom && $localRoom->room_size)
+                <span class="hd-room-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z M4 9h16 M9 4v16"/></svg>{{ $localRoom->room_size }}</span>
+                @endif
+                <span class="hd-room-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/></svg>Fits max. {{ $roomAdults + $roomChildren }} guests</span>
+              </div>
+              @if($localRoom && $localRoom->description)
+              <div style="font-family: 'Jost', sans-serif; font-size: 12px; color: var(--white-60); margin-top: 14px; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
+                {!! strip_tags($localRoom->description) !!}
+              </div>
+              @endif
+              @if(!empty($localRoom?->inclusions) && count($localRoom->inclusions) > 0)
+              <div class="hd-room-inc" style="margin-top: 12px;">
+                @foreach($localRoom->inclusions as $incIndex => $inc)
+                  <span class="{{ $incIndex >= 4 ? 'hd-inc-hidden' : '' }}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg> {{ $inc }}</span>
+                @endforeach
+              </div>
+              @if(count($localRoom->inclusions) > 4)
+                <button type="button" class="hd-inc-readmore-btn">Read more</button>
+              @endif
+              @endif
+            </div>
+
+            <!-- Right Columns: Options List -->
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 14px; padding: 20px; align-self: stretch;">
+              @foreach($options->sortBy('pricing.totalPrice') as $index => $option)
+                @php
+                  $pricing = $option['pricing'] ?? [];
+                  $cancellation = $option['cancellation'] ?? [];
+                  $compliance = $option['compliance'] ?? [];
+                  $isRefundable = $cancellation['isRefundable'] ?? false;
+                  $freeUntil = collect($cancellation['penalties'] ?? [])->firstWhere('amount', 0);
+                  $mealBasis = $option['mealBasis'] ?? 'Room Only';
+                  $totalPrice = $pricing['totalPrice'] ?? 0;
+                  $perNight = $totalPrice / $nights / max(1, $roomCount);
+                  $rateId = 'hdRate_'.Str::slug($roomName).'_'.$loop->index;
+                @endphp
+
+                <div class="hd-rate-row">
+
+                  <!-- Option Details (Middle Column) -->
+                  <div style="flex: 1; min-width: 220px; padding-right: 20px;">
+                    <h3 class="hd-rate-room-name">{{ $roomName }}</h3>
+                    <div class="hd-rate-title">
+                      {{ $mealBasis }}
+                      <span class="sep">|</span>
+                      <span class="{{ $isRefundable ? 'refundable' : 'non-refundable' }}">{{ $isRefundable ? 'Refundable' : 'Non-Refundable' }}</span>
+                      @if($compliance['panRequired'] ?? false)
+                        <span class="sep">|</span> PAN Required
+                      @endif
+                    </div>
+
+                    @if($isRefundable)
+                    <div class="hd-rate-cancel">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+                      Free Cancellation @if($freeUntil) before {{ \Illuminate\Support\Carbon::parse($freeUntil['to'])->format('jS F Y') }} @endif
+                    </div>
+                    @endif
+
+                    @if(!empty($option['inclusions']))
+                    <div class="hd-room-inc" style="margin-top: 10px;">
+                      @foreach($option['inclusions'] as $incIndex => $inc)
+                        <span class="{{ $incIndex >= $incLimit ? 'hd-inc-hidden' : '' }}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg> {{ $inc }}</span>
+                      @endforeach
+                    </div>
+                    @if(count($option['inclusions']) > $incLimit)
+                      <button type="button" class="hd-inc-readmore-btn">Read more</button>
+                    @endif
+                    @endif
+
+                    @if($compliance['passportRequired'] ?? false)
+                    <div style="font-family: 'Jost', sans-serif; font-size: 11.5px; color: var(--gold); margin-top: 8px;">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px; vertical-align:middle;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                      Passport Required
+                    </div>
+                    @endif
+
+                    @if($localRoom && $localRoom->description)
+                    <a class="hd-rate-more" data-toggle="{{ $rateId }}">View more</a>
+                    <div id="{{ $rateId }}" class="hd-desc" style="display:none; margin-top:10px; font-size:13px;">{!! strip_tags($localRoom->description) !!}</div>
+                    @endif
+                  </div>
+
+                  <!-- Pricing & Select (Right Column) -->
+                  <div class="hd-rate-price">
+                    <div class="hd-rate-price-per-night">{{ $pricing['currency'] ?? 'INR' }} {{ number_format($perNight) }}/night</div>
+                    <div class="hd-rate-price-total">{{ $pricing['currency'] ?? 'INR' }} {{ number_format($totalPrice) }}</div>
+                    <div class="hd-rate-price-caption">Total price for {{ $roomCount }} room{{ $roomCount > 1 ? 's' : '' }}</div>
+                    <form method="POST" action="{{ route('hotel.review', $hotel->slug) }}" class="hd-select-room-form">
+                      @csrf
+                      <input type="hidden" name="option_id" value="{{ $option['optionId'] ?? '' }}">
+                      <input type="hidden" name="check_in" value="{{ $checkIn }}">
+                      <input type="hidden" name="check_out" value="{{ $checkOut }}">
+                      <input type="hidden" name="adults" value="{{ $adults }}">
+                      <input type="hidden" name="children" value="{{ $children }}">
+                      <input type="hidden" name="rooms" value="{{ $roomCount }}">
+                      <button type="submit" class="hd-room-btn" style="width: 100%; border-radius: 100px; padding: 12px 16px;">
+                        <span class="hd-room-btn-spinner"></span>
+                        <span class="hd-room-btn-label">Select Room</span>
+                      </button>
+                    </form>
+                  </div>
+
+                </div>
+              @endforeach
+            </div>
+          </div>
+        </div>
+      @endforeach
+    </div>
+    @elseif(!empty($pricingError))
+    <div style="padding:20px 22px; background:rgba(201,168,76,0.06); border:1px solid var(--gold-dim); border-radius:14px; font-family:'Jost',sans-serif; font-size:13.5px; color:var(--white-60); line-height:1.6;">
+      {{ $pricingError }}
+    </div>
+    @elseif(!empty($checkIn) && !empty($checkOut))
+    <div style="padding:20px 22px; background:rgba(201,168,76,0.06); border:1px solid var(--gold-dim); border-radius:14px; font-family:'Jost',sans-serif; font-size:13.5px; color:var(--white-60); line-height:1.6;">
+      No rooms are available for this hotel on {{ $checkIn }} – {{ $checkOut }}.
+      <a href="{{ route('hotels', array_filter(['destination' => $destination, 'check_in' => $checkIn, 'check_out' => $checkOut])) }}" style="color:var(--gold);">Try different dates</a>, or send us an enquiry and we'll check alternatives for you.
+    </div>
+    @else
+    <div style="padding:20px 22px; background:rgba(201,168,76,0.06); border:1px solid var(--gold-dim); border-radius:14px; font-family:'Jost',sans-serif; font-size:13.5px; color:var(--white-60); line-height:1.6;">
+      <a href="{{ route('hotels', ['destination' => $destination]) }}" style="color:var(--gold);">Search dates for {{ $destination }}</a> to see available rooms, meal plans and live prices for this hotel.
+    </div>
+    @endif
+  </div>
+</div>
+@endif
+
+@if(!empty($hotel->bottom_sections) && is_array($hotel->bottom_sections))
+<!-- ===================================================
+     BOTTOM NOTICES (Attractions, Renovations, ...)
+=================================================== -->
+<div style="max-width:1280px; margin:0 auto; padding:0 40px 56px;">
+  @php
+    $bottomIcons = [
+      'Attractions' => '<path d="M3 21l6-14 4 9 3-6 5 11"/><circle cx="7" cy="5" r="2"/>',
+      'Renovations' => '<path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/>',
+    ];
+  @endphp
+  @foreach($hotel->bottom_sections as $sectionTitle => $sectionText)
+    <div class="hd-section">
+      <div style="background: linear-gradient(160deg, rgba(255,255,255,0.035), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 30px 32px;">
+        <div class="hd-info-card-head" style="margin-bottom:22px;">
+          <span class="hd-info-icon" style="width:44px; height:44px; border-radius:12px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:20px; height:20px; color:var(--gold);">{!! $bottomIcons[$sectionTitle] ?? '<circle cx="12" cy="12" r="9"/>' !!}</svg></span>
+          <h2 class="hd-section-title" style="margin:0; border:none; font-size:1.7rem;">{{ $sectionTitle }}</h2>
+        </div>
+        <div class="hd-desc">{!! $sectionText !!}</div>
+      </div>
+    </div>
+  @endforeach
+</div>
+@endif
 
 
 <!-- ===================================================
@@ -1491,6 +2114,18 @@ body { background: var(--dark); color: #fff; }
         targetModal.classList.add('open');
         document.body.style.overflow = 'hidden';
       }
+    });
+  });
+
+  /* ===== RATE PLAN "VIEW MORE" TOGGLE (inline expand, not a modal) ===== */
+  document.querySelectorAll('.hd-rate-more[data-toggle]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const target = document.getElementById(btn.getAttribute('data-toggle'));
+      if (!target) return;
+      const isOpen = target.style.display !== 'none';
+      target.style.display = isOpen ? 'none' : 'block';
+      btn.textContent = isOpen ? 'View more' : 'View less';
     });
   });
 
@@ -1762,6 +2397,161 @@ body { background: var(--dark); color: #fff; }
       checkinInput.addEventListener('click', () => fp.open());
       checkoutInput.addEventListener('click', () => fp.open());
     }
+
+    /* ===== HERO GALLERY SLIDESHOW ===== */
+    (function () {
+      const main = document.getElementById('hdGalleryMain');
+      if (!main) return;
+      const slides = Array.from(main.querySelectorAll('.hd-gallery-slide'));
+      const prevBtn = document.getElementById('hdGalleryPrev');
+      const nextBtn = document.getElementById('hdGalleryNext');
+      const counter = document.getElementById('hdGalleryCounter');
+      if (slides.length < 2) return;
+
+      let current = 0;
+      function showSlide(index) {
+        slides[current].classList.remove('active');
+        current = (index + slides.length) % slides.length;
+        slides[current].classList.add('active');
+        if (counter) counter.textContent = (current + 1) + ' / ' + slides.length;
+      }
+
+      if (prevBtn) prevBtn.addEventListener('click', () => showSlide(current - 1));
+      if (nextBtn) nextBtn.addEventListener('click', () => showSlide(current + 1));
+    })();
+
+    /* ===== PHOTO STRIP + LIGHTBOX ===== */
+    (function () {
+      const mainSlides = Array.from(document.querySelectorAll('#hdGalleryMain .hd-gallery-slide img'));
+      if (!mainSlides.length) return;
+      const photoUrls = mainSlides.map(img => img.src);
+
+      const lightbox = document.getElementById('hdLightbox');
+      const lbImg = document.getElementById('hdLightboxImg');
+      const lbCounter = document.getElementById('hdLightboxCounter');
+      const lbClose = document.getElementById('hdLightboxClose');
+      const lbPrev = document.getElementById('hdLightboxPrev');
+      const lbNext = document.getElementById('hdLightboxNext');
+      if (!lightbox || !lbImg) return;
+
+      let lbIndex = 0;
+      function openLightbox(index) {
+        lbIndex = (index + photoUrls.length) % photoUrls.length;
+        lbImg.src = photoUrls[lbIndex];
+        lbCounter.textContent = (lbIndex + 1) + ' / ' + photoUrls.length;
+        lightbox.classList.add('open');
+        document.body.style.overflow = 'hidden';
+      }
+      function closeLightbox() {
+        lightbox.classList.remove('open');
+        document.body.style.overflow = '';
+      }
+
+      document.getElementById('hdViewAllPhotos')?.addEventListener('click', () => openLightbox(0));
+      lbClose?.addEventListener('click', closeLightbox);
+      lbPrev?.addEventListener('click', () => openLightbox(lbIndex - 1));
+      lbNext?.addEventListener('click', () => openLightbox(lbIndex + 1));
+      lightbox.addEventListener('click', (e) => { if (e.target === lightbox) closeLightbox(); });
+      document.addEventListener('keydown', (e) => {
+        if (!lightbox.classList.contains('open')) return;
+        if (e.key === 'Escape') closeLightbox();
+        if (e.key === 'ArrowLeft') openLightbox(lbIndex - 1);
+        if (e.key === 'ArrowRight') openLightbox(lbIndex + 1);
+      });
+    })();
+
+    /* ===== SECTION NAV: ACTIVE LINK ON SCROLL ===== */
+    (function () {
+      const navLinks = Array.from(document.querySelectorAll('.hd-section-nav a'));
+      if (!navLinks.length) return;
+      const targets = navLinks
+        .map(link => document.querySelector(link.getAttribute('href')))
+        .filter(Boolean);
+      if (!targets.length) return;
+
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (!entry.isIntersecting) return;
+          const id = '#' + entry.target.id;
+          navLinks.forEach(link => link.classList.toggle('active', link.getAttribute('href') === id));
+        });
+      }, { rootMargin: '-120px 0px -70% 0px', threshold: 0 });
+
+      targets.forEach(t => observer.observe(t));
+    })();
+
+    /* ===== AMENITY GROUP "READ MORE" TOGGLE ===== */
+    document.querySelectorAll('.hd-readmore-btn').forEach(btn => {
+      const list = btn.previousElementSibling;
+      if (!list || !list.classList.contains('hd-collapsible')) return;
+      btn.addEventListener('click', () => {
+        const isCollapsed = list.classList.toggle('collapsed');
+        btn.textContent = isCollapsed ? 'Read more' : 'Show less';
+      });
+    });
+
+    /* ===== ROOM CARD INCLUSIONS "READ MORE" — opens the full list in a popup ===== */
+    (function () {
+      const modal = document.getElementById('hdAmenitiesModal');
+      const listEl = document.getElementById('hdAmenitiesModalList');
+      const titleEl = document.getElementById('hdAmenitiesModalTitle');
+      const closeBtn = document.getElementById('hdAmenitiesModalClose');
+      const imgWrap = document.getElementById('hdAmenitiesModalImgWrap');
+      const imgEl = document.getElementById('hdAmenitiesModalImg');
+      const metaEl = document.getElementById('hdAmenitiesModalMeta');
+      if (!modal || !listEl || !titleEl) return;
+
+      const bedIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4v16M22 4v16M2 8h20M6 4v4M18 4v4"/></svg>';
+      const sizeIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z M4 9h16 M9 4v16"/></svg>';
+      const guestIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/></svg>';
+
+      function openAmenitiesModal({ items, title, image, bed, size, guests }) {
+        titleEl.textContent = title || 'Room Amenities';
+
+        if (image) {
+          imgEl.src = image;
+          imgEl.alt = title || '';
+          imgWrap.hidden = false;
+        } else {
+          imgWrap.hidden = true;
+        }
+
+        const meta = [];
+        if (guests) meta.push(guestIcon + 'Fits max. ' + guests + ' guests');
+        if (bed) meta.push(bedIcon + bed);
+        if (size) meta.push(sizeIcon + size);
+        metaEl.innerHTML = meta.map(html => '<span>' + html + '</span>').join('');
+
+        listEl.innerHTML = items.map(text => (
+          '<div class="hd-point"><span class="hd-point-icon"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span>' + text + '</div>'
+        )).join('');
+
+        modal.classList.add('open');
+        document.body.style.overflow = 'hidden';
+      }
+      function closeAmenitiesModal() {
+        modal.classList.remove('open');
+        document.body.style.overflow = '';
+      }
+      closeBtn?.addEventListener('click', closeAmenitiesModal);
+      modal.addEventListener('click', (e) => { if (e.target === modal) closeAmenitiesModal(); });
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modal.classList.contains('open')) closeAmenitiesModal(); });
+
+      document.querySelectorAll('.hd-inc-readmore-btn').forEach(btn => {
+        const list = btn.previousElementSibling;
+        if (!list || !list.classList.contains('hd-room-inc')) return;
+        const items = Array.from(list.querySelectorAll('span')).map(s => s.textContent.trim()).filter(Boolean);
+        const roomCard = btn.closest('[data-room-title]');
+        btn.addEventListener('click', () => openAmenitiesModal({
+          items,
+          title: roomCard?.dataset.roomTitle,
+          image: roomCard?.dataset.roomImage,
+          bed: roomCard?.dataset.roomBed,
+          size: roomCard?.dataset.roomSize,
+          guests: roomCard?.dataset.roomGuests,
+        }));
+      });
+    })();
 
     /* ===== MOUSE DRAG TO SCROLL FOR GALLERY ===== */
     document.querySelectorAll('.hd-room-gallery').forEach(slider => {
