@@ -14,6 +14,8 @@ class Hotel extends Model
 
     protected $casts = [
         'house_rules' => 'array',
+        'description_sections' => 'array',
+        'bottom_sections' => 'array',
     ];
 
     public function destination() { return $this->belongsTo(Destination::class); }

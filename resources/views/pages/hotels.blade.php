@@ -1429,12 +1429,45 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
     htlSearchForm.addEventListener('submit', (e) => {
       const value = destinationSearch.value.trim();
       const validOptions = Array.from(document.querySelectorAll('#htlDestinationList option')).map(o => o.value);
-      const isValid = value !== '' && validOptions.includes(value);
+      const isDestinationValid = value !== '' && validOptions.includes(value);
 
-      if (!isValid) {
+      const checkInIsoEl = document.getElementById('htlCheckInIso');
+      const checkOutIsoEl = document.getElementById('htlCheckOutIso');
+      const isCheckInValid = !!(checkInIsoEl && checkInIsoEl.value);
+      const isCheckOutValid = !!(checkOutIsoEl && checkOutIsoEl.value);
+
+      const adultsEl = document.getElementById('htlAdults');
+      const roomsEl = document.getElementById('htlRooms');
+      const isGuestsValid = !!(adultsEl && parseInt(adultsEl.value, 10) > 0 && roomsEl && parseInt(roomsEl.value, 10) > 0);
+
+      if ((!isDestinationValid) && (!isCheckInValid || !isCheckOutValid)) {
+        e.preventDefault();
+        showToast('Search Error', 'Please pick a valid city/hotel and checkin and checkout dates.', 'error');
+        destinationSearch.focus();
+        return;
+      }
+
+      if (!isDestinationValid) {
         e.preventDefault();
         showToast('Search Error', 'Please pick a valid city/hotel.', 'error');
         destinationSearch.focus();
+        return;
+      }
+
+      if (!isCheckInValid || !isCheckOutValid) {
+        e.preventDefault();
+        showToast('Search Error', 'Please select check-in and check-out dates.', 'error');
+        const checkInField = document.getElementById('htlCheckInField');
+        if (checkInField) checkInField.querySelector('input')?.focus();
+        return;
+      }
+
+      if (!isGuestsValid) {
+        e.preventDefault();
+        showToast('Search Error', 'Please select rooms & guests.', 'error');
+        const guestField = document.getElementById('htlGuestField');
+        if (guestField) guestField.focus();
+        return;
       }
     });
   }

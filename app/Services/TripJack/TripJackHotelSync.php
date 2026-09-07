@@ -138,18 +138,186 @@ class TripJackHotelSync
     }
 
     /**
-     * TripJack's descriptions.default is normally prose, but for some
-     * (mostly apartment-style) listings it's itself a JSON-encoded object
-     * of sub-sections (location, rooms, business_amenities, ...). Detect
-     * that and build readable prose instead of storing the raw JSON.
+     * Canonical sub-section keys (lowercase, as they appear in TripJack's
+     * JSON-encoded descriptions.default blob, or as inline "Label:" markers
+     * in plain-text descriptions — both formats have been observed) mapped
+     * to the heading shown under "About This Hotel". Order is display order.
      */
-    public function resolveDescription(array $descriptions): string
-    {
-        $unwrapped = $this->unwrapJsonBlob($descriptions['default'] ?? null, [
-            'location', 'rooms', 'business_amenities', 'onsite_payments', 'spoken_languages', 'overview', 'general description', 'snippet',
-        ]);
+    protected const DESCRIPTION_SECTION_LABELS = [
+        'location' => 'Location',
+        'amenities' => 'Amenities',
+        'rooms' => 'Rooms',
+        'dining' => 'Dining',
+        'business_amenities' => 'Business Amenities',
+        'onsite_payments' => 'Onsite Payments',
+        'spoken_languages' => 'Spoken Languages',
+    ];
 
-        return $unwrapped ?: trim((string) ($descriptions['headline'] ?? ''));
+    /**
+     * Same idea as DESCRIPTION_SECTION_LABELS, but these render as their own
+     * full-width sections at the bottom of the hotel page instead of under
+     * "About This Hotel" — they're property-wide notices, not part of the
+     * hotel's description. Multiple candidate keys per label since TripJack's
+     * naming isn't consistent across hotels (singular/plural, etc.).
+     */
+    protected const BOTTOM_SECTION_LABELS = [
+        'attractions' => 'Attractions',
+        'renovations' => 'Renovations',
+    ];
+
+    protected const OVERVIEW_KEYS = ['overview', 'general description', 'snippet', 'headline'];
+
+    /**
+     * TripJack's descriptions.default (and some policies fields) come in
+     * three different shapes for the same logical content — confirmed across
+     * real responses:
+     *   1. Plain prose with no sub-sections at all.
+     *   2. A JSON-encoded object, e.g. {"location": "...", "rooms": "...", ...}.
+     *   3. Plain text with sub-sections concatenated inline as "Label: text"
+     *      runs with no separator ("Location: ...Rooms: ...Attractions: ...") —
+     *      seen on apartment-style listings; parsing this wrong is what caused
+     *      the huge "Attractions" distance list to show up glued onto the end
+     *      of the About This Hotel paragraph instead of its own section.
+     * This is the single place that understands all three, splitting into an
+     * overview paragraph + "About This Hotel" sub-sections + bottom-of-page
+     * notices so every caller sees a consistent, already-separated result.
+     *
+     * @return array{overview: ?string, sections: array<string,string>, bottom: array<string,string>}
+     */
+    public function parseDescriptionBlob(?string $value): array
+    {
+        $result = ['overview' => null, 'sections' => [], 'bottom' => []];
+
+        if (! is_string($value) || trim($value) === '') {
+            return $result;
+        }
+        $value = trim($value);
+
+        // Shape 2: JSON-encoded object of sub-sections.
+        if (str_starts_with($value, '{')) {
+            $decoded = json_decode($value, true);
+            if (is_array($decoded)) {
+                $lowerMap = collect($decoded)->keyBy(fn ($v, $k) => strtolower((string) $k));
+
+                foreach (self::DESCRIPTION_SECTION_LABELS as $key => $label) {
+                    $text = $lowerMap->get($key);
+                    if (! empty($text) && is_string($text)) {
+                        $result['sections'][$label] = trim($text);
+                    }
+                }
+
+                foreach (self::BOTTOM_SECTION_LABELS as $key => $label) {
+                    $text = $lowerMap->get($key);
+                    if (! empty($text) && is_string($text)) {
+                        $result['bottom'][$label] = trim($text);
+                    }
+                }
+
+                $overview = collect(self::OVERVIEW_KEYS)
+                    ->map(fn ($key) => $lowerMap->get($key))
+                    ->first(fn ($v) => ! empty($v) && is_string($v));
+
+                // No dedicated overview key — fall back to any remaining
+                // string value not already used above, rather than losing
+                // the content entirely.
+                if (! $overview && empty($result['sections']) && empty($result['bottom'])) {
+                    $overview = collect($decoded)
+                        ->filter(fn ($v) => is_string($v) && trim($v) !== '')
+                        ->map(fn ($v) => trim($v))
+                        ->first();
+                }
+
+                // TripJack sometimes wraps the *entire* inline-labelled blob
+                // (Location: ...Rooms: ...Attractions: ...) inside a single
+                // "General Description"/"overview" key instead of splitting
+                // it into real JSON keys — re-run the plain-text splitter on
+                // whatever overview text we found so those still come out as
+                // their own sections instead of one giant paragraph.
+                if ($overview) {
+                    $this->mergePlainText(trim($overview), $result);
+                }
+
+                return $result;
+            }
+
+            // Undecodable JSON-looking string — fall through to plain-text
+            // handling below rather than lose it.
+        }
+
+        // Shape 1 & 3: plain prose, optionally with inline "Label: ..." markers.
+        $this->mergePlainText($value, $result);
+
+        return $result;
+    }
+
+    /**
+     * Splits plain text into labelled sub-sections (if any are present) and
+     * merges them into $result in place; falls back to using the whole text
+     * as the overview when no labels are found. Shared by both the JSON
+     * "General Description" wrapper case and genuinely plain-text blobs.
+     *
+     * @param  array{overview: ?string, sections: array<string,string>, bottom: array<string,string>}  $result
+     */
+    protected function mergePlainText(string $text, array &$result): void
+    {
+        $inline = $this->splitInlineLabeledSections($text);
+
+        if (empty($inline)) {
+            $result['overview'] = $result['overview'] ?? $text;
+
+            return;
+        }
+
+        foreach ($inline as $label => $sectionText) {
+            $lowerLabel = strtolower($label);
+            if (in_array($lowerLabel, self::OVERVIEW_KEYS, true)) {
+                $result['overview'] = $result['overview'] ?? $sectionText;
+            } elseif ($mapped = self::BOTTOM_SECTION_LABELS[$lowerLabel] ?? null) {
+                $result['bottom'][$mapped] = $result['bottom'][$mapped] ?? $sectionText;
+            } elseif ($mapped = self::DESCRIPTION_SECTION_LABELS[str_replace(' ', '_', $lowerLabel)] ?? null) {
+                $result['sections'][$mapped] = $result['sections'][$mapped] ?? $sectionText;
+            }
+        }
+    }
+
+    /**
+     * Splits text where TripJack has concatenated named sections inline with
+     * no separator, e.g. "Location: ...Rooms: ...Attractions: ...", into a
+     * label => text map (using each label's original casing as the key).
+     * Returns [] when none of the known labels appear in the text.
+     *
+     * @return array<string, string>
+     */
+    protected function splitInlineLabeledSections(string $text): array
+    {
+        $labels = array_merge(
+            array_map(fn ($l) => Str::title(str_replace('_', ' ', $l)), array_keys(self::DESCRIPTION_SECTION_LABELS)),
+            array_map(fn ($l) => Str::title($l), array_keys(self::BOTTOM_SECTION_LABELS)),
+            array_map(fn ($l) => Str::title($l), self::OVERVIEW_KEYS),
+        );
+        // Longest first, so "Business Amenities" matches before "Amenities" does.
+        usort($labels, fn ($a, $b) => strlen($b) <=> strlen($a));
+
+        $pattern = '/(?<![A-Za-z])('.implode('|', array_map(fn ($l) => preg_quote($l, '/'), $labels)).'):\s*/';
+        $parts = preg_split($pattern, $text, -1, PREG_SPLIT_DELIM_CAPTURE);
+
+        if (count($parts) < 3) {
+            return [];
+        }
+
+        $sections = [];
+        // $parts[0] is any text before the first label — usually empty; if
+        // there's real content there it has no home, so it's dropped rather
+        // than mislabeled.
+        for ($i = 1; $i < count($parts); $i += 2) {
+            $label = trim($parts[$i]);
+            $content = trim($parts[$i + 1] ?? '');
+            if ($content !== '') {
+                $sections[$label] = $content;
+            }
+        }
+
+        return $sections;
     }
 
     /**
@@ -222,6 +390,121 @@ class TripJackHotelSync
     }
 
     /**
+     * TripJack's free-text policy/description fields routinely concatenate
+     * separate sentences or fee line-items with no separator at all —
+     * confirmed on real responses like "...per stayA tax is imposed..." and
+     * "...are:Al Maktoum Intl. Airport...". Rendered verbatim this reads as
+     * one run-on wall of text. Inserts the missing boundary rather than
+     * leaving guests to parse it themselves; a plain string in, so it's safe
+     * to run on anything before it's stored.
+     */
+    protected function tidyGluedText(string $text): string
+    {
+        $text = trim($text);
+        // Missing space after a colon that's immediately followed by text
+        // (but not ":// " style URLs, which don't occur in this content).
+        $text = preg_replace('/:(?=\S)/', ': ', $text);
+        // A lowercase/digit character directly followed by an uppercase
+        // letter starting a new word almost always means two sentences got
+        // glued together with no punctuation between them at all.
+        $text = preg_replace('/([a-z0-9])([A-Z][a-z])/', '$1. $2', $text);
+        // Same glue, but the new sentence starts with a single-letter word
+        // ("...per stayA tax is imposed...") — the capital letter is
+        // followed by a space rather than a lowercase letter, so the rule
+        // above misses it.
+        $text = preg_replace('/([a-z0-9])([A-Z]) (?=[a-z])/', '$1. $2 ', $text);
+        // Collapse the double/triple spaces TripJack uses as its own
+        // internal separator once real punctuation exists to do that job.
+        $text = preg_replace('/ {2,}/', ' ', $text);
+
+        return trim($text);
+    }
+
+    /**
+     * Fee/policy blobs (mandatory_fees, special_instructions,
+     * know_before_you_go) are a run of distinct line-items glued into one
+     * paragraph — reads far better as a bullet list. Splits on sentence
+     * boundaries after tidying and renders as a <ul>; a single-sentence
+     * blob just becomes a one-item list, which still reads fine.
+     */
+    protected function formatAsBulletList(?string $text): ?string
+    {
+        if ($text === null || trim($text) === '') {
+            return $text;
+        }
+
+        $tidied = $this->tidyGluedText($text);
+        $sentences = collect(preg_split('/(?<=[.!?])\s+(?=[A-Z0-9])/', $tidied))
+            ->map(fn ($s) => trim($s))
+            ->filter(fn ($s) => $s !== '')
+            ->values();
+
+        if ($sentences->count() <= 1) {
+            return e($tidied);
+        }
+
+        return '<ul class="hd-fee-list">'.$sentences->map(fn ($s) => '<li>'.e($s).'</li>')->implode('').'</ul>';
+    }
+
+    /**
+     * "Attractions" text is a very specific shape — an intro sentence,
+     * then a long run of "Place Name - X km / Y mi" pairs, then a nearest-
+     * airports sentence — that reads far better as a list than as prose.
+     * Detects that shape and returns HTML with the places as a <ul>; returns
+     * plain tidied text unchanged if the shape doesn't match (e.g. Renovations
+     * notices, which are ordinary prose).
+     */
+    protected function formatPlaceList(string $text): string
+    {
+        $text = $this->tidyGluedText($text);
+
+        // TripJack always opens with this exact disclaimer sentence — pull
+        // it out explicitly first. Without this, the lazy place-name match
+        // below (which has to allow "Dubai Intl. Airport" style periods in
+        // real place names) greedily swallows this whole sentence as if it
+        // were the first place's name, since both end in "...kilometer."
+        // and "...mi" with no other delimiter between them.
+        $leadingIntro = '';
+        if (preg_match('/^(Distances are displayed to the nearest [\d.]+ miles? and kilometers?)\.\s*/i', $text, $m)) {
+            $leadingIntro = trim($m[1]).'.';
+            $text = trim(Str::after($text, $m[0]));
+        }
+
+        // Matches "Some Place Name - 1.2 km / 0.7 mi" repeated, stopping
+        // before "The nearest airports are:" or end of string. Capped
+        // length keeps a run of prose with no recognizable place boundary
+        // from being swallowed whole as a single "place name".
+        if (! preg_match_all('/([A-Za-z0-9][A-Za-z0-9 .,\'&()\/-]{1,70}?) - ([\d.]+ km \/ [\d.]+ mi)/', $text, $matches, PREG_SET_ORDER)) {
+            $whole = trim($leadingIntro.' '.$text);
+
+            return $whole === '' ? '' : '<p>'.e($whole).'</p>';
+        }
+
+        $intro = trim($leadingIntro.' '.trim(Str::before($text, $matches[0][0])));
+        $afterPlaces = trim(Str::after($text, end($matches)[0]));
+
+        $html = '';
+        if ($intro !== '') {
+            $html .= '<p style="margin-bottom:14px;">'.e($intro).'</p>';
+        }
+
+        $html .= '<ul class="hd-place-list">';
+        foreach ($matches as $match) {
+            $html .= '<li><span>'.e(trim($match[1])).'</span><span class="hd-place-list-dist">'.e($match[2]).'</span></li>';
+        }
+        $html .= '</ul>';
+
+        if ($afterPlaces !== '') {
+            // "The nearest airports are:X - .. Y - .." itself repeats the
+            // same "Name - distance" shape — recurse once so it renders as
+            // its own short list instead of a second run-on line.
+            $html .= $this->formatPlaceList($afterPlaces);
+        }
+
+        return $html;
+    }
+
+    /**
      * Room-type images.links is keyed by pixel width ("70px", "200px", ...)
      * with no guaranteed key order — picks the largest available rather than
      * assuming any particular key exists or that array order is meaningful.
@@ -271,7 +554,38 @@ class TripJackHotelSync
         $address = $detail['locale']['address']['fulladdr'] ?? '';
         $lat = $detail['locale']['coordinates']['lat'] ?? null;
         $lng = $detail['locale']['coordinates']['long'] ?? null;
-        $description = $this->resolveDescription($detail['descriptions'] ?? []);
+        $parsed = $this->parseDescriptionBlob($detail['descriptions']['default'] ?? null);
+
+        // TripJack's top-level descriptions.headline is unreliable as a
+        // fallback: it's sometimes a genuine short tagline, but often the
+        // exact same Location/Rooms paragraph already shown elsewhere,
+        // verbatim — using it wholesale would duplicate that text under
+        // "About This Hotel". Only fall back to it when descriptions.default
+        // gave us literally nothing (no overview, no sections, no bottom
+        // notices), so there's no existing content it could duplicate.
+        $description = $parsed['overview'] ?: '';
+        $descriptionSections = $parsed['sections'];
+        $bottomSections = $parsed['bottom'];
+
+        if ($description === '' && empty($descriptionSections) && empty($bottomSections)) {
+            $headlineParsed = $this->parseDescriptionBlob($detail['descriptions']['headline'] ?? null);
+            $description = $headlineParsed['overview'] ?: '';
+            $descriptionSections = $headlineParsed['sections'];
+            $bottomSections = $headlineParsed['bottom'];
+        }
+
+        // Attractions/renovations notices have also been observed living in
+        // policy fields instead of descriptions.default — merge those in
+        // too (descriptions.default takes precedence when both have a value).
+        foreach ([$detail['policies']['know_before_you_go'] ?? null, $detail['policies']['special_instructions'] ?? null] as $policyBlob) {
+            $bottomSections = array_merge($this->parseDescriptionBlob($policyBlob)['bottom'], $bottomSections);
+        }
+
+        $description = $description !== '' ? $this->tidyGluedText($description) : $description;
+        $descriptionSections = collect($descriptionSections)->map(fn ($text) => $this->tidyGluedText($text))->all();
+        $bottomSections = collect($bottomSections)->map(
+            fn ($text, $label) => $label === 'Attractions' ? $this->formatPlaceList($text) : $this->tidyGluedText($text)
+        )->all();
 
         $hotel = Hotel::firstOrNew(['tripjack_hotel_id' => $tjHotelId]);
         $hotel->fill(
@@ -280,6 +594,8 @@ class TripJackHotelSync
                 'title' => $name,
                 'slug' => $hotel->slug ?? Str::slug($name.'-'.$tjHotelId),
                 'description' => $description ?: 'No description available.',
+                'description_sections' => ! empty($descriptionSections) ? $descriptionSections : null,
+                'bottom_sections' => ! empty($bottomSections) ? $bottomSections : null,
                 'category' => 'city_luxury',
                 'address' => $address,
                 'lat' => $lat,
@@ -290,11 +606,11 @@ class TripJackHotelSync
                 'is_active' => (bool) ($detail['is_active'] ?? true),
                 'check_in_time' => $this->formatClockTime($detail['policies']['checkInCheckOut']['checkin_from'] ?? null) ?? $hotel->check_in_time,
                 'check_out_time' => $this->formatClockTime($detail['policies']['checkInCheckOut']['checkout_from'] ?? null) ?? $hotel->check_out_time,
-                'mandatory_fees' => $this->unwrapJsonBlob($detail['policies']['mandatory_fees'] ?? null, ['mandatory']),
+                'mandatory_fees' => $this->formatAsBulletList($this->unwrapJsonBlob($detail['policies']['mandatory_fees'] ?? null, ['mandatory'])),
                 'chain_name' => $detail['chain']['name'] ?? null,
                 'house_rules' => ! empty($detail['policies']['houseRules']) ? $detail['policies']['houseRules'] : null,
-                'special_instructions' => $this->unwrapJsonBlob($detail['policies']['special_instructions'] ?? null, ['special instructions', 'instructions']),
-                'know_before_you_go' => $this->unwrapJsonBlob($detail['policies']['know_before_you_go'] ?? null, ['know_before_you_go', 'house_rules']),
+                'special_instructions' => $this->formatAsBulletList($this->unwrapJsonBlob($detail['policies']['special_instructions'] ?? null, ['special instructions', 'instructions'])),
+                'know_before_you_go' => $this->formatAsBulletList($this->unwrapJsonBlob($detail['policies']['know_before_you_go'] ?? null, ['know_before_you_go', 'house_rules'])),
             ]
         );
         $hotel->save();
