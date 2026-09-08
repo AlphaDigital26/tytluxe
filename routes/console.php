@@ -14,3 +14,7 @@ Schedule::call(function () {
         ->where('created_at', '<=', now()->subHours(48))
         ->forceDelete();
 })->hourly();
+
+Schedule::command('app:sync-tripjack-hotel-mappings UPDATE')->dailyAt('02:00')->withoutOverlapping();
+Schedule::command('app:sync-tripjack-hotel-mappings NEW')->dailyAt('02:30')->withoutOverlapping();
+Schedule::command('app:sync-tripjack-hotel-mappings DELETE')->dailyAt('03:00')->withoutOverlapping();

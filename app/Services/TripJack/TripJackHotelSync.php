@@ -542,7 +542,12 @@ class TripJackHotelSync
         return $summary !== '' ? $summary : null;
     }
 
-    protected function upsertHotel(array $detail, int $destinationId): void
+    /**
+     * Upserts one hotel from a static-detail payload into an already-known
+     * destination. Public so TripJackMappingSync can reuse the same
+     * parsing/normalization logic for NEW/UPDATE mapping-sync rows.
+     */
+    public function upsertHotel(array $detail, int $destinationId): void
     {
         $tjHotelId = (string) ($detail['tjHotelId'] ?? '');
         if ($tjHotelId === '') {
@@ -604,8 +609,8 @@ class TripJackHotelSync
                 'price_from' => 0,
                 'source' => 'tripjack',
                 'is_active' => (bool) ($detail['is_active'] ?? true),
-                'check_in_time' => $this->formatClockTime($detail['policies']['checkInCheckOut']['checkin_from'] ?? null) ?? $hotel->check_in_time,
-                'check_out_time' => $this->formatClockTime($detail['policies']['checkInCheckOut']['checkout_from'] ?? null) ?? $hotel->check_out_time,
+                'check_in_time' => $this->formatClockTime($detail['policies']['checkInCheckOut']['checkin_from'] ?? null) ?? $hotel->check_in_time ?? '2:00 PM',
+                'check_out_time' => $this->formatClockTime($detail['policies']['checkInCheckOut']['checkout_from'] ?? null) ?? $hotel->check_out_time ?? '11:00 AM',
                 'mandatory_fees' => $this->formatAsBulletList($this->unwrapJsonBlob($detail['policies']['mandatory_fees'] ?? null, ['mandatory'])),
                 'chain_name' => $detail['chain']['name'] ?? null,
                 'house_rules' => ! empty($detail['policies']['houseRules']) ? $detail['policies']['houseRules'] : null,
