@@ -73,7 +73,11 @@ class TripJackClient
      */
     public function nationalityInfo(): array
     {
-        $url = $this->nationalityBaseUrl.'/nationality-info';
+        // Lives on the main hms host, not a separate "nationality" host —
+        // apitest.tripjack.com/hms/v3/nationality-info (the old configured
+        // default) returns a 403 Access Denied; the real endpoint is
+        // apitest-hms.tripjack.com/hms/v3/nationality-info, confirmed live.
+        $url = $this->hmsBaseUrl.'/nationality-info';
         $startedAt = microtime(true);
 
         try {
@@ -92,13 +96,21 @@ class TripJackClient
         }
 
         $responseBody = $response->json() ?? [];
-        $this->log('GET', $url, $response->status(), $startedAt, [], $responseBody);
+        $businessFailed = array_key_exists('status', $responseBody) && ! ($responseBody['status']['success'] ?? true);
+        $this->log('GET', $url, $response->status(), $startedAt, [], $responseBody, $response->failed() || $businessFailed);
 
-        if ($response->failed()) {
+        // TripJack sometimes signals failure via a 200 HTTP status with
+        // status.success:false in the body (e.g. the wrong-host 403 this
+        // replaced came back this way) — checking only the HTTP status let
+        // that fail silently as an "empty list" instead of a real error.
+        if ($response->failed() || $businessFailed) {
+            $errorCode = $responseBody['errors'][0]['errCode'] ?? null;
+            $message = $responseBody['errors'][0]['message'] ?? $response->body();
+
             throw new TripJackApiException(
-                "TripJack nationality API error: ".$response->body(),
-                status: $response->status(),
-                errorCode: null,
+                "TripJack nationality API error: {$message}",
+                status: $responseBody['status']['httpStatus'] ?? $response->status(),
+                errorCode: $errorCode,
                 body: $responseBody,
             );
         }
@@ -134,6 +146,34 @@ class TripJackClient
         }
 
         return $this->request('hms', 'POST', '/content/fetch-hotel-mapping', $payload);
+    }
+
+    /**
+     * Hotel Mapping Sync — POST /content/fetch-hotel-mapping-sync (page query
+     * param + cursor body pagination). $type is NEW or UPDATE; DELETE goes
+     * through fetchDeletedHotelMapping() instead (separate endpoint).
+     */
+    public function fetchHotelMappingSync(string $type, string $lastUpdateTime, ?string $cursor = null, int $page = 0): array
+    {
+        $payload = ['type' => $type, 'lastUpdateTime' => $lastUpdateTime];
+        if ($cursor) {
+            $payload['cursor'] = $cursor;
+        }
+
+        return $this->request('hms', 'POST', '/content/fetch-hotel-mapping-sync?page='.$page, $payload);
+    }
+
+    /**
+     * Deleted Mapping Sync — POST /content/fetch-deleted-hotel-mapping.
+     */
+    public function fetchDeletedHotelMapping(string $lastUpdateTime, ?string $cursor = null, int $page = 0): array
+    {
+        $payload = ['type' => 'DELETE', 'lastUpdateTime' => $lastUpdateTime];
+        if ($cursor) {
+            $payload['cursor'] = $cursor;
+        }
+
+        return $this->request('hms', 'POST', '/content/fetch-deleted-hotel-mapping?page='.$page, $payload);
     }
 
     /**
@@ -235,6 +275,21 @@ class TripJackClient
     }
 
     /**
+     * Bulk Hotel Static Content — POST /content/fetch-hotel-content. Same
+     * catalogue metadata as staticDetail(), but for up to 100 hotels in one
+     * call — use this instead of looping staticDetail() whenever checking
+     * more than a handful of hotel IDs (e.g. mapping-sync candidates).
+     *
+     * @param  string[]  $hotelIds  Max 100 per call — TripJack returns a 400
+     *                              ("Max hotel ids size...should be 100") above that.
+     * @return array{status: array, hotels: array<int, array>}
+     */
+    public function fetchHotelContent(array $hotelIds): array
+    {
+        return $this->request('hms', 'POST', '/content/fetch-hotel-content', ['hotelIds' => array_values($hotelIds)]);
+    }
+
+    /**
      * Low-level request wrapper: auth headers, timeouts, retry-on-5xx/connection
      * error, structured logging, and typed exceptions on failure.
      */
@@ -275,13 +330,19 @@ class TripJackClient
             throw new TripJackAuthException("TripJack auth failed ({$response->status()}) on {$path}: ".$response->body());
         }
 
-        if ($response->failed()) {
+        // TripJack sometimes signals a genuine failure with a 200 HTTP status
+        // and status.success:false in the body (confirmed on /hotel/pricing
+        // and /nationality-info) — checking only the transport-level status
+        // let that pass through silently as if it were a normal empty/valid
+        // response, instead of surfacing via TripJackErrorCatalog like every
+        // other failure does.
+        if ($response->failed() || $businessFailed) {
             $errorCode = $responseBody['error']['code'] ?? $responseBody['errors'][0]['errCode'] ?? null;
             $message = $responseBody['error']['message'] ?? $responseBody['errors'][0]['message'] ?? $response->body();
 
             throw new TripJackApiException(
                 "TripJack API error on {$path}: {$message}",
-                status: $response->status(),
+                status: $responseBody['status']['httpStatus'] ?? $response->status(),
                 errorCode: $errorCode,
                 body: $responseBody,
             );
