@@ -27,6 +27,15 @@ class ResyncTripjackHotels extends Command
         $this->newLine(2);
         $this->info("Done. Total: {$stats['total']}, Synced: {$stats['synced']}, Errors: {$stats['errors']}");
 
+        if (! empty($stats['city_mismatches'])) {
+            $this->newLine();
+            $this->warn(count($stats['city_mismatches']).' hotel(s) may be filed under the wrong destination — TripJack reports a different city than what they\'re assigned to locally. Review and reassign manually if confirmed wrong:');
+            $this->table(
+                ['Hotel ID', 'Title', 'Assigned Destination', 'TripJack Says'],
+                $stats['city_mismatches']
+            );
+        }
+
         return self::SUCCESS;
     }
 }
