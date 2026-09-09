@@ -119,6 +119,18 @@ class TripJackClient
     }
 
     /**
+     * Fetch Countries — GET /content/fetch-countries. Returns every distinct
+     * country name TripJack has hotel data for, for country filter dropdowns
+     * and as input to fetchHotelMapping()'s countryName param.
+     *
+     * @return array{status: array, hotelCountries: string[]}
+     */
+    public function fetchCountries(): array
+    {
+        return $this->request('hms', 'GET', '/content/fetch-countries', [], mode: 'query');
+    }
+
+    /**
      * City Region IDs — GET /content/fetch-city-regionIds (cursor pagination).
      */
     public function fetchCityRegionIds(int $limit = 2000, ?string $cursor = null): array
@@ -266,19 +278,11 @@ class TripJackClient
     }
 
     /**
-     * Static Detail — POST /hotel/static-detail. Catalogue metadata only
-     * (name, images, star rating, address) — never pricing/availability.
-     */
-    public function staticDetail(string $hid): array
-    {
-        return $this->request('hms', 'POST', '/hotel/static-detail', ['hid' => $hid]);
-    }
-
-    /**
-     * Bulk Hotel Static Content — POST /content/fetch-hotel-content. Same
-     * catalogue metadata as staticDetail(), but for up to 100 hotels in one
-     * call — use this instead of looping staticDetail() whenever checking
-     * more than a handful of hotel IDs (e.g. mapping-sync candidates).
+     * Hotel Static Content — POST /content/fetch-hotel-content. Catalogue
+     * metadata only (name, images, star rating, address, amenities, rooms) —
+     * never pricing/availability. Up to 100 hotel IDs per call; every sync
+     * path in this codebase batches through this rather than fetching one
+     * hotel at a time.
      *
      * @param  string[]  $hotelIds  Max 100 per call — TripJack returns a 400
      *                              ("Max hotel ids size...should be 100") above that.

@@ -239,7 +239,18 @@
     <div class="br-line"><span>Room</span><span>{{ $roomNames ?: 'Room' }}</span></div>
     <div class="br-line"><span>Meal Plan</span><span>{{ $option['mealBasis'] ?? 'Room Only' }}</span></div>
     <div class="br-line"><span>Base Price</span><span>{{ $pricing['currency'] ?? 'INR' }} {{ number_format($pricing['basePrice'] ?? 0) }}</span></div>
-    <div class="br-line"><span>Taxes &amp; Fees</span><span>{{ $pricing['currency'] ?? 'INR' }} {{ number_format(($pricing['taxes'] ?? 0) + ($pricing['mf'] ?? 0) + ($pricing['mft'] ?? 0)) }}</span></div>
+    @if(($pricing['taxes'] ?? 0) > 0)
+    <div class="br-line"><span>Taxes</span><span>{{ $pricing['currency'] ?? 'INR' }} {{ number_format($pricing['taxes']) }}</span></div>
+    @endif
+    @if(($pricing['mf'] ?? 0) > 0)
+    <div class="br-line"><span>Management Fee</span><span>{{ $pricing['currency'] ?? 'INR' }} {{ number_format($pricing['mf']) }}</span></div>
+    @endif
+    @if(($pricing['mft'] ?? 0) > 0)
+    <div class="br-line"><span>Management Fee Tax</span><span>{{ $pricing['currency'] ?? 'INR' }} {{ number_format($pricing['mft']) }}</span></div>
+    @endif
+    @if(($pricing['strikethrough'] ?? null) > ($pricing['totalPrice'] ?? 0))
+    <div class="br-line"><span></span><span style="text-decoration:line-through; opacity:0.5;">{{ $pricing['currency'] ?? 'INR' }} {{ number_format($pricing['strikethrough']) }}</span></div>
+    @endif
     <div class="br-line total"><span>Total</span><span>{{ $pricing['currency'] ?? 'INR' }} {{ number_format($pricing['totalPrice'] ?? 0) }}</span></div>
 
     @if($isRefundable)
