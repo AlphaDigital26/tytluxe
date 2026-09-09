@@ -31,20 +31,50 @@ class TripJackHotelSync
             ->pluck('tripjack_hotel_id', 'id');
 
         $stats = ['total' => $hotelIds->count(), 'synced' => 0, 'errors' => 0];
+        $destinationIdByTjHotelId = Hotel::whereIn('id', $hotelIds->keys())->pluck('destination_id', 'tripjack_hotel_id');
 
-        foreach ($hotelIds as $localId => $tjHotelId) {
+        // Batched 100 IDs/call (TripJack's per-call cap on fetch-hotel-content)
+        // instead of one static-detail call per hotel — the documented bulk
+        // endpoint, and the difference between ~2 calls and ~190+ for a full
+        // resync (the slow single-hotel calls were also the root cause of the
+        // sync timeouts fixed earlier by raising TRIPJACK_TIMEOUT).
+        foreach ($hotelIds->keys()->chunk(100) as $chunk) {
+            $tjHotelIdsInChunk = $hotelIds->only($chunk)->values();
+
             try {
-                $hotel = Hotel::find($localId);
-                $detail = $this->client->staticDetail((string) $tjHotelId);
-                $this->upsertHotel($detail, $hotel->destination_id);
-                $stats['synced']++;
+                $response = $this->client->fetchHotelContent($tjHotelIdsInChunk->all());
             } catch (\Throwable $e) {
-                Log::channel('tripjack')->warning('resync_failed', ['tjHotelId' => $tjHotelId, 'message' => $e->getMessage()]);
-                $stats['errors']++;
+                Log::channel('tripjack')->warning('resync_chunk_failed', ['tjHotelIds' => $tjHotelIdsInChunk->all(), 'message' => $e->getMessage()]);
+                $stats['errors'] += $tjHotelIdsInChunk->count();
+
+                if ($onProgress) {
+                    $onProgress($stats);
+                }
+
+                continue;
             }
 
-            if ($onProgress) {
-                $onProgress($stats);
+            $detailsByHotelId = collect($response['hotels'] ?? [])->keyBy(fn ($d) => (string) ($d['tjHotelId'] ?? ''));
+
+            foreach ($tjHotelIdsInChunk as $tjHotelId) {
+                $detail = $detailsByHotelId->get((string) $tjHotelId);
+
+                if (! $detail) {
+                    Log::channel('tripjack')->warning('resync_failed', ['tjHotelId' => $tjHotelId, 'message' => 'not present in fetch-hotel-content response']);
+                    $stats['errors']++;
+                } else {
+                    try {
+                        $this->upsertHotel($detail, $destinationIdByTjHotelId[$tjHotelId]);
+                        $stats['synced']++;
+                    } catch (\Throwable $e) {
+                        Log::channel('tripjack')->warning('resync_failed', ['tjHotelId' => $tjHotelId, 'message' => $e->getMessage()]);
+                        $stats['errors']++;
+                    }
+                }
+
+                if ($onProgress) {
+                    $onProgress($stats);
+                }
             }
         }
 
@@ -81,28 +111,43 @@ class TripJackHotelSync
 
         $stats = ['found' => count($tjHotelIds), 'synced' => 0, 'skipped' => 0, 'errors' => 0];
 
-        foreach ($tjHotelIds as $tjHotelId) {
+        // Batched 100 IDs/call against the documented bulk fetch-hotel-content
+        // endpoint, instead of one static-detail call per hotel (an
+        // undocumented single-hotel endpoint) — same pattern as resyncAll()
+        // and TripJackMappingSync.
+        foreach (array_chunk($tjHotelIds, 100) as $chunk) {
             try {
-                $detail = $this->client->staticDetail((string) $tjHotelId);
+                $response = $this->client->fetchHotelContent($chunk);
             } catch (\Throwable $e) {
-                Log::channel('tripjack')->warning('static_detail_failed', ['tjHotelId' => $tjHotelId, 'message' => $e->getMessage()]);
-                $stats['errors']++;
+                Log::channel('tripjack')->warning('hotel_content_fetch_failed', ['tjHotelIds' => $chunk, 'message' => $e->getMessage()]);
+                $stats['errors'] += count($chunk);
 
                 continue;
             }
 
-            $detailCity = $detail['locale']['address']['city'] ?? null;
-            if (! $tripjackCity && $detailCity && strtolower($detailCity) !== strtolower($cityName)) {
-                $stats['skipped']++;
+            $detailsByHotelId = collect($response['hotels'] ?? [])->keyBy(fn ($d) => (string) ($d['tjHotelId'] ?? ''));
 
-                continue;
-            }
+            foreach ($chunk as $tjHotelId) {
+                $detail = $detailsByHotelId->get((string) $tjHotelId);
+                if (! $detail) {
+                    $stats['errors']++;
 
-            $this->upsertHotel($detail, $destination->id);
-            $stats['synced']++;
+                    continue;
+                }
 
-            if ($stats['synced'] >= $limit) {
-                break;
+                $detailCity = $detail['locale']['address']['city'] ?? null;
+                if (! $tripjackCity && $detailCity && strtolower($detailCity) !== strtolower($cityName)) {
+                    $stats['skipped']++;
+
+                    continue;
+                }
+
+                $this->upsertHotel($detail, $destination->id);
+                $stats['synced']++;
+
+                if ($stats['synced'] >= $limit) {
+                    return $stats;
+                }
             }
         }
 

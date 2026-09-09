@@ -115,8 +115,7 @@ class TripJackMappingSync
     }
 
     /**
-     * @param  array<string,mixed>  $detail  One hotel's payload from
-     *                                       fetchHotelContent() — same shape as staticDetail().
+     * @param  array<string,mixed>  $detail  One hotel's payload from fetchHotelContent().
      * @param  array{fetched:int, synced:int, skipped_no_destination:int, errors:int}  $stats
      */
     protected function syncOne(array $detail, string $type, array &$stats): void
