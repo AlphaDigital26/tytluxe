@@ -3,6 +3,8 @@
 namespace App\Filament\Resources\Destinations\Pages;
 
 use App\Filament\Resources\Destinations\DestinationResource;
+use App\Jobs\SyncDestinationHotels;
+use App\Models\Destination;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateDestination extends CreateRecord
@@ -24,5 +26,22 @@ class CreateDestination extends CreateRecord
         }
 
         return $data;
+    }
+
+    /**
+     * Adding a destination alone pulls in zero hotels — TripJack's mapping
+     * sync only tracks incremental changes for cities we already know about.
+     * So a new hotel destination needs its own one-time catalogue fetch,
+     * fired here automatically so non-technical admins never need the CLI.
+     */
+    protected function afterCreate(): void
+    {
+        /** @var Destination $destination */
+        $destination = $this->record;
+
+        if (in_array('hotel', $destination->for ?? [], true)) {
+            $destination->update(['hotel_sync_status' => 'pending']);
+            SyncDestinationHotels::dispatch($destination->id);
+        }
     }
 }
