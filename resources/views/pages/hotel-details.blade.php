@@ -1913,7 +1913,7 @@ html { scroll-behavior: smooth; }
 
                   <!-- Pricing & Select (Right Column) -->
                   <div class="hd-rate-price">
-                    @if(($pricing['strikethrough'] ?? null) > $totalPrice)
+                    @if(($pricing['strikethrough'] ?? null) > ($pricing['totalPrice'] ?? 0))
                     <div style="font-family:'Jost',sans-serif; font-size:12px; color:rgba(255,255,255,0.35); text-decoration:line-through;">{{ $pricing['currency'] ?? 'INR' }} {{ number_format($pricing['strikethrough']) }}</div>
                     @endif
                     <div class="hd-rate-price-per-night">{{ $pricing['currency'] ?? 'INR' }} {{ number_format($perNight) }}/night</div>
