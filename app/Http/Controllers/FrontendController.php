@@ -80,6 +80,24 @@ class FrontendController extends Controller
                         $hotels = $hotels->sortByDesc(function ($hotel) use ($liveOptions) {
                             return $liveOptions->has((string) $hotel->tripjack_hotel_id) ? 1 : 0;
                         })->values();
+                    } elseif (! empty($hidsToPrice)) {
+                        // TripJack returned a normal 200 with zero priced
+                        // options across the whole batch — not a request
+                        // failure (that's caught below), just no live
+                        // inventory for this exact search right now. Log it
+                        // distinctly from a real error so a full-batch outage
+                        // is visible in monitoring instead of only showing up
+                        // as a wall of silent "Price on Request" cards, and
+                        // tell the visitor plainly instead of leaving them to
+                        // wonder whether the site is broken.
+                        Log::channel('tripjack')->info('listing_search_zero_priced', [
+                            'destination_id' => $searchDestination->id,
+                            'hotel_count' => count($hidsToPrice),
+                            'check_in' => $checkIn,
+                            'check_out' => $checkOut,
+                            'correlationId' => $result['correlationId'],
+                        ]);
+                        $searchError = 'Live pricing is temporarily unavailable for these dates. The properties below are available to book — enquire and our team will confirm the best rate for you.';
                     }
 
                     session(['tripjack_search' => [

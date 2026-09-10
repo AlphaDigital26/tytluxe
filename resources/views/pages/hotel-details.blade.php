@@ -202,9 +202,10 @@ html { scroll-behavior: smooth; }
 /* Collapsible group content — truncated to first 6 items until "Read more" */
 .hd-collapsible.collapsed > *:nth-child(n+7) { display: none; }
 .hd-collapsible.collapsed .hd-fee-list li:nth-child(n+7) { display: none; }
+.hd-point-list.hd-collapsible.collapsed > *:nth-child(n+5) { display: none !important; }
 .hd-readmore-btn {
-  display: inline-block; margin-top: 12px; background: none; border: none; padding: 0;
-  font-family: 'Jost', sans-serif; font-size: 12.5px; font-weight: 600;
+  display: inline-block; margin-top: 10px; background: none; border: none; padding: 0;
+  font-family: 'Jost', sans-serif; font-size: 12px; font-weight: 600;
   color: var(--gold); cursor: pointer; border-bottom: 1px dashed var(--gold);
   transition: color var(--tr), border-color var(--tr);
 }
@@ -214,26 +215,26 @@ html { scroll-behavior: smooth; }
   font-family: 'Jost', sans-serif; font-size: 12.5px; font-weight: 700; letter-spacing: 0.1em;
   text-transform: uppercase; color: var(--gold-light); margin: 0;
 }
-.hd-amenities { display: flex; flex-wrap: wrap; gap: 10px; }
+.hd-amenities { display: flex; flex-wrap: wrap; gap: 8px; }
 .hd-amenity {
-  display: inline-flex; align-items: center; gap: 8px;
-  border: 1px solid rgba(255,255,255,0.12); padding: 10px 18px; border-radius: 100px;
-  font-family: 'Jost', sans-serif; font-size: 13.5px; font-weight: 400; color: var(--white-80); overflow-wrap: break-word; word-wrap: break-word;
+  display: inline-flex; align-items: center; gap: 7px;
+  border: 1px solid rgba(255,255,255,0.12); padding: 7px 14px; border-radius: 100px;
+  font-family: 'Jost', sans-serif; font-size: 12.5px; font-weight: 400; color: var(--white-80); overflow-wrap: break-word; word-wrap: break-word;
   transition: border-color var(--tr), background var(--tr);
 }
 .hd-amenity:hover { border-color: var(--gold); background: var(--gold-dim); }
-.hd-amenity-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); flex-shrink: 0; }
+.hd-amenity-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--gold); flex-shrink: 0; }
 
 /* ===== ABOUT — INFO CARD GRID ===== */
 .hd-info-grid {
-  display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px;
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;
 }
 @media (max-width: 640px) { .hd-info-grid { grid-template-columns: 1fr; } }
 .hd-info-card {
   position: relative; overflow: hidden;
   background: linear-gradient(160deg, rgba(255,255,255,0.035), rgba(255,255,255,0.01));
   border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 16px; padding: 22px 24px;
+  border-radius: 14px; padding: 16px 20px;
   transition: border-color var(--tr), background var(--tr), transform var(--tr), box-shadow var(--tr);
 }
 .hd-info-card::before {
@@ -248,41 +249,41 @@ html { scroll-behavior: smooth; }
 .hd-info-card:hover::before { opacity: 1; }
 .hd-info-card.hd-info-card--wide { grid-column: 1 / -1; }
 .hd-info-card-head {
-  display: flex; align-items: center; gap: 12px; margin-bottom: 14px;
+  display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
 }
 .hd-info-card-head .hd-info-icon {
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-  width: 36px; height: 36px; border-radius: 10px;
+  width: 32px; height: 32px; border-radius: 8px;
   background: linear-gradient(160deg, rgba(201,168,76,0.18), rgba(201,168,76,0.05));
   border: 1px solid rgba(201,168,76,0.25);
 }
-.hd-info-card-head svg { color: var(--gold); flex-shrink: 0; width: 17px; height: 17px; }
+.hd-info-card-head svg { color: var(--gold); flex-shrink: 0; width: 15px; height: 15px; }
 .hd-info-card-head h3 {
-  font-family: 'Jost', sans-serif; font-size: 12.5px; font-weight: 700; letter-spacing: 0.1em;
+  font-family: 'Jost', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.1em;
   text-transform: uppercase; color: var(--gold-light); margin: 0;
 }
-.hd-info-card .hd-desc { font-size: 14px; }
-.hd-info-chip-list { display: flex; flex-wrap: wrap; gap: 9px; }
+.hd-info-card .hd-desc { font-size: 13.5px; }
+.hd-info-chip-list { display: flex; flex-wrap: wrap; gap: 8px; }
 .hd-info-chip {
-  display: inline-flex; align-items: center; gap: 7px; border: 1px solid rgba(255,255,255,0.12);
-  padding: 8px 16px; border-radius: 100px; font-family: 'Jost', sans-serif;
-  font-size: 12.5px; color: var(--white-80); background: rgba(255,255,255,0.03);
+  display: inline-flex; align-items: center; gap: 6px; border: 1px solid rgba(255,255,255,0.12);
+  padding: 6px 14px; border-radius: 100px; font-family: 'Jost', sans-serif;
+  font-size: 12px; color: var(--white-80); background: rgba(255,255,255,0.03);
   transition: all var(--tr);
 }
 .hd-info-chip:hover { border-color: rgba(201,168,76,0.4); background: var(--gold-dim); color: #fff; }
 .hd-info-chip::before {
-  content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--gold); flex-shrink: 0;
+  content: ''; width: 4px; height: 4px; border-radius: 50%; background: var(--gold); flex-shrink: 0;
 }
 
 /* Keyword point-list — sentence paragraphs distilled into scannable features */
 .hd-point-list {
-  display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px 20px;
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 2px 16px;
 }
 @media (max-width: 640px) { .hd-point-list { grid-template-columns: 1fr; } }
 .hd-point {
-  display: flex; align-items: flex-start; gap: 10px;
-  padding: 9px 0; font-family: 'Jost', sans-serif; font-size: 13.5px;
-  color: var(--white-80); line-height: 1.4; border-bottom: 1px solid rgba(255,255,255,0.06);
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 6px 0; font-family: 'Jost', sans-serif; font-size: 13px;
+  color: var(--white-80); line-height: 1.35; border-bottom: 1px solid rgba(255,255,255,0.06);
   overflow-wrap: break-word; word-wrap: break-word;
 }
 .hd-point:nth-last-child(-n+2) { border-bottom: none; }
@@ -292,38 +293,56 @@ html { scroll-behavior: smooth; }
   display: flex; align-items: center; justify-content: center;
 }
 
-/* ===== PLACE LIST (Attractions/Renovations bottom sections) — pin-icon cards ===== */
+/* ===== PLACE LIST (Attractions/Renovations bottom sections) — ultra-compact pin cards ===== */
+.hd-place-list-wrap {
+  position: relative;
+}
 .hd-place-list {
   list-style: none; margin: 0; padding: 0;
-  display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px;
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
 }
-@media (max-width: 640px) { .hd-place-list { grid-template-columns: 1fr; } }
+@media (min-width: 992px) {
+  .hd-place-list { grid-template-columns: repeat(3, 1fr); gap: 10px; }
+}
+@media (max-width: 576px) {
+  .hd-place-list { grid-template-columns: 1fr; gap: 8px; }
+}
+.hd-place-list-wrap.collapsed .hd-place-list li:nth-child(n+7) {
+  display: none !important;
+}
 .hd-place-list li {
-  display: grid; grid-template-columns: 44px 1fr; grid-template-rows: auto auto;
-  column-gap: 14px; row-gap: 3px; align-items: start;
-  background: var(--dark-2); border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 14px; padding: 18px;
-  font-family: 'Jost', sans-serif; font-size: 13.5px; color: var(--white-80);
-  transition: border-color var(--tr), transform var(--tr), box-shadow var(--tr);
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px; padding: 9px 12px;
+  font-family: 'Jost', sans-serif; font-size: 13px; color: var(--white-80);
+  transition: border-color var(--tr), transform var(--tr), background var(--tr);
 }
 .hd-place-list li:hover {
-  border-color: rgba(201,168,76,0.35); transform: translateY(-3px);
-  box-shadow: 0 12px 26px rgba(0,0,0,0.3);
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(201,168,76,0.35); transform: translateY(-2px);
 }
 .hd-place-list li::before {
-  content: '📍'; grid-row: 1 / 3; grid-column: 1;
-  width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center; font-size: 17px;
-  background: linear-gradient(160deg, rgba(201,168,76,0.18), rgba(201,168,76,0.05));
-  border: 1px solid rgba(201,168,76,0.25);
+  content: '📍';
+  font-size: 13px; flex-shrink: 0; margin-right: 2px;
 }
 .hd-place-list li span:first-child {
-  grid-row: 1; grid-column: 2; overflow-wrap: anywhere;
-  font-weight: 700; color: #fff; font-size: 14.5px; line-height: 1.35;
+  font-weight: 600; color: #fff; font-size: 13px; line-height: 1.3;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0;
 }
 .hd-place-list-dist {
-  grid-row: 2; grid-column: 2; justify-self: start;
-  color: var(--gold); white-space: nowrap; font-weight: 500; font-size: 12.5px;
+  color: var(--gold); white-space: nowrap; font-weight: 500; font-size: 11.5px;
+  background: rgba(201,168,76,0.12); border: 1px solid rgba(201,168,76,0.22);
+  padding: 2px 8px; border-radius: 6px; flex-shrink: 0;
+}
+.hd-attr-toggle-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-top: 14px; padding: 8px 18px;
+  background: rgba(201,168,76,0.1); border: 1px solid rgba(201,168,76,0.3);
+  border-radius: 20px; color: var(--gold); font-family: 'Jost', sans-serif;
+  font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s ease;
+}
+.hd-attr-toggle-btn:hover {
+  background: rgba(201,168,76,0.2); border-color: var(--gold); transform: translateY(-1px);
 }
 
 /* ===== FEE / POLICY BULLET LIST ===== */
@@ -938,6 +957,91 @@ html { scroll-behavior: smooth; }
   transition: background var(--tr);
 }
 .hd-sticky-cta-wa:hover { background: #20c45b; }
+
+/* ===== HOTEL INFO TABS PANEL ===== */
+.hd-info-tabs-section {
+  max-width: 1280px; margin: 0 auto; padding: 0 40px 56px;
+}
+@media (max-width: 900px) { .hd-info-tabs-section { padding: 0 24px 56px; } }
+
+.hd-tabs-strip {
+  display: flex; gap: 0; overflow-x: auto; -ms-overflow-style: none; scrollbar-width: none;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  margin-bottom: 32px;
+}
+.hd-tabs-strip::-webkit-scrollbar { display: none; }
+.hd-tab-btn {
+  flex-shrink: 0; padding: 14px 20px;
+  font-family: 'Jost', sans-serif; font-size: 12.5px; font-weight: 600;
+  letter-spacing: 0.07em; text-transform: uppercase; white-space: nowrap;
+  color: var(--white-60); background: none; border: none; border-bottom: 2px solid transparent;
+  cursor: pointer; transition: color var(--tr), border-color var(--tr);
+  margin-bottom: -1px;
+}
+.hd-tab-btn:hover { color: var(--white-80); }
+.hd-tab-btn.active { color: var(--gold); border-bottom-color: var(--gold); }
+
+.hd-tab-panel { display: none; animation: hdTabFadeIn 0.28s ease; }
+.hd-tab-panel.active { display: block; }
+@keyframes hdTabFadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Compact two-col grid for info cards inside tabs */
+.hd-tab-info-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;
+}
+@media (max-width: 720px) { .hd-tab-info-grid { grid-template-columns: 1fr; } }
+
+/* Policy items: 2-column grid container */
+.hd-tab-policy-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;
+}
+@media (max-width: 720px) { .hd-tab-policy-grid { grid-template-columns: 1fr; } }
+
+.hd-policy-block {
+  background: linear-gradient(160deg, rgba(255,255,255,0.035), rgba(255,255,255,0.01));
+  border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 16px 20px;
+  margin-bottom: 0;
+  transition: border-color var(--tr), background var(--tr), transform var(--tr);
+}
+.hd-policy-block:hover {
+  border-color: rgba(201,168,76,0.35); background: rgba(255,255,255,0.045);
+}
+.hd-collapsible.collapsed .hd-fee-list li:nth-child(n+5) { display: none !important; }
+.hd-collapsible.collapsed > ul > li:nth-child(n+5) { display: none !important; }
+.hd-collapsible.collapsed > p:nth-of-type(n+3) { display: none !important; }
+
+.hd-policy-head {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+}
+.hd-policy-head .hd-info-icon { width: 32px; height: 32px; border-radius: 8px; }
+.hd-policy-head h3 {
+  font-family: 'Jost', sans-serif; font-size: 12px; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold-light); margin: 0;
+}
+
+/* Compact amenity cards inside tabs: 2-column grid */
+.hd-tab-amenities-wrap {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;
+}
+@media (max-width: 720px) { .hd-tab-amenities-wrap { grid-template-columns: 1fr; } }
+
+.hd-tab-amenity-cat {
+  background: linear-gradient(160deg, rgba(255,255,255,0.035), rgba(255,255,255,0.01));
+  border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 16px 20px;
+  transition: border-color var(--tr), background var(--tr), transform var(--tr);
+}
+.hd-tab-amenity-cat:hover {
+  border-color: rgba(201,168,76,0.35); background: rgba(255,255,255,0.045);
+}
+
+.hd-tab-amenity-cat-head {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+}
+.hd-tab-amenity-cat-head .hd-info-icon { width: 30px; height: 30px; border-radius: 8px; }
+.hd-tab-amenity-cat-head h3 {
+  font-family: 'Jost', sans-serif; font-size: 11.5px; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold-light); margin: 0;
+}
 </style>
 @endpush
 
@@ -998,6 +1102,7 @@ html { scroll-behavior: smooth; }
   $nearbyAttr       = array_filter(array_map('trim', explode("\n", $hotel->nearby_attractions   ?? '')));
   $restaurantsCafes = array_filter(array_map('trim', explode("\n", $hotel->restaurants_cafes   ?? '')));
   $topAttractions   = array_filter(array_map('trim', explode("\n", $hotel->top_attractions     ?? '')));
+  $hasLocation      = count($nearbyAttr) > 0 || count($restaurantsCafes) > 0 || count($topAttractions) > 0 || !empty($hotel->bottom_sections['Attractions']);
   // Category badge label
   $catLabels = [
     'beach_resort'    => 'Beach Resort',
@@ -1105,13 +1210,10 @@ html { scroll-behavior: smooth; }
 <!-- Sticky section quick-jump nav -->
 <nav class="hd-section-nav" id="hdSectionNav">
   <div class="hd-section-nav-inner">
-    @if($aboutSectionsToShow->isNotEmpty())<a href="#hd-anchor-overview">Overview</a>@endif
-    @if($amenities->isNotEmpty() || $extraAmenitySections->isNotEmpty())<a href="#hd-anchor-amenities">Amenities</a>@endif
-    <a href="{{ $hotel->source === 'tripjack' ? '#htl-room-section' : '#hd-anchor-rooms' }}">Rooms</a>
-    @if(count($nearbyAttr) > 0 || count($topAttractions) > 0 || count($restaurantsCafes) > 0)
-      <a href="#hd-anchor-location">Location</a>
-    @endif
-    <a href="#hd-anchor-policies">Policies</a>
+    <a href="#hd-anchor-rooms">Rooms</a>
+    <a href="#hd-anchor-overview">Overview &amp; Info</a>
+    @if($hotel->source === 'tripjack')<a href="#htl-room-section">Available Rooms</a>@endif
+    @if($hasLocation)<a href="#hd-anchor-location">Location</a>@endif
   </div>
 </nav>
 
@@ -1139,255 +1241,13 @@ html { scroll-behavior: smooth; }
       </div>
     </div>
 
-    <!-- About -->
-    @if($aboutSectionsToShow->isNotEmpty())
-    <div class="hd-section" id="hd-anchor-overview">
-      <h2 class="hd-section-title">About This Hotel</h2>
+    {{-- ======================================================
+         ROOMS — shown FIRST so they're immediately visible
+    ====================================================== --}}
 
-      @if(!empty($hotel->description_sections) && is_array($hotel->description_sections) && collect($hotel->description_sections)->except(['Rooms', 'Business Amenities'])->isNotEmpty())
-        @php
-          // Short comma-separated facts (Spoken Languages, Onsite Payments,
-          // sometimes Amenities) read far better as chips than as a
-          // paragraph — detected by "no sentence punctuation, has commas".
-          $isChipList = fn ($text) => ! str_contains($text, '.') && str_contains($text, ',') && strlen($text) < 200;
-
-          // Turn a sentence-style facility paragraph ("Make yourself at home in one
-          // of the 2 individually decorated guestrooms, featuring kitchens with
-          // full-sized refrigerators...") into short scannable keyword points —
-          // splits on sentence/comma/"and" boundaries, then strips generic
-          // lead-in phrasing so what's left is the actual feature.
-          $extractKeywords = function ($text) {
-            $text = trim(preg_replace('/\s+/', ' ', strip_tags($text)));
-            if ($text === '') return [];
-
-            $fillers = [
-              'make yourself at home in ', 'one of the ', 'featuring ', 'feature ', 'features ',
-              'furnished with ', 'while ',
-              'conveniences include ', 'convenience includes ', 'includes ',
-              'include ', 'including ', 'providing ',
-              'guests can enjoy ', 'guests will enjoy ', 'enjoy ', 'your ',
-              'all rooms are ', 'rooms are ', 'this room has ', 'this room includes ',
-              'complimentary ',
-            ];
-            $connectors = [' comes with ', ' come with ', ' furnished with ', ' provide ', ' provides ', ' keeps you connected', ' keep you connected'];
-            $dropExact = ['all', 'you', 'which', 'and', 'the'];
-
-            $stripFillers = function ($frag) use ($fillers) {
-              for ($i = 0; $i < 3; $i++) {
-                $matched = false;
-                foreach ($fillers as $f) {
-                  if (stripos($frag, $f) === 0) { $frag = trim(substr($frag, strlen($f))); $matched = true; break; }
-                }
-                if (! $matched) break;
-              }
-              return trim($frag);
-            };
-
-            $points = [];
-            foreach (preg_split('/(?<=[.!])\s+/', $text) as $sentence) {
-              $sentence = trim($sentence, " .\t\n\r\0\x0B");
-              if ($sentence === '') continue;
-              foreach (preg_split('/\s*,\s*(?:and\s+)?|\s+and\s+/i', $sentence) as $fragment) {
-                $fragment = $stripFillers(trim($fragment));
-
-                $subParts = [$fragment];
-                foreach ($connectors as $c) {
-                  if (stripos($fragment, $c) !== false) {
-                    $subParts = array_map('trim', preg_split('/' . preg_quote($c, '/') . '/i', $fragment, 2));
-                    break;
-                  }
-                }
-
-                foreach ($subParts as $sp) {
-                  $sp = $stripFillers($sp);
-                  if ($sp === '' || strlen($sp) < 3 || strlen($sp) > 70) continue;
-                  if (in_array(strtolower($sp), $dropExact, true)) continue;
-                  $sp = mb_strtoupper(mb_substr($sp, 0, 1)) . mb_substr($sp, 1);
-                  $points[] = $sp;
-                }
-              }
-            }
-            return array_values(array_unique($points));
-          };
-
-          $sectionIcons = [
-            'Location' => '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>',
-            'Amenities' => '<path d="M12 2l2.4 7.2H22l-6 4.4 2.3 7.2L12 16.4 5.7 20.8 8 13.6l-6-4.4h7.6z"/>',
-            'Rooms' => '<path d="M3 7v13M21 7v13M3 12h18M7 7v0a2 2 0 012-2h6a2 2 0 012 2v0"/>',
-            'Dining' => '<path d="M6 2v7a2 2 0 002 2h0a2 2 0 002-2V2M8 11v11M18 2c-1.5 1-2 3-2 5v3a2 2 0 002 2v9"/>',
-            'Business Amenities' => '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/>',
-            'Onsite Payments' => '<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>',
-            'Spoken Languages' => '<circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 010 20 15 15 0 010-20z"/>',
-          ];
-          $defaultIcon = '<circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/>';
-        @endphp
-        <div class="hd-info-grid">
-          @foreach($hotel->description_sections as $sectionTitle => $sectionText)
-            @continue(in_array($sectionTitle, ['Rooms', 'Business Amenities']))
-            @php
-              // Onsite Payments / Spoken Languages are always short label lists —
-              // force them into the narrow chip-list layout (two cards side by
-              // side) instead of the sentence-parsing heuristic, which can wrongly
-              // split multi-word items like "UnionPay" into separate chips.
-              $forceNarrowChips = in_array($sectionTitle, ['Onsite Payments', 'Spoken Languages']);
-              $wide = $forceNarrowChips ? false : ! $isChipList($sectionText);
-              $keywords = $wide ? $extractKeywords($sectionText) : [];
-              $useKeywords = count($keywords) >= 3;
-            @endphp
-            <div class="hd-info-card {{ $wide ? 'hd-info-card--wide' : '' }}">
-              <div class="hd-info-card-head">
-                <span class="hd-info-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">{!! $sectionIcons[$sectionTitle] ?? $defaultIcon !!}</svg></span>
-                <h3>{{ $sectionTitle }}</h3>
-              </div>
-              @if($useKeywords)
-                <div class="hd-point-list">
-                  @foreach($keywords as $point)
-                    <div class="hd-point"><span class="hd-point-icon"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span>{{ $point }}</div>
-                  @endforeach
-                </div>
-              @elseif($wide)
-                <div class="hd-desc">{!! $sectionText !!}</div>
-              @else
-                @php $chips = array_filter(array_map('trim', explode(',', $sectionText))); @endphp
-                <div class="hd-info-chip-list {{ count($chips) > 6 ? 'hd-collapsible collapsed' : '' }}">
-                  @foreach($chips as $chip)
-                    <span class="hd-info-chip">{{ $chip }}</span>
-                  @endforeach
-                </div>
-                @if(count($chips) > 6)
-                  <button type="button" class="hd-readmore-btn">Read more</button>
-                @endif
-              @endif
-            </div>
-          @endforeach
-        </div>
-      @endif
-    </div>
-    @endif
-
-    <div id="hd-anchor-policies"></div>
-
-    <!-- Mandatory Fees — charged at the property, not included in the room rate -->
-    @if(!empty($hotel->mandatory_fees))
-    <div class="hd-section">
-      <div style="padding:20px 22px; background:rgba(201,168,76,0.06); border:1px solid var(--gold-dim); border-radius:14px;">
-        <div class="hd-info-card-head" style="margin-bottom:14px;">
-          <span class="hd-info-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg></span>
-          <h3>Fees Payable at the Property</h3>
-        </div>
-        @php $feeCount = substr_count($hotel->mandatory_fees, '<li'); @endphp
-        <div class="{{ $feeCount > 6 ? 'hd-collapsible collapsed' : '' }}">{!! $hotel->mandatory_fees !!}</div>
-        @if($feeCount > 6)
-          <button type="button" class="hd-readmore-btn">Read more</button>
-        @endif
-      </div>
-    </div>
-    @endif
-
-    <!-- Good to Know — special instructions, pre-arrival info, house rules -->
-    @if(!empty($hotel->special_instructions) || !empty($hotel->know_before_you_go) || !empty($hotel->house_rules))
-    <div class="hd-section">
-      <h2 class="hd-section-title">Good to Know</h2>
-      @if(!empty($hotel->special_instructions))
-        @php $siCount = substr_count($hotel->special_instructions, '<li'); @endphp
-        <div class="{{ $siCount > 6 ? 'hd-collapsible collapsed' : '' }}" style="margin-bottom:4px;">{!! $hotel->special_instructions !!}</div>
-        @if($siCount > 6)
-          <button type="button" class="hd-readmore-btn" style="margin-bottom:20px;">Read more</button>
-        @else
-          <div style="margin-bottom:16px;"></div>
-        @endif
-      @endif
-      @if(!empty($hotel->know_before_you_go))
-        @php $kbygCount = substr_count($hotel->know_before_you_go, '<li'); @endphp
-        <h2 class="hd-section-title" style="margin-top:36px;">Know Before You Go</h2>
-        <div class="{{ $kbygCount > 6 ? 'hd-collapsible collapsed' : '' }}" style="margin-bottom:4px;">{!! $hotel->know_before_you_go !!}</div>
-        @if($kbygCount > 6)
-          <button type="button" class="hd-readmore-btn" style="margin-bottom:20px;">Read more</button>
-        @else
-          <div style="margin-bottom:16px;"></div>
-        @endif
-      @endif
-      @if(!empty($hotel->house_rules) && is_array($hotel->house_rules))
-        <div class="hd-amenities">
-          @foreach($hotel->house_rules as $rule => $value)
-            <span class="hd-amenity"><span class="hd-amenity-dot"></span>{{ Str::title(str_replace('_',' ', $rule)) }}: {{ is_bool($value) ? ($value ? 'Yes' : 'No') : $value }}</span>
-          @endforeach
-        </div>
-      @endif
-    </div>
-    @endif
-
-    <!-- Amenities — grouped by category (Property Facilities, Food & Beverage, etc.),
-         plus the "Rooms" and "Business Amenities" description sections folded in here
-         instead of under About, since they're facility listings too. -->
-    @if($amenities->isNotEmpty() || $extraAmenitySections->isNotEmpty())
-    <div class="hd-section" id="hd-anchor-amenities">
-      <h2 class="hd-section-title">Amenities & Facilities</h2>
-      <div class="hd-amenity-groups">
-        @foreach($extraAmenitySections as $sectionTitle => $sectionText)
-          @php
-            $exWide = ! $isChipList($sectionText);
-            $exKeywords = $exWide ? $extractKeywords($sectionText) : [];
-            $exUseKeywords = count($exKeywords) >= 3;
-          @endphp
-          <div class="hd-amenity-group">
-            <div class="hd-amenity-group-head">
-              <span class="hd-info-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">{!! $sectionIcons[$sectionTitle] ?? $defaultIcon !!}</svg></span>
-              <h3>{{ $sectionTitle }}</h3>
-            </div>
-            @if($exUseKeywords)
-              <div class="hd-point-list {{ count($exKeywords) > 6 ? 'hd-collapsible collapsed' : '' }}">
-                @foreach($exKeywords as $point)
-                  <div class="hd-point"><span class="hd-point-icon"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span>{{ $point }}</div>
-                @endforeach
-              </div>
-              @if(count($exKeywords) > 6)
-                <button type="button" class="hd-readmore-btn">Read more</button>
-              @endif
-            @elseif($exWide)
-              <div class="hd-desc">{!! $sectionText !!}</div>
-            @else
-              <div class="hd-info-chip-list">
-                @foreach(array_filter(array_map('trim', explode(',', $sectionText))) as $chip)
-                  <span class="hd-info-chip">{{ $chip }}</span>
-                @endforeach
-              </div>
-            @endif
-          </div>
-        @endforeach
-
-        @foreach($groupedAmenities as $category => $items)
-          <div class="hd-amenity-group">
-            <div class="hd-amenity-group-head">
-              <span class="hd-info-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">{!! $amenityCategoryIcons[$category] ?? $amenityCategoryIcons['Other Amenities'] !!}</svg></span>
-              <h3>{{ $category }}</h3>
-            </div>
-            <div class="hd-amenities {{ $items->count() > 6 ? 'hd-collapsible collapsed' : '' }}">
-              @foreach($items as $amenity)
-                <span class="hd-amenity">
-                  <span class="hd-amenity-dot"></span>
-                  {{ $amenity->name }}
-                </span>
-              @endforeach
-            </div>
-            @if($items->count() > 6)
-              <button type="button" class="hd-readmore-btn">Read more</button>
-            @endif
-          </div>
-        @endforeach
-      </div>
-    </div>
-    @endif
-
-    <div id="hd-anchor-rooms"></div>
-
-    <!-- Room Categories / Types — manual (non-TripJack) hotels only. TripJack
-         hotels always rely on the live "Available Rooms" section below, even
-         when it has no options for the picked dates, rather than falling back
-         to this price-less static catalogue. -->
+    {{-- Static room types (non-TripJack hotels with saved room types) --}}
     @if($hotel->roomTypes && $hotel->roomTypes->where('is_active', true)->count() > 0 && $hotel->source !== 'tripjack')
-    <div class="hd-section" id="htl-static-rooms-section">
-      {{-- Heading differs from the live TripJack section ("Available Rooms") to avoid confusion --}}
+    <div class="hd-section" id="hd-anchor-rooms" style="margin-top:0;">
       <h2 class="hd-section-title">Room Types</h2>
       <div class="hd-room-list">
         @foreach($hotel->roomTypes->where('is_active', true) as $room)
@@ -1516,7 +1376,7 @@ html { scroll-behavior: smooth; }
               @endif
               
               @if($room->inclusions && count($room->inclusions) > 0)
-                <h3 style="font-family: 'Jost', sans-serif; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--gold); margin-bottom: 14px;">Inclusions & Amenities</h3>
+                <h3 style="font-family: 'Jost', sans-serif; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--gold); margin-bottom: 14px;">Inclusions &amp; Amenities</h3>
                 <div class="hd-room-inc" style="gap: 12px; margin-bottom: 24px;">
                   @foreach($room->inclusions as $inc)
                     <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg> {{ $inc }}</span>
@@ -1534,7 +1394,7 @@ html { scroll-behavior: smooth; }
       </div>
     </div>
     @elseif($hotel->source !== 'tripjack' && isset($roomCats) && count($roomCats) > 0)
-    <div class="hd-section">
+    <div class="hd-section" id="hd-anchor-rooms">
       <h2 class="hd-section-title">Room Types</h2>
       <div class="hd-room-list" style="display:flex; flex-direction:row; flex-wrap:wrap; gap:10px;">
         @foreach($roomCats as $cat)
@@ -1546,94 +1406,71 @@ html { scroll-behavior: smooth; }
     </div>
     @endif
 
-    <div id="hd-anchor-location"></div>
+    {{-- Placeholder anchor for TripJack rooms (scrolled to from the booking card) --}}
+    <div id="hd-anchor-rooms"></div>
 
-    <!-- ===== NEARBY ATTRACTIONS ===== -->
-    @if(count($nearbyAttr) > 0)
-    <div class="hd-section">
-      <h2 class="hd-section-title">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="color:var(--gold);flex-shrink:0;">
-          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-        </svg>
-        Nearby Attractions
-      </h2>
-      <div class="hd-places-grid">
-        @foreach($nearbyAttr as $attr)
-          @php
-            // Split "Name (dist)" or "Name — dist" or "Name - dist" into name + distance
-            $parts = preg_split('/\s*[\(\-—]\s*/', $attr, 2);
-            $placeName = trim($parts[0]);
-            $placeDist = isset($parts[1]) ? trim(rtrim($parts[1], ')')) : '';
-          @endphp
-          <div class="hd-place-card">
-            <div class="hd-place-icon">📍</div>
-            <div class="hd-place-info">
-              <div class="hd-place-name" title="{{ $placeName }}">{{ $placeName }}</div>
-              @if($placeDist)<div class="hd-place-dist">{{ $placeDist }}</div>@endif
-            </div>
-          </div>
-        @endforeach
+    {{-- ============================================================
+         TRIPJACK HOTELS: Fill the left column with hotel highlights
+         so the 2-col layout doesn't have an empty left side.
+    ============================================================ --}}
+    @if($hotel->source === 'tripjack')
+
+      {{-- Hotel Description / About blurb --}}
+      @if(!empty($hotel->description))
+      <div style="margin-bottom: 24px;">
+        <h2 style="font-family:'Cormorant Garamond',serif; font-size:1.5rem; font-weight:600; color:#fff; margin-bottom:12px; display:flex; align-items:center; gap:10px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
+          About This Hotel
+        </h2>
+        <p style="font-family:'Jost',sans-serif; font-size:14px; color:var(--white-60); line-height:1.75; display:-webkit-box; -webkit-line-clamp:5; -webkit-box-orient:vertical; overflow:hidden;">
+          {{ strip_tags($hotel->description) }}
+        </p>
       </div>
-    </div>
+      @endif
+
+      {{-- Top amenity highlights — show up to 6 as quick pill badges --}}
+      @if($amenities->isNotEmpty())
+      @php $topAmenities = $amenities->take(8); @endphp
+      <div style="margin-bottom: 24px;">
+        <h2 style="font-family:'Cormorant Garamond',serif; font-size:1.5rem; font-weight:600; color:#fff; margin-bottom:14px; display:flex; align-items:center; gap:10px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 7.2H22l-6 4.4 2.3 7.2L12 16.4 5.7 20.8 8 13.6l-6-4.4h7.6z"/></svg>
+          Top Amenities
+        </h2>
+        <div style="display:flex; flex-wrap:wrap; gap:8px;">
+          @foreach($topAmenities as $amenity)
+            <span style="display:inline-flex; align-items:center; gap:6px; background:rgba(201,168,76,0.07); border:1px solid rgba(201,168,76,0.2); border-radius:100px; padding:6px 14px; font-family:'Jost',sans-serif; font-size:12.5px; color:var(--white-80);">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
+              {{ $amenity->name }}
+            </span>
+          @endforeach
+          @if($amenities->count() > 8)
+            <span style="display:inline-flex; align-items:center; padding:6px 14px; font-family:'Jost',sans-serif; font-size:12px; color:var(--gold); cursor:pointer;" onclick="document.querySelector('[data-tab=hd-tab-amenities]')?.click(); document.getElementById('hd-anchor-overview')?.scrollIntoView({behavior:'smooth'});">
+              +{{ $amenities->count() - 8 }} more
+            </span>
+          @endif
+        </div>
+      </div>
+      @endif
+
+      {{-- CTA — scroll down to live room options --}}
+      <div style="background:linear-gradient(135deg, rgba(201,168,76,0.10), rgba(201,168,76,0.04)); border:1px solid rgba(201,168,76,0.22); border-radius:16px; padding:20px 22px; display:flex; align-items:center; gap:16px;">
+        <div style="width:42px; height:42px; border-radius:12px; background:rgba(201,168,76,0.15); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v13M21 7v13M3 12h18M7 7v0a2 2 0 012-2h6a2 2 0 012 2v0"/></svg>
+        </div>
+        <div style="flex:1; min-width:0;">
+          <div style="font-family:'Jost',sans-serif; font-size:13.5px; font-weight:600; color:#fff; margin-bottom:3px;">Live Room Availability</div>
+          <div style="font-family:'Jost',sans-serif; font-size:12px; color:var(--white-60); line-height:1.4;">Real-time prices & availability shown below for your selected dates.</div>
+        </div>
+        <a href="#htl-room-section" style="flex-shrink:0; display:inline-flex; align-items:center; gap:6px; background:var(--gold); color:var(--dark); border-radius:100px; padding:10px 18px; font-family:'Jost',sans-serif; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; text-decoration:none; transition:background 0.2s;">
+          View Rooms
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+      </div>
+
     @endif
 
-    <!-- ===== RESTAURANTS & CAFÉS ===== -->
-    @if(count($restaurantsCafes) > 0)
-    <div class="hd-section">
-      <h2 class="hd-section-title">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="color:var(--gold);flex-shrink:0;">
-          <path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/>
-        </svg>
-        Restaurants &amp; Caf&eacute;s
-      </h2>
-      <div class="hd-places-grid">
-        @foreach($restaurantsCafes as $item)
-          @php
-            $parts = preg_split('/\s*[\(\-—]\s*/', $item, 2);
-            $placeName = trim($parts[0]);
-            $placeDist = isset($parts[1]) ? trim(rtrim($parts[1], ')')) : '';
-          @endphp
-          <div class="hd-place-card">
-            <div class="hd-place-icon">🍽️</div>
-            <div class="hd-place-info">
-              <div class="hd-place-name" title="{{ $placeName }}">{{ $placeName }}</div>
-              @if($placeDist)<div class="hd-place-dist">{{ $placeDist }}</div>@endif
-            </div>
-          </div>
-        @endforeach
-      </div>
-    </div>
-    @endif
+  </div>{{-- end .hd-left --}}
 
-    <!-- ===== TOP ATTRACTIONS ===== -->
-    @if(count($topAttractions) > 0)
-    <div class="hd-section">
-      <h2 class="hd-section-title">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="color:var(--gold);flex-shrink:0;">
-          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-        </svg>
-        Top Attractions
-      </h2>
-      <div class="hd-places-grid">
-        @foreach($topAttractions as $item)
-          @php
-            $parts = preg_split('/\s*[\(\-—]\s*/', $item, 2);
-            $placeName = trim($parts[0]);
-            $placeDist = isset($parts[1]) ? trim(rtrim($parts[1], ')')) : '';
-          @endphp
-          <div class="hd-place-card top">
-            <div class="hd-place-icon">🏛️</div>
-            <div class="hd-place-info">
-              <div class="hd-place-name" title="{{ $placeName }}">{{ $placeName }}</div>
-              @if($placeDist)<div class="hd-place-dist">{{ $placeDist }}</div>@endif
-            </div>
-          </div>
-        @endforeach
-      </div>
-    </div>
-    @endif
-
-  </div>
 
   <!-- RIGHT COLUMN — Sticky Booking Card -->
   <div class="hd-right">
@@ -1709,6 +1546,216 @@ html { scroll-behavior: smooth; }
   </div>
 
 </div>
+
+{{-- =====================================================
+     HOTEL INFO TABS — Overview, Amenities, Location, Policies
+     Shown below the 2-col layout so rooms stay primary
+===================================================== --}}
+@php
+  // Re-declare helpers used inside the tab panel (same logic as before)
+  $isChipList = fn ($text) => ! str_contains($text, '.') && str_contains($text, ',') && strlen($text) < 200;
+  $extractKeywords = function ($text) {
+    $text = trim(preg_replace('/\s+/', ' ', strip_tags($text)));
+    if ($text === '') return [];
+    $fillers = ['make yourself at home in ','one of the ','featuring ','feature ','features ','furnished with ','while ','conveniences include ','convenience includes ','includes ','include ','including ','providing ','guests can enjoy ','guests will enjoy ','enjoy ','your ','all rooms are ','rooms are ','this room has ','this room includes ','complimentary '];
+    $connectors = [' comes with ',' come with ',' furnished with ',' provide ',' provides ',' keeps you connected',' keep you connected'];
+    $dropExact = ['all','you','which','and','the'];
+    $stripFillers = function ($frag) use ($fillers) {
+      for ($i = 0; $i < 3; $i++) { $matched = false; foreach ($fillers as $f) { if (stripos($frag, $f) === 0) { $frag = trim(substr($frag, strlen($f))); $matched = true; break; } } if (! $matched) break; }
+      return trim($frag);
+    };
+    $points = [];
+    foreach (preg_split('/(?<=[.!])\s+/', $text) as $sentence) {
+      $sentence = trim($sentence, " .\t\n\r\0\x0B");
+      if ($sentence === '') continue;
+      foreach (preg_split('/\s*,\s*(?:and\s+)?|\s+and\s+/i', $sentence) as $fragment) {
+        $fragment = $stripFillers(trim($fragment));
+        $subParts = [$fragment];
+        foreach ($connectors as $c) { if (stripos($fragment, $c) !== false) { $subParts = array_map('trim', preg_split('/' . preg_quote($c, '/') . '/i', $fragment, 2)); break; } }
+        foreach ($subParts as $sp) {
+          $sp = $stripFillers($sp);
+          if ($sp === '' || strlen($sp) < 3 || strlen($sp) > 70) continue;
+          if (in_array(strtolower($sp), $dropExact, true)) continue;
+          $sp = mb_strtoupper(mb_substr($sp, 0, 1)) . mb_substr($sp, 1);
+          $points[] = $sp;
+        }
+      }
+    }
+    return array_values(array_unique($points));
+  };
+  $sectionIcons = [
+    'Location' => '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>',
+    'Amenities' => '<path d="M12 2l2.4 7.2H22l-6 4.4 2.3 7.2L12 16.4 5.7 20.8 8 13.6l-6-4.4h7.6z"/>',
+    'Rooms' => '<path d="M3 7v13M21 7v13M3 12h18M7 7v0a2 2 0 012-2h6a2 2 0 012 2v0"/>',
+    'Dining' => '<path d="M6 2v7a2 2 0 002 2h0a2 2 0 002-2V2M8 11v11M18 2c-1.5 1-2 3-2 5v3a2 2 0 002 2v9"/>',
+    'Business Amenities' => '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/>',
+    'Onsite Payments' => '<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>',
+    'Spoken Languages' => '<circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 010 20 15 15 0 010-20z"/>',
+  ];
+  $defaultIcon = '<circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/>';
+
+  $hasOverview  = $aboutSectionsToShow->isNotEmpty();
+  $hasAmenities = $amenities->isNotEmpty() || $extraAmenitySections->isNotEmpty();
+  $hasLocation  = count($nearbyAttr) > 0 || count($restaurantsCafes) > 0 || count($topAttractions) > 0 || !empty($hotel->bottom_sections['Attractions']);
+  $hasPolicies  = !empty($hotel->special_instructions) || !empty($hotel->know_before_you_go) || !empty($hotel->house_rules) || !empty($hotel->mandatory_fees);
+  $anyTab = $hasOverview || $hasAmenities || $hasLocation || $hasPolicies;
+@endphp
+
+@if($anyTab)
+<section class="hd-info-tabs-section" id="hd-anchor-overview">
+  <div class="hd-tabs-strip" role="tablist" id="hdInfoTabStrip">
+    @if($hasOverview)  <button class="hd-tab-btn active" role="tab" data-tab="hd-tab-overview"  aria-selected="true">Overview</button>@endif
+    @if($hasAmenities) <button class="hd-tab-btn {{ !$hasOverview ? 'active' : '' }}" role="tab" data-tab="hd-tab-amenities" aria-selected="{{ !$hasOverview ? 'true' : 'false' }}" id="hd-anchor-amenities">Amenities</button>@endif
+    @if($hasPolicies)  <button class="hd-tab-btn {{ !$hasOverview && !$hasAmenities ? 'active' : '' }}" role="tab" data-tab="hd-tab-policies"  aria-selected="{{ !$hasOverview && !$hasAmenities ? 'true' : 'false' }}" id="hd-anchor-policies">Policies</button>@endif
+  </div>
+
+  {{-- TAB: OVERVIEW --}}
+  @if($hasOverview)
+  <div class="hd-tab-panel active" id="hd-tab-overview" role="tabpanel">
+    <div class="hd-tab-info-grid">
+      @foreach($hotel->description_sections as $sectionTitle => $sectionText)
+        @continue(in_array($sectionTitle, ['Rooms', 'Business Amenities']))
+        @php
+          $forceNarrowChips = in_array($sectionTitle, ['Onsite Payments', 'Spoken Languages']);
+          $wide = $forceNarrowChips ? false : ! $isChipList($sectionText);
+          $keywords = $wide ? $extractKeywords($sectionText) : [];
+          $useKeywords = count($keywords) >= 3;
+        @endphp
+        <div class="hd-info-card">
+          <div class="hd-info-card-head">
+            <span class="hd-info-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">{!! $sectionIcons[$sectionTitle] ?? $defaultIcon !!}</svg></span>
+            <h3>{{ $sectionTitle }}</h3>
+          </div>
+          @if($useKeywords)
+            <div class="hd-point-list {{ count($keywords) > 4 ? 'hd-collapsible collapsed' : '' }}">
+              @foreach($keywords as $point)
+                <div class="hd-point"><span class="hd-point-icon"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span>{{ $point }}</div>
+              @endforeach
+            </div>
+            @if(count($keywords) > 4)<button type="button" class="hd-readmore-btn">Read more</button>@endif
+          @elseif($wide)
+            <div class="hd-desc">{!! $sectionText !!}</div>
+          @else
+            @php $chips = array_filter(array_map('trim', explode(',', $sectionText))); @endphp
+            <div class="hd-info-chip-list {{ count($chips) > 6 ? 'hd-collapsible collapsed' : '' }}">
+              @foreach($chips as $chip)<span class="hd-info-chip">{{ $chip }}</span>@endforeach
+            </div>
+            @if(count($chips) > 6)<button type="button" class="hd-readmore-btn">Read more</button>@endif
+          @endif
+        </div>
+      @endforeach
+    </div>
+  </div>
+  @endif
+
+  {{-- TAB: AMENITIES --}}
+  @if($hasAmenities)
+  <div class="hd-tab-panel {{ !$hasOverview ? 'active' : '' }}" id="hd-tab-amenities" role="tabpanel">
+    <div class="hd-tab-amenities-wrap">
+      @foreach($extraAmenitySections as $sectionTitle => $sectionText)
+        @php
+          $exWide = ! $isChipList($sectionText);
+          $exKeywords = $exWide ? $extractKeywords($sectionText) : [];
+          $exUseKeywords = count($exKeywords) >= 3;
+        @endphp
+        <div class="hd-tab-amenity-cat">
+          <div class="hd-tab-amenity-cat-head">
+            <span class="hd-info-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">{!! $sectionIcons[$sectionTitle] ?? $defaultIcon !!}</svg></span>
+            <h3>{{ $sectionTitle }}</h3>
+          </div>
+          @if($exUseKeywords)
+            <div class="hd-point-list {{ count($exKeywords) > 4 ? 'hd-collapsible collapsed' : '' }}">
+              @foreach($exKeywords as $point)<div class="hd-point"><span class="hd-point-icon"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span>{{ $point }}</div>@endforeach
+            </div>
+            @if(count($exKeywords) > 4)<button type="button" class="hd-readmore-btn">Read more</button>@endif
+          @elseif($exWide)
+            <div class="hd-desc">{!! $sectionText !!}</div>
+          @else
+            <div class="hd-info-chip-list">
+              @foreach(array_filter(array_map('trim', explode(',', $sectionText))) as $chip)<span class="hd-info-chip">{{ $chip }}</span>@endforeach
+            </div>
+          @endif
+        </div>
+      @endforeach
+
+      @foreach($groupedAmenities as $category => $items)
+        <div class="hd-tab-amenity-cat">
+          <div class="hd-tab-amenity-cat-head">
+            <span class="hd-info-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">{!! $amenityCategoryIcons[$category] ?? $amenityCategoryIcons['Other Amenities'] !!}</svg></span>
+            <h3>{{ $category }}</h3>
+          </div>
+          <div class="hd-amenities {{ $items->count() > 6 ? 'hd-collapsible collapsed' : '' }}">
+            @foreach($items as $amenity)<span class="hd-amenity"><span class="hd-amenity-dot"></span>{{ $amenity->name }}</span>@endforeach
+          </div>
+          @if($items->count() > 6)<button type="button" class="hd-readmore-btn">Read more</button>@endif
+        </div>
+      @endforeach
+    </div>
+  </div>
+  @endif
+
+
+
+  {{-- TAB: POLICIES --}}
+  @if($hasPolicies)
+  <div class="hd-tab-panel" id="hd-tab-policies" role="tabpanel">
+    <div class="hd-tab-policy-grid">
+      @if(!empty($hotel->mandatory_fees))
+      <div class="hd-policy-block">
+        <div class="hd-policy-head">
+          <span class="hd-info-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg></span>
+          <h3>Fees Payable at the Property</h3>
+        </div>
+        @php $feeCount = substr_count($hotel->mandatory_fees, '<li'); @endphp
+        <div class="{{ $feeCount > 4 ? 'hd-collapsible collapsed' : '' }}">{!! $hotel->mandatory_fees !!}</div>
+        @if($feeCount > 4)<button type="button" class="hd-readmore-btn">Read more</button>@endif
+      </div>
+      @endif
+
+      @if(!empty($hotel->special_instructions))
+      <div class="hd-policy-block">
+        <div class="hd-policy-head">
+          <span class="hd-info-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg></span>
+          <h3>Good to Know</h3>
+        </div>
+        @php $siCount = substr_count($hotel->special_instructions, '<li'); @endphp
+        <div class="{{ $siCount > 4 ? 'hd-collapsible collapsed' : '' }}">{!! $hotel->special_instructions !!}</div>
+        @if($siCount > 4)<button type="button" class="hd-readmore-btn">Read more</button>@endif
+      </div>
+      @endif
+
+      @if(!empty($hotel->know_before_you_go))
+      <div class="hd-policy-block">
+        <div class="hd-policy-head">
+          <span class="hd-info-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg></span>
+          <h3>Know Before You Go</h3>
+        </div>
+        @php $kbygCount = substr_count($hotel->know_before_you_go, '<li'); @endphp
+        <div class="{{ $kbygCount > 4 ? 'hd-collapsible collapsed' : '' }}">{!! $hotel->know_before_you_go !!}</div>
+        @if($kbygCount > 4)<button type="button" class="hd-readmore-btn">Read more</button>@endif
+      </div>
+      @endif
+
+      @if(!empty($hotel->house_rules) && is_array($hotel->house_rules))
+      <div class="hd-policy-block">
+        <div class="hd-policy-head">
+          <span class="hd-info-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>
+          <h3>House Rules</h3>
+        </div>
+        <div class="hd-amenities {{ count($hotel->house_rules) > 6 ? 'hd-collapsible collapsed' : '' }}">
+          @foreach($hotel->house_rules as $rule => $value)
+            <span class="hd-amenity"><span class="hd-amenity-dot"></span>{{ Str::title(str_replace('_',' ', $rule)) }}: {{ is_bool($value) ? ($value ? 'Yes' : 'No') : $value }}</span>
+          @endforeach
+        </div>
+        @if(count($hotel->house_rules) > 6)<button type="button" class="hd-readmore-btn">Read more</button>@endif
+      </div>
+      @endif
+    </div>
+  </div>
+  @endif
+
+</section>
+@endif
 
 <!-- ===================================================
      LIVE TRIPJACK ROOM OPTIONS — full page width, below the
@@ -1866,6 +1913,9 @@ html { scroll-behavior: smooth; }
 
                   <!-- Pricing & Select (Right Column) -->
                   <div class="hd-rate-price">
+                    @if(($pricing['strikethrough'] ?? null) > $totalPrice)
+                    <div style="font-family:'Jost',sans-serif; font-size:12px; color:rgba(255,255,255,0.35); text-decoration:line-through;">{{ $pricing['currency'] ?? 'INR' }} {{ number_format($pricing['strikethrough']) }}</div>
+                    @endif
                     <div class="hd-rate-price-per-night">{{ $pricing['currency'] ?? 'INR' }} {{ number_format($perNight) }}/night</div>
                     <div class="hd-rate-price-total">{{ $pricing['currency'] ?? 'INR' }} {{ number_format($customerPrice) }}</div>
                     <div class="hd-rate-price-caption">Total price for {{ $roomCount }} room{{ $roomCount > 1 ? 's' : '' }}</div>
@@ -1909,9 +1959,79 @@ html { scroll-behavior: smooth; }
 </div>
 @endif
 
-@if(!empty($hotel->bottom_sections) && is_array($hotel->bottom_sections))
 <!-- ===================================================
-     BOTTOM NOTICES (Attractions, Renovations, ...)
+     LOCATION & ATTRACTIONS SECTION (rendered below Rooms)
+=================================================== -->
+@if($hasLocation)
+<div style="max-width:1280px; margin:0 auto; padding:0 40px 48px; scroll-margin-top:80px;" id="hd-anchor-location">
+  <div class="hd-section">
+    <div style="background: linear-gradient(160deg, rgba(255,255,255,0.035), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 28px 32px;">
+      <div class="hd-info-card-head" style="margin-bottom:20px;">
+        <span class="hd-info-icon" style="width:40px; height:40px; border-radius:10px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:18px; height:18px; color:var(--gold);"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></span>
+        <h2 class="hd-section-title" style="margin:0; border:none; font-size:1.6rem;">Location &amp; Nearby Attractions</h2>
+      </div>
+
+      @if(!empty($hotel->bottom_sections['Attractions']))
+      <div style="margin-bottom:24px;">
+        <div class="hd-place-list-wrap">
+          {!! $hotel->bottom_sections['Attractions'] !!}
+        </div>
+      </div>
+      @endif
+
+      @if(count($nearbyAttr) > 0)
+      <h3 style="font-family:'Cormorant Garamond',serif; font-size:1.3rem; color:var(--gold); margin-bottom:12px;">Nearby Attractions</h3>
+      <div class="hd-places-grid" style="margin-bottom:24px;">
+        @foreach($nearbyAttr as $attr)
+          @php $parts = preg_split('/\s*[\(\-—]\s*/', $attr, 2); $placeName = trim($parts[0]); $placeDist = isset($parts[1]) ? trim(rtrim($parts[1], ')')) : ''; @endphp
+          <div class="hd-place-card">
+            <div class="hd-place-icon">📍</div>
+            <div class="hd-place-info"><div class="hd-place-name" title="{{ $placeName }}">{{ $placeName }}</div>@if($placeDist)<div class="hd-place-dist">{{ $placeDist }}</div>@endif</div>
+          </div>
+        @endforeach
+      </div>
+      @endif
+
+      @if(count($restaurantsCafes) > 0)
+      <h3 style="font-family:'Cormorant Garamond',serif; font-size:1.3rem; color:var(--gold); margin-bottom:12px;">Restaurants &amp; Caf&eacute;s</h3>
+      <div class="hd-places-grid" style="margin-bottom:24px;">
+        @foreach($restaurantsCafes as $item)
+          @php $parts = preg_split('/\s*[\(\-—]\s*/', $item, 2); $placeName = trim($parts[0]); $placeDist = isset($parts[1]) ? trim(rtrim($parts[1], ')')) : ''; @endphp
+          <div class="hd-place-card">
+            <div class="hd-place-icon">🍽️</div>
+            <div class="hd-place-info"><div class="hd-place-name" title="{{ $placeName }}">{{ $placeName }}</div>@if($placeDist)<div class="hd-place-dist">{{ $placeDist }}</div>@endif</div>
+          </div>
+        @endforeach
+      </div>
+      @endif
+
+      @if(count($topAttractions) > 0)
+      <h3 style="font-family:'Cormorant Garamond',serif; font-size:1.3rem; color:var(--gold); margin-bottom:12px;">Top Attractions</h3>
+      <div class="hd-places-grid">
+        @foreach($topAttractions as $item)
+          @php $parts = preg_split('/\s*[\(\-—]\s*/', $item, 2); $placeName = trim($parts[0]); $placeDist = isset($parts[1]) ? trim(rtrim($parts[1], ')')) : ''; @endphp
+          <div class="hd-place-card top">
+            <div class="hd-place-icon">🏛️</div>
+            <div class="hd-place-info"><div class="hd-place-name" title="{{ $placeName }}">{{ $placeName }}</div>@if($placeDist)<div class="hd-place-dist">{{ $placeDist }}</div>@endif</div>
+          </div>
+        @endforeach
+      </div>
+      @endif
+    </div>
+  </div>
+</div>
+@endif
+
+@if(!empty($hotel->bottom_sections) && is_array($hotel->bottom_sections))
+@php
+  $renderBottomSections = collect($hotel->bottom_sections)->filter(function($text, $title) use ($hasLocation) {
+    return !($title === 'Attractions' && $hasLocation);
+  });
+@endphp
+
+@if($renderBottomSections->isNotEmpty())
+<!-- ===================================================
+     BOTTOM NOTICES (Renovations, ...)
 =================================================== -->
 <div style="max-width:1280px; margin:0 auto; padding:0 40px 56px;">
   @php
@@ -1920,18 +2040,19 @@ html { scroll-behavior: smooth; }
       'Renovations' => '<path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/>',
     ];
   @endphp
-  @foreach($hotel->bottom_sections as $sectionTitle => $sectionText)
+  @foreach($renderBottomSections as $sectionTitle => $sectionText)
     <div class="hd-section">
       <div style="background: linear-gradient(160deg, rgba(255,255,255,0.035), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 30px 32px;">
         <div class="hd-info-card-head" style="margin-bottom:22px;">
           <span class="hd-info-icon" style="width:44px; height:44px; border-radius:12px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:20px; height:20px; color:var(--gold);">{!! $bottomIcons[$sectionTitle] ?? '<circle cx="12" cy="12" r="9"/>' !!}</svg></span>
           <h2 class="hd-section-title" style="margin:0; border:none; font-size:1.7rem;">{{ $sectionTitle }}</h2>
         </div>
-        <div class="hd-desc">{!! $sectionText !!}</div>
+        <div class="hd-desc hd-place-list-wrap">{!! $sectionText !!}</div>
       </div>
     </div>
   @endforeach
 </div>
+@endif
 @endif
 
 
@@ -2482,6 +2603,35 @@ html { scroll-behavior: smooth; }
       targets.forEach(t => observer.observe(t));
     })();
 
+    /* ===== HOTEL INFO TABS ===== */
+    (function () {
+      const strip = document.getElementById('hdInfoTabStrip');
+      if (!strip) return;
+      const btns = Array.from(strip.querySelectorAll('.hd-tab-btn'));
+      btns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          btns.forEach(b => { b.classList.remove('active'); b.setAttribute('aria-selected', 'false'); });
+          btn.classList.add('active'); btn.setAttribute('aria-selected', 'true');
+          document.querySelectorAll('.hd-tab-panel').forEach(p => p.classList.remove('active'));
+          const target = document.getElementById(btn.dataset.tab);
+          if (target) target.classList.add('active');
+        });
+      });
+
+      // Allow sticky nav anchors (#hd-anchor-amenities etc.) to activate the right tab
+      document.querySelectorAll('.hd-section-nav a[href^="#hd-anchor-"]').forEach(navLink => {
+        navLink.addEventListener('click', () => {
+          const anchor = navLink.getAttribute('href').replace('#', '');
+          // Map anchor IDs to tab data-tab values
+          const map = { 'hd-anchor-overview': 'hd-tab-overview', 'hd-anchor-amenities': 'hd-tab-amenities', 'hd-anchor-location': 'hd-tab-location', 'hd-anchor-policies': 'hd-tab-policies' };
+          const tabId = map[anchor];
+          if (!tabId) return;
+          const tabBtn = strip.querySelector(`[data-tab="${tabId}"]`);
+          if (tabBtn) setTimeout(() => tabBtn.click(), 80);
+        });
+      });
+    })();
+
     /* ===== AMENITY GROUP "READ MORE" TOGGLE ===== */
     document.querySelectorAll('.hd-readmore-btn').forEach(btn => {
       const list = btn.previousElementSibling;
@@ -2491,6 +2641,41 @@ html { scroll-behavior: smooth; }
         btn.textContent = isCollapsed ? 'Read more' : 'Show less';
       });
     });
+
+    /* ===== ATTRACTIONS SHOW MORE TOGGLE ===== */
+    (function () {
+      const wrappers = document.querySelectorAll('.hd-place-list-wrap');
+      wrappers.forEach(wrap => {
+        const list = wrap.querySelector('.hd-place-list');
+        if (!list) return;
+        const items = list.querySelectorAll('li');
+        if (items.length <= 6) return;
+
+        wrap.classList.add('collapsed');
+        
+        let btn = wrap.querySelector('.hd-attr-toggle-btn');
+        if (!btn) {
+          btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'hd-attr-toggle-btn';
+          wrap.appendChild(btn);
+        }
+        
+        const updateBtnText = () => {
+          const isCollapsed = wrap.classList.contains('collapsed');
+          btn.innerHTML = isCollapsed 
+            ? `Show all ${items.length} attractions <span style="font-size:11px; margin-left:2px;">▼</span>`
+            : `Show less <span style="font-size:11px; margin-left:2px;">▲</span>`;
+        };
+        
+        updateBtnText();
+        
+        btn.addEventListener('click', function () {
+          wrap.classList.toggle('collapsed');
+          updateBtnText();
+        });
+      });
+    })();
 
     /* ===== ROOM CARD INCLUSIONS "READ MORE" — opens the full list in a popup ===== */
     (function () {
