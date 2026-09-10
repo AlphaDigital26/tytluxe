@@ -10,6 +10,7 @@ use App\Models\Cruise;
 use App\Models\Setting;
 use App\Models\Offer;
 use App\Models\Package;
+use App\Services\HotelPricingService;
 use App\Services\TripJack\Exceptions\TripJackApiException;
 use App\Services\TripJack\Exceptions\TripJackException;
 use App\Services\TripJack\TripJackClient;
@@ -264,7 +265,17 @@ class FrontendController extends Controller
             try {
                 $rooms = $this->distributeGuestsAcrossRooms($adults, $children, $roomCount, $childAges);
                 $response = $client->pricing($hotel->tripjack_hotel_id, $checkIn, $checkOut, $rooms, $correlationId);
-                $liveOptions = collect($response['options'] ?? []);
+                // Add the customer-facing price (TripJack's raw totalPrice + TYTLUXE markup)
+                // to every option here, once, so every view downstream reads it rather than
+                // re-deriving it from the raw TripJack price.
+                $liveOptions = collect($response['options'] ?? [])->map(function ($option) {
+                    if (isset($option['pricing']['totalPrice'])) {
+                        $option['pricing']['pricingBreakdown'] = HotelPricingService::price((float) $option['pricing']['totalPrice']);
+                        $option['pricing']['customerPrice'] = $option['pricing']['pricingBreakdown']['customer_price'];
+                    }
+
+                    return $option;
+                });
                 $reviewHash = $response['reviewHash'] ?? null;
 
                 session(["tripjack_pricing.{$hotel->tripjack_hotel_id}" => [
@@ -344,11 +355,23 @@ class FrontendController extends Controller
             return $backToDetails->with('booking_error', TripJackErrorCatalog::describe('6537')['message']);
         }
 
+        // Review always returns a freshly re-validated totalPrice — the price
+        // can have moved since the guest first saw it at Listing/Detail time.
+        // Recalculate the TYTLUXE markup here, from this price, and never
+        // reuse a markup figure computed at an earlier step (per founder's
+        // pricing rules) — this recalculated value is what the guest sees on
+        // the review/checkout page and what ultimately gets booked/charged.
+        $option = $response['option'] ?? null;
+        if (isset($option['pricing']['totalPrice'])) {
+            $option['pricing']['pricingBreakdown'] = HotelPricingService::price((float) $option['pricing']['totalPrice']);
+            $option['pricing']['customerPrice'] = $option['pricing']['pricingBreakdown']['customer_price'];
+        }
+
         session(['tripjack_booking_draft' => [
             'hotel_id' => $hotel->id,
             'hid' => $hotel->tripjack_hotel_id,
             'bookingId' => $response['bookingId'],
-            'option' => $response['option'] ?? null,
+            'option' => $option,
             'onholdAllowed' => $onholdAllowed,
             'correlationId' => $pricingContext['correlationId'],
             'check_in' => $pricingContext['check_in'],
@@ -511,6 +534,14 @@ class FrontendController extends Controller
         }
 
         $pricing = $option['pricing'] ?? [];
+        // pricingBreakdown was computed once, at Review time, from TripJack's
+        // freshly re-validated totalPrice (see reviewRoom()) — never
+        // recalculated again here, so the amount the guest saw and agreed to
+        // on the review page is exactly what gets persisted as the booking's
+        // customer price.
+        $breakdown = $pricing['pricingBreakdown'] ?? null;
+        $customerPrice = $pricing['customerPrice'] ?? ($pricing['totalPrice'] ?? 0);
+        $basePrice = $pricing['basePrice'] ?? 0;
         $booking = Booking::create([
             'reference' => 'TYT'.strtoupper(Str::random(8)),
             'guest_email' => $validated['lead_email'],
@@ -526,9 +557,17 @@ class FrontendController extends Controller
             'pax_adults' => $draft['adults'],
             'pax_children' => $draft['children'],
             'lead_guest_name' => $validated['lead_name'],
-            'base_amount' => $pricing['basePrice'] ?? 0,
-            'tax_amount' => ($pricing['taxes'] ?? 0) + ($pricing['mf'] ?? 0) + ($pricing['mft'] ?? 0),
-            'total_amount' => $pricing['totalPrice'] ?? 0,
+            'base_amount' => $basePrice,
+            // Mirrors the customer-facing "Taxes & Fees" line on the review
+            // page: everything between TripJack's base price and our final
+            // customer price, so base_amount + tax_amount = total_amount.
+            'tax_amount' => $customerPrice - $basePrice,
+            'total_amount' => $customerPrice,
+            'tripjack_total_price' => $breakdown['tripjack_total_price'] ?? ($pricing['totalPrice'] ?? null),
+            'gst_slab' => $breakdown['gst_slab'] ?? null,
+            'margin_amount' => $breakdown['margin_amount'] ?? null,
+            'gst_on_margin' => $breakdown['gst_on_margin'] ?? null,
+            'razorpay_recovery' => $breakdown['razorpay_recovery'] ?? null,
             'currency' => $pricing['currency'] ?? 'INR',
             'status' => $this->mapTripjackBookingStatus($tripjackStatus),
         ]);

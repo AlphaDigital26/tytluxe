@@ -4,6 +4,7 @@ namespace App\Services\TripJack;
 
 use App\Models\Destination;
 use App\Models\Hotel;
+use App\Services\HotelPricingService;
 use Illuminate\Support\Collection;
 
 class TripJackListingSearch
@@ -61,10 +62,16 @@ class TripJackListingSearch
                 }
 
                 $cheapest = collect($hotel['options'])->sortBy('pricing.totalPrice')->first();
+                $tripjackTotalPrice = $cheapest['pricing']['totalPrice'] ?? null;
+                $pricing = $tripjackTotalPrice !== null ? HotelPricingService::price((float) $tripjackTotalPrice) : null;
 
                 return [$tjHotelId => [
                     'optionId' => $cheapest['optionId'] ?? null,
-                    'totalPrice' => $cheapest['pricing']['totalPrice'] ?? null,
+                    // Raw TripJack price — internal/audit use only, never display this to the customer.
+                    'totalPrice' => $tripjackTotalPrice,
+                    // The actual customer-facing price — display this everywhere.
+                    'customerPrice' => $pricing['customer_price'] ?? null,
+                    'pricingBreakdown' => $pricing,
                     'currency' => $cheapest['pricing']['currency'] ?? $currency,
                     'mealBasis' => $cheapest['mealBasis'] ?? null,
                     'isRefundable' => $cheapest['cancellation']['isRefundable'] ?? null,

@@ -238,9 +238,19 @@
 
     <div class="br-line"><span>Room</span><span>{{ $roomNames ?: 'Room' }}</span></div>
     <div class="br-line"><span>Meal Plan</span><span>{{ $option['mealBasis'] ?? 'Room Only' }}</span></div>
-    <div class="br-line"><span>Base Price</span><span>{{ $pricing['currency'] ?? 'INR' }} {{ number_format($pricing['basePrice'] ?? 0) }}</span></div>
-    <div class="br-line"><span>Taxes &amp; Fees</span><span>{{ $pricing['currency'] ?? 'INR' }} {{ number_format(($pricing['taxes'] ?? 0) + ($pricing['mf'] ?? 0) + ($pricing['mft'] ?? 0)) }}</span></div>
-    <div class="br-line total"><span>Total</span><span>{{ $pricing['currency'] ?? 'INR' }} {{ number_format($pricing['totalPrice'] ?? 0) }}</span></div>
+    @php
+      // Customer-facing breakdown: Base Price stays TripJack's own room rate;
+      // Taxes & Fees absorbs TripJack's taxes/fees AND the TYTLUXE
+      // margin/GST/payment-processing recovery together, so Base + Taxes &
+      // Fees always adds up to Total exactly — the founder's pricing rules
+      // require the markup itself to never be shown as its own line item.
+      $customerPrice = $pricing['customerPrice'] ?? ($pricing['totalPrice'] ?? 0);
+      $basePrice = $pricing['basePrice'] ?? 0;
+      $taxesAndFees = $customerPrice - $basePrice;
+    @endphp
+    <div class="br-line"><span>Base Price</span><span>{{ $pricing['currency'] ?? 'INR' }} {{ number_format($basePrice) }}</span></div>
+    <div class="br-line"><span>Taxes &amp; Fees</span><span>{{ $pricing['currency'] ?? 'INR' }} {{ number_format($taxesAndFees) }}</span></div>
+    <div class="br-line total"><span>Total</span><span>{{ $pricing['currency'] ?? 'INR' }} {{ number_format($customerPrice) }}</span></div>
 
     @if($isRefundable)
     <div class="br-refund">
