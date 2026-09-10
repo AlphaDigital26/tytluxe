@@ -933,7 +933,7 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
          data-location="{{ $slug }}"
          data-amenities="{{ Str::slug($amenityNames) }}"
          data-rating="{{ $stars }}"
-         data-price="{{ $liveOption['totalPrice'] ?? 0 }}"
+         data-price="{{ $liveOption['customerPrice'] ?? 0 }}"
          data-cancellation="{{ ($liveOption['isRefundable'] ?? false) ? 'true' : 'false' }}"
          data-meal="{{ Str::slug($liveOption['mealBasis'] ?? 'none') }}"
          style="text-decoration: none;">
@@ -1014,20 +1014,20 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
           @endif
 
           <div style="font-family:'Jost',sans-serif;">
-            @if($liveOption && $liveOption['totalPrice'])
+            @if($liveOption && $liveOption['customerPrice'])
               @php
                  // Carbon v3's diffInDays() is signed (unlike v2's always-absolute
                  // default) — calling it in the wrong order silently returned a
                  // negative number here, which max(1, ...) then floored to 1,
                  // making per-night always equal the total regardless of stay length.
                  $nights = max(1, abs(Carbon\Carbon::parse($checkIn ?? now())->diffInDays(Carbon\Carbon::parse($checkOut ?? now()->addDay()))));
-                 $pricePerNight = round($liveOption['totalPrice'] / $nights);
+                 $pricePerNight = round($liveOption['customerPrice'] / $nights);
               @endphp
               <div style="font-size:12px; color:var(--white-60); margin-bottom:2px;">
                 ₹ {{ number_format($pricePerNight) }} <span style="font-size:10px;">/night</span>
               </div>
               <div style="font-size:22px; font-weight:700; color:#fff; line-height:1.1;">
-                ₹ {{ number_format($liveOption['totalPrice']) }}
+                ₹ {{ number_format($liveOption['customerPrice']) }}
               </div>
               <div style="font-size:11px; color:var(--white-60); margin-top:2px;">Total (incl. taxes)</div>
               <div class="htl-req-btn" style="margin-top:12px; display:inline-flex;">View Deal</div>

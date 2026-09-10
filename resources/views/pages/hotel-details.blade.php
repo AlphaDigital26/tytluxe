@@ -1478,7 +1478,7 @@ html { scroll-behavior: smooth; }
 
       @php
         $cheapestLive = ($liveOptions ?? collect())->isNotEmpty()
-          ? ($liveOptions ?? collect())->sortBy('pricing.totalPrice')->first()
+          ? ($liveOptions ?? collect())->sortBy('pricing.customerPrice')->first()
           : null;
         $cheapestRoomName = $cheapestLive ? collect($cheapestLive['roomInfo'] ?? [])->pluck('name')->unique()->implode(' + ') : 'Standard Room';
       @endphp
@@ -1497,7 +1497,7 @@ html { scroll-behavior: smooth; }
       <!-- Live TripJack Price -->
       <div style="margin-bottom: 24px;">
         <div style="font-family: 'Jost', sans-serif; font-size: 2.2rem; font-weight: 700; color: #fff; line-height: 1;">
-          {{ $cheapestLive['pricing']['currency'] ?? 'INR' }} {{ number_format($cheapestLive['pricing']['totalPrice'] ?? 0) }}
+          {{ $cheapestLive['pricing']['currency'] ?? 'INR' }} {{ number_format($cheapestLive['pricing']['customerPrice'] ?? 0) }}
         </div>
         <div style="font-family: 'Jost', sans-serif; font-size: 12px; color: var(--white-60); margin-top: 4px;">
           Total for {{ $roomCount }} room, {{ $adults }} adults
@@ -1851,7 +1851,7 @@ html { scroll-behavior: smooth; }
 
             <!-- Right Columns: Options List -->
             <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 14px; padding: 20px; align-self: stretch;">
-              @foreach($options->sortBy('pricing.totalPrice') as $index => $option)
+              @foreach($options->sortBy('pricing.customerPrice') as $index => $option)
                 @php
                   $pricing = $option['pricing'] ?? [];
                   $cancellation = $option['cancellation'] ?? [];
@@ -1859,8 +1859,10 @@ html { scroll-behavior: smooth; }
                   $isRefundable = $cancellation['isRefundable'] ?? false;
                   $freeUntil = collect($cancellation['penalties'] ?? [])->firstWhere('amount', 0);
                   $mealBasis = $option['mealBasis'] ?? 'Room Only';
-                  $totalPrice = $pricing['totalPrice'] ?? 0;
-                  $perNight = $totalPrice / $nights / max(1, $roomCount);
+                  // Customer-facing price (TripJack's raw price + TYTLUXE markup) — never
+                  // display pricing['totalPrice'] directly, that's TripJack's raw cost.
+                  $customerPrice = $pricing['customerPrice'] ?? 0;
+                  $perNight = $customerPrice / $nights / max(1, $roomCount);
                   $rateId = 'hdRate_'.Str::slug($roomName).'_'.$loop->index;
                 @endphp
 
@@ -1915,7 +1917,7 @@ html { scroll-behavior: smooth; }
                     <div style="font-family:'Jost',sans-serif; font-size:12px; color:rgba(255,255,255,0.35); text-decoration:line-through;">{{ $pricing['currency'] ?? 'INR' }} {{ number_format($pricing['strikethrough']) }}</div>
                     @endif
                     <div class="hd-rate-price-per-night">{{ $pricing['currency'] ?? 'INR' }} {{ number_format($perNight) }}/night</div>
-                    <div class="hd-rate-price-total">{{ $pricing['currency'] ?? 'INR' }} {{ number_format($totalPrice) }}</div>
+                    <div class="hd-rate-price-total">{{ $pricing['currency'] ?? 'INR' }} {{ number_format($customerPrice) }}</div>
                     <div class="hd-rate-price-caption">Total price for {{ $roomCount }} room{{ $roomCount > 1 ? 's' : '' }}</div>
                     <form method="POST" action="{{ route('hotel.review', $hotel->slug) }}" class="hd-select-room-form">
                       @csrf

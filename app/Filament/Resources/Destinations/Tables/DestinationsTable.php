@@ -2,9 +2,13 @@
 
 namespace App\Filament\Resources\Destinations\Tables;
 
+use App\Jobs\SyncDestinationHotels;
+use App\Models\Destination;
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Notifications\Notification;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -60,6 +64,25 @@ class DestinationsTable
                     ->boolean()
                     ->sortable(),
 
+                TextColumn::make('hotel_sync_status')
+                    ->label('Hotels')
+                    ->formatStateUsing(fn (?string $state, ?Destination $record): string => match ($state) {
+                        'pending' => '⏳ Queued...',
+                        'syncing' => '🔄 Syncing...',
+                        'done'    => "✅ ".($record->hotel_sync_count ?? 0)." synced",
+                        'failed'  => '❌ Failed',
+                        default   => '—',
+                    })
+                    ->badge()
+                    ->color(fn (?string $state): string => match ($state) {
+                        'pending' => 'gray',
+                        'syncing' => 'warning',
+                        'done'    => 'success',
+                        'failed'  => 'danger',
+                        default   => 'gray',
+                    })
+                    ->visible(fn (?Destination $record): bool => $record && in_array('hotel', (array) $record->for, true)),
+
                 TextColumn::make('lat')
                     ->label('Latitude')
                     ->numeric()
@@ -82,6 +105,21 @@ class DestinationsTable
                 //
             ])
             ->recordActions([
+                Action::make('syncHotels')
+                    ->label('Sync Hotels')
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('gray')
+                    ->visible(fn (?Destination $record): bool => $record && in_array('hotel', (array) $record->for, true))
+                    ->action(function (Destination $record): void {
+                        $record->update(['hotel_sync_status' => 'pending']);
+                        SyncDestinationHotels::dispatch($record->id);
+
+                        Notification::make()
+                            ->title('Hotel sync started')
+                            ->body("We're fetching hotels for {$record->name}. This page will update automatically once it's done.")
+                            ->success()
+                            ->send();
+                    }),
                 EditAction::make(),
             ])
             ->toolbarActions([
