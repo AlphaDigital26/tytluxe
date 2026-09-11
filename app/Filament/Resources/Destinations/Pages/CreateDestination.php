@@ -22,7 +22,7 @@ class CreateDestination extends CreateRecord
 
         // Only accept valid tab values
         if (in_array($tab, ['hotel', 'cruise', 'package'])) {
-            $data['for'] = $tab;
+            $data['for'] = [$tab];
         }
 
         return $data;
@@ -39,9 +39,14 @@ class CreateDestination extends CreateRecord
         /** @var Destination $destination */
         $destination = $this->record;
 
-        if (in_array('hotel', $destination->for ?? [], true)) {
+        if (in_array('hotel', (array) ($destination->for ?? []), true)) {
             $destination->update(['hotel_sync_status' => 'pending']);
             SyncDestinationHotels::dispatch($destination->id);
         }
+    }
+
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
     }
 }
