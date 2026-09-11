@@ -537,6 +537,413 @@ body { background: var(--dark); color: #fff; }
 }
 
 
+/* ===== STAY MODIFIER SEARCH BAR ===== */
+.hd-search-modifier-wrap {
+  max-width: 1320px;
+  margin: 20px auto 10px;
+  padding: 0 32px;
+}
+@media (max-width: 900px) {
+  .hd-search-modifier-wrap {
+    padding: 0 20px;
+    margin: 14px auto 6px;
+  }
+}
+.hd-detail-searchbar {
+  background: var(--dark-2);
+  border: 1px solid rgba(201, 168, 76, 0.3);
+  border-radius: 20px;
+  padding: 16px 20px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55), 0 0 25px rgba(201, 168, 76, 0.08);
+}
+.hd-detail-searchbar .htl-searchbar-row {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.hd-detail-searchbar .htl-sb-field {
+  position: relative;
+  flex: 1 1 180px;
+  min-width: 150px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  padding: 12px 18px;
+  border-radius: 12px;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  transition: all 0.2s ease;
+}
+.hd-detail-searchbar .htl-sb-field:hover,
+.hd-detail-searchbar .htl-sb-field.open {
+  background: rgba(201, 168, 76, 0.07);
+  border-color: rgba(201, 168, 76, 0.45);
+}
+.hd-detail-searchbar .htl-sb-field.htl-sb-dest {
+  flex: 1.5 1 220px;
+}
+.hd-detail-searchbar .htl-sb-label {
+  font-family: 'Jost', sans-serif;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gold);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.hd-detail-searchbar .htl-sb-label svg {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+}
+.hd-detail-searchbar input[type="text"] {
+  border: none;
+  outline: none;
+  background: transparent;
+  color: #fff;
+  font-family: 'Jost', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  padding: 0;
+  width: 100%;
+  cursor: pointer;
+}
+.hd-detail-searchbar input::placeholder {
+  color: rgba(255, 255, 255, 0.35);
+}
+.hd-detail-searchbar #hdModGuestSummary {
+  font-family: 'Jost', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hd-detail-searchbar .htl-sb-nights-badge {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  background: rgba(201, 168, 76, 0.15);
+  border: 1px solid rgba(201, 168, 76, 0.35);
+  color: var(--gold);
+  font-family: 'Jost', sans-serif;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 100px;
+}
+.hd-detail-searchbar .htl-sb-submit {
+  align-self: center;
+  height: 48px;
+  flex: 0 0 auto;
+  min-width: 140px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 24px;
+  border-radius: 100px;
+  border: none;
+  cursor: pointer;
+  background: linear-gradient(90deg, #c9a84c, #e8c96b);
+  color: var(--dark);
+  font-family: 'Jost', sans-serif;
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  box-shadow: 0 6px 20px rgba(201, 168, 76, 0.25);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.hd-detail-searchbar .htl-sb-submit:hover {
+  background: linear-gradient(90deg, #d8b753, #eecd74);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 28px rgba(201, 168, 76, 0.4);
+}
+.hd-detail-searchbar .htl-sb-submit svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+
+/* Destination Dropdown Popover in Stay Modifier Bar */
+.hd-detail-searchbar .htl-dest-input-wrap {
+  display: flex;
+  align-items: center;
+  position: relative;
+  width: 100%;
+}
+.hd-detail-searchbar .htl-dest-input-wrap input {
+  flex: 1;
+  width: 100%;
+  padding-right: 22px !important;
+}
+.hd-detail-searchbar .htl-dest-chevron {
+  position: absolute;
+  right: 0;
+  color: rgba(255, 255, 255, 0.3);
+  pointer-events: none;
+  transition: transform 0.25s ease, color 0.25s ease;
+}
+.hd-detail-searchbar .htl-sb-field.open .htl-dest-chevron {
+  transform: rotate(180deg);
+  color: var(--gold);
+}
+.hd-detail-searchbar .htl-dest-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  width: 100%;
+  min-width: 250px;
+  z-index: 110;
+  background: #1c1c1c;
+  border: 1px solid rgba(201, 168, 76, 0.35);
+  border-radius: 14px;
+  padding: 8px 6px;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.75), 0 0 20px rgba(201, 168, 76, 0.08);
+  display: none;
+  max-height: 290px;
+  overflow-y: auto;
+}
+.hd-detail-searchbar .htl-dest-popover.open {
+  display: block;
+}
+.hd-detail-searchbar .htl-dest-popover::-webkit-scrollbar {
+  width: 5px;
+}
+.hd-detail-searchbar .htl-dest-popover::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 10px;
+}
+.hd-detail-searchbar .htl-dest-popover::-webkit-scrollbar-thumb {
+  background: rgba(201, 168, 76, 0.3);
+  border-radius: 10px;
+}
+.hd-detail-searchbar .htl-dest-popover::-webkit-scrollbar-thumb:hover {
+  background: var(--gold);
+}
+.hd-detail-searchbar .htl-dest-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.hd-detail-searchbar .htl-dest-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  color: #fff;
+  font-family: 'Jost', sans-serif;
+  font-size: 14.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+.hd-detail-searchbar .htl-dest-option svg {
+  width: 14px;
+  height: 14px;
+  color: var(--gold);
+  flex-shrink: 0;
+  opacity: 0.65;
+  transition: all 0.16s ease;
+}
+.hd-detail-searchbar .htl-dest-option:hover,
+.hd-detail-searchbar .htl-dest-option.highlighted {
+  background: rgba(201, 168, 76, 0.12);
+  color: var(--gold-light);
+}
+.hd-detail-searchbar .htl-dest-option:hover svg,
+.hd-detail-searchbar .htl-dest-option.highlighted svg {
+  opacity: 1;
+  transform: scale(1.15);
+}
+.hd-detail-searchbar .htl-dest-no-results {
+  padding: 18px 14px;
+  color: rgba(255, 255, 255, 0.35);
+  font-family: 'Jost', sans-serif;
+  font-size: 13px;
+  text-align: center;
+}
+
+/* Guest Popover in Stay Modifier Bar */
+.hd-detail-searchbar .htl-guest-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  width: 320px;
+  z-index: 100;
+  background: #1c1c1c;
+  border: 1px solid rgba(201, 168, 76, 0.35);
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 20px 44px rgba(0, 0, 0, 0.75);
+  display: none;
+  max-height: 420px;
+  overflow-y: auto;
+}
+.hd-detail-searchbar .htl-guest-popover.open {
+  display: block;
+}
+.hd-detail-searchbar .htl-guest-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.hd-detail-searchbar .htl-guest-row:last-child {
+  margin-bottom: 0;
+}
+.hd-detail-searchbar .htl-guest-row-label {
+  font-family: 'Jost', sans-serif;
+  font-size: 13px;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+}
+.hd-detail-searchbar .htl-guest-row-label small {
+  font-size: 10.5px;
+  color: rgba(255, 255, 255, 0.35);
+  font-weight: 400;
+  margin-top: 2px;
+}
+.hd-detail-searchbar .htl-guest-ctrl {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.hd-detail-searchbar .htl-guest-ctrl button {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #fff;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.hd-detail-searchbar .htl-guest-ctrl button:hover:not(:disabled) {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+.hd-detail-searchbar .htl-guest-ctrl button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+.hd-detail-searchbar .htl-guest-ctrl span {
+  color: #fff;
+  font-family: 'Jost', sans-serif;
+  font-size: 13px;
+  width: 16px;
+  text-align: center;
+}
+.hd-detail-searchbar .htl-room-block {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 12px;
+  background: rgba(255, 255, 255, 0.02);
+}
+.hd-detail-searchbar .htl-room-block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+}
+.hd-detail-searchbar .htl-room-block-title {
+  font-family: 'Jost', sans-serif;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.hd-detail-searchbar .htl-room-block-remove {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+.hd-detail-searchbar .htl-room-block-remove:hover {
+  color: #f3a3a3;
+}
+.hd-detail-searchbar .htl-child-ages {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.hd-detail-searchbar .htl-child-age-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.hd-detail-searchbar .htl-child-age-select {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 6px;
+  color: #fff;
+  font-family: 'Jost', sans-serif;
+  font-size: 12px;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+.hd-detail-searchbar .htl-child-age-select option {
+  background: var(--dark-3);
+  color: #fff;
+}
+.hd-detail-searchbar .htl-guest-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 8px;
+  margin-top: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.hd-detail-searchbar .htl-guest-add-btn {
+  background: transparent;
+  border: none;
+  color: var(--gold);
+  font-family: 'Jost', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+}
+.hd-detail-searchbar .htl-guest-add-btn:hover {
+  color: var(--gold-light);
+}
+.hd-detail-searchbar .htl-guest-apply-btn {
+  background: var(--gold);
+  color: var(--dark);
+  border: none;
+  border-radius: 100px;
+  font-family: 'Jost', sans-serif;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+.hd-detail-searchbar .htl-guest-apply-btn:hover {
+  background: var(--gold-light);
+}
+
 /* ===== SECTION NAV (sticky quick-jump bar) ===== */
 html { scroll-behavior: smooth; }
 .hd-section-nav {
@@ -1365,8 +1772,14 @@ html { scroll-behavior: smooth; }
 .hd-rate-title .non-refundable { color: #f87171; }
 .hd-rate-title .sep { color: rgba(255,255,255,0.25); margin: 0 6px; font-weight: 400; }
 .hd-rate-cancel {
-  display: flex; align-items: center; gap: 6px;
+  display: inline-flex; align-items: center; gap: 6px;
   font-family: 'Jost', sans-serif; font-size: 12.5px; color: var(--green); margin-top: 8px;
+  cursor: pointer; transition: all 0.2s ease;
+}
+.hd-rate-cancel:hover {
+  filter: brightness(1.2);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 .hd-rate-cancel svg { width: 14px; height: 14px; flex-shrink: 0; }
 .hd-rate-more {
@@ -2773,6 +3186,91 @@ html { scroll-behavior: smooth; }
   </div>
 </div>
 
+<!-- Stay Modifier Bar (Change Dates, Guests, Place) -->
+<div class="hd-search-modifier-wrap" id="hdSearchModifierWrap">
+  <form class="hd-detail-searchbar" id="hdSearchForm" method="GET" action="{{ route('hotel.details', $hotel->slug) }}">
+    <div class="htl-searchbar-row">
+
+      <!-- Destination / Place -->
+      <div class="htl-sb-field htl-sb-dest" id="hdModDestField">
+        <label class="htl-sb-label" for="hdModDestinationSearch">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          Destination / Place
+        </label>
+        <div class="htl-dest-input-wrap">
+          <input type="text" id="hdModDestinationSearch" name="destination" placeholder="Where are you going?" autocomplete="off" value="{{ $destination ?? '' }}" data-original-dest="{{ strtolower(trim($destination ?? '')) }}" required>
+          <svg class="htl-dest-chevron" width="10" height="10" viewBox="0 0 12 12"><path fill="currentColor" d="M6 8L1 3h10z"/></svg>
+        </div>
+        <div class="htl-dest-popover" id="hdModDestPopover" onclick="event.stopPropagation()">
+          <div class="htl-dest-list" id="hdModDestList">
+            @foreach($destinations ?? [] as $d)
+              <div class="htl-dest-option" data-value="{{ $d }}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                <span>{{ $d }}</span>
+              </div>
+            @endforeach
+          </div>
+          <div class="htl-dest-no-results" id="hdModDestNoResults" style="display:none;">
+            No destinations found
+          </div>
+        </div>
+      </div>
+
+      <!-- Check-in -->
+      <div class="htl-sb-field" id="hdModCheckInField">
+        <label class="htl-sb-label" for="hdModCheckIn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+          Check-in
+        </label>
+        <input type="text" id="hdModCheckIn" readonly placeholder="Select date" autocomplete="off" required>
+      </div>
+
+      <!-- Check-out -->
+      <div class="htl-sb-field" id="hdModCheckOutField" style="position:relative;">
+        <span class="htl-sb-nights-badge" id="hdModNightsBadge" hidden></span>
+        <label class="htl-sb-label" for="hdModCheckOut">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+          Check-out
+        </label>
+        <input type="text" id="hdModCheckOut" readonly placeholder="Select date" autocomplete="off" required>
+      </div>
+
+      <input type="hidden" id="hdModCheckInIso" name="check_in" value="{{ $checkIn ?? '' }}">
+      <input type="hidden" id="hdModCheckOutIso" name="check_out" value="{{ $checkOut ?? '' }}">
+      <input type="text" id="hdModRangePicker" style="position:absolute; width:0; height:0; opacity:0; pointer-events:none;" tabindex="-1">
+
+      <!-- Rooms & Guests -->
+      <div class="htl-sb-field" id="hdModGuestField">
+        <label class="htl-sb-label">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          Rooms &amp; Guests
+          <svg width="10" height="10" viewBox="0 0 12 12" style="margin-left:2px;"><path fill="currentColor" d="M6 8L1 3h10z"/></svg>
+        </label>
+        <span id="hdModGuestSummary">{{ $roomCount ?? 1 }} Room, {{ $adults ?? 2 }} Adult{{ ($adults ?? 2) > 1 ? 's' : '' }}</span>
+
+        <input type="hidden" id="hdModAdults" name="adults" value="{{ $adults ?? 2 }}">
+        <input type="hidden" id="hdModChildren" name="children" value="{{ $children ?? 0 }}">
+        <input type="hidden" id="hdModRooms" name="rooms" value="{{ $roomCount ?? 1 }}">
+        <input type="hidden" id="hdModChildAges" name="child_ages" value="{{ implode(',', $childAges ?? []) }}">
+
+        <div class="htl-guest-popover" id="hdModGuestPopover" onclick="event.stopPropagation()">
+          <div id="hdModRoomBlocks"></div>
+          <div class="htl-guest-actions">
+            <button type="button" class="htl-guest-add-btn" id="hdModAddRoomBtn">+ Add Room</button>
+            <button type="button" class="htl-guest-apply-btn" id="hdModGuestApplyBtn">Apply</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Submit / Update Button -->
+      <button type="submit" class="htl-sb-submit" id="hdModSearchSubmitBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        Update
+      </button>
+    </div>
+  </form>
+</div>
+
 <!-- Sticky section quick-jump nav -->
 <nav class="hd-section-nav" id="hdSectionNav">
   <div class="hd-section-nav-inner">
@@ -2941,9 +3439,17 @@ html { scroll-behavior: smooth; }
                     </div>
                     @if($room->cancellation_policy)
                     <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
-                      <span style="display: inline-flex; align-items: center; gap: 4px; font-family: 'Jost', sans-serif; font-size: 11.5px; color: {{ $room->cancellation_policy == 'free_cancellation' ? 'var(--green)' : '#f87171' }}; background: {{ $room->cancellation_policy == 'free_cancellation' ? 'rgba(74, 222, 128, 0.08)' : 'rgba(248, 113, 113, 0.08)' }}; padding: 4px 10px; border-radius: 100px;">
+                      <span class="htl-cancel-policy-trigger"
+                            data-refundable="{{ $room->cancellation_policy == 'free_cancellation' ? 'true' : 'false' }}"
+                            data-room-name="{{ $room->name }}"
+                            data-hotel-title="{{ $hotel->title }}"
+                            data-checkin="{{ $checkIn ?? '' }}"
+                            data-checkout="{{ $checkOut ?? '' }}"
+                            style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-family: 'Jost', sans-serif; font-size: 11.5px; color: {{ $room->cancellation_policy == 'free_cancellation' ? 'var(--green)' : '#f87171' }}; background: {{ $room->cancellation_policy == 'free_cancellation' ? 'rgba(74, 222, 128, 0.08)' : 'rgba(248, 113, 113, 0.08)' }}; padding: 4px 10px; border-radius: 100px; transition: all 0.2s ease;"
+                            title="Click to view cancellation policy">
                         @if($room->cancellation_policy == 'free_cancellation') ✅ @elseif($room->cancellation_policy == 'non_refundable') ❌ @else ⚠️ @endif
                         {{ str_replace('_', ' ', Str::title($room->cancellation_policy)) }}
+                        <span style="opacity: 0.7; font-size: 10px; margin-left: 2px;">ⓘ</span>
                       </span>
                     </div>
                     @endif
@@ -3145,11 +3651,15 @@ html { scroll-behavior: smooth; }
 @if($hotel->source === 'tripjack')
 <div style="max-width:1280px; margin:0 auto; padding:0 40px 40px;">
   <div class="hd-section" id="htl-room-section" style="margin-bottom:0;">
-    <div style="display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; margin-bottom:24px;">
+    <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:24px;">
       <h2 class="hd-section-title" style="margin:0;">Available Rooms</h2>
       @if(($liveOptions ?? collect())->isNotEmpty())
       <span style="font-family:'Jost',sans-serif; font-size:13px; color:var(--white-60);">Showing {{ $liveOptions->count() }} of {{ $liveOptions->count() }} room options</span>
       @endif
+      <button type="button" onclick="document.getElementById('hdSearchModifierWrap')?.scrollIntoView({behavior:'smooth', block:'center'}); document.getElementById('hdModCheckIn')?.click();" style="margin-left:auto; background:rgba(201,168,76,0.12); border:1px solid rgba(201,168,76,0.35); color:var(--gold); font-family:'Jost',sans-serif; font-size:12.5px; font-weight:600; padding:7px 16px; border-radius:100px; cursor:pointer; display:inline-flex; align-items:center; gap:7px; transition:all 0.2s ease;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        Change Dates &amp; Guests
+      </button>
     </div>
 
     @if(session('booking_error'))
@@ -3254,16 +3764,34 @@ html { scroll-behavior: smooth; }
                     <div class="hd-rate-title">
                       {{ $mealBasis }}
                       <span class="sep">|</span>
-                      <span class="{{ $isRefundable ? 'refundable' : 'non-refundable' }}">{{ $isRefundable ? 'Refundable' : 'Non-Refundable' }}</span>
+                      <span class="{{ $isRefundable ? 'refundable' : 'non-refundable' }} htl-cancel-policy-trigger"
+                            data-cancellation='@json($cancellation)'
+                            data-refundable="{{ $isRefundable ? 'true' : 'false' }}"
+                            data-room-name="{{ $roomName }}"
+                            data-hotel-title="{{ $hotel->title }}"
+                            data-checkin="{{ $checkIn ?? '' }}"
+                            data-checkout="{{ $checkOut ?? '' }}"
+                            data-price="{{ $customerPrice ?? 0 }}"
+                            style="cursor: pointer; text-decoration: underline; text-underline-offset: 3px;"
+                            title="Click to view cancellation policy">{{ $isRefundable ? 'Refundable' : 'Non-Refundable' }}</span>
                       @if($compliance['panRequired'] ?? false)
                         <span class="sep">|</span> PAN Required
                       @endif
                     </div>
 
                     @if($isRefundable)
-                    <div class="hd-rate-cancel">
+                    <div class="hd-rate-cancel htl-cancel-policy-trigger"
+                         data-cancellation='@json($cancellation)'
+                         data-refundable="true"
+                         data-room-name="{{ $roomName }}"
+                         data-hotel-title="{{ $hotel->title }}"
+                         data-checkin="{{ $checkIn ?? '' }}"
+                         data-checkout="{{ $checkOut ?? '' }}"
+                         data-price="{{ $customerPrice ?? 0 }}"
+                         title="Click to view detailed cancellation policy">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
-                      Free Cancellation @if($freeUntil) before {{ \Illuminate\Support\Carbon::parse($freeUntil['to'])->format('jS F Y') }} @endif
+                      <span>Free Cancellation @if($freeUntil) before {{ \Illuminate\Support\Carbon::parse($freeUntil['to'])->format('jS F Y') }} @endif</span>
+                      <span style="font-size: 11px; opacity: 0.8; text-decoration: underline; text-underline-offset: 2px; margin-left: 2px;">View Policy</span>
                     </div>
                     @endif
 
@@ -4668,6 +5196,405 @@ html { scroll-behavior: smooth; }
         slider.scrollBy({ left: scrollAmount, behavior: 'smooth' });
       });
     });
+    /* ===== STAY MODIFIER BAR (Change Dates, Guests, Place) ===== */
+    (function () {
+      const form = document.getElementById('hdSearchForm');
+      const destInput = document.getElementById('hdModDestinationSearch');
+      const checkInDisplay = document.getElementById('hdModCheckIn');
+      const checkOutDisplay = document.getElementById('hdModCheckOut');
+      const checkInIso = document.getElementById('hdModCheckInIso');
+      const checkOutIso = document.getElementById('hdModCheckOutIso');
+      const nightsBadge = document.getElementById('hdModNightsBadge');
+      const rangeInput = document.getElementById('hdModRangePicker');
+      const guestField = document.getElementById('hdModGuestField');
+      const guestPopover = document.getElementById('hdModGuestPopover');
+      const guestSummary = document.getElementById('hdModGuestSummary');
+      const roomBlocksEl = document.getElementById('hdModRoomBlocks');
+      const addRoomBtn = document.getElementById('hdModAddRoomBtn');
+      const applyBtn = document.getElementById('hdModGuestApplyBtn');
+
+      if (!form || !rangeInput || typeof flatpickr === 'undefined') return;
+
+      // 0. Custom Destination Dropdown
+      const destField = document.getElementById('hdModDestField');
+      const destPopover = document.getElementById('hdModDestPopover');
+      const noResults = document.getElementById('hdModDestNoResults');
+      if (destField && destInput && destPopover) {
+        const destOptions = Array.from(destPopover.querySelectorAll('.htl-dest-option'));
+        let destActiveIdx = -1;
+
+        function openDestDropdown() {
+          destPopover.classList.add('open');
+          destField.classList.add('open');
+          filterDestOptions();
+        }
+
+        function closeDestDropdown() {
+          destPopover.classList.remove('open');
+          destField.classList.remove('open');
+          destActiveIdx = -1;
+          destOptions.forEach(opt => opt.classList.remove('highlighted'));
+        }
+
+        function filterDestOptions() {
+          const q = destInput.value.trim().toLowerCase();
+          let matchCount = 0;
+          destOptions.forEach(opt => {
+            const val = (opt.dataset.value || '').toLowerCase();
+            if (!q || val.includes(q)) {
+              opt.style.display = 'flex';
+              matchCount++;
+            } else {
+              opt.style.display = 'none';
+              opt.classList.remove('highlighted');
+            }
+          });
+          if (noResults) noResults.style.display = matchCount === 0 ? 'block' : 'none';
+        }
+
+        function selectDestOption(val) {
+          destInput.value = val;
+          closeDestDropdown();
+          if (checkInIso && !checkInIso.value && typeof fp !== 'undefined') fp.open();
+        }
+
+        destInput.addEventListener('focus', openDestDropdown);
+        destField.addEventListener('click', (e) => {
+          if (e.target.closest('#hdModDestPopover')) return;
+          if (destPopover.classList.contains('open') && e.target !== destInput) {
+            closeDestDropdown();
+          } else {
+            openDestDropdown();
+            destInput.focus();
+          }
+        });
+
+        destInput.addEventListener('input', () => {
+          if (!destPopover.classList.contains('open')) {
+            openDestDropdown();
+          } else {
+            filterDestOptions();
+          }
+        });
+
+        destInput.addEventListener('keydown', (e) => {
+          const visibleOpts = destOptions.filter(opt => opt.style.display !== 'none');
+          if (!destPopover.classList.contains('open')) {
+            if (e.key === 'ArrowDown' || e.key === 'Enter') {
+              openDestDropdown();
+              e.preventDefault();
+            }
+            return;
+          }
+
+          if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            destActiveIdx = (destActiveIdx + 1) % visibleOpts.length;
+            visibleOpts.forEach((opt, idx) => opt.classList.toggle('highlighted', idx === destActiveIdx));
+            if (visibleOpts[destActiveIdx]) visibleOpts[destActiveIdx].scrollIntoView({ block: 'nearest' });
+          } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            destActiveIdx = (destActiveIdx - 1 + visibleOpts.length) % visibleOpts.length;
+            visibleOpts.forEach((opt, idx) => opt.classList.toggle('highlighted', idx === destActiveIdx));
+            if (visibleOpts[destActiveIdx]) visibleOpts[destActiveIdx].scrollIntoView({ block: 'nearest' });
+          } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (destActiveIdx >= 0 && visibleOpts[destActiveIdx]) {
+              selectDestOption(visibleOpts[destActiveIdx].dataset.value);
+            } else if (visibleOpts.length > 0) {
+              selectDestOption(visibleOpts[0].dataset.value);
+            } else {
+              closeDestDropdown();
+            }
+          } else if (e.key === 'Escape') {
+            closeDestDropdown();
+          }
+        });
+
+        destOptions.forEach(opt => {
+          opt.addEventListener('click', (e) => {
+            e.stopPropagation();
+            selectDestOption(opt.dataset.value);
+          });
+        });
+
+        document.addEventListener('click', (e) => {
+          if (!destField.contains(e.target)) {
+            closeDestDropdown();
+          }
+        });
+      }
+
+      // 1. Initialize Flatpickr Date Range Picker
+      const initialCheckIn = checkInIso?.value || null;
+      const initialCheckOut = checkOutIso?.value || null;
+
+      const fp = flatpickr(rangeInput, {
+        mode: 'range',
+        minDate: 'today',
+        dateFormat: 'Y-m-d',
+        showMonths: window.innerWidth > 768 ? 2 : 1,
+        positionElement: document.getElementById('hdModCheckInField'),
+        defaultDate: initialCheckIn && initialCheckOut ? [initialCheckIn, initialCheckOut] : null,
+        onChange: function (selectedDates, dateStr, instance) {
+          if (selectedDates.length >= 1) {
+            checkInDisplay.value = instance.formatDate(selectedDates[0], 'D, j M Y');
+            checkInIso.value = instance.formatDate(selectedDates[0], 'Y-m-d');
+          } else {
+            checkInDisplay.value = '';
+            checkInIso.value = '';
+          }
+          if (selectedDates.length === 2) {
+            checkOutDisplay.value = instance.formatDate(selectedDates[1], 'D, j M Y');
+            checkOutIso.value = instance.formatDate(selectedDates[1], 'Y-m-d');
+            const nights = Math.round((selectedDates[1] - selectedDates[0]) / 86400000);
+            nightsBadge.textContent = nights + 'N';
+            nightsBadge.hidden = false;
+          } else {
+            checkOutDisplay.value = '';
+            checkOutIso.value = '';
+            nightsBadge.hidden = true;
+          }
+        },
+        onClose: function (selectedDates) {
+          if (selectedDates.length === 2 && guestField && guestPopover) {
+            guestPopover.classList.add('open');
+            guestField.classList.add('open');
+          }
+        },
+      });
+
+      [checkInDisplay, checkOutDisplay].forEach(el => {
+        if (el) el.addEventListener('click', (e) => { e.stopPropagation(); fp.open(); });
+      });
+
+      if (initialCheckIn && initialCheckOut) {
+        const d1 = new Date(initialCheckIn);
+        const d2 = new Date(initialCheckOut);
+        checkInDisplay.value = fp.formatDate(d1, 'D, j M Y');
+        checkOutDisplay.value = fp.formatDate(d2, 'D, j M Y');
+        const nights = Math.round((d2 - d1) / 86400000);
+        if (nights > 0) {
+          nightsBadge.textContent = nights + 'N';
+          nightsBadge.hidden = false;
+        }
+      }
+
+      // 2. Rooms & Guests State Management
+      const initialRoomCount = parseInt(document.getElementById('hdModRooms')?.value || '1', 10);
+      const initialAdults = parseInt(document.getElementById('hdModAdults')?.value || '2', 10);
+      const initialChildren = parseInt(document.getElementById('hdModChildren')?.value || '0', 10);
+      const initialAgesPool = (document.getElementById('hdModChildAges')?.value || '')
+        .split(',').map(v => v.trim()).filter(v => v !== '').map(v => parseInt(v, 10));
+
+      let rooms = [];
+      {
+        let remA = initialAdults, remC = initialChildren;
+        let ageCursor = 0;
+        for (let i = 0; i < initialRoomCount; i++) {
+          const left = initialRoomCount - i;
+          const a = Math.max(1, Math.ceil(remA / left));
+          const c = Math.floor(remC / left);
+          const ages = [];
+          for (let k = 0; k < c; k++) {
+            ages.push(ageCursor < initialAgesPool.length ? initialAgesPool[ageCursor++] : null);
+          }
+          rooms.push({ adults: a, children: c, childAges: ages });
+          remA -= a;
+          remC -= c;
+        }
+      }
+
+      function ageOptions(selected) {
+        let opts = '<option value="" disabled ' + (selected === null ? 'selected' : '') + '>Age</option>';
+        for (let age = 0; age <= 17; age++) {
+          opts += `<option value="${age}" ${selected === age ? 'selected' : ''}>${age} ${age === 1 ? 'yr' : 'yrs'}</option>`;
+        }
+        return opts;
+      }
+
+      function renderModRoomBlocks() {
+        if (!roomBlocksEl) return;
+        roomBlocksEl.innerHTML = '';
+        rooms.forEach((room, i) => {
+          const block = document.createElement('div');
+          block.className = 'htl-room-block';
+          const childAgeRows = room.children > 0 ? `
+            <div class="htl-child-ages">
+              ${room.childAges.map((age, ci) => `
+                <div class="htl-child-age-row">
+                  <span class="htl-guest-row-label" style="font-size:12px;">Child ${ci + 1} Age</span>
+                  <select data-room="${i}" data-child="${ci}" class="htl-child-age-select" required>${ageOptions(age)}</select>
+                </div>
+              `).join('')}
+            </div>` : '';
+          block.innerHTML = `
+            <div class="htl-room-block-header">
+              <span class="htl-room-block-title">Room ${i + 1}</span>
+              ${rooms.length > 1 ? `<button type="button" class="htl-room-block-remove" data-remove="${i}">Remove</button>` : ''}
+            </div>
+            <div class="htl-guest-row">
+              <span class="htl-guest-row-label">Adults</span>
+              <div class="htl-guest-ctrl">
+                <button type="button" data-room="${i}" data-key="adults" data-dir="-1" ${room.adults <= 1 ? 'disabled' : ''}>&minus;</button>
+                <span>${room.adults}</span>
+                <button type="button" data-room="${i}" data-key="adults" data-dir="1" ${room.adults >= 6 ? 'disabled' : ''}>+</button>
+              </div>
+            </div>
+            <div class="htl-guest-row">
+              <span class="htl-guest-row-label">Children<small>0-17 years old</small></span>
+              <div class="htl-guest-ctrl">
+                <button type="button" data-room="${i}" data-key="children" data-dir="-1" ${room.children <= 0 ? 'disabled' : ''}>&minus;</button>
+                <span>${room.children}</span>
+                <button type="button" data-room="${i}" data-key="children" data-dir="1" ${room.children >= 4 ? 'disabled' : ''}>+</button>
+              </div>
+            </div>
+            ${childAgeRows}
+          `;
+          roomBlocksEl.appendChild(block);
+        });
+
+        roomBlocksEl.querySelectorAll('[data-key]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const i = parseInt(btn.dataset.room, 10);
+            const key = btn.dataset.key;
+            const dir = parseInt(btn.dataset.dir, 10);
+            const max = key === 'adults' ? 6 : 4;
+            const min = key === 'adults' ? 1 : 0;
+            rooms[i][key] = Math.min(max, Math.max(min, rooms[i][key] + dir));
+            if (key === 'children') {
+              const c = rooms[i].children;
+              const ages = rooms[i].childAges;
+              rooms[i].childAges = c > ages.length ? ages.concat(new Array(c - ages.length).fill(null)) : ages.slice(0, c);
+            }
+            renderModRoomBlocks();
+          });
+        });
+
+        roomBlocksEl.querySelectorAll('[data-remove]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            rooms.splice(parseInt(btn.dataset.remove, 10), 1);
+            renderModRoomBlocks();
+          });
+        });
+
+        roomBlocksEl.querySelectorAll('.htl-child-age-select').forEach(sel => {
+          sel.addEventListener('change', () => {
+            const i = parseInt(sel.dataset.room, 10);
+            const ci = parseInt(sel.dataset.child, 10);
+            rooms[i].childAges[ci] = sel.value === '' ? null : parseInt(sel.value, 10);
+          });
+        });
+      }
+      renderModRoomBlocks();
+
+      if (addRoomBtn) {
+        addRoomBtn.addEventListener('click', () => {
+          if (rooms.length >= 9) return;
+          rooms.push({ adults: 1, children: 0, childAges: [] });
+          renderModRoomBlocks();
+        });
+      }
+
+      function syncGuestFields() {
+        const totalAdults = rooms.reduce((s, r) => s + r.adults, 0);
+        const totalChildren = rooms.reduce((s, r) => s + r.children, 0);
+        const allAges = rooms.flatMap(r => r.childAges).filter(a => a !== null);
+        document.getElementById('hdModRooms').value = rooms.length;
+        document.getElementById('hdModAdults').value = totalAdults;
+        document.getElementById('hdModChildren').value = totalChildren;
+        document.getElementById('hdModChildAges').value = allAges.join(',');
+        let summary = rooms.length + (rooms.length === 1 ? ' Room, ' : ' Rooms, ') + totalAdults + (totalAdults === 1 ? ' Adult' : ' Adults');
+        if (totalChildren > 0) summary += ', ' + totalChildren + (totalChildren === 1 ? ' Child' : ' Children');
+        if (guestSummary) guestSummary.textContent = summary;
+      }
+      syncGuestFields();
+
+      function applyGuestState() {
+        const missingAge = rooms.some(r => r.childAges.some(a => a === null));
+        if (missingAge) {
+          alert('Please select an age for every child before applying.');
+          return false;
+        }
+        syncGuestFields();
+        return true;
+      }
+
+      if (applyBtn) {
+        applyBtn.addEventListener('click', () => {
+          if (!applyGuestState()) return;
+          guestPopover.classList.remove('open');
+          guestField.classList.remove('open');
+        });
+      }
+
+      if (guestField) {
+        guestField.addEventListener('click', (e) => {
+          guestPopover.classList.toggle('open');
+          guestField.classList.toggle('open');
+        });
+      }
+
+      document.addEventListener('click', (e) => {
+        if (guestPopover && !guestField.contains(e.target)) {
+          guestPopover.classList.remove('open');
+          guestField.classList.remove('open');
+        }
+      });
+
+      // 3. Smart Form Submission
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const origDest = (destInput?.dataset.originalDest || '').trim().toLowerCase();
+        const currDest = (destInput?.value || '').trim().toLowerCase();
+        const inIso = checkInIso?.value || '';
+        const outIso = checkOutIso?.value || '';
+
+        if (!currDest) {
+          destInput?.focus();
+          alert('Please enter a destination or place.');
+          return;
+        }
+
+        if (!inIso || !outIso) {
+          fp.open();
+          return;
+        }
+
+        // If user changed destination, redirect to the main hotel search page
+        if (currDest !== origDest) {
+          const searchUrl = new URL("{{ route('hotels') }}", window.location.origin);
+          searchUrl.searchParams.set('destination', destInput.value.trim());
+          searchUrl.searchParams.set('check_in', inIso);
+          searchUrl.searchParams.set('check_out', outIso);
+          searchUrl.searchParams.set('adults', document.getElementById('hdModAdults').value);
+          searchUrl.searchParams.set('children', document.getElementById('hdModChildren').value);
+          searchUrl.searchParams.set('rooms', document.getElementById('hdModRooms').value);
+          const ca = document.getElementById('hdModChildAges').value;
+          if (ca) searchUrl.searchParams.set('child_ages', ca);
+          window.location.href = searchUrl.toString();
+          return;
+        }
+
+        // If destination is the same, reload this hotel details page with new dates & guests
+        const detailUrl = new URL("{{ route('hotel.details', $hotel->slug) }}", window.location.origin);
+        detailUrl.searchParams.set('check_in', inIso);
+        detailUrl.searchParams.set('check_out', outIso);
+        detailUrl.searchParams.set('adults', document.getElementById('hdModAdults').value);
+        detailUrl.searchParams.set('children', document.getElementById('hdModChildren').value);
+        detailUrl.searchParams.set('rooms', document.getElementById('hdModRooms').value);
+        const childAgesVal = document.getElementById('hdModChildAges').value;
+        if (childAgesVal) detailUrl.searchParams.set('child_ages', childAgesVal);
+        @if($hotel->source === 'tripjack')
+        detailUrl.hash = 'htl-room-section';
+        @else
+        detailUrl.hash = 'hd-anchor-rooms';
+        @endif
+
+        window.location.href = detailUrl.toString();
+      });
+    })();
   });
 </script>
 @endpush

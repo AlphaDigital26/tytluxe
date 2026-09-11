@@ -75,6 +75,7 @@ class TripJackListingSearch
                     'currency' => $cheapest['pricing']['currency'] ?? $currency,
                     'mealBasis' => $cheapest['mealBasis'] ?? null,
                     'isRefundable' => $cheapest['cancellation']['isRefundable'] ?? null,
+                    'cancellation' => $cheapest['cancellation'] ?? null,
                 ]];
             });
 

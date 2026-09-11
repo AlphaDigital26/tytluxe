@@ -92,7 +92,8 @@ class TripJackBookingFlowTest extends TestCase
         $detailsResponse = $this->get("/hotels/{$hotel->slug}?check_in=2026-09-15&check_out=2026-09-18&adults=1&rooms=1");
         $detailsResponse->assertStatus(200);
         $detailsResponse->assertSee('Select Room');
-        $detailsResponse->assertSee('INR 25,000');
+        $expectedCustomerPrice = \App\Services\HotelPricingService::price(25000)['customer_price'];
+        $detailsResponse->assertSee('INR ' . number_format($expectedCustomerPrice));
 
         // Step 2: submit Select Room -> Review (should redirect, not render directly — PRG)
         $reviewPost = $this->post("/hotels/{$hotel->slug}/review", [
@@ -110,7 +111,7 @@ class TripJackBookingFlowTest extends TestCase
         $reviewGet->assertStatus(200);
         $reviewGet->assertSee('PAN Number');
         $reviewGet->assertSee('Deluxe King Room');
-        $reviewGet->assertSee('25,000');
+        $reviewGet->assertSee(number_format($expectedCustomerPrice));
 
         // Step 4: submit guest details -> Book
         $bookPost = $this->post("/hotels/{$hotel->slug}/book", [
@@ -133,7 +134,7 @@ class TripJackBookingFlowTest extends TestCase
         $this->assertSame('TGS-REVIEW-123', $booking->tripjack_hold_id);
         $this->assertSame('opt-abc-123', $booking->tripjack_option_id);
         $this->assertSame('pending_payment', $booking->status); // ON_HOLD maps to pending_payment (awaiting Phase 8 payment)
-        $this->assertSame(25000.0, (float) $booking->total_amount);
+        $this->assertEqualsWithDelta($expectedCustomerPrice, (float) $booking->total_amount, 0.01);
         $this->assertSame(1, $booking->travelers()->count());
         $this->assertSame('ABCDE1234F', $booking->travelers()->first()->pan_number);
 

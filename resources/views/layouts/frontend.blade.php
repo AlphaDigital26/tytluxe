@@ -60,6 +60,8 @@
       }
     </script>
     
+    @include('partials.cancellation-modal')
+
     @stack('scripts')
 </body>
 </html>
