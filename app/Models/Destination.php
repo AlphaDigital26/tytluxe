@@ -17,9 +17,10 @@ class Destination extends Model
     ];
 
     // ── Relationships ──────────────────────────────────────────────────────────
-    public function hotels()   { return $this->hasMany(Hotel::class); }
-    public function cruises()  { return $this->hasMany(Cruise::class); }
-    public function packages() { return $this->hasMany(Package::class); }
+    public function hotels()          { return $this->hasMany(Hotel::class); }
+    public function hotelsOnWebsite() { return $this->hasMany(Hotel::class)->where('is_active', true); }
+    public function cruises()         { return $this->hasMany(Cruise::class); }
+    public function packages()        { return $this->hasMany(Package::class); }
 
     // ── Scopes ─────────────────────────────────────────────────────────────────
     public function scopeForHotels($query)   { return $query->whereJsonContains('for', 'hotel'); }

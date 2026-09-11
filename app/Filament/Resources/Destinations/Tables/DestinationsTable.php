@@ -18,6 +18,7 @@ class DestinationsTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn ($query) => $query->withCount(['hotels', 'hotelsOnWebsite']))
             ->columns([
                 TextColumn::make('name')
                     ->label('Destination')
@@ -80,8 +81,25 @@ class DestinationsTable
                         'done'    => 'success',
                         'failed'  => 'danger',
                         default   => 'gray',
+                    }),
+
+                TextColumn::make('hotels_on_website_count')
+                    ->label('On Website')
+                    ->formatStateUsing(function (?int $state, ?Destination $record): string {
+                        if (! $record || ! in_array('hotel', (array) $record->for, true)) {
+                            return '—';
+                        }
+                        $total = $record->hotel_sync_count ?? 0;
+                        $live  = $state ?? 0;
+                        return "🌏 {$live} / {$total}";
                     })
-                    ->visible(fn (?Destination $record): bool => $record && in_array('hotel', (array) $record->for, true)),
+                    ->badge()
+                    ->color(fn (?int $state, ?Destination $record): string => match (true) {
+                        $state > 0  => 'success',
+                        ($record?->hotel_sync_count ?? 0) > 0 => 'warning',
+                        default => 'gray',
+                    })
+                    ->tooltip('Hotels visible on website ÷ Total synced from API'),
 
                 TextColumn::make('lat')
                     ->label('Latitude')
