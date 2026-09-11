@@ -88,6 +88,8 @@ class TripJackBookingFlowTest extends TestCase
             ], 200),
         ]);
 
+        $this->app->bind(\App\Services\Payment\RazorpayService::class, fn () => new \Tests\Doubles\FakeRazorpayService());
+
         // Step 1: visit hotel details with dates -> populates session pricing context
         $detailsResponse = $this->get("/hotels/{$hotel->slug}?check_in=2026-09-15&check_out=2026-09-18&adults=1&rooms=1");
         $detailsResponse->assertStatus(200);
@@ -127,22 +129,21 @@ class TripJackBookingFlowTest extends TestCase
         ]);
 
         $booking = Booking::first();
-        $this->assertNotNull($booking, 'Booking row should have been created after successful Book API call');
-        $bookPost->assertRedirect("/booking/{$booking->reference}");
+        $this->assertNotNull($booking, 'Booking row should have been created before payment');
+        $bookPost->assertRedirect("/booking/{$booking->reference}/pay");
 
-        $this->assertSame('TJ-BOOK-456', $booking->tripjack_booking_id);
+        $this->assertNull($booking->tripjack_booking_id, 'Book must not be called until payment is captured');
         $this->assertSame('TGS-REVIEW-123', $booking->tripjack_hold_id);
         $this->assertSame('opt-abc-123', $booking->tripjack_option_id);
         $this->assertSame('pending_payment', $booking->status); // ON_HOLD maps to pending_payment (awaiting Phase 8 payment)
         $this->assertEqualsWithDelta($expectedCustomerPrice, (float) $booking->total_amount, 0.01);
         $this->assertSame(1, $booking->travelers()->count());
         $this->assertSame('ABCDE1234F', $booking->travelers()->first()->pan_number);
+        $this->assertNotNull($booking->tripjack_room_traveller_payload, 'Book payload must be persisted for the post-payment call');
+        $this->assertSame(1, $booking->payments()->count());
+        $this->assertSame('created', $booking->payments()->first()->status);
 
-        // Step 5: confirmation page shows live status
-        $confirmation = $this->get("/booking/{$booking->reference}");
-        $confirmation->assertStatus(200);
-        $confirmation->assertSee('ON_HOLD');
-        $confirmation->assertSee($booking->reference);
+        Http::assertNotSent(fn ($request) => str_contains($request->url(), '/hotel/book'));
     }
 
     public function test_duplicate_lead_guest_names_across_rooms_are_rejected(): void
@@ -181,7 +182,13 @@ class TripJackBookingFlowTest extends TestCase
         $this->assertSame(0, Booking::count(), 'No booking should be created when lead names collide across rooms');
     }
 
-    public function test_onhold_not_allowed_option_is_rejected_before_guest_form(): void
+    /**
+     * onholdAllowed:false used to reject an option outright — that was correct
+     * for the old HOLD-only flow, but Phase 8 never requests a HOLD any more
+     * (Book is always called with paymentInfos, post-payment), so an option's
+     * hold-ability is irrelevant and must not block it from being reviewed.
+     */
+    public function test_onhold_disallowed_option_is_still_accepted_since_we_never_hold(): void
     {
         $destination = Destination::create([
             'name' => 'Dubai', 'slug' => 'dubai-3', 'country' => 'UAE',
@@ -214,10 +221,9 @@ class TripJackBookingFlowTest extends TestCase
             'adults' => 2, 'children' => 0, 'rooms' => 1,
         ]);
 
-        $response->assertRedirect();
-        $response->assertSessionHas('booking_error');
-        $this->assertStringContainsString("can't be held", session('booking_error'));
-        $this->assertNull(session('tripjack_booking_draft'), 'No draft should be stored for a non-holdable option');
+        $response->assertRedirect("/hotels/{$hotel->slug}/review");
+        $this->assertFalse(session()->has('booking_error'));
+        $this->assertNotNull(session('tripjack_booking_draft'), 'A draft should still be stored even when onholdAllowed is false');
     }
 
     public function test_real_child_ages_are_sent_to_tripjack_not_hardcoded(): void

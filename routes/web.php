@@ -13,6 +13,9 @@ Route::get('/hotels/{slug}', [FrontendController::class, 'hotelDetails'])->name(
 Route::post('/hotels/{slug}/review', [FrontendController::class, 'reviewRoom'])->name('hotel.review');
 Route::get('/hotels/{slug}/review', [FrontendController::class, 'showReview'])->name('hotel.review.show');
 Route::post('/hotels/{slug}/book', [FrontendController::class, 'submitBooking'])->name('hotel.book');
+Route::get('/booking/{reference}/pay', [FrontendController::class, 'showPayment'])->name('hotel.payment.show');
+Route::post('/payment/razorpay/callback', [FrontendController::class, 'razorpayCallback'])->name('payment.razorpay.callback');
+Route::post('/payment/razorpay/webhook', [FrontendController::class, 'razorpayWebhook'])->name('payment.razorpay.webhook');
 Route::get('/booking/{reference}', [FrontendController::class, 'bookingConfirmation'])->name('hotel.booking.confirmation');
 Route::get('/cruises', [FrontendController::class, 'cruises'])->name('cruises');
 Route::get('/packages', [FrontendController::class, 'packages'])->name('packages');

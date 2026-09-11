@@ -12,5 +12,9 @@ class Payment extends Model
 
     protected $guarded = [];
 
+    protected $casts = [
+        'raw_response' => 'array',
+    ];
+
     public function booking() { return $this->belongsTo(Booking::class); }
 }

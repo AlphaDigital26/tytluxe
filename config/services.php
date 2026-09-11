@@ -45,11 +45,18 @@ return [
         'api_key' => env('TRIPJACK_API_KEY'),
         'hms_base_url' => env('TRIPJACK_HMS_BASE_URL', 'https://apitest-hms.tripjack.com/hms/v3'),
         'booker_base_url' => env('TRIPJACK_BOOKER_BASE_URL', 'https://apitest-hotel-booker.tripjack.com/oms/v3'),
+        'booker_v1_base_url' => env('TRIPJACK_BOOKER_V1_BASE_URL', 'https://apitest-hotel-booker.tripjack.com/oms/v1'),
         'nationality_base_url' => env('TRIPJACK_NATIONALITY_BASE_URL', 'https://apitest-hms.tripjack.com/hms/v3'),
         'timeout' => env('TRIPJACK_TIMEOUT', 30),
         'connect_timeout' => env('TRIPJACK_CONNECT_TIMEOUT', 5),
         'retry_times' => env('TRIPJACK_RETRY_TIMES', 3),
         'retry_sleep_ms' => env('TRIPJACK_RETRY_SLEEP_MS', 200),
+    ],
+
+    'razorpay' => [
+        'key_id' => env('RAZORPAY_KEY_ID'),
+        'key_secret' => env('RAZORPAY_KEY_SECRET'),
+        'webhook_secret' => env('RAZORPAY_WEBHOOK_SECRET'),
     ],
 
 ];

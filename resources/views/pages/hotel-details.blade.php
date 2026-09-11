@@ -4399,6 +4399,18 @@ html { scroll-behavior: smooth; }
     });
   });
 
+  // Returning to this page via the browser's Back button can restore it from
+  // bfcache instead of a fresh load — the "loading" spinner/disabled state
+  // set right before navigating away gets restored too, leaving the button
+  // stuck spinning forever with no way to click it again. Reset every
+  // Select Room button whenever the page is (re)shown.
+  window.addEventListener('pageshow', function () {
+    document.querySelectorAll('.hd-select-room-form .hd-room-btn').forEach(function (btn) {
+      btn.classList.remove('loading');
+      btn.disabled = false;
+    });
+  });
+
 
 
   /* ===== ENQUIRY MODAL ===== */
