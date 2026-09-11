@@ -3,8 +3,13 @@
 @section('meta_title', 'Booking Confirmation | TYT Luxe')
 
 @php
-  $terminalGood = in_array($liveStatus, ['SUCCESS', 'ON_HOLD'], true);
-  $terminalBad = in_array($liveStatus, ['ABORTED', 'FAILED'], true);
+  // Payment now happens before TripJack's Book call, so $booking->status is
+  // the reliable source of truth — payment_failed/refunded/failed_needs_review
+  // have no corresponding $liveStatus at all (no tripjack_booking_id exists
+  // yet, or the booking was refunded after a late TripJack failure).
+  $paymentFailed = $booking->status === 'payment_failed';
+  $terminalGood = $booking->status === 'confirmed';
+  $terminalBad = in_array($booking->status, ['refunded', 'failed_needs_review', 'cancelled'], true);
 @endphp
 
 @if($stillPolling)
@@ -20,8 +25,8 @@
     --green: #4ade80; --amber: #e0b34a; --red: #f3a3a3; --transition: 0.32s cubic-bezier(0.25,0.46,0.45,0.94);
   }
   body { background: var(--dark); }
-  .bc-wrap { max-width: 640px; margin: 0 auto; padding: 64px 24px 80px; text-align: center; }
-  @media (max-width: 560px) { .bc-wrap { padding: 40px 18px 60px; } }
+  .bc-wrap { max-width: 640px; margin: 0 auto; padding: 105px 24px 80px; text-align: center; }
+  @media (max-width: 560px) { .bc-wrap { padding: 90px 18px 60px; } }
 
   .bc-icon-ring {
     width: 76px; height: 76px; margin: 0 auto 22px; border-radius: 50%;
@@ -82,23 +87,38 @@
     </div>
   </div>
 
-  @if($terminalBad)
+  @if($paymentFailed)
     <div class="bc-icon-ring bad">⚠️</div>
-    <h1 class="bc-title">Booking Not Confirmed</h1>
-    <p class="bc-sub">The hotel could not confirm this booking. No charge was made. Our team has been notified and will follow up with alternatives.</p>
+    <h1 class="bc-title">Payment Not Completed</h1>
+    <p class="bc-sub">Your payment could not be completed, so this booking hasn't been confirmed. Nothing has been charged — you can retry payment below.</p>
+  @elseif($booking->status === 'refunded')
+    <div class="bc-icon-ring bad">⚠️</div>
+    <h1 class="bc-title">Booking Failed — Refund Issued</h1>
+    <p class="bc-sub">The hotel couldn't confirm this booking after payment. We've automatically refunded you in full — it should reflect in your account within 5–7 business days.</p>
+  @elseif($booking->status === 'failed_needs_review')
+    <div class="bc-icon-ring bad">⚠️</div>
+    <h1 class="bc-title">We're Reviewing Your Booking</h1>
+    <p class="bc-sub">Something went wrong confirming this booking after payment. Our team has been alerted and will reach out shortly to resolve this, including a refund if needed.</p>
+  @elseif($booking->status === 'cancelled')
+    <div class="bc-icon-ring bad">⚠️</div>
+    <h1 class="bc-title">Booking Cancelled</h1>
+    <p class="bc-sub">This booking has been cancelled. If a refund is due, it will be processed back to your original payment method.</p>
   @elseif($terminalGood)
     <div class="bc-icon-ring good">✅</div>
-    <h1 class="bc-title">Room Held</h1>
-    <p class="bc-sub">Your room has been reserved with the hotel. Our team will reach out shortly to complete payment before your hold expires.</p>
+    <h1 class="bc-title">Booking Confirmed!</h1>
+    <p class="bc-sub">Your payment was successful and your room is booked. A confirmation email is on its way to you.</p>
   @else
     <div class="bc-icon-ring pending">⏳</div>
-    <h1 class="bc-title">Confirming With the Hotel…</h1>
-    <p class="bc-sub">This can take up to a few minutes. This page refreshes itself automatically — no need to resubmit anything.</p>
+    <h1 class="bc-title">Confirming Your Payment…</h1>
+    <p class="bc-sub">This can take a few seconds. This page refreshes itself automatically — no need to resubmit anything.</p>
   @endif
 
   <div class="bc-card">
     <div class="bc-line"><span>Booking Reference</span><span>{{ $booking->reference }}</span></div>
     <div class="bc-line"><span>Hotel</span><span>{{ $booking->hotel?->title }}</span></div>
+    @if($booking->hotel?->address)
+    <div class="bc-line"><span>Address</span><span>{{ $booking->hotel->address }}</span></div>
+    @endif
     <div class="bc-line"><span>Check-in</span><span>{{ \Illuminate\Support\Carbon::parse($booking->check_in)->format('d M Y') }}</span></div>
     <div class="bc-line"><span>Check-out</span><span>{{ \Illuminate\Support\Carbon::parse($booking->check_out)->format('d M Y') }}</span></div>
     <div class="bc-line"><span>Guests</span><span>{{ $booking->pax_adults }} Adult{{ $booking->pax_adults > 1 ? 's' : '' }}@if($booking->pax_children), {{ $booking->pax_children }} Child(ren) @endif</span></div>
@@ -108,7 +128,7 @@
     @endif
     <div class="bc-line">
       <span>Status</span>
-      <span class="bc-status {{ $terminalBad ? 'bad' : ($terminalGood ? 'good' : 'pending') }}">
+      <span class="bc-status {{ ($terminalBad || $paymentFailed) ? 'bad' : ($terminalGood ? 'good' : 'pending') }}">
         {{ $liveStatus ?? ucfirst(str_replace('_',' ',$booking->status)) }}
       </span>
     </div>
@@ -121,7 +141,19 @@
 
   @if($terminalGood)
   <div class="bc-next">
-    <strong>What happens next:</strong> our team will reach out on your registered phone/email to complete payment before the hold expires. No action is needed from you right now.
+    <strong>What happens next:</strong> you'll receive a confirmation email with your booking details and the hotel's contact information. No further action is needed from you.
+  </div>
+  @endif
+
+  @if($paymentFailed)
+  <div style="margin-top:32px;">
+    <a href="{{ route('hotel.payment.show', $booking->reference) }}"
+       style="display:inline-flex; align-items:center; gap:8px; padding:15px 34px; border-radius:100px;
+              background:linear-gradient(90deg, #c9a84c, #e8c96b); color:#0d0d0d;
+              font-family:'Jost',sans-serif; font-size:12.5px; font-weight:800; letter-spacing:0.1em;
+              text-transform:uppercase; text-decoration:none;">
+      Retry Payment
+    </a>
   </div>
   @endif
 

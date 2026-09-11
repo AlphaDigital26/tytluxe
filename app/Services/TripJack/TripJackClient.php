@@ -15,6 +15,7 @@ class TripJackClient
     protected string $apiKey;
     protected string $hmsBaseUrl;
     protected string $bookerBaseUrl;
+    protected string $bookerV1BaseUrl;
     protected string $nationalityBaseUrl;
     protected int $timeout;
     protected int $connectTimeout;
@@ -26,6 +27,7 @@ class TripJackClient
         $this->apiKey = (string) config('services.tripjack.api_key');
         $this->hmsBaseUrl = rtrim((string) config('services.tripjack.hms_base_url'), '/');
         $this->bookerBaseUrl = rtrim((string) config('services.tripjack.booker_base_url'), '/');
+        $this->bookerV1BaseUrl = rtrim((string) config('services.tripjack.booker_v1_base_url'), '/');
         $this->nationalityBaseUrl = rtrim((string) config('services.tripjack.nationality_base_url'), '/');
         $this->timeout = (int) config('services.tripjack.timeout');
         $this->connectTimeout = (int) config('services.tripjack.connect_timeout');
@@ -234,10 +236,16 @@ class TripJackClient
     }
 
     /**
-     * Book API — POST /hotel/book (booker host). Omit paymentInfos for a HOLD
-     * booking (reserves without payment, until the review response's ddt) —
-     * this is what we use until Phase 8 wires Razorpay. Response only confirms
-     * the request was received; poll bookingDetails() for terminal status.
+     * Book API — POST /hotel/book (booker host). Include $amount for Instant
+     * Booking (what we always use since Phase 8 — payment is captured before
+     * this is ever called); omit for a HOLD booking (unused in this codebase).
+     *
+     * Important: passing $amount does NOT guarantee TripJack confirms
+     * instantly — the response can still come back ON_HOLD (see
+     * bookingDetails()'s status table), in which case confirmBook() must be
+     * called separately before the option's deadline or it auto-cancels.
+     * Response only confirms the request was received; poll bookingDetails()
+     * for terminal status.
      *
      * @param  array<int, array{travellerInfo: array<int, array{ti:string, pt:string, fN:string, lN:string, pan?:string, pNum?:string}>}>  $roomTravellerInfo
      */
@@ -265,6 +273,46 @@ class TripJackClient
         }
 
         return $this->request('booker', 'POST', '/hotel/book', $payload);
+    }
+
+    /**
+     * Confirm Hold — POST /hotel/confirm-book (booker host). Required when
+     * Book's response (or a later bookingDetails() poll) shows ON_HOLD —
+     * TripJack only reserved the option, it isn't actually confirmed yet.
+     * $bookingId here is the Book *response's* bookingId (TJ...), not the
+     * Review bookingId (TGS...) originally passed to book(). Must be called
+     * before the option's deadlineDateTime or the hold auto-cancels.
+     */
+    public function confirmBook(string $bookingId, float $amount): array
+    {
+        return $this->request('booker', 'POST', '/hotel/confirm-book', [
+            'bookingId' => $bookingId,
+            'paymentInfos' => [['amount' => $amount]],
+        ]);
+    }
+
+    /**
+     * Booking Cancellation — POST /hotel/cancel-booking/{bookingId} (booker
+     * host). No request body; a 200 with status.success only acknowledges
+     * the cancellation request — poll bookingDetails() for the final
+     * CANCELLED/CANCELLATION_PENDING status.
+     */
+    public function cancelBooking(string $bookingId): array
+    {
+        return $this->request('booker', 'POST', '/hotel/cancel-booking/'.$bookingId, []);
+    }
+
+    /**
+     * Booking List — POST /hotel/bookings. Lives on the booker host's v1
+     * path (not v3, unlike every other booker-host endpoint here) —
+     * confirmed from TripJack's own docs sample URL.
+     */
+    public function bookingList(string $startDate, string $endDate): array
+    {
+        return $this->request('booker_v1', 'POST', '/hotel/bookings', [
+            'startDate' => $startDate,
+            'endDate' => $endDate,
+        ]);
     }
 
     /**
@@ -301,6 +349,7 @@ class TripJackClient
     {
         $baseUrl = match ($host) {
             'booker' => $this->bookerBaseUrl,
+            'booker_v1' => $this->bookerV1BaseUrl,
             'nationality' => $this->nationalityBaseUrl,
             default => $this->hmsBaseUrl,
         };

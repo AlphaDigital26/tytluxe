@@ -15,6 +15,7 @@
         "laravel/tinker": "^2.10.1",
         "livewire/livewire": "^4.3",
         "pxlrbt/filament-excel": "^4.1",
+        "razorpay/razorpay": "^2.9",
         "spatie/browsershot": "^5.4",
         "spatie/laravel-pdf": "^2.13"
     },

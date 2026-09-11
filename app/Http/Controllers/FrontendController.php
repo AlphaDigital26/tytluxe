@@ -10,12 +10,15 @@ use App\Models\Cruise;
 use App\Models\Setting;
 use App\Models\Offer;
 use App\Models\Package;
+use App\Models\Payment;
 use App\Services\HotelPricingService;
+use App\Services\Payment\RazorpayService;
 use App\Services\TripJack\Exceptions\TripJackApiException;
 use App\Services\TripJack\Exceptions\TripJackException;
 use App\Services\TripJack\TripJackClient;
 use App\Services\TripJack\TripJackErrorCatalog;
 use App\Services\TripJack\TripJackListingSearch;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -278,7 +281,13 @@ class FrontendController extends Controller
         $correlationId = null;
 
         if ($hotel->source === 'tripjack' && $hotel->tripjack_hotel_id && $checkIn && $checkOut) {
-            $correlationId = TripJackClient::newCorrelationId();
+            // TripJack requires the same correlationId across Listing, Detail,
+            // and Review for one search journey (used for their support
+            // tracing). Reuse the one from the Listing search that brought the
+            // guest here when it's still the same search context; only mint a
+            // fresh one when there's no session search to continue (e.g. a
+            // bookmarked/direct link straight to this hotel).
+            $correlationId = ($sessionSearch['correlationId'] ?? null) ?: TripJackClient::newCorrelationId();
 
             try {
                 $rooms = $this->distributeGuestsAcrossRooms($adults, $children, $roomCount, $childAges);
@@ -364,14 +373,11 @@ class FrontendController extends Controller
             return $backToDetails->with('booking_error', $described['message']);
         }
 
-        // We only support HOLD bookings until Phase 8 (payment) exists. Some
-        // options don't allow a hold at all — TripJack's Book API would reject
-        // them with HOLD_NOT_ALLOWED (6537). Catch that here instead, before
-        // the guest even fills in their details.
-        $onholdAllowed = filter_var($response['onholdAllowed'] ?? true, FILTER_VALIDATE_BOOLEAN);
-        if (! $onholdAllowed) {
-            return $backToDetails->with('booking_error', TripJackErrorCatalog::describe('6537')['message']);
-        }
+        // onholdAllowed is irrelevant since Phase 8: we never request a HOLD
+        // any more — Book is always called with paymentInfos (payment
+        // happens first), so TripJack's HOLD_NOT_ALLOWED (6537) restriction
+        // doesn't apply here. Rejecting on it was a leftover from the old
+        // HOLD-only flow that incorrectly blocked perfectly payable options.
 
         // Review always returns a freshly re-validated totalPrice — the price
         // can have moved since the guest first saw it at Listing/Detail time.
@@ -390,7 +396,6 @@ class FrontendController extends Controller
             'hid' => $hotel->tripjack_hotel_id,
             'bookingId' => $response['bookingId'],
             'option' => $option,
-            'onholdAllowed' => $onholdAllowed,
             'correlationId' => $pricingContext['correlationId'],
             'check_in' => $pricingContext['check_in'],
             'check_out' => $pricingContext['check_out'],
@@ -437,11 +442,13 @@ class FrontendController extends Controller
     }
 
     /**
-     * Phase 7 — Book: submits guest details and commits a HOLD booking (no
-     * payment yet — that's Phase 8). Confirms TripJack booking works
-     * standalone before Razorpay is wired in.
+     * Phase 8 — guest submits details; we create the local Booking +
+     * Razorpay order and send them to pay. TripJack's Book API is NOT called
+     * here — it's only called once payment is captured (see
+     * confirmBookingAfterPayment()), with paymentInfos, for a real/instant
+     * booking rather than a HOLD.
      */
-    public function submitBooking($slug, Request $request, TripJackClient $client)
+    public function submitBooking($slug, Request $request, RazorpayService $razorpay)
     {
         $hotel = Hotel::where('is_active', true)->where('slug', $slug)->firstOrFail();
         $draft = session('tripjack_booking_draft');
@@ -511,52 +518,11 @@ class FrontendController extends Controller
             $roomTravellerInfo[] = ['travellerInfo' => $travellerInfo];
         }
 
-        $dialCode = '+91';
-        $phoneDigits = preg_replace('/\D/', '', $validated['lead_phone']);
-
-        try {
-            $response = $client->book(
-                $draft['bookingId'],
-                $roomTravellerInfo,
-                [$validated['lead_email']],
-                [$phoneDigits],
-                [$dialCode],
-                amount: null // HOLD booking — no payment until Phase 8
-            );
-        } catch (TripJackException $e) {
-            $errorCode = $e instanceof TripJackApiException ? $e->errorCode : null;
-            $described = TripJackErrorCatalog::describe($errorCode);
-            $this->logTripjackFailure($described['logLevel'], 'book_failed', ['bookingId' => $draft['bookingId'], 'errorCode' => $errorCode, 'message' => $e->getMessage()]);
-
-            return back()->withInput()->with('booking_error', $described['message']);
-        }
-
-        if (! ($response['status']['success'] ?? false)) {
-            $errorCode = TripJackErrorCatalog::codeFromResponse($response);
-            $described = TripJackErrorCatalog::describe($errorCode, 'The hotel declined this booking request. Please try a different room or dates.');
-            $this->logTripjackFailure($described['logLevel'], 'book_unsuccessful', ['bookingId' => $draft['bookingId'], 'errorCode' => $errorCode, 'response' => $response]);
-
-            return back()->withInput()->with('booking_error', $described['message']);
-        }
-
-        // Book's own response only confirms the request was *received* — per
-        // TripJack, confirmation can take up to 180s and must be polled via
-        // bookingDetails(). Take one immediate reading now so we don't store a
-        // misleadingly generic status; the confirmation page keeps polling.
-        $tripjackStatus = null;
-        try {
-            $details = $client->bookingDetails($response['bookingId']);
-            $tripjackStatus = $details['order']['status'] ?? null;
-        } catch (TripJackException $e) {
-            Log::channel('tripjack')->warning('booking_details_failed', ['bookingId' => $response['bookingId'], 'message' => $e->getMessage()]);
-        }
-
         $pricing = $option['pricing'] ?? [];
         // pricingBreakdown was computed once, at Review time, from TripJack's
         // freshly re-validated totalPrice (see reviewRoom()) — never
         // recalculated again here, so the amount the guest saw and agreed to
-        // on the review page is exactly what gets persisted as the booking's
-        // customer price.
+        // on the review page is exactly what gets charged via Razorpay.
         $breakdown = $pricing['pricingBreakdown'] ?? null;
         $customerPrice = $pricing['customerPrice'] ?? ($pricing['totalPrice'] ?? 0);
         $basePrice = $pricing['basePrice'] ?? 0;
@@ -566,10 +532,16 @@ class FrontendController extends Controller
             'guest_phone' => $validated['lead_phone'],
             'vertical' => 'hotel',
             'hotel_id' => $hotel->id,
-            'tripjack_booking_id' => $response['bookingId'],
+            // tripjack_booking_id stays null until Book is actually called,
+            // post-payment. tripjack_hold_id is Review's bookingId — the
+            // identifier Book() itself needs, kept regardless of payment.
             'tripjack_hold_id' => $draft['bookingId'],
             'tripjack_option_id' => $option['optionId'] ?? null,
             'tripjack_hold_expires_at' => $option['deadlineDateTime'] ?? null,
+            // The exact Book-API payload, persisted so the post-payment Book
+            // call — which may run from a Razorpay webhook with no session —
+            // can reconstruct it from the DB alone.
+            'tripjack_room_traveller_payload' => $roomTravellerInfo,
             'check_in' => $draft['check_in'],
             'check_out' => $draft['check_out'],
             'pax_adults' => $draft['adults'],
@@ -587,7 +559,7 @@ class FrontendController extends Controller
             'gst_on_margin' => $breakdown['gst_on_margin'] ?? null,
             'razorpay_recovery' => $breakdown['razorpay_recovery'] ?? null,
             'currency' => $pricing['currency'] ?? 'INR',
-            'status' => $this->mapTripjackBookingStatus($tripjackStatus),
+            'status' => 'pending_payment', // awaiting Razorpay payment — Book hasn't been called yet
         ]);
 
         foreach ($roomSlots as $ri => $slot) {
@@ -605,9 +577,20 @@ class FrontendController extends Controller
             }
         }
 
+        // Everything needed to complete the booking now lives on the Booking
+        // row itself — the review draft has served its purpose.
         session()->forget('tripjack_booking_draft');
 
-        return redirect()->route('hotel.booking.confirmation', $booking->reference);
+        $order = $razorpay->createOrder((float) $booking->total_amount, $booking->reference);
+        Payment::create([
+            'booking_id' => $booking->id,
+            'razorpay_order_id' => $order['id'],
+            'amount' => $booking->total_amount,
+            'currency' => $booking->currency ?? 'INR',
+            'status' => 'created',
+        ]);
+
+        return redirect()->route('hotel.payment.show', $booking->reference);
     }
 
     /**
@@ -639,16 +622,22 @@ class FrontendController extends Controller
         };
     }
 
+    /**
+     * Only reached for statuses discovered *after* the payment-captured
+     * refund guard in confirmBookingAfterPayment()/bookingConfirmation()
+     * already had a chance to intercept ABORTED/FAILED — so in normal
+     * operation this only ever needs to express the "good" outcomes.
+     */
     protected function mapTripjackBookingStatus(?string $tripjackStatus): string
     {
         return match ($tripjackStatus) {
-            'ABORTED', 'FAILED' => 'failed_needs_review',
             'CANCELLED' => 'cancelled',
-            default => 'pending_payment', // SUCCESS/ON_HOLD both still need our payment step (Phase 8)
+            'ABORTED', 'FAILED' => 'failed_needs_review',
+            default => 'confirmed', // SUCCESS/ON_HOLD, or still processing — payment is already captured, TripJack accepted
         };
     }
 
-    public function bookingConfirmation($reference, Request $request, TripJackClient $client)
+    public function bookingConfirmation($reference, Request $request, TripJackClient $client, RazorpayService $razorpay)
     {
         $booking = Booking::with('hotel')->where('reference', $reference)->firstOrFail();
 
@@ -658,9 +647,31 @@ class FrontendController extends Controller
                 $details = $client->bookingDetails($booking->tripjack_booking_id);
                 $liveStatus = $details['order']['status'] ?? null;
 
-                $mapped = $this->mapTripjackBookingStatus($liveStatus);
-                if ($mapped !== $booking->status) {
-                    $booking->update(['status' => $mapped]);
+                if (in_array($liveStatus, ['ABORTED', 'FAILED'], true) && $booking->status === 'confirmed') {
+                    // The guest was already charged (status only reaches
+                    // 'confirmed' after payment capture) — a late-discovered
+                    // failure here needs the same refund treatment as one
+                    // caught immediately in confirmBookingAfterPayment().
+                    $payment = $booking->payments()->where('status', 'captured')->latest()->first();
+                    if ($payment) {
+                        $this->refundAndMarkFailed($booking, $payment, $razorpay, "TripJack reported this booking as {$liveStatus} during status polling.");
+                        $booking->refresh();
+                    }
+                } elseif ($liveStatus === 'ON_HOLD' && $booking->tripjack_confirm_attempted_at === null) {
+                    // Book's own immediate check (confirmBookingAfterPayment)
+                    // didn't see ON_HOLD yet when this happened — resolve it
+                    // now via confirm-book, same as that path. The
+                    // attempted_at guard means this only ever fires once.
+                    $payment = $booking->payments()->where('status', 'captured')->latest()->first();
+                    if ($payment) {
+                        $this->resolveOnHoldBooking($booking, $payment, $client, $razorpay);
+                        $booking->refresh();
+                    }
+                } elseif (! in_array($booking->status, ['refunded', 'failed_needs_review'], true)) {
+                    $mapped = $this->mapTripjackBookingStatus($liveStatus);
+                    if ($mapped !== $booking->status) {
+                        $booking->update(['status' => $mapped]);
+                    }
                 }
             } catch (TripJackException $e) {
                 Log::channel('tripjack')->warning('booking_details_failed', ['bookingId' => $booking->tripjack_booking_id, 'message' => $e->getMessage()]);
@@ -668,9 +679,314 @@ class FrontendController extends Controller
         }
 
         $pollingSince = (int) $request->query('polling_since', now()->timestamp);
-        $stillPolling = ! $this->isTerminalTripjackStatus($liveStatus) && (now()->timestamp - $pollingSince) < 180;
+        // payment_failed/refunded/failed_needs_review/cancelled will never
+        // get a $liveStatus (no tripjack_booking_id, or already resolved) —
+        // without this guard the page would meta-refresh pointlessly for
+        // the full 180s window instead of settling immediately.
+        $stillPolling = ! in_array($booking->status, ['payment_failed', 'refunded', 'failed_needs_review', 'cancelled'], true)
+            && ! $this->isTerminalTripjackStatus($liveStatus)
+            && (now()->timestamp - $pollingSince) < 180;
 
         return view('pages.booking-confirmation', compact('booking', 'liveStatus', 'stillPolling', 'pollingSince'));
+    }
+
+    /**
+     * GET counterpart to submitBooking()'s redirect — renders the Razorpay
+     * Checkout page for a booking awaiting payment. Reuses an existing
+     * uncaptured order if the guest is retrying (e.g. dismissed the modal),
+     * rather than minting a fresh one every reload.
+     */
+    public function showPayment($reference, RazorpayService $razorpay)
+    {
+        $booking = Booking::with('hotel')->where('reference', $reference)->firstOrFail();
+
+        if (! in_array($booking->status, ['pending_payment', 'payment_failed'], true)) {
+            return redirect()->route('hotel.booking.confirmation', $booking->reference);
+        }
+
+        $payment = $booking->payments()->where('status', 'created')->latest()->first();
+
+        if (! $payment) {
+            $order = $razorpay->createOrder((float) $booking->total_amount, $booking->reference);
+            $payment = Payment::create([
+                'booking_id' => $booking->id,
+                'razorpay_order_id' => $order['id'],
+                'amount' => $booking->total_amount,
+                'currency' => $booking->currency ?? 'INR',
+                'status' => 'created',
+            ]);
+        }
+
+        return view('pages.hotel-payment', [
+            'booking' => $booking,
+            'payment' => $payment,
+            'razorpayKeyId' => config('services.razorpay.key_id'),
+        ]);
+    }
+
+    /**
+     * Hit by Checkout.js's client-side success handler after the guest pays.
+     * Fast-path confirmation — the webhook (razorpayWebhook()) is the
+     * authoritative one, since this never fires if the guest closes the
+     * browser right after paying.
+     */
+    public function razorpayCallback(Request $request, TripJackClient $client, RazorpayService $razorpay)
+    {
+        $request->validate([
+            'razorpay_payment_id' => 'required|string',
+            'razorpay_order_id' => 'required|string',
+            'razorpay_signature' => 'required|string',
+        ]);
+
+        $payment = Payment::where('razorpay_order_id', $request->input('razorpay_order_id'))->firstOrFail();
+        $booking = $payment->booking;
+
+        if (! $razorpay->verifyPaymentSignature($request->only(['razorpay_payment_id', 'razorpay_order_id', 'razorpay_signature']))) {
+            Log::channel('tripjack')->warning('razorpay_signature_invalid', ['booking_id' => $booking->id, 'order_id' => $request->input('razorpay_order_id')]);
+
+            return redirect()->route('hotel.payment.show', $booking->reference)->with('booking_error', 'We could not verify your payment. Please try again.');
+        }
+
+        $payment->update([
+            'razorpay_payment_id' => $request->input('razorpay_payment_id'),
+            'razorpay_signature' => $request->input('razorpay_signature'),
+        ]);
+
+        $this->confirmBookingAfterPayment($payment, $client, $razorpay);
+
+        return redirect()->route('hotel.booking.confirmation', $booking->reference);
+    }
+
+    /**
+     * Razorpay's server-to-server webhook — the authoritative confirmation
+     * path. Verified via the webhook secret (separate from the per-payment
+     * signature the client-side callback uses) against the raw request body.
+     */
+    public function razorpayWebhook(Request $request, TripJackClient $client, RazorpayService $razorpay)
+    {
+        $body = $request->getContent();
+        $signature = (string) $request->header('X-Razorpay-Signature', '');
+
+        if ($signature === '' || ! $razorpay->verifyWebhookSignature($body, $signature)) {
+            Log::channel('tripjack')->warning('razorpay_webhook_signature_invalid');
+
+            return response()->json(['status' => 'invalid signature'], 400);
+        }
+
+        $payload = json_decode($body, true) ?? [];
+        $event = $payload['event'] ?? null;
+        $entity = $payload['payload']['payment']['entity'] ?? null;
+        $orderId = $entity['order_id'] ?? null;
+
+        if (! $entity || ! $orderId || ! in_array($event, ['payment.captured', 'payment.failed'], true)) {
+            return response()->json(['status' => 'ignored']);
+        }
+
+        $payment = Payment::where('razorpay_order_id', $orderId)->first();
+        if (! $payment) {
+            return response()->json(['status' => 'unknown order']);
+        }
+
+        if ($event === 'payment.captured') {
+            $payment->update([
+                'razorpay_payment_id' => $entity['id'] ?? $payment->razorpay_payment_id,
+                'raw_response' => $entity,
+            ]);
+            $this->confirmBookingAfterPayment($payment, $client, $razorpay);
+        } elseif ($payment->status === 'created') {
+            $payment->update(['status' => 'failed', 'raw_response' => $entity]);
+            $payment->booking->update(['status' => 'payment_failed']);
+        }
+
+        return response()->json(['status' => 'ok']);
+    }
+
+    /**
+     * Marks the payment captured and calls TripJack's Book API — with
+     * paymentInfos this time, for a real/instant booking, not a HOLD. Row
+     * locks + status guards make this safe to call twice for the same
+     * payment (the client callback and the webhook can both fire).
+     */
+    protected function confirmBookingAfterPayment(Payment $payment, TripJackClient $client, RazorpayService $razorpay): void
+    {
+        $needsHoldResolution = DB::transaction(function () use ($payment, $client, $razorpay) {
+            $payment = Payment::whereKey($payment->id)->lockForUpdate()->first();
+            $booking = Booking::whereKey($payment->booking_id)->lockForUpdate()->first();
+
+            if (in_array($payment->status, ['captured', 'refunded', 'partially_refunded'], true)
+                || in_array($booking->status, ['confirmed', 'refunded', 'failed_needs_review'], true)) {
+                return null; // already processed by a racing callback/webhook
+            }
+
+            $payment->update(['status' => 'captured']);
+
+            $dialCode = '+91';
+            $phoneDigits = preg_replace('/\D/', '', (string) $booking->guest_phone);
+
+            try {
+                $response = $client->book(
+                    $booking->tripjack_hold_id,
+                    $booking->tripjack_room_traveller_payload ?? [],
+                    [$booking->guest_email],
+                    [$phoneDigits],
+                    [$dialCode],
+                    amount: (float) $booking->tripjack_total_price, // TripJack's raw price, not the marked-up customer price
+                );
+            } catch (TripJackException $e) {
+                $errorCode = $e instanceof TripJackApiException ? $e->errorCode : null;
+                $described = TripJackErrorCatalog::describe($errorCode);
+                $this->logTripjackFailure($described['logLevel'], 'book_after_payment_failed', ['booking_id' => $booking->id, 'errorCode' => $errorCode, 'message' => $e->getMessage()]);
+                $this->refundAndMarkFailed($booking, $payment, $razorpay, $described['message']);
+
+                return null;
+            }
+
+            if (! ($response['status']['success'] ?? false)) {
+                $errorCode = TripJackErrorCatalog::codeFromResponse($response);
+                $described = TripJackErrorCatalog::describe($errorCode, 'The hotel declined this booking after payment.');
+                $this->logTripjackFailure($described['logLevel'], 'book_after_payment_unsuccessful', ['booking_id' => $booking->id, 'errorCode' => $errorCode, 'response' => $response]);
+                $this->refundAndMarkFailed($booking, $payment, $razorpay, $described['message']);
+
+                return null;
+            }
+
+            // Book's own response only confirms the request was *received* —
+            // take one immediate reading now so a booking that's already
+            // ABORTED/FAILED doesn't get shown to the guest as confirmed;
+            // bookingConfirmation()'s own polling catches anything later.
+            $tripjackStatus = null;
+            try {
+                $details = $client->bookingDetails($response['bookingId']);
+                $tripjackStatus = $details['order']['status'] ?? null;
+            } catch (TripJackException $e) {
+                Log::channel('tripjack')->warning('booking_details_failed', ['bookingId' => $response['bookingId'], 'message' => $e->getMessage()]);
+            }
+
+            $booking->update(['tripjack_booking_id' => $response['bookingId']]);
+
+            if (in_array($tripjackStatus, ['ABORTED', 'FAILED'], true)) {
+                $this->refundAndMarkFailed($booking, $payment, $razorpay, "TripJack reported this booking as {$tripjackStatus} immediately after confirmation.");
+
+                return null;
+            }
+
+            // ON_HOLD means TripJack only reserved the option despite us
+            // requesting Instant Booking — it still needs a separate
+            // confirm-book call before the deadline. Resolve that outside
+            // this transaction (it does its own locking) rather than hold
+            // this one open across another network call.
+            if ($tripjackStatus === 'ON_HOLD') {
+                return $booking->id;
+            }
+
+            $booking->update(['status' => $this->mapTripjackBookingStatus($tripjackStatus)]);
+
+            return null;
+        });
+
+        if ($needsHoldResolution) {
+            $booking = Booking::findOrFail($needsHoldResolution);
+            $payment = $booking->payments()->where('status', 'captured')->latest()->first();
+            if ($payment) {
+                $this->resolveOnHoldBooking($booking, $payment, $client, $razorpay);
+            }
+        }
+    }
+
+    /**
+     * ON_HOLD is not actually confirmed — TripJack requires a separate
+     * confirm-book call (with paymentInfos again) before the option's
+     * deadline, or it auto-cancels. Since payment was already captured,
+     * failing to confirm would mean charging the guest for a room that
+     * silently expires, so this is attempted immediately rather than left
+     * for a human to notice. Safe to call from any context (confirmBookingAfterPayment
+     * or bookingConfirmation()'s polling) — the attempted_at guard, claimed
+     * before the HTTP call, ensures confirm-book is never called twice for
+     * the same booking (which could double-deduct the TripJack wallet).
+     */
+    protected function resolveOnHoldBooking(Booking $booking, Payment $payment, TripJackClient $client, RazorpayService $razorpay): void
+    {
+        $claimed = DB::transaction(function () use ($booking) {
+            $fresh = Booking::whereKey($booking->id)->lockForUpdate()->first();
+            if ($fresh->tripjack_confirm_attempted_at !== null) {
+                return false;
+            }
+            $fresh->update(['tripjack_confirm_attempted_at' => now()]);
+
+            return true;
+        });
+
+        if (! $claimed) {
+            return;
+        }
+
+        try {
+            $response = $client->confirmBook($booking->tripjack_booking_id, (float) $booking->tripjack_total_price);
+        } catch (TripJackException $e) {
+            $errorCode = $e instanceof TripJackApiException ? $e->errorCode : null;
+            $described = TripJackErrorCatalog::describe($errorCode);
+            $this->logTripjackFailure($described['logLevel'], 'confirm_book_failed', ['booking_id' => $booking->id, 'errorCode' => $errorCode, 'message' => $e->getMessage()]);
+            $this->refundAndMarkFailed($booking, $payment, $razorpay, $described['message']);
+
+            return;
+        }
+
+        if (! ($response['status']['success'] ?? false)) {
+            $errorCode = TripJackErrorCatalog::codeFromResponse($response);
+            $described = TripJackErrorCatalog::describe($errorCode, 'The hotel could not confirm this hold booking.');
+            $this->logTripjackFailure($described['logLevel'], 'confirm_book_unsuccessful', ['booking_id' => $booking->id, 'errorCode' => $errorCode, 'response' => $response]);
+            $this->refundAndMarkFailed($booking, $payment, $razorpay, $described['message']);
+
+            return;
+        }
+
+        // confirm-book succeeded — like Book itself, this only confirms the
+        // request was received, so re-read the live status rather than
+        // assuming it's now terminal.
+        $tripjackStatus = null;
+        try {
+            $details = $client->bookingDetails($booking->tripjack_booking_id);
+            $tripjackStatus = $details['order']['status'] ?? null;
+        } catch (TripJackException $e) {
+            Log::channel('tripjack')->warning('booking_details_failed', ['bookingId' => $booking->tripjack_booking_id, 'message' => $e->getMessage()]);
+        }
+
+        if (in_array($tripjackStatus, ['ABORTED', 'FAILED'], true)) {
+            $this->refundAndMarkFailed($booking, $payment, $razorpay, "TripJack reported this booking as {$tripjackStatus} after confirm-book.");
+
+            return;
+        }
+
+        $booking->update(['status' => $this->mapTripjackBookingStatus($tripjackStatus)]);
+    }
+
+    /**
+     * The guest has already paid but TripJack's Book call failed (or later
+     * reported ABORTED/FAILED) — refund automatically rather than leaving
+     * them charged with no room, since nobody is watching this in real time.
+     * If the refund call itself errors, that's escalated to failed_needs_review
+     * (a human must intervene) rather than silently swallowed.
+     */
+    protected function refundAndMarkFailed(Booking $booking, Payment $payment, RazorpayService $razorpay, string $reason): void
+    {
+        try {
+            $razorpay->refund($payment->razorpay_payment_id, (float) $payment->amount);
+            $payment->update([
+                'status' => 'refunded',
+                'refund_amount' => $payment->amount,
+                'refund_reason' => $reason,
+            ]);
+            $booking->update(['status' => 'refunded']);
+            Log::channel('tripjack')->critical('booking_refunded_after_payment', [
+                'booking_id' => $booking->id, 'payment_id' => $payment->id, 'reason' => $reason,
+            ]);
+        } catch (\Throwable $e) {
+            $payment->update(['status' => 'failed', 'refund_reason' => $reason]);
+            $booking->update(['status' => 'failed_needs_review']);
+            Log::channel('tripjack')->critical('refund_after_booking_failure_errored', [
+                'booking_id' => $booking->id, 'payment_id' => $payment->id, 'reason' => $reason, 'refund_error' => $e->getMessage(),
+            ]);
+        }
     }
 
     public function cruises()

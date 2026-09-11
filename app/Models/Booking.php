@@ -12,6 +12,10 @@ class Booking extends Model
 
     protected $guarded = [];
 
+    protected $casts = [
+        'tripjack_room_traveller_payload' => 'array',
+    ];
+
     public function user() { return $this->belongsTo(User::class); }
     public function agent() { return $this->belongsTo(User::class, 'agent_id'); }
     public function travelers() { return $this->hasMany(BookingTraveler::class); }
