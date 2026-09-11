@@ -11,7 +11,12 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Razorpay's server-to-server webhook has no CSRF token — it's
+        // authenticated instead via its own HMAC signature header,
+        // verified in RazorpayService::verifyWebhookSignature().
+        $middleware->validateCsrfTokens(except: [
+            'payment/razorpay/webhook',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
