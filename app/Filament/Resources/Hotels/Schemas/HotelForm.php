@@ -73,7 +73,7 @@ class HotelForm
                                 ]),
                             ]),
 
-                        Tab::make('Star Rating')
+                        Tab::make('Rating & Reviews')
                             ->icon('heroicon-o-star')
                             ->schema([
                                 Grid::make(1)->schema([
@@ -98,6 +98,27 @@ class HotelForm
                                         ])
                                         ->required()
                                         ->native(false),
+
+                                    Grid::make(3)->schema([
+                                        TextInput::make('rating_score')
+                                            ->label('Guest Review Score (1.0 to 5.0)')
+                                            ->helperText('e.g. 4.3, 4.8 (out of 5)')
+                                            ->numeric()
+                                            ->minValue(1.0)
+                                            ->maxValue(5.0)
+                                            ->step(0.1),
+
+                                        TextInput::make('review_count')
+                                            ->label('Review Count')
+                                            ->helperText('e.g. 418 (Leave blank if no reviews)')
+                                            ->numeric()
+                                            ->minValue(0),
+
+                                        TextInput::make('rating_tagline')
+                                            ->label('Accolade / Tagline')
+                                            ->helperText('e.g. Top rated for Heritage Ambience')
+                                            ->maxLength(255),
+                                    ]),
                                 ]),
                             ]),
 

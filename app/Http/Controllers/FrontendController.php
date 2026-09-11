@@ -258,7 +258,7 @@ class FrontendController extends Controller
 
     public function hotelDetails($slug, Request $request, TripJackClient $client)
     {
-        $hotel = Hotel::with(['destination', 'amenities', 'images', 'roomTypes'])
+        $hotel = Hotel::with(['destination', 'amenities', 'images', 'roomTypes', 'reviews'])
             ->where('is_active', true)
             ->where('slug', $slug)
             ->firstOrFail();
