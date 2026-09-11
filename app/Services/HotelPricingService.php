@@ -7,7 +7,7 @@ namespace App\Services;
  *
  * TripJack's pricing.totalPrice (already inclusive of TripJack's own hotel
  * taxes) is treated as our supplier cost. On top of it we recover, in order:
- *   1. A 15% margin.
+ *   1. A 10% margin.
  *   2. GST on that margin only (5% below ₹7,500, 18% at/above ₹7,500 —
  *      checked against the raw TripJack price, before any markup).
  *   3. Razorpay's effective 2.36% (2% fee + 18% GST on that fee), which
@@ -17,7 +17,7 @@ namespace App\Services;
  *          wrong:     preRazorpay * 1.0236
  *      Dividing by a smaller number vs. multiplying by a slightly-larger
  *      one look similar but aren't: gross-up guarantees TYTLUXE still nets
- *      exactly 15% of the TripJack price after Razorpay's cut; multiplying
+ *      exactly 10% of the TripJack price after Razorpay's cut; multiplying
  *      would under-recover it.
  *
  * This is the only place this formula is implemented — every screen that
@@ -27,7 +27,7 @@ namespace App\Services;
  */
 class HotelPricingService
 {
-    protected const MARGIN_RATE = 0.15;
+    protected const MARGIN_RATE = 0.10;
 
     protected const GST_RATE_BELOW_THRESHOLD = 0.05;
 

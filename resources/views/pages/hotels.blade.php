@@ -135,6 +135,111 @@
 .htl-sb-submit svg { width: 16px; height: 16px; flex-shrink: 0; }
 .htl-sb-submit:hover { background: linear-gradient(90deg, #d8b753, #eecd74); transform: translateY(-2px); box-shadow: 0 12px 30px rgba(201,168,76,0.4); }
 
+/* Destination Dropdown Popover */
+.htl-dest-input-wrap {
+  display: flex;
+  align-items: center;
+  position: relative;
+  width: 100%;
+}
+.htl-dest-input-wrap input {
+  flex: 1;
+  width: 100%;
+  padding-right: 22px !important;
+}
+.htl-dest-chevron {
+  position: absolute;
+  right: 0;
+  color: var(--white-30);
+  pointer-events: none;
+  transition: transform 0.25s ease, color 0.25s ease;
+}
+.htl-sb-field.open .htl-dest-chevron {
+  transform: rotate(180deg);
+  color: var(--gold);
+}
+.htl-dest-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  width: 100%;
+  min-width: 250px;
+  z-index: 70;
+  background: #1c1c1c;
+  border: 1px solid rgba(201, 168, 76, 0.35);
+  border-radius: 14px;
+  padding: 8px 6px;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.75), 0 0 20px rgba(201, 168, 76, 0.08);
+  display: none;
+  max-height: 290px;
+  overflow-y: auto;
+}
+.htl-dest-popover.open {
+  display: block;
+}
+.htl-dest-popover::-webkit-scrollbar {
+  width: 5px;
+}
+.htl-dest-popover::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 10px;
+}
+.htl-dest-popover::-webkit-scrollbar-thumb {
+  background: rgba(201, 168, 76, 0.3);
+  border-radius: 10px;
+}
+.htl-dest-popover::-webkit-scrollbar-thumb:hover {
+  background: var(--gold);
+}
+.htl-dest-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.htl-dest-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  color: #fff;
+  font-family: 'Jost', sans-serif;
+  font-size: 14.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+.htl-dest-option svg {
+  width: 14px;
+  height: 14px;
+  color: var(--gold);
+  flex-shrink: 0;
+  opacity: 0.65;
+  transition: all 0.16s ease;
+}
+.htl-dest-option:hover,
+.htl-dest-option.highlighted {
+  background: rgba(201, 168, 76, 0.12);
+  color: var(--gold-light);
+}
+.htl-dest-option:hover svg,
+.htl-dest-option.highlighted svg {
+  opacity: 1;
+  transform: scale(1.15);
+}
+.htl-dest-no-results {
+  padding: 18px 14px;
+  color: var(--white-30);
+  font-family: 'Jost', sans-serif;
+  font-size: 13px;
+  text-align: center;
+}
+/* Disable native browser datalist arrow */
+input::-webkit-calendar-picker-indicator {
+  display: none !important;
+  opacity: 0 !important;
+}
+
 /* Guests popover */
 .htl-guest-popover {
   position: absolute; top: calc(100% + 8px); left: 0; width: 320px; z-index: 60;
@@ -199,15 +304,143 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
 
 /* More Options row */
 .htl-more-options {
-  display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
-  padding: 12px 8px 4px; font-family: 'Jost', sans-serif; font-size: 12.5px; color: var(--white-60);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 14px 10px 4px;
+  margin-top: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  font-family: 'Jost', sans-serif;
 }
-.htl-more-options .htl-mo-label { font-weight: 600; letter-spacing: 0.05em; color: var(--white-60); }
-.htl-more-options select {
-  background: transparent; border: none; color: var(--white-60);
-  font-family: 'Jost', sans-serif; font-size: 12.5px; cursor: pointer; outline: none;
+.htl-more-options .htl-mo-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Jost', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gold);
 }
-.htl-more-options select option { background: var(--dark-3); color: #fff; }
+.htl-more-options .htl-mo-label svg {
+  width: 13px;
+  height: 13px;
+  color: var(--gold);
+  opacity: 0.85;
+}
+.htl-mo-dropdown-wrap {
+  position: relative;
+  display: inline-block;
+}
+.htl-mo-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(201, 168, 76, 0.3);
+  padding: 7px 16px;
+  border-radius: 100px;
+  cursor: pointer;
+  transition: all 0.22s ease;
+  color: #fff;
+  font-family: 'Jost', sans-serif;
+  outline: none;
+}
+.htl-mo-pill:hover,
+.htl-mo-dropdown-wrap.open .htl-mo-pill {
+  background: rgba(201, 168, 76, 0.09);
+  border-color: var(--gold);
+  box-shadow: 0 4px 16px rgba(201, 168, 76, 0.18);
+}
+.htl-mo-pill-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Jost', sans-serif;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.7);
+  white-space: nowrap;
+}
+.htl-mo-pill-tag svg {
+  width: 12px;
+  height: 12px;
+  color: var(--gold);
+  flex-shrink: 0;
+}
+.htl-mo-current-val {
+  font-family: 'Jost', sans-serif;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: 0.02em;
+}
+.htl-mo-chevron {
+  width: 10px;
+  height: 10px;
+  color: var(--gold);
+  pointer-events: none;
+  transition: transform 0.22s ease;
+  margin-left: 2px;
+}
+.htl-mo-dropdown-wrap.open .htl-mo-chevron {
+  transform: rotate(180deg);
+}
+.htl-mo-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  min-width: 160px;
+  background: #1c1c1c;
+  border: 1px solid rgba(201, 168, 76, 0.35);
+  border-radius: 14px;
+  padding: 6px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.75), 0 0 20px rgba(201, 168, 76, 0.08);
+  z-index: 80;
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+}
+.htl-mo-dropdown-wrap.open .htl-mo-dropdown {
+  display: flex;
+}
+.htl-mo-opt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  color: #fff;
+  font-family: 'Jost', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+.htl-mo-opt:hover {
+  background: rgba(201, 168, 76, 0.12);
+  color: var(--gold-light);
+}
+.htl-mo-opt.selected {
+  background: rgba(201, 168, 76, 0.16);
+  color: var(--gold-light);
+  font-weight: 600;
+}
+.htl-mo-check {
+  width: 14px;
+  height: 14px;
+  color: var(--gold);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.htl-mo-opt.selected .htl-mo-check {
+  opacity: 1;
+}
 .htl-mo-checkbox { display: flex; align-items: center; gap: 6px; cursor: not-allowed; opacity: 0.5; }
 .htl-mo-checkbox input { accent-color: var(--gold); }
 
@@ -263,6 +496,31 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
   .htl-list-thumb { width: 100%; height: 220px; border-radius: 22px 22px 0 0; }
   .htl-list-mid { height: auto; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.07); }
   .htl-list-side { width: 100%; height: auto; flex-direction: row-reverse; align-items: center; }
+}
+
+/* Highlighted Hotel Card Rating Badge */
+.htl-card-rating-badge {
+  display: inline-flex;
+  align-items: center;
+  background: linear-gradient(135deg, rgba(201, 168, 76, 0.16) 0%, rgba(201, 168, 76, 0.08) 100%);
+  border: 1px solid rgba(201, 168, 76, 0.38);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-family: 'Jost', sans-serif;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #dfc276;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  box-shadow: 0 2px 8px rgba(201, 168, 76, 0.12);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.htl-card:hover .htl-card-rating-badge {
+  background: rgba(201, 168, 76, 0.24);
+  border-color: var(--gold);
+  color: #fff;
+  box-shadow: 0 3px 12px rgba(201, 168, 76, 0.24);
 }
 
 /* Sidebar */
@@ -690,17 +948,28 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
     <form class="htl-searchbar" role="search" method="GET" action="{{ route('hotels') }}" id="htlSearchForm">
       <div class="htl-searchbar-row">
 
-        <div class="htl-sb-field htl-sb-dest">
+        <div class="htl-sb-field htl-sb-dest" id="htlDestField">
           <label class="htl-sb-label" for="htlDestinationSearch">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
             Destination
           </label>
-          <input type="text" id="htlDestinationSearch" name="destination" placeholder="Where are you going?" autocomplete="off" list="htlDestinationList" value="{{ $destinationQuery ?? '' }}" required>
-          <datalist id="htlDestinationList">
-            @foreach($destinations ?? [] as $d)
-              <option value="{{ $d }}"></option>
-            @endforeach
-          </datalist>
+          <div class="htl-dest-input-wrap">
+            <input type="text" id="htlDestinationSearch" name="destination" placeholder="Where are you going?" autocomplete="off" value="{{ $destinationQuery ?? '' }}" required>
+            <svg class="htl-dest-chevron" width="10" height="10" viewBox="0 0 12 12"><path fill="currentColor" d="M6 8L1 3h10z"/></svg>
+          </div>
+          <div class="htl-dest-popover" id="htlDestPopover" onclick="event.stopPropagation()">
+            <div class="htl-dest-list" id="htlDestList">
+              @foreach($destinations ?? [] as $d)
+                <div class="htl-dest-option" data-value="{{ $d }}">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                  <span>{{ $d }}</span>
+                </div>
+              @endforeach
+            </div>
+            <div class="htl-dest-no-results" id="htlDestNoResults" style="display:none;">
+              No destinations found
+            </div>
+          </div>
         </div>
 
         <div class="htl-sb-field" id="htlCheckInField">
@@ -754,18 +1023,42 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
 
       @if(empty($hasSearched))
       <div class="htl-more-options">
-        <span class="htl-mo-label">More Options :</span>
+        <span class="htl-mo-label">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
+          More Options:
+        </span>
 
-        <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
-          Rating
-          <select name="min_rating">
-            <option value="0" {{ ($minRating ?? 0) == 0 ? 'selected' : '' }}>Any</option>
+        <div class="htl-mo-dropdown-wrap" id="htlRatingDropdownWrap">
+          <button type="button" class="htl-mo-pill" id="htlRatingTrigger" aria-haspopup="listbox" aria-expanded="false" title="Filter by Minimum Star Rating">
+            <span class="htl-mo-pill-tag">
+              <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              Rating:
+            </span>
+            <span class="htl-mo-current-val" id="htlRatingCurrentVal">
+              @if(($minRating ?? 0) == 0)
+                Any
+              @else
+                {{ $minRating }} Stars
+              @endif
+            </span>
+            <svg class="htl-mo-chevron" viewBox="0 0 12 12"><path fill="currentColor" d="M6 8L1 3h10z"/></svg>
+          </button>
+
+          <input type="hidden" name="min_rating" id="htlMinRatingInput" value="{{ $minRating ?? 0 }}">
+
+          <div class="htl-mo-dropdown" id="htlRatingDropdown" role="listbox">
+            <div class="htl-mo-opt {{ ($minRating ?? 0) == 0 ? 'selected' : '' }}" data-value="0" role="option">
+              <span>Any Rating</span>
+              <svg class="htl-mo-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            </div>
             @for($r = 3; $r <= 5; $r++)
-              <option value="{{ $r }}" {{ ($minRating ?? 0) == $r ? 'selected' : '' }}>{{ $r }} Stars</option>
+              <div class="htl-mo-opt {{ ($minRating ?? 0) == $r ? 'selected' : '' }}" data-value="{{ $r }}" role="option">
+                <span>{{ $r }} Stars</span>
+                <svg class="htl-mo-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
             @endfor
-          </select>
-        </label>
-
+          </div>
+        </div>
       </div>
       @else
       <!-- Hidden input to preserve min_rating when doing a new search from the results page -->
@@ -788,7 +1081,7 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
         
         <div class="htl-filter-group">
           <div class="htl-filter-title">Search by Name</div>
-          <input type="text" id="htlDestinationSearch" placeholder="E.g. Taj Dubai..." style="width:100%; padding: 12px 14px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius: 8px; color:#fff; font-family:'Jost', sans-serif; outline:none;" autocomplete="off">
+          <input type="text" id="htlSidebarNameSearch" placeholder="E.g. Taj Dubai..." style="width:100%; padding: 12px 14px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius: 8px; color:#fff; font-family:'Jost', sans-serif; outline:none;" autocomplete="off">
         </div>
 
         <div class="htl-filter-group">
@@ -964,12 +1257,7 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
 
         <!-- Middle: name, location, rating, meal/cancellation, amenities -->
         <div class="htl-list-mid">
-          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
-            <div class="htl-list-title" style="flex:1; min-width:0; font-family:'Cormorant Garamond', serif; font-size:20px; font-weight:600; color:#fff; line-height:1.25;">{{ $hotel->title }}</div>
-            <div style="display:flex; gap:2px; color:var(--gold); font-size:13px; flex-shrink:0; white-space:nowrap; margin-top:4px;">
-              @for($i = 0; $i < $stars; $i++) ★ @endfor
-            </div>
-          </div>
+          <div class="htl-list-title" style="font-family:'Cormorant Garamond', serif; font-size:20px; font-weight:600; color:#fff; line-height:1.25;">{{ $hotel->title }}</div>
 
           <div style="color:var(--white-60); font-family:'Jost',sans-serif; font-size:13.5px; display:flex; align-items:center; gap:5px; margin-top:4px;">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
@@ -987,9 +1275,37 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
             @endif
             @if($liveOption && isset($liveOption['isRefundable']))
               @if($liveOption['isRefundable'])
-                <li style="color:var(--green); font-weight:500;">Free Cancellation Available</li>
+                <li style="color:var(--green); font-weight:500;">
+                  <span class="htl-cancel-policy-trigger"
+                        data-cancellation='@json($liveOption["cancellation"] ?? null)'
+                        data-refundable="true"
+                        data-room-name="{{ $liveOption['roomName'] ?? 'Room' }}"
+                        data-hotel-title="{{ $hotel->title }}"
+                        data-checkin="{{ $checkIn ?? '' }}"
+                        data-checkout="{{ $checkOut ?? '' }}"
+                        data-price="{{ $liveOption['customerPrice'] ?? 0 }}"
+                        style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: rgba(74,222,128,0.4);"
+                        title="Click to view Cancellation Policy">
+                    Free Cancellation Available
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                  </span>
+                </li>
               @else
-                <li style="color:#f3a3a3;">Non-Refundable</li>
+                <li style="color:#f3a3a3;">
+                  <span class="htl-cancel-policy-trigger"
+                        data-cancellation='@json($liveOption["cancellation"] ?? null)'
+                        data-refundable="false"
+                        data-room-name="{{ $liveOption['roomName'] ?? 'Room' }}"
+                        data-hotel-title="{{ $hotel->title }}"
+                        data-checkin="{{ $checkIn ?? '' }}"
+                        data-checkout="{{ $checkOut ?? '' }}"
+                        data-price="{{ $liveOption['customerPrice'] ?? 0 }}"
+                        style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: rgba(243,163,163,0.4);"
+                        title="Click to view Cancellation Policy">
+                    Non-Refundable
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                  </span>
+                </li>
               @endif
             @endif
           </ul>
@@ -1008,7 +1324,7 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
         <!-- Right: star rating label + price -->
         <div class="htl-list-side">
           @if($stars > 0)
-          <div style="font-family:'Jost',sans-serif; font-size:12px; color:var(--white-60); font-weight:500; text-align:right;">
+          <div class="htl-card-rating-badge" title="{{ $starLabel }}">
             {{ $starLabel }}
           </div>
           @endif
@@ -1293,6 +1609,123 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
     }
   });
 
+  /* ===== CUSTOM DESTINATION DROPDOWN ===== */
+  (function () {
+    const destField = document.getElementById('htlDestField');
+    const destInput = document.getElementById('htlDestinationSearch');
+    const destPopover = document.getElementById('htlDestPopover');
+    const noResults = document.getElementById('htlDestNoResults');
+    if (!destField || !destInput || !destPopover) return;
+
+    const options = Array.from(destPopover.querySelectorAll('.htl-dest-option'));
+    let activeIdx = -1;
+
+    function openDropdown() {
+      destPopover.classList.add('open');
+      destField.classList.add('open');
+      filterOptions();
+    }
+
+    function closeDropdown() {
+      destPopover.classList.remove('open');
+      destField.classList.remove('open');
+      activeIdx = -1;
+      options.forEach(opt => opt.classList.remove('highlighted'));
+    }
+
+    function filterOptions() {
+      const q = destInput.value.trim().toLowerCase();
+      let matchCount = 0;
+      options.forEach(opt => {
+        const val = (opt.dataset.value || '').toLowerCase();
+        if (!q || val.includes(q)) {
+          opt.style.display = 'flex';
+          matchCount++;
+        } else {
+          opt.style.display = 'none';
+          opt.classList.remove('highlighted');
+        }
+      });
+      if (noResults) noResults.style.display = matchCount === 0 ? 'block' : 'none';
+    }
+
+    function selectOption(val) {
+      destInput.value = val;
+      closeDropdown();
+      // Guided flow: if check-in date is not chosen, open datepicker
+      const checkInIso = document.getElementById('htlCheckInIso');
+      if (checkInIso && !checkInIso.value && window.hotelSearchFp) {
+        window.hotelSearchFp.open();
+      }
+    }
+
+    destInput.addEventListener('focus', openDropdown);
+    destField.addEventListener('click', (e) => {
+      if (e.target.closest('#htlDestPopover')) return;
+      if (destPopover.classList.contains('open') && e.target !== destInput) {
+        closeDropdown();
+      } else {
+        openDropdown();
+        destInput.focus();
+      }
+    });
+
+    destInput.addEventListener('input', () => {
+      if (!destPopover.classList.contains('open')) {
+        openDropdown();
+      } else {
+        filterOptions();
+      }
+    });
+
+    destInput.addEventListener('keydown', (e) => {
+      const visibleOpts = options.filter(opt => opt.style.display !== 'none');
+      if (!destPopover.classList.contains('open')) {
+        if (e.key === 'ArrowDown' || e.key === 'Enter') {
+          openDropdown();
+          e.preventDefault();
+        }
+        return;
+      }
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        activeIdx = (activeIdx + 1) % visibleOpts.length;
+        visibleOpts.forEach((opt, idx) => opt.classList.toggle('highlighted', idx === activeIdx));
+        if (visibleOpts[activeIdx]) visibleOpts[activeIdx].scrollIntoView({ block: 'nearest' });
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        activeIdx = (activeIdx - 1 + visibleOpts.length) % visibleOpts.length;
+        visibleOpts.forEach((opt, idx) => opt.classList.toggle('highlighted', idx === activeIdx));
+        if (visibleOpts[activeIdx]) visibleOpts[activeIdx].scrollIntoView({ block: 'nearest' });
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (activeIdx >= 0 && visibleOpts[activeIdx]) {
+          selectOption(visibleOpts[activeIdx].dataset.value);
+        } else if (visibleOpts.length > 0) {
+          selectOption(visibleOpts[0].dataset.value);
+        } else {
+          closeDropdown();
+        }
+      } else if (e.key === 'Escape') {
+        closeDropdown();
+      }
+    });
+
+    options.forEach(opt => {
+      opt.addEventListener('click', (e) => {
+        e.stopPropagation();
+        selectOption(opt.dataset.value);
+      });
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!destField.contains(e.target)) {
+        closeDropdown();
+      }
+    });
+  })();
+
   /* ===== SEARCH BAR: DATE RANGE CALENDAR (flatpickr) ===== */
   function initHotelSearchDatePicker() {
     const rangeInput = document.getElementById('htlDateRangePicker');
@@ -1362,6 +1795,7 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
       const nights = Math.round((d2 - d1) / 86400000);
       if (nights > 0) { nightsBadge.textContent = nights + 'N'; nightsBadge.hidden = false; }
     }
+    window.hotelSearchFp = fp;
   }
   initHotelSearchDatePicker();
 
@@ -1415,7 +1849,7 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
 
   /* ===== QUICK FILTERS (live, no page reload) ===== */
   const cards = document.querySelectorAll('.htl-card');
-  const destinationSearch = document.getElementById('htlDestinationSearch');
+  const destinationSearch = document.getElementById('htlSidebarNameSearch');
   
   // Depending on layout, we either have a select or radio buttons
   const ratingSelect = document.querySelector('select[name="min_rating"]');
@@ -1455,6 +1889,8 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
   }
 
   function getMinRating() {
+    const minRatingInput = document.getElementById('htlMinRatingInput');
+    if (minRatingInput) return parseInt(minRatingInput.value, 10) || 0;
     if (ratingSelect) return parseInt(ratingSelect.value, 10) || 0;
     const checkedRadio = document.querySelector('input[name="sidebar_rating"]:checked');
     if (checkedRadio) return parseInt(checkedRadio.value, 10) || 0;
@@ -1567,6 +2003,43 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
   });
   if (freeCancelCheckbox) freeCancelCheckbox.addEventListener('change', applyHotelFilters);
   mealCheckboxes.forEach(cb => cb.addEventListener('change', applyHotelFilters));
+
+  /* ===== CUSTOM RATING DROPDOWN ===== */
+  const ratingWrap = document.getElementById('htlRatingDropdownWrap');
+  const ratingTrigger = document.getElementById('htlRatingTrigger');
+  const ratingVal = document.getElementById('htlRatingCurrentVal');
+  const ratingInput = document.getElementById('htlMinRatingInput');
+  const ratingOpts = document.querySelectorAll('.htl-mo-opt');
+
+  if (ratingTrigger && ratingWrap) {
+    ratingTrigger.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const isOpen = ratingWrap.classList.toggle('open');
+      ratingTrigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    });
+
+    ratingOpts.forEach(opt => {
+      opt.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const val = opt.dataset.value;
+        ratingOpts.forEach(o => o.classList.remove('selected'));
+        opt.classList.add('selected');
+        if (ratingVal) ratingVal.textContent = val === '0' ? 'Any' : val + ' Stars';
+        if (ratingInput) ratingInput.value = val;
+        ratingWrap.classList.remove('open');
+        ratingTrigger.setAttribute('aria-expanded', 'false');
+        applyHotelFilters();
+      });
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!ratingWrap.contains(e.target)) {
+        ratingWrap.classList.remove('open');
+        ratingTrigger.setAttribute('aria-expanded', 'false');
+      }
+    });
+  }
 
   /* ===== SCROLL REVEAL ===== */
   const revealObs = new IntersectionObserver((entries) => {

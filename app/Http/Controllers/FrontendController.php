@@ -121,7 +121,11 @@ class FrontendController extends Controller
             }
         }
         $nationalities = $this->tripjackNationalities($client);
-        $destinations = Destination::orderBy('name')->pluck('name');
+        $destinations = Destination::orderBy('name')->pluck('name')
+            ->map(fn ($d) => trim($d))
+            ->filter()
+            ->unique(fn ($d) => strtolower($d))
+            ->values();
 
         return view('pages.hotels', compact(
             'hotels', 'liveOptions', 'searchActive', 'hasSearched', 'searchError',
@@ -321,8 +325,14 @@ class FrontendController extends Controller
             }
         }
 
+        $destinations = Destination::orderBy('name')->pluck('name')
+            ->map(fn ($d) => trim($d))
+            ->filter()
+            ->unique(fn ($d) => strtolower($d))
+            ->values();
+
         return view('pages.hotel-details', compact(
-            'hotel', 'liveOptions', 'pricingError', 'checkIn', 'checkOut', 'adults', 'children', 'roomCount'
+            'hotel', 'liveOptions', 'pricingError', 'checkIn', 'checkOut', 'adults', 'children', 'roomCount', 'childAges', 'destinations'
         ));
     }
 

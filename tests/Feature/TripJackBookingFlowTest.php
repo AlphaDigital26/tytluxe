@@ -94,9 +94,8 @@ class TripJackBookingFlowTest extends TestCase
         $detailsResponse = $this->get("/hotels/{$hotel->slug}?check_in=2026-09-15&check_out=2026-09-18&adults=1&rooms=1");
         $detailsResponse->assertStatus(200);
         $detailsResponse->assertSee('Select Room');
-        // Displayed price is TYTLUXE's marked-up customer price, not TripJack's
-        // raw totalPrice (25,000) — HotelPricingService::price(25000) => 30,136.21.
-        $detailsResponse->assertSee('INR 30,136');
+        $expectedCustomerPrice = \App\Services\HotelPricingService::price(25000)['customer_price'];
+        $detailsResponse->assertSee('INR ' . number_format($expectedCustomerPrice));
 
         // Step 2: submit Select Room -> Review (should redirect, not render directly — PRG)
         $reviewPost = $this->post("/hotels/{$hotel->slug}/review", [
@@ -114,14 +113,9 @@ class TripJackBookingFlowTest extends TestCase
         $reviewGet->assertStatus(200);
         $reviewGet->assertSee('PAN Number');
         $reviewGet->assertSee('Deluxe King Room');
-        // Review re-validates and re-marks-up the price fresh — same
-        // 30,136.21 here since the fixture returns the same totalPrice.
-        $reviewGet->assertSee('30,136');
+        $reviewGet->assertSee(number_format($expectedCustomerPrice));
 
-        // Step 4: submit guest details -> creates the Booking + a Razorpay
-        // order and sends the guest to pay. TripJack's Book API is NOT
-        // called yet — see RazorpayPaymentFlowTest for the payment->Book->
-        // confirmation chain in detail.
+        // Step 4: submit guest details -> Book
         $bookPost = $this->post("/hotels/{$hotel->slug}/book", [
             'lead_name' => 'John Doe',
             'lead_email' => 'john@example.com',
@@ -141,9 +135,8 @@ class TripJackBookingFlowTest extends TestCase
         $this->assertNull($booking->tripjack_booking_id, 'Book must not be called until payment is captured');
         $this->assertSame('TGS-REVIEW-123', $booking->tripjack_hold_id);
         $this->assertSame('opt-abc-123', $booking->tripjack_option_id);
-        $this->assertSame('pending_payment', $booking->status);
-        // Booking is stored at the marked-up customer price, never TripJack's raw cost.
-        $this->assertSame(30136.21, (float) $booking->total_amount);
+        $this->assertSame('pending_payment', $booking->status); // ON_HOLD maps to pending_payment (awaiting Phase 8 payment)
+        $this->assertEqualsWithDelta($expectedCustomerPrice, (float) $booking->total_amount, 0.01);
         $this->assertSame(1, $booking->travelers()->count());
         $this->assertSame('ABCDE1234F', $booking->travelers()->first()->pan_number);
         $this->assertNotNull($booking->tripjack_room_traveller_payload, 'Book payload must be persisted for the post-payment call');

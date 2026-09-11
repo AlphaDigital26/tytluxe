@@ -86,9 +86,10 @@
   .br-line { display: flex; justify-content: space-between; gap: 10px; font-family: 'Jost', sans-serif; font-size: 13px; color: var(--white-80); padding: 10px 0; border-bottom: 1px dashed rgba(255,255,255,0.08); }
   .br-line:last-of-type { border-bottom: none; }
   .br-line span:first-child { color: var(--white-60); }
-  .br-line.total { border-top: 1px solid rgba(255,255,255,0.12); border-bottom: none; margin-top: 8px; padding-top: 20px; font-weight: 700; font-size: 19px; color: #fff; }
-  .br-refund { display: flex; align-items: center; gap: 8px; font-family: 'Jost', sans-serif; font-size: 12.5px; color: var(--green); margin: 20px 0 4px; padding: 11px 15px; background: rgba(74,222,128,0.06); border: 1px solid rgba(74,222,128,0.2); border-radius: 10px; }
-  .br-note { font-family: 'Jost', sans-serif; font-size: 11.5px; color: var(--white-30); margin-top: 20px; line-height: 1.7; }
+  .br-line.total { border-top: 1px solid rgba(255,255,255,0.12); border-bottom: none; margin-top: 6px; padding-top: 16px; font-weight: 700; font-size: 17px; color: #fff; }
+  .br-refund { display: flex; align-items: center; gap: 8px; font-family: 'Jost', sans-serif; font-size: 12.5px; color: var(--green); margin: 16px 0 4px; padding: 10px 14px; background: rgba(74,222,128,0.06); border: 1px solid rgba(74,222,128,0.2); border-radius: 10px; cursor: pointer; transition: all 0.2s ease; }
+  .br-refund:hover { background: rgba(74,222,128,0.12); border-color: rgba(74,222,128,0.4); }
+  .br-note { font-family: 'Jost', sans-serif; font-size: 11.5px; color: var(--white-30); margin-top: 16px; line-height: 1.6; }
 
   .br-error {
     margin-bottom: 28px; padding: 15px 20px; border-radius: 12px;
@@ -259,9 +260,18 @@
     <div class="br-line total"><span>Total</span><span>{{ $pricing['currency'] ?? 'INR' }} {{ number_format($customerPrice) }}</span></div>
 
     @if($isRefundable)
-    <div class="br-refund">
+    <div class="br-refund htl-cancel-policy-trigger"
+         data-cancellation='@json($cancellation)'
+         data-refundable="true"
+         data-room-name="{{ $roomNames }}"
+         data-hotel-title="{{ $hotel->title }}"
+         data-checkin="{{ $draft['check_in'] ?? '' }}"
+         data-checkout="{{ $draft['check_out'] ?? '' }}"
+         data-price="{{ $customerPrice ?? 0 }}"
+         title="Click to view Cancellation Policy">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
-      Free cancellation available
+      <span>Free cancellation available</span>
+      <span style="margin-left:auto; font-size:11px; opacity:0.85; text-decoration:underline; text-underline-offset:2px;">View Policy ⓘ</span>
     </div>
     @endif
 
