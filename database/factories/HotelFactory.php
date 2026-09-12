@@ -18,7 +18,15 @@ class HotelFactory extends Factory
     public function definition(): array
     {
         return [
-            //
+            'destination_id' => \App\Models\Destination::factory(),
+            'title' => fake()->company() . ' Palace & Resort',
+            'slug' => fake()->unique()->slug(),
+            'description' => fake()->paragraph(),
+            'category' => 'beach_resort',
+            'address' => fake()->address(),
+            'star_rating' => 5,
+            'price_from' => 20000,
+            'is_active' => true,
         ];
     }
 }

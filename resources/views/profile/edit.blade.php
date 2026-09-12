@@ -243,6 +243,235 @@
 }
 .pf-save-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(194,154,98,0.3); }
 
+/* ── Profile Wishlist Tab Styles ───────────────────────── */
+.profile-sidebar-wishlist-badge {
+    background: rgba(201, 168, 76, 0.15);
+    color: var(--primary);
+    border: 1px solid rgba(201, 168, 76, 0.35);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-left: auto;
+    transition: var(--transition);
+    line-height: 1.2;
+}
+.profile-tab-btn.active .profile-sidebar-wishlist-badge {
+    background: var(--primary);
+    color: #0d0d0d;
+    border-color: var(--primary);
+}
+
+.pf-wl-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid #222;
+    padding-bottom: 16px;
+    flex-wrap: wrap;
+}
+.pf-wl-tab-btn {
+    background: #161616;
+    border: 1px solid #2a2a2a;
+    color: var(--text-muted);
+    font-family: 'Outfit', sans-serif;
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    padding: 7px 18px;
+    border-radius: 100px;
+    cursor: pointer;
+    transition: var(--transition);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+.pf-wl-tab-btn:hover {
+    color: #fff;
+    border-color: var(--primary);
+}
+.pf-wl-tab-btn.active {
+    background: var(--primary);
+    color: #0d0d0d;
+    border-color: var(--primary);
+}
+.pf-wl-tab-badge {
+    background: rgba(255, 255, 255, 0.12);
+    color: inherit;
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 8px;
+}
+.pf-wl-tab-btn.active .pf-wl-tab-badge {
+    background: #0d0d0d;
+    color: var(--primary);
+}
+
+.pf-wl-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+@media (max-width: 640px) {
+    .pf-wl-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.pf-wl-card {
+    background: #161616;
+    border: 1px solid #282828;
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: var(--transition);
+    position: relative;
+}
+.pf-wl-card:hover {
+    border-color: var(--primary);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+.pf-wl-media {
+    position: relative;
+    height: 160px;
+    overflow: hidden;
+    background: #0d0d0d;
+}
+.pf-wl-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.4s ease;
+}
+.pf-wl-card:hover .pf-wl-img {
+    transform: scale(1.05);
+}
+.pf-wl-badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: rgba(13, 13, 13, 0.8);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(201, 168, 76, 0.3);
+    color: var(--primary);
+    font-size: 10.5px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 100px;
+}
+.pf-wl-remove {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(13, 13, 13, 0.8);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #ff6b6b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.pf-wl-remove:hover {
+    background: #ff5252;
+    color: #fff;
+    border-color: #ff5252;
+    transform: scale(1.1);
+}
+.pf-wl-body {
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+.pf-wl-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 19px;
+    font-weight: 600;
+    color: #fff;
+    margin: 0 0 4px;
+    text-decoration: none;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    transition: color 0.2s ease;
+}
+.pf-wl-title:hover {
+    color: var(--primary);
+}
+.pf-wl-loc {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.pf-wl-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: auto;
+    padding-top: 12px;
+    border-top: 1px solid #222;
+}
+.pf-wl-price {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--primary);
+}
+.pf-wl-btn {
+    padding: 6px 14px;
+    border-radius: 100px;
+    background: transparent;
+    border: 1px solid var(--primary);
+    color: var(--primary);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+.pf-wl-btn:hover {
+    background: var(--primary);
+    color: #0d0d0d;
+}
+
+.pf-wl-empty {
+    text-align: center;
+    padding: 50px 20px;
+    background: #0d0d0d;
+    border: 1px dashed #2a2a2a;
+    border-radius: 8px;
+}
+.pf-wl-empty i {
+    font-size: 38px;
+    color: var(--primary);
+    margin-bottom: 16px;
+    opacity: 0.8;
+}
+.pf-wl-empty h3 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 24px;
+    color: #fff;
+    margin: 0 0 8px;
+}
+.pf-wl-empty p {
+    color: var(--text-muted);
+    font-size: 13.5px;
+    max-width: 420px;
+    margin: 0 auto 20px;
+}
+
 </style>
 @endpush
 
@@ -278,6 +507,11 @@
         <!-- SIDEBAR -->
         <div class="profile-sidebar">
             <button class="profile-tab-btn active" onclick="switchTab('personal')"><i class="fa-regular fa-user"></i> Personal Info</button>
+            <button class="profile-tab-btn" onclick="switchTab('wishlist')" id="profileWishlistTabBtn">
+                <i class="fa-solid fa-heart" style="color: var(--primary);"></i>
+                <span style="flex: 1; text-align: left;">Wishlist</span>
+                <span class="profile-sidebar-wishlist-badge tyt-wishlist-count">0</span>
+            </button>
             <button class="profile-tab-btn" onclick="switchTab('travellers')"><i class="fa-solid fa-users"></i> Co-Travellers</button>
             <button class="profile-tab-btn" onclick="switchTab('preferences')"><i class="fa-solid fa-sliders"></i> Preferences</button>
             <button class="profile-tab-btn" onclick="switchTab('notifications')"><i class="fa-regular fa-bell"></i> Notifications</button>
@@ -593,6 +827,47 @@
                 </form>
             </div>
 
+            <!-- WISHLIST -->
+            <div id="tab-wishlist" class="profile-tab-pane">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 24px;">
+                    <div>
+                        <h2 class="tab-title" style="margin-bottom: 6px;">My Wishlist</h2>
+                        <p class="tab-subtitle" style="margin-bottom: 0; border-bottom: none; padding-bottom: 0;">
+                            Your curated luxury sanctuaries, holiday packages, and flight experiences.
+                        </p>
+                    </div>
+                    <a href="{{ route('wishlist') }}" class="btn-outline-dark" style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 22px; border-radius: 100px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; text-decoration: none; border: 1px solid var(--primary); color: var(--primary); transition: all 0.25s ease;">
+                        <span>Open Full Wishlist Page</span>
+                        <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 11px; margin: 0;"></i>
+                    </a>
+                </div>
+
+                <!-- Category Filters -->
+                <div class="pf-wl-tabs">
+                    <button type="button" class="pf-wl-tab-btn active" id="pfWlTabHotels" onclick="filterProfileWishlist('hotel', this)">
+                        <i class="fa-solid fa-hotel" style="font-size: 11px;"></i> Hotels <span class="pf-wl-tab-badge" id="pfWlCountHotels">0</span>
+                    </button>
+                    <button type="button" class="pf-wl-tab-btn" id="pfWlTabPackages" onclick="filterProfileWishlist('package', this)">
+                        <i class="fa-solid fa-suitcase" style="font-size: 11px;"></i> Packages <span class="pf-wl-tab-badge" id="pfWlCountPackages">0</span>
+                    </button>
+                    <button type="button" class="pf-wl-tab-btn" id="pfWlTabFlights" onclick="filterProfileWishlist('flight', this)">
+                        <i class="fa-solid fa-plane" style="font-size: 11px;"></i> Flights <span class="pf-wl-tab-badge" id="pfWlCountFlights">0</span>
+                    </button>
+                </div>
+
+                <!-- Grid of saved items -->
+                <div class="pf-wl-grid" id="pfWishlistGrid"></div>
+
+                <!-- Empty state -->
+                <div class="pf-wl-empty" id="pfWishlistEmpty" style="display: none;">
+                    <i class="fa-regular fa-heart"></i>
+                    <h3 id="pfWishlistEmptyTitle">No Saved Hotels</h3>
+                    <p id="pfWishlistEmptySub">You haven't saved any hotels to your wishlist yet.</p>
+                    <a href="{{ route('hotels') }}" class="btn btn-primary" id="pfWishlistEmptyCta" style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 24px; border-radius: 100px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; text-decoration: none;">
+                        <span>Discover Hotels</span>
+                    </a>
+                </div>
+            </div>
 
             <!-- TRAVELLERS -->
             <div id="tab-travellers" class="profile-tab-pane">
@@ -794,22 +1069,185 @@
         document.querySelectorAll('.profile-tab-btn').forEach(btn => {
             btn.classList.remove('active');
         });
-        event.currentTarget.classList.add('active');
+        const targetBtn = (typeof event !== 'undefined' && event && event.currentTarget) ? event.currentTarget : document.querySelector(`.profile-tab-btn[onclick*="'${tabId}'"]`);
+        if (targetBtn) {
+            targetBtn.classList.add('active');
+        }
 
         // Update active class on panes
         document.querySelectorAll('.profile-tab-pane').forEach(pane => {
             pane.classList.remove('active');
         });
-        document.getElementById('tab-' + tabId).classList.add('active');
+        const targetPane = document.getElementById('tab-' + tabId);
+        if (targetPane) {
+            targetPane.classList.add('active');
+        }
+
+        if (tabId === 'wishlist') {
+            renderProfileWishlist();
+        }
+    }
+
+    var currentPfWlCategory = 'hotel';
+
+    function filterProfileWishlist(category, btn) {
+        currentPfWlCategory = category;
+        document.querySelectorAll('.pf-wl-tab-btn').forEach(b => b.classList.remove('active'));
+        if (btn) btn.classList.add('active');
+        renderProfileWishlist();
+    }
+
+    function renderProfileWishlist() {
+        if (typeof window.tytWishlist === 'undefined') return;
+
+        const counts = window.tytWishlist.counts();
+        const countH = document.getElementById('pfWlCountHotels');
+        const countP = document.getElementById('pfWlCountPackages');
+        const countF = document.getElementById('pfWlCountFlights');
+        if (countH) countH.textContent = counts.hotel;
+        if (countP) countP.textContent = counts.package;
+        if (countF) countF.textContent = counts.flight;
+
+        // Also update all sidebar and dropdown wishlist counts
+        document.querySelectorAll('.tyt-wishlist-count, .mobile-wishlist-count').forEach(el => {
+            el.textContent = counts.total;
+        });
+
+        const items = window.tytWishlist.getByType(currentPfWlCategory);
+        const grid = document.getElementById('pfWishlistGrid');
+        const empty = document.getElementById('pfWishlistEmpty');
+        const emptyTitle = document.getElementById('pfWishlistEmptyTitle');
+        const emptySub = document.getElementById('pfWishlistEmptySub');
+        const emptyCta = document.getElementById('pfWishlistEmptyCta');
+
+        if (!grid || !empty) return;
+
+        if (items.length === 0) {
+            grid.style.display = 'none';
+            grid.innerHTML = '';
+            empty.style.display = 'block';
+
+            if (currentPfWlCategory === 'package') {
+                emptyTitle.textContent = 'No Saved Packages';
+                emptySub.textContent = "You haven't saved any holiday packages yet.";
+                emptyCta.href = "{{ route('packages') }}";
+                emptyCta.querySelector('span').textContent = 'Explore Packages';
+            } else if (currentPfWlCategory === 'flight') {
+                emptyTitle.textContent = 'No Saved Flight Experiences';
+                emptySub.textContent = "You haven't saved any flight experiences yet.";
+                emptyCta.href = "{{ route('flights') }}";
+                emptyCta.querySelector('span').textContent = 'Explore Flights';
+            } else {
+                emptyTitle.textContent = 'No Saved Hotels';
+                emptySub.textContent = "You haven't saved any hotels to your wishlist yet.";
+                emptyCta.href = "{{ route('hotels') }}";
+                emptyCta.querySelector('span').textContent = 'Discover Hotels';
+            }
+            return;
+        }
+
+        empty.style.display = 'none';
+        grid.style.display = 'grid';
+
+        grid.innerHTML = items.map(function(item) {
+            const identifier = item.slug || item.id;
+            const title = item.title || 'Luxury Item';
+            const dest = item.destination || (currentPfWlCategory === 'flight' ? 'All Routes' : 'India');
+            const price = item.price || (currentPfWlCategory === 'flight' ? 'Best Fare on Enquiry' : 'Price on Request');
+            const img = item.image || '';
+            const type = window.tytWishlist.getItemType(item);
+
+            let url = item.url;
+            if (!url) {
+                if (type === 'package') url = item.slug ? '/packages/' + item.slug : '/packages';
+                else if (type === 'flight') url = '/flights#tyt-book-flight';
+                else url = item.slug ? '/hotels/' + item.slug : '/hotels';
+            }
+
+            let badge = '';
+            let btnText = 'View Stay';
+            let icon = '<i class="fa-solid fa-location-dot" style="color:var(--primary); font-size:11px;"></i>';
+
+            if (type === 'package') {
+                badge = item.badge || 'Package';
+                btnText = 'View Package';
+            } else if (type === 'flight') {
+                badge = item.badge || 'Flight';
+                btnText = 'Enquire Flight';
+                icon = '<i class="fa-solid fa-plane" style="color:var(--primary); font-size:11px;"></i>';
+            } else {
+                badge = '★ ' + (item.stars || 5) + '-Star';
+                btnText = 'View Stay';
+            }
+
+            const imgHtml = img ?
+                `<img src="${img}" alt="${title}" class="pf-wl-img" loading="lazy">` :
+                `<div style="width:100%; height:100%; background:#1a1a1a; display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,0.3); font-size:11px; text-transform:uppercase;">${title}</div>`;
+
+            return `
+                <div class="pf-wl-card" id="pf-wl-item-${identifier}">
+                    <div class="pf-wl-media">
+                        ${imgHtml}
+                        <span class="pf-wl-badge">${badge}</span>
+                        <button type="button" class="pf-wl-remove" title="Remove from wishlist" onclick="removeProfileWishlist('${identifier}', event)">
+                            <i class="fa-solid fa-xmark" style="font-size:12px;"></i>
+                        </button>
+                    </div>
+                    <div class="pf-wl-body">
+                        <a href="${url}" class="pf-wl-title">${title}</a>
+                        <div class="pf-wl-loc">
+                            ${icon} <span>${dest}</span>
+                        </div>
+                        <div class="pf-wl-footer">
+                            <span class="pf-wl-price">${price}</span>
+                            <a href="${url}" class="pf-wl-btn">${btnText}</a>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function removeProfileWishlist(identifier, e) {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        if (typeof window.tytWishlist !== 'undefined') {
+            window.tytWishlist.remove(identifier);
+            renderProfileWishlist();
+        }
     }
 
     // Check URL hash to open specific tab on load
     document.addEventListener("DOMContentLoaded", function() {
         if(window.location.hash) {
             let tab = window.location.hash.substring(1);
-            let btn = document.querySelector(`.profile-tab-btn[onclick="switchTab('${tab}')"]`);
+            let btn = document.querySelector(`.profile-tab-btn[onclick*="'${tab}'"]`);
             if(btn) btn.click();
         }
+
+        // Initialize wishlist counts in profile sidebar
+        if (typeof window.tytWishlist !== 'undefined') {
+            const counts = window.tytWishlist.counts();
+            document.querySelectorAll('.profile-sidebar-wishlist-badge, .profile-dd-badge').forEach(el => {
+                el.textContent = counts.total;
+            });
+        }
+    });
+
+    window.addEventListener('tyt:wishlist-updated', function() {
+        if (typeof window.tytWishlist !== 'undefined') {
+            const counts = window.tytWishlist.counts();
+            document.querySelectorAll('.profile-sidebar-wishlist-badge, .profile-dd-badge').forEach(el => {
+                el.textContent = counts.total;
+            });
+            const wishlistPane = document.getElementById('tab-wishlist');
+            if (wishlistPane && wishlistPane.classList.contains('active')) {
+                renderProfileWishlist();
+            }
+        }
+    });
 
         // Anniversary field toggle based on marital status
         const maritalSelect = document.getElementById('marital-status-select');

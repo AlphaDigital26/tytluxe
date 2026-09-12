@@ -37,6 +37,56 @@
 .tyt-card-label{position:absolute;bottom:20px;left:20px;font-family:'Playfair Display',serif;font-size:17px;font-weight:700;color:#fff}
 .tyt-card-sub{font-family:'Poppins',sans-serif;font-size:11px;font-weight:400;color:rgba(255,255,255,0.75);margin-top:4px}
 
+/* FLIGHT WISHLIST HEART */
+.flt-heart-btn {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  z-index: 5;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.28s ease;
+  padding: 0 !important;
+  margin: 0;
+  line-height: 0;
+  box-sizing: border-box;
+  outline: none;
+}
+.flt-heart-btn svg {
+  display: block;
+  transform: translateY(1px);
+  transition: stroke 0.2s ease, fill 0.2s ease;
+}
+.flt-heart-btn:hover {
+  background: rgba(0, 0, 0, 0.75);
+  border-color: #C9A84C;
+  color: #C9A84C;
+  transform: scale(1.12);
+  box-shadow: 0 0 16px rgba(201, 168, 76, 0.35);
+}
+.flt-heart-btn:hover svg {
+  stroke: #C9A84C;
+}
+.flt-heart-btn.active {
+  background: rgba(0, 0, 0, 0.7) !important;
+  border-color: #C9A84C !important;
+  color: #C9A84C !important;
+  box-shadow: 0 0 16px rgba(201, 168, 76, 0.4);
+}
+.flt-heart-btn.active svg {
+  fill: #C9A84C !important;
+  stroke: #C9A84C !important;
+}
+
 /* AIRLINE GRID */
 .tyt-airline-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:48px}
 .tyt-airline-card{
@@ -122,33 +172,140 @@ input[type="date"].tyt-finput::-webkit-calendar-picker-indicator{filter:invert(0
       <a class="tyt-outline-btn" href="#tyt-book-flight">Request a Flight</a>
     </div>
     <div class="tyt-cards-6">
-      <div class="tyt-img-card">
+      <div class="tyt-img-card" onclick="location.href='#tyt-book-flight'">
         <img src="https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=700&q=80" alt="Domestic Flights" loading="lazy"/>
+        <button type="button" class="flt-heart-btn js-wishlist-btn"
+          aria-label="Save Domestic Flights to wishlist"
+          data-type="flight"
+          data-badge="Domestic"
+          data-hotel-id="flt-domestic"
+          data-hotel-slug="flt-domestic"
+          data-hotel-title="Domestic Flights"
+          data-hotel-image="https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=700&q=80"
+          data-hotel-destination="Pan-India Routes"
+          data-hotel-stars="5"
+          data-hotel-price="Best Fare on Enquiry"
+          data-hotel-url="{{ route('flights') }}#tyt-book-flight"
+          onclick="event.stopPropagation(); tytWishlist.toggleFromButton(this, event);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+          </svg>
+        </button>
         <div class="tyt-card-overlay"></div>
         <div class="tyt-card-label">Domestic Flights<div class="tyt-card-sub">Pan-India routes, best fares</div></div>
       </div>
-      <div class="tyt-img-card">
+
+      <div class="tyt-img-card" onclick="location.href='#tyt-book-flight'">
         <img src="https://images.unsplash.com/photo-1503221043305-f7498f8b7888?w=700&q=80" alt="International Flights" loading="lazy"/>
+        <button type="button" class="flt-heart-btn js-wishlist-btn"
+          aria-label="Save International Flights to wishlist"
+          data-type="flight"
+          data-badge="International"
+          data-hotel-id="flt-international"
+          data-hotel-slug="flt-international"
+          data-hotel-title="International Flights"
+          data-hotel-image="https://images.unsplash.com/photo-1503221043305-f7498f8b7888?w=700&q=80"
+          data-hotel-destination="Global Destinations"
+          data-hotel-stars="5"
+          data-hotel-price="Best Fare on Enquiry"
+          data-hotel-url="{{ route('flights') }}#tyt-book-flight"
+          onclick="event.stopPropagation(); tytWishlist.toggleFromButton(this, event);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+          </svg>
+        </button>
         <div class="tyt-card-overlay"></div>
         <div class="tyt-card-label">International<div class="tyt-card-sub">Global destinations covered</div></div>
       </div>
-      <div class="tyt-img-card">
+
+      <div class="tyt-img-card" onclick="location.href='#tyt-book-flight'">
         <img src="https://images.unsplash.com/photo-1540339832862-474599807836?w=700&q=80" alt="Business Class" loading="lazy"/>
+        <button type="button" class="flt-heart-btn js-wishlist-btn"
+          aria-label="Save Business Class Flights to wishlist"
+          data-type="flight"
+          data-badge="Business Class"
+          data-hotel-id="flt-business-class"
+          data-hotel-slug="flt-business-class"
+          data-hotel-title="Business Class Flights"
+          data-hotel-image="https://images.unsplash.com/photo-1540339832862-474599807836?w=700&q=80"
+          data-hotel-destination="Lie-Flat & Lounges"
+          data-hotel-stars="5"
+          data-hotel-price="Best Fare on Enquiry"
+          data-hotel-url="{{ route('flights') }}#tyt-book-flight"
+          onclick="event.stopPropagation(); tytWishlist.toggleFromButton(this, event);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+          </svg>
+        </button>
         <div class="tyt-card-overlay"></div>
         <div class="tyt-card-label">Business Class<div class="tyt-card-sub">Lie-flat beds, premium lounges</div></div>
       </div>
-      <div class="tyt-img-card">
+
+      <div class="tyt-img-card" onclick="location.href='#tyt-book-flight'">
         <img src="https://images.unsplash.com/photo-1464037866556-6812c9d1c72e?w=700&q=80" alt="First Class" loading="lazy"/>
+        <button type="button" class="flt-heart-btn js-wishlist-btn"
+          aria-label="Save First Class Flights to wishlist"
+          data-type="flight"
+          data-badge="First Class"
+          data-hotel-id="flt-first-class"
+          data-hotel-slug="flt-first-class"
+          data-hotel-title="First Class Flights"
+          data-hotel-image="https://images.unsplash.com/photo-1464037866556-6812c9d1c72e?w=700&q=80"
+          data-hotel-destination="Suite Experience"
+          data-hotel-stars="5"
+          data-hotel-price="Best Fare on Enquiry"
+          data-hotel-url="{{ route('flights') }}#tyt-book-flight"
+          onclick="event.stopPropagation(); tytWishlist.toggleFromButton(this, event);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+          </svg>
+        </button>
         <div class="tyt-card-overlay"></div>
         <div class="tyt-card-label">First Class<div class="tyt-card-sub">Suite experience, concierge</div></div>
       </div>
-      <div class="tyt-img-card">
+
+      <div class="tyt-img-card" onclick="location.href='#tyt-book-flight'">
         <img src="https://images.unsplash.com/photo-1578474846511-04ba529f0b88?w=700&q=80" alt="Charter Flights" loading="lazy"/>
+        <button type="button" class="flt-heart-btn js-wishlist-btn"
+          aria-label="Save Charter Flights to wishlist"
+          data-type="flight"
+          data-badge="Charter"
+          data-hotel-id="flt-charter-flights"
+          data-hotel-slug="flt-charter-flights"
+          data-hotel-title="Charter Flights"
+          data-hotel-image="https://images.unsplash.com/photo-1578474846511-04ba529f0b88?w=700&q=80"
+          data-hotel-destination="Private & Group Aircraft"
+          data-hotel-stars="5"
+          data-hotel-price="Best Fare on Enquiry"
+          data-hotel-url="{{ route('flights') }}#tyt-book-flight"
+          onclick="event.stopPropagation(); tytWishlist.toggleFromButton(this, event);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+          </svg>
+        </button>
         <div class="tyt-card-overlay"></div>
         <div class="tyt-card-label">Charter Flights<div class="tyt-card-sub">Private &amp; group aircraft</div></div>
       </div>
-      <div class="tyt-img-card">
+
+      <div class="tyt-img-card" onclick="location.href='#tyt-book-flight'">
         <img src="https://images.unsplash.com/photo-1569154941061-e231b4725ef1?w=700&q=80" alt="Multi-City" loading="lazy"/>
+        <button type="button" class="flt-heart-btn js-wishlist-btn"
+          aria-label="Save Multi-City Flights to wishlist"
+          data-type="flight"
+          data-badge="Multi-City"
+          data-hotel-id="flt-multi-city"
+          data-hotel-slug="flt-multi-city"
+          data-hotel-title="Multi-City Flights"
+          data-hotel-image="https://images.unsplash.com/photo-1569154941061-e231b4725ef1?w=700&q=80"
+          data-hotel-destination="Complex Seamless Routes"
+          data-hotel-stars="5"
+          data-hotel-price="Best Fare on Enquiry"
+          data-hotel-url="{{ route('flights') }}#tyt-book-flight"
+          onclick="event.stopPropagation(); tytWishlist.toggleFromButton(this, event);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+          </svg>
+        </button>
         <div class="tyt-card-overlay"></div>
         <div class="tyt-card-label">Multi-City<div class="tyt-card-sub">Complex itineraries, seamless</div></div>
       </div>

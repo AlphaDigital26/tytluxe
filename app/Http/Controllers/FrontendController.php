@@ -263,6 +263,57 @@ class FrontendController extends Controller
         return $this->distributeGuestsAcrossRooms($draft['adults'], $draft['children'], $draft['rooms']);
     }
 
+    public function wishlist(Request $request)
+    {
+        $featuredHotels = Hotel::with(['destination', 'images'])
+            ->where('is_active', true)
+            ->where('is_featured', true)
+            ->take(4)
+            ->get();
+
+        if ($featuredHotels->isEmpty()) {
+            $featuredHotels = Hotel::with(['destination', 'images'])
+                ->where('is_active', true)
+                ->latest()
+                ->take(4)
+                ->get();
+        }
+
+        $destinations = Destination::where('is_active', true)->orderBy('name')->take(8)->get();
+        if ($destinations->isEmpty()) {
+            $destinations = Destination::orderBy('name')->take(8)->get();
+        }
+
+        return view('pages.wishlist', compact('featuredHotels', 'destinations'));
+    }
+
+    public function wishlistLookup(Request $request)
+    {
+        $slugs = (array) $request->input('slugs', []);
+        if (empty($slugs)) {
+            return response()->json(['hotels' => []]);
+        }
+
+        $hotels = Hotel::with(['destination', 'images'])
+            ->where('is_active', true)
+            ->whereIn('slug', $slugs)
+            ->get()
+            ->map(function ($h) {
+                return [
+                    'id' => $h->id,
+                    'slug' => $h->slug,
+                    'title' => $h->title,
+                    'destination' => $h->destination?->name ?? $h->address ?? '',
+                    'stars' => (int) ($h->star_rating ?? 5),
+                    'price' => $h->price_from ? '₹'.number_format($h->price_from) : 'Price on Request',
+                    'image' => $h->featured_image ?: ($h->images->first()?->image_url ?? ''),
+                    'url' => route('hotel.details', $h->slug),
+                ];
+            });
+
+        return response()->json(['hotels' => $hotels]);
+    }
+
     public function hotelDetails($slug, Request $request, TripJackClient $client)
     {
         $hotel = Hotel::with(['destination', 'amenities', 'images', 'roomTypes', 'reviews'])

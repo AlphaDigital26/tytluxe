@@ -3088,3 +3088,34 @@ input:checked+.profile-slider:before {
         max-width: none;
     }
 }
+
+/* Wishlist & Heart buttons global active gold state & perfect optical centering */
+.htl-heart,
+.pkg-heart-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    margin: 0;
+    line-height: 0 !important;
+    box-sizing: border-box !important;
+}
+.htl-heart svg,
+.pkg-heart-btn svg {
+    display: block !important;
+    transform: translateY(1px) !important;
+    margin: auto !important;
+}
+.htl-heart.active,
+.js-wishlist-btn.active {
+    border-color: #c9a84c !important;
+    color: #c9a84c !important;
+    box-shadow: 0 0 16px rgba(201, 168, 76, 0.4) !important;
+}
+.htl-heart.active svg,
+.js-wishlist-btn.active svg,
+.htl-heart.active svg path,
+.js-wishlist-btn.active svg path {
+    stroke: #c9a84c !important;
+    fill: #c9a84c !important;
+}
