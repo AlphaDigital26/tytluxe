@@ -665,18 +665,36 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
 .htl-heart {
   position: absolute; top: 16px; right: 16px; z-index: 7;
   width: 38px; height: 38px; border-radius: 50%;
-  background: rgba(0,0,0,0.5); backdrop-filter: blur(10px);
-  display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.55); backdrop-filter: blur(10px);
+  display: inline-flex; align-items: center; justify-content: center;
   cursor: pointer; border: 1px solid rgba(255,255,255,0.2);
   transition: all 0.28s ease; color: #fff;
+  padding: 0 !important; margin: 0; line-height: 0;
+  box-sizing: border-box;
+}
+.htl-heart svg {
+  display: block;
+  transform: translateY(1px);
+  transition: stroke 0.2s ease, fill 0.2s ease;
 }
 .htl-heart:hover {
-  background: rgba(201,168,76,0.2); border-color: var(--gold);
+  background: rgba(0,0,0,0.75); border-color: var(--gold);
   color: var(--gold); transform: scale(1.12);
-  box-shadow: 0 0 20px rgba(201,168,76,0.3);
+  box-shadow: 0 0 16px rgba(201,168,76,0.35);
 }
-.htl-heart.active { background: var(--gold); border-color: var(--gold); color: #0d0d0d; }
-.htl-heart.active svg { fill: currentColor; }
+.htl-heart:hover svg {
+  stroke: var(--gold);
+}
+.htl-heart.active {
+  background: rgba(0,0,0,0.7) !important;
+  border-color: var(--gold) !important;
+  color: var(--gold) !important;
+  box-shadow: 0 0 16px rgba(201,168,76,0.4);
+}
+.htl-heart.active svg {
+  fill: var(--gold) !important;
+  stroke: var(--gold) !important;
+}
 
 /* Card body — glassmorphism */
 .htl-card-body {
@@ -1243,8 +1261,20 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
           @endif
 
           {{-- Heart --}}
-          <button class="htl-heart" aria-label="Save to wishlist" onclick="event.preventDefault(); this.classList.toggle('active');" style="top:12px; right:12px; width:32px; height:32px; background:rgba(0,0,0,0.45); backdrop-filter:blur(6px);">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+          <button class="htl-heart js-wishlist-btn"
+            type="button"
+            aria-label="Save to wishlist"
+            data-hotel-id="{{ $hotel->id }}"
+            data-hotel-slug="{{ $hotel->slug }}"
+            data-hotel-title="{{ $hotel->title }}"
+            data-hotel-image="{{ $firstImage ?? '' }}"
+            data-hotel-destination="{{ $destination ?? '' }}"
+            data-hotel-stars="{{ $stars }}"
+            data-hotel-price="{{ !empty($liveOption['customerPrice']) ? '₹'.number_format($liveOption['customerPrice']) : (!empty($hotel->price_from) ? '₹'.number_format($hotel->price_from) : 'Price on Request') }}"
+            data-hotel-url="{{ route('hotel.details', $hotel->slug) }}"
+            onclick="event.preventDefault(); event.stopPropagation(); tytWishlist.toggleFromButton(this);"
+            style="top:12px; right:12px; width:34px; height:34px; background:rgba(0,0,0,0.55); backdrop-filter:blur(6px); padding:0; margin:0; display:inline-flex; align-items:center; justify-content:center;">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block; transform:translateY(1px);"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
           </button>
 
           {{-- Image counter bottom center --}}

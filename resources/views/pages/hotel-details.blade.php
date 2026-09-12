@@ -147,13 +147,13 @@ body { background: var(--dark); color: #fff; }
   stroke: var(--gold);
 }
 .hd-action-pill.active {
-  border-color: #ef4444;
-  color: #ef4444;
-  background: rgba(239,68,68,0.1);
+  border-color: var(--gold);
+  color: var(--gold);
+  background: rgba(201,168,76,0.12);
 }
 .hd-action-pill.active svg {
-  stroke: #ef4444;
-  fill: #ef4444;
+  stroke: var(--gold);
+  fill: var(--gold);
 }
 
 /* Header Row 2: Title, Stars, Address, & Gallery Controls */
@@ -2763,7 +2763,20 @@ html { scroll-behavior: smooth; }
         @endif
       </div>
       <div class="hd-header-actions">
-        <button type="button" class="hd-action-pill" id="hdFavBtn" data-hotel-id="{{ $hotel->id }}" data-hotel-title="{{ $hotel->title }}" aria-label="Add to favourites">
+        @php
+          $favImage = !empty($photoList[0]['url']) ? $photoList[0]['url'] : ($hotel->featured_image ?? '');
+          $favPrice = !empty($lowestPrice) ? '₹'.number_format($lowestPrice) : (!empty($hotel->price_from) ? '₹'.number_format($hotel->price_from) : 'Price on Request');
+        @endphp
+        <button type="button" class="hd-action-pill js-wishlist-btn" id="hdFavBtn"
+          data-hotel-id="{{ $hotel->id }}"
+          data-hotel-slug="{{ $hotel->slug }}"
+          data-hotel-title="{{ $hotel->title }}"
+          data-hotel-image="{{ $favImage }}"
+          data-hotel-destination="{{ $hotel->address ?? $destination }}"
+          data-hotel-stars="{{ $stars }}"
+          data-hotel-price="{{ $favPrice }}"
+          data-hotel-url="{{ url()->current() }}"
+          aria-label="Add to favourites">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
           </svg>
@@ -4855,33 +4868,16 @@ html { scroll-behavior: smooth; }
 
     /* ===== FAVOURITE, SHARE & MAP ACTIONS ===== */
     (function () {
-      // Favourite button
+      // Favourite button — integrated with global tytWishlist
       const favBtn = document.getElementById('hdFavBtn');
       if (favBtn) {
-        const hotelId = favBtn.getAttribute('data-hotel-id') || '0';
-        const hotelTitle = favBtn.getAttribute('data-hotel-title') || 'Hotel';
-        const favKey = 'tyt_fav_hotel_' + hotelId;
-        const favText = document.getElementById('hdFavText');
-
-        if (localStorage.getItem(favKey) === 'true') {
-          favBtn.classList.add('active');
-          if (favText) favText.textContent = 'Saved';
+        if (typeof window.tytWishlist !== 'undefined') {
+          window.tytWishlist.syncButtons();
         }
 
-        favBtn.addEventListener('click', () => {
-          const isFav = favBtn.classList.toggle('active');
-          if (isFav) {
-            localStorage.setItem(favKey, 'true');
-            if (favText) favText.textContent = 'Saved';
-            if (typeof window.showToast === 'function') {
-              window.showToast('Saved to Favourites', hotelTitle + ' has been saved to your favourites.');
-            }
-          } else {
-            localStorage.removeItem(favKey);
-            if (favText) favText.textContent = 'Favourite';
-            if (typeof window.showToast === 'function') {
-              window.showToast('Removed', hotelTitle + ' removed from your favourites.');
-            }
+        favBtn.addEventListener('click', (e) => {
+          if (typeof window.tytWishlist !== 'undefined') {
+            window.tytWishlist.toggleFromButton(favBtn, e);
           }
         });
       }

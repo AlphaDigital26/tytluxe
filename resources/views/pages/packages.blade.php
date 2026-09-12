@@ -122,7 +122,7 @@ Discover curated domestic and international travel packages with TYT Luxe. Honey
 .pkg-tour-type-pill {
   position: absolute;
   top: 15px;
-  right: 15px;
+  left: 15px;
   background-color: var(--gold);
   color: var(--dark);
   padding: 6px 14px;
@@ -131,8 +131,58 @@ Discover curated domestic and international travel packages with TYT Luxe. Honey
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  z-index: 2;
+  z-index: 3;
   box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+/* ===== PACKAGE CARD WISHLIST HEART ===== */
+.pkg-heart-btn {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  z-index: 5;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.28s ease;
+  padding: 0 !important;
+  margin: 0;
+  line-height: 0;
+  box-sizing: border-box;
+  outline: none;
+}
+.pkg-heart-btn svg {
+  display: block;
+  transform: translateY(1px);
+  transition: stroke 0.2s ease, fill 0.2s ease;
+}
+.pkg-heart-btn:hover {
+  background: rgba(0, 0, 0, 0.75);
+  border-color: var(--gold);
+  color: var(--gold);
+  transform: scale(1.12);
+  box-shadow: 0 0 16px rgba(201, 168, 76, 0.35);
+}
+.pkg-heart-btn:hover svg {
+  stroke: var(--gold);
+}
+.pkg-heart-btn.active {
+  background: rgba(0, 0, 0, 0.7) !important;
+  border-color: var(--gold) !important;
+  color: var(--gold) !important;
+  box-shadow: 0 0 16px rgba(201, 168, 76, 0.4);
+}
+.pkg-heart-btn.active svg {
+  fill: var(--gold) !important;
+  stroke: var(--gold) !important;
 }
 
 
@@ -441,6 +491,23 @@ Discover curated domestic and international travel packages with TYT Luxe. Honey
                   onkeydown="if(event.key==='Enter'||event.key===' ') openDrawer({{ $pkg->id }})">
                   <div class="dest-card-img" style="background-image: url('{{ $pkg->hero_image_url }}')"></div>
                   <div class="pkg-tour-type-pill">{{ ucfirst($pkg->tour_type) }}</div>
+                  <button type="button" class="pkg-heart-btn js-wishlist-btn"
+                    aria-label="Save {{ $pkg->title }} to wishlist"
+                    data-type="package"
+                    data-badge="{{ $pkg->duration_nights }}N/{{ $pkg->duration_nights + 1 }}D"
+                    data-hotel-id="pkg-{{ $pkg->id }}"
+                    data-hotel-slug="{{ $pkg->slug }}"
+                    data-hotel-title="{{ $pkg->title }}"
+                    data-hotel-image="{{ $pkg->hero_image_url }}"
+                    data-hotel-destination="{{ $pkg->destination?->name ?? 'India' }}"
+                    data-hotel-stars="5"
+                    data-hotel-price="From ₹{{ number_format($pkg->price) }}"
+                    data-hotel-url="{{ route('package.details', $pkg->slug) }}"
+                    onclick="event.stopPropagation(); tytWishlist.toggleFromButton(this, event);">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                    </svg>
+                  </button>
                   <div class="dest-card-overlay"></div>
                   <div class="dest-card-content">
                     <div class="dest-card-country">
@@ -530,6 +597,23 @@ Discover curated domestic and international travel packages with TYT Luxe. Honey
                   onkeydown="if(event.key==='Enter'||event.key===' ') openDrawer({{ $pkg->id }})">
                   <div class="dest-card-img" style="background-image: url('{{ $pkg->hero_image_url }}')"></div>
                   <div class="pkg-tour-type-pill">{{ ucfirst($pkg->tour_type) }}</div>
+                  <button type="button" class="pkg-heart-btn js-wishlist-btn"
+                    aria-label="Save {{ $pkg->title }} to wishlist"
+                    data-type="package"
+                    data-badge="{{ $pkg->duration_nights }}N/{{ $pkg->duration_nights + 1 }}D"
+                    data-hotel-id="pkg-{{ $pkg->id }}"
+                    data-hotel-slug="{{ $pkg->slug }}"
+                    data-hotel-title="{{ $pkg->title }}"
+                    data-hotel-image="{{ $pkg->hero_image_url }}"
+                    data-hotel-destination="{{ $pkg->destination?->name ?? 'International' }}"
+                    data-hotel-stars="5"
+                    data-hotel-price="From ₹{{ number_format($pkg->price) }}"
+                    data-hotel-url="{{ route('package.details', $pkg->slug) }}"
+                    onclick="event.stopPropagation(); tytWishlist.toggleFromButton(this, event);">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                    </svg>
+                  </button>
                   <div class="dest-card-overlay"></div>
                   <div class="dest-card-content">
                     <div class="dest-card-country">
@@ -619,6 +703,23 @@ Discover curated domestic and international travel packages with TYT Luxe. Honey
                   onkeydown="if(event.key==='Enter'||event.key===' ') openDrawer({{ $pkg->id }})">
                   <div class="dest-card-img" style="background-image: url('{{ $pkg->hero_image_url }}')"></div>
                   <div class="pkg-tour-type-pill">{{ ucfirst($pkg->tour_type) }}</div>
+                  <button type="button" class="pkg-heart-btn js-wishlist-btn"
+                    aria-label="Save {{ $pkg->title }} to wishlist"
+                    data-type="package"
+                    data-badge="{{ $pkg->duration_nights }}N/{{ $pkg->duration_nights + 1 }}D"
+                    data-hotel-id="pkg-{{ $pkg->id }}"
+                    data-hotel-slug="{{ $pkg->slug }}"
+                    data-hotel-title="{{ $pkg->title }}"
+                    data-hotel-image="{{ $pkg->hero_image_url }}"
+                    data-hotel-destination="{{ $pkg->destination?->name ?? 'India' }}"
+                    data-hotel-stars="5"
+                    data-hotel-price="From ₹{{ number_format($pkg->price) }}"
+                    data-hotel-url="{{ route('package.details', $pkg->slug) }}"
+                    onclick="event.stopPropagation(); tytWishlist.toggleFromButton(this, event);">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                    </svg>
+                  </button>
                   <div class="dest-card-overlay"></div>
                   <div class="dest-card-content">
                     <div class="dest-card-country">

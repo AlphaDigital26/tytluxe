@@ -62,6 +62,11 @@
                         <li><a href="{{ url('/offers') }}" class="{{ request()->is('offers') ? 'active' : '' }}" {{ request()->is('offers') ? 'aria-current=page' : '' }}>Offers</a></li>
                     @endif
                     <li><a href="{{ url('/contact') }}" class="{{ request()->is('contact') ? 'active' : '' }}" {{ request()->is('contact') ? 'aria-current=page' : '' }}>Contact Us</a></li>
+                    <li class="mobile-only-wishlist-item">
+                        <a href="{{ route('wishlist') }}" class="{{ request()->is('wishlist*') ? 'active' : '' }}" {{ request()->is('wishlist*') ? 'aria-current=page' : '' }}>
+                            <i class="fa-solid fa-heart" style="color: var(--primary); margin-right: 8px;"></i> Saved Stays (<span class="mobile-wishlist-count">0</span>)
+                        </a>
+                    </li>
                 </ul>
             </nav>
 
@@ -83,6 +88,10 @@
                         </button>
                         <div class="header-dropdown-menu" id="profileDropdown" role="menu">
                             <a href="{{ route('profile.edit') }}" role="menuitem"><i class="fa-solid fa-user" aria-hidden="true"></i> Profile</a>
+                            <a href="{{ route('wishlist') }}" role="menuitem" class="profile-dd-wishlist-item">
+                                <span><i class="fa-solid fa-heart" style="color: var(--primary); margin-right: 8px;" aria-hidden="true"></i> Wishlist</span>
+                                <span class="profile-dd-badge tyt-wishlist-count">0</span>
+                            </a>
                             <a href="{{ route('history') }}" role="menuitem"><i class="fa-solid fa-suitcase" aria-hidden="true"></i> Booking History</a>
                             <form method="POST" action="{{ route('logout') }}" style="margin: 0;">
                                 @csrf
@@ -163,3 +172,32 @@
         }
     });
 </script>
+
+<style>
+.header-dropdown-menu .profile-dd-wishlist-item {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+}
+.header-dropdown-menu .profile-dd-badge {
+    background: var(--primary, #c9a84c);
+    color: #0d0d0d;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 10px;
+    line-height: 1;
+    margin-left: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.mobile-only-wishlist-item {
+    display: none;
+}
+@media (max-width: 991px) {
+    .mobile-only-wishlist-item {
+        display: block;
+    }
+}
+</style>

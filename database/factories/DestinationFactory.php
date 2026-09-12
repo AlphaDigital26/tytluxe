@@ -18,7 +18,11 @@ class DestinationFactory extends Factory
     public function definition(): array
     {
         return [
-            //
+            'name' => fake()->city(),
+            'slug' => fake()->unique()->slug(),
+            'country' => 'India',
+            'type' => 'city',
+            'is_active' => true,
         ];
     }
 }
