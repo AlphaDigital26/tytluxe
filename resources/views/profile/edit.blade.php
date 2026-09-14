@@ -72,6 +72,27 @@
 .form-group input[type="checkbox"] { width: auto; margin-right: 12px; transform: scale(1.2); cursor: pointer; }
 .checkbox-label { display: flex; align-items: center; font-size: 14px; color: var(--text-muted); margin-bottom: 16px; cursor: pointer; }
 
+/* Notifications tab */
+.notif-group-label { font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 500; color: #fff; margin: 32px 0 14px; }
+.notif-group-label:first-of-type { margin-top: 0; }
+.notif-card { border: 1px solid #222; border-radius: 8px; background: #0a0a0a; overflow: hidden; }
+.notif-row { display: flex; align-items: center; gap: 16px; padding: 18px 22px; }
+.notif-row + .notif-row { border-top: 1px solid #1c1c1c; }
+.notif-icon { flex-shrink: 0; width: 40px; height: 40px; border-radius: 50%; background: rgba(201, 168, 76, 0.08); border: 1px solid rgba(201, 168, 76, 0.25); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 15px; }
+.notif-text { flex: 1; min-width: 0; }
+.notif-title { font-family: 'Outfit', sans-serif; font-size: 14.5px; font-weight: 600; color: #fff; margin-bottom: 3px; }
+.notif-desc { font-family: 'Outfit', sans-serif; font-size: 12.5px; color: var(--text-muted); line-height: 1.5; }
+
+/* Pill toggle switch — replaces the native checkbox visually while keeping
+   the exact same hidden-input + checkbox submission pattern. */
+.notif-toggle { position: relative; flex-shrink: 0; width: 44px; height: 26px; cursor: pointer; }
+.notif-toggle input[type="checkbox"] { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+.notif-toggle-track { position: absolute; inset: 0; background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 100px; transition: var(--transition); }
+.notif-toggle-track::before { content: ''; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 50%; background: #888; transition: var(--transition); }
+.notif-toggle input:checked ~ .notif-toggle-track { background: rgba(201, 168, 76, 0.25); border-color: var(--primary); }
+.notif-toggle input:checked ~ .notif-toggle-track::before { transform: translateX(18px); background: var(--primary); }
+.notif-toggle input:focus-visible ~ .notif-toggle-track { box-shadow: 0 0 0 2px rgba(201, 168, 76, 0.35); }
+
 /* Custom Buttons for Dark Theme */
 .btn-outline-dark { background: transparent; color: #fff; border: 1px solid #555; }
 .btn-outline-dark:hover { background: #fff; color: #000; transform: translateY(-2px); border-color: #fff; }
@@ -952,35 +973,74 @@
                 @php $notifs = auth()->user()->notifications ?? []; @endphp
                 <form method="POST" action="{{ route('profile.update') }}">
                     @csrf @method('patch')
-                    
-                    <h4 style="margin-top:24px; margin-bottom:16px; color:#fff;">Booking Updates</h4>
-                    <label class="checkbox-label">
-                        <input type="hidden" name="notifications[booking]" value="0">
-                        <input type="checkbox" name="notifications[booking]" value="1" {{ (old('notifications.booking', $notifs['booking'] ?? 1) == 1) ? 'checked' : '' }}>
-                        Receive emails for booking confirmations and updates.
-                    </label>
-                    <label class="checkbox-label">
-                        <input type="hidden" name="notifications[cancellation]" value="0">
-                        <input type="checkbox" name="notifications[cancellation]" value="1" {{ (old('notifications.cancellation', $notifs['cancellation'] ?? 1) == 1) ? 'checked' : '' }}>
-                        Receive emails for cancellations and refund updates.
-                    </label>
-                    
-                    <h4 style="margin-top:32px; margin-bottom:16px; color:#fff;">Promotional</h4>
-                    <label class="checkbox-label">
-                        <input type="hidden" name="notifications[promo_email]" value="0">
-                        <input type="checkbox" name="notifications[promo_email]" value="1" {{ (old('notifications.promo_email', $notifs['promo_email'] ?? 0) == 1) ? 'checked' : '' }}>
-                        Send me exclusive travel deals via Email.
-                    </label>
-                    <label class="checkbox-label">
-                        <input type="hidden" name="notifications[promo_sms]" value="0">
-                        <input type="checkbox" name="notifications[promo_sms]" value="1" {{ (old('notifications.promo_sms', $notifs['promo_sms'] ?? 0) == 1) ? 'checked' : '' }}>
-                        Send me exclusive travel deals via SMS.
-                    </label>
-                    <label class="checkbox-label">
-                        <input type="hidden" name="notifications[promo_whatsapp]" value="0">
-                        <input type="checkbox" name="notifications[promo_whatsapp]" value="1" {{ (old('notifications.promo_whatsapp', $notifs['promo_whatsapp'] ?? 0) == 1) ? 'checked' : '' }}>
-                        Send me exclusive travel deals via WhatsApp.
-                    </label>
+
+                    <h3 class="notif-group-label">Booking Updates</h3>
+                    <div class="notif-card">
+                        <label class="notif-row">
+                            <span class="notif-icon"><i class="fa-solid fa-suitcase-rolling"></i></span>
+                            <span class="notif-text">
+                                <span class="notif-title">Booking Confirmations</span>
+                                <span class="notif-desc">Emails when your booking is confirmed or its status changes.</span>
+                            </span>
+                            <span class="notif-toggle">
+                                <input type="hidden" name="notifications[booking]" value="0">
+                                <input type="checkbox" name="notifications[booking]" value="1" {{ (old('notifications.booking', $notifs['booking'] ?? 1) == 1) ? 'checked' : '' }}>
+                                <span class="notif-toggle-track"></span>
+                            </span>
+                        </label>
+                        <label class="notif-row">
+                            <span class="notif-icon"><i class="fa-solid fa-rotate-left"></i></span>
+                            <span class="notif-text">
+                                <span class="notif-title">Cancellations &amp; Refunds</span>
+                                <span class="notif-desc">Emails when a cancellation or refund is processed.</span>
+                            </span>
+                            <span class="notif-toggle">
+                                <input type="hidden" name="notifications[cancellation]" value="0">
+                                <input type="checkbox" name="notifications[cancellation]" value="1" {{ (old('notifications.cancellation', $notifs['cancellation'] ?? 1) == 1) ? 'checked' : '' }}>
+                                <span class="notif-toggle-track"></span>
+                            </span>
+                        </label>
+                    </div>
+
+                    <h3 class="notif-group-label">Promotional</h3>
+                    <div class="notif-card">
+                        <label class="notif-row">
+                            <span class="notif-icon"><i class="fa-solid fa-envelope"></i></span>
+                            <span class="notif-text">
+                                <span class="notif-title">Email</span>
+                                <span class="notif-desc">Exclusive deals and offers sent to your inbox.</span>
+                            </span>
+                            <span class="notif-toggle">
+                                <input type="hidden" name="notifications[promo_email]" value="0">
+                                <input type="checkbox" name="notifications[promo_email]" value="1" {{ (old('notifications.promo_email', $notifs['promo_email'] ?? 0) == 1) ? 'checked' : '' }}>
+                                <span class="notif-toggle-track"></span>
+                            </span>
+                        </label>
+                        <label class="notif-row">
+                            <span class="notif-icon"><i class="fa-solid fa-comment-sms"></i></span>
+                            <span class="notif-text">
+                                <span class="notif-title">SMS</span>
+                                <span class="notif-desc">Quick deal alerts sent straight to your phone.</span>
+                            </span>
+                            <span class="notif-toggle">
+                                <input type="hidden" name="notifications[promo_sms]" value="0">
+                                <input type="checkbox" name="notifications[promo_sms]" value="1" {{ (old('notifications.promo_sms', $notifs['promo_sms'] ?? 0) == 1) ? 'checked' : '' }}>
+                                <span class="notif-toggle-track"></span>
+                            </span>
+                        </label>
+                        <label class="notif-row">
+                            <span class="notif-icon"><i class="fa-brands fa-whatsapp"></i></span>
+                            <span class="notif-text">
+                                <span class="notif-title">WhatsApp</span>
+                                <span class="notif-desc">Personalised offers and updates via WhatsApp.</span>
+                            </span>
+                            <span class="notif-toggle">
+                                <input type="hidden" name="notifications[promo_whatsapp]" value="0">
+                                <input type="checkbox" name="notifications[promo_whatsapp]" value="1" {{ (old('notifications.promo_whatsapp', $notifs['promo_whatsapp'] ?? 0) == 1) ? 'checked' : '' }}>
+                                <span class="notif-toggle-track"></span>
+                            </span>
+                        </label>
+                    </div>
 
                     <button type="submit" class="btn btn-primary" style="margin-top: 32px;">Save Notifications</button>
                 </form>
@@ -1036,7 +1096,7 @@
                 
                 <h4 style="margin-bottom:16px; color:#fff;">Request Personal Data</h4>
                 <p style="font-size:14px; color:var(--text-muted); margin-bottom:24px;">You can request a copy of all the personal data we hold about you.</p>
-                <button class="btn btn-outline-dark mb-5" onclick="alert('Data request has been initiated. You will receive an email shortly.')">Download My Data</button>
+                <a href="{{ route('profile.export-data') }}" class="btn btn-outline-dark mb-5" style="text-decoration:none; display:inline-block;">Download My Data</a>
 
                 <hr style="border:0; border-top:1px solid #222; margin:40px 0;">
 
@@ -1265,7 +1325,6 @@
                 }
             });
         }
-    });
 
     let govtIdIndex = {{ count($govtIds ?? []) ?: 1 }};
     

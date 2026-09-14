@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Booking;
 use App\Models\Destination;
 use App\Models\Hotel;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -12,6 +13,14 @@ use Tests\TestCase;
 class TripJackBookingFlowTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // Booking now requires an account — every test in this file acts as
+        // a logged-in guest, matching the auth-gated routes in web.php.
+        $this->actingAs(User::factory()->create());
+    }
 
     public function test_full_review_book_confirmation_flow_with_pan_required(): void
     {

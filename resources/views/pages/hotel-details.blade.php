@@ -3676,9 +3676,11 @@ html { scroll-behavior: smooth; }
     </div>
 
     @if(session('booking_error'))
-    <div style="margin-bottom:18px; padding:14px 18px; border-radius:12px; background:rgba(220,80,80,0.08); border:1px solid rgba(220,80,80,0.3); color:#f3a3a3; font-family:'Jost',sans-serif; font-size:13.5px;">
-      {{ session('booking_error') }}
-    </div>
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        showToast('Something Went Wrong', @json(session('booking_error')), 'error');
+      });
+    </script>
     @endif
 
     @if(($liveOptions ?? collect())->isNotEmpty())
@@ -3840,6 +3842,7 @@ html { scroll-behavior: smooth; }
                     <div class="hd-rate-price-per-night">{{ $pricing['currency'] ?? 'INR' }} {{ number_format($perNight) }}/night</div>
                     <div class="hd-rate-price-total">{{ $pricing['currency'] ?? 'INR' }} {{ number_format($customerPrice) }}</div>
                     <div class="hd-rate-price-caption">Total price for {{ $roomCount }} room{{ $roomCount > 1 ? 's' : '' }}</div>
+                    @auth
                     <form method="POST" action="{{ route('hotel.review', $hotel->slug) }}" class="hd-select-room-form">
                       @csrf
                       <input type="hidden" name="option_id" value="{{ $option['optionId'] ?? '' }}">
@@ -3853,6 +3856,16 @@ html { scroll-behavior: smooth; }
                         <span class="hd-room-btn-label">Select Room</span>
                       </button>
                     </form>
+                    @else
+                    {{-- Booking requires an account, but browsing/pricing doesn't.
+                         Linking straight to /login (rather than POSTing to an
+                         auth-gated route) means the post-login redirect lands
+                         back on this GET page, not a POST-only URL it can't
+                         re-submit to. --}}
+                    <a href="{{ route('login') }}" class="hd-room-btn" style="width: 100%; border-radius: 100px; padding: 12px 16px; text-decoration: none;">
+                      <span class="hd-room-btn-label">Login to Book</span>
+                    </a>
+                    @endauth
                   </div>
 
                 </div>
