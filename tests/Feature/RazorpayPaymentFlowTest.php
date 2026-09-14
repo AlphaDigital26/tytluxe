@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Booking;
 use App\Models\Destination;
 use App\Models\Hotel;
+use App\Models\User;
 use App\Services\Payment\RazorpayService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -17,11 +18,15 @@ class RazorpayPaymentFlowTest extends TestCase
 
     protected FakeRazorpayService $razorpay;
 
+    protected User $user;
+
     protected function setUp(): void
     {
         parent::setUp();
         $this->razorpay = new FakeRazorpayService();
         $this->app->instance(RazorpayService::class, $this->razorpay);
+        $this->user = User::factory()->create();
+        $this->actingAs($this->user);
     }
 
     protected function createPendingBooking(string $slug, string $tjHotelId): Booking

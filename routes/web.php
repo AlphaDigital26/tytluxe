@@ -13,13 +13,22 @@ Route::get('/wishlist', [FrontendController::class, 'wishlist'])->name('wishlist
 Route::post('/wishlist/lookup', [FrontendController::class, 'wishlistLookup'])->name('wishlist.lookup');
 Route::redirect('/hotels/wishlist', '/wishlist');
 Route::get('/hotels/{slug}', [FrontendController::class, 'hotelDetails'])->name('hotel.details');
-Route::post('/hotels/{slug}/review', [FrontendController::class, 'reviewRoom'])->name('hotel.review');
-Route::get('/hotels/{slug}/review', [FrontendController::class, 'showReview'])->name('hotel.review.show');
-Route::post('/hotels/{slug}/book', [FrontendController::class, 'submitBooking'])->name('hotel.book');
-Route::get('/booking/{reference}/pay', [FrontendController::class, 'showPayment'])->name('hotel.payment.show');
-Route::post('/payment/razorpay/callback', [FrontendController::class, 'razorpayCallback'])->name('payment.razorpay.callback');
+
+// Browsing (search, hotel details, live pricing) stays public — only actually
+// committing to a booking requires an account, same as every mainstream OTA.
+Route::middleware('auth')->group(function () {
+    Route::post('/hotels/{slug}/review', [FrontendController::class, 'reviewRoom'])->name('hotel.review');
+    Route::get('/hotels/{slug}/review', [FrontendController::class, 'showReview'])->name('hotel.review.show');
+    Route::post('/hotels/{slug}/book', [FrontendController::class, 'submitBooking'])->name('hotel.book');
+    Route::get('/booking/{reference}/pay', [FrontendController::class, 'showPayment'])->name('hotel.payment.show');
+    Route::post('/payment/razorpay/callback', [FrontendController::class, 'razorpayCallback'])->name('payment.razorpay.callback');
+    Route::get('/booking/{reference}', [FrontendController::class, 'bookingConfirmation'])->name('hotel.booking.confirmation');
+});
+
+// Razorpay's server calls this directly — no user session exists here, so it
+// can't sit behind 'auth'. Protected instead by its own HMAC signature check
+// (RazorpayService::verifyWebhookSignature), same security model as an API key.
 Route::post('/payment/razorpay/webhook', [FrontendController::class, 'razorpayWebhook'])->name('payment.razorpay.webhook');
-Route::get('/booking/{reference}', [FrontendController::class, 'bookingConfirmation'])->name('hotel.booking.confirmation');
 Route::get('/cruises', [FrontendController::class, 'cruises'])->name('cruises');
 Route::get('/packages', [FrontendController::class, 'packages'])->name('packages');
 Route::get('/packages/{slug}', [FrontendController::class, 'packageDetails'])->name('package.details');
@@ -40,6 +49,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::get('/profile/export-data', [ProfileController::class, 'exportData'])->name('profile.export-data');
 
     Route::post('/profile/traveller', [ProfileController::class, 'storeTraveller'])->name('profile.traveller.store');
     Route::patch('/profile/traveller/{traveller}', [ProfileController::class, 'updateTraveller'])->name('profile.traveller.update');

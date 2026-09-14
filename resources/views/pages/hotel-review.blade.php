@@ -160,27 +160,34 @@
     <form method="POST" action="{{ route('hotel.book', $hotel->slug) }}" id="brBookForm">
       @csrf
 
+      @php
+        // Prefill from the logged-in guest's own profile so returning
+        // guests don't retype everything — old() (a resubmission after a
+        // validation error) always wins over the profile default.
+        $profileName = trim(auth()->user()->name.' '.(auth()->user()->last_name ?? ''));
+        $profilePan = collect(auth()->user()->govt_ids ?? [])->firstWhere('type', 'PAN Card')['number'] ?? null;
+      @endphp
       <div class="br-section">
         <h2>Lead Guest</h2>
         <div class="br-row">
           <div class="br-field {{ $errors->has('lead_name') ? 'error' : '' }}">
             <label>Full Name</label>
-            <input type="text" name="lead_name" value="{{ old('lead_name') }}" placeholder="e.g. Rahul Sharma" required>
+            <input type="text" name="lead_name" value="{{ old('lead_name', $profileName) }}" placeholder="e.g. Rahul Sharma" required>
           </div>
           <div class="br-field {{ $errors->has('lead_email') ? 'error' : '' }}">
             <label>Email</label>
-            <input type="email" name="lead_email" value="{{ old('lead_email') }}" placeholder="you@email.com" required>
+            <input type="email" name="lead_email" value="{{ old('lead_email', auth()->user()->email) }}" placeholder="you@email.com" required>
           </div>
         </div>
         <div class="br-row">
           <div class="br-field {{ $errors->has('lead_phone') ? 'error' : '' }}">
             <label>Phone / WhatsApp</label>
-            <input type="tel" name="lead_phone" value="{{ old('lead_phone') }}" placeholder="98765 43210" required>
+            <input type="tel" name="lead_phone" value="{{ old('lead_phone', auth()->user()->phone) }}" placeholder="98765 43210" required>
           </div>
           @if($panRequired)
           <div class="br-field {{ $errors->has('pan_number') ? 'error' : '' }}">
             <label>PAN Number (required for this rate)</label>
-            <input type="text" name="pan_number" value="{{ old('pan_number') }}" placeholder="ABCDE1234F" required>
+            <input type="text" name="pan_number" value="{{ old('pan_number', $profilePan) }}" placeholder="ABCDE1234F" required>
           </div>
           @endif
         </div>

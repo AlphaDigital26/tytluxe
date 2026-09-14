@@ -263,6 +263,40 @@ class FrontendController extends Controller
         return $this->distributeGuestsAcrossRooms($draft['adults'], $draft['children'], $draft['rooms']);
     }
 
+    /**
+     * Fills blanks on the logged-in guest's profile from freshly-validated
+     * booking details — never overwrites anything they've already set
+     * themselves, and never lets a profile hiccup (e.g. a duplicate phone
+     * number already claimed by another account) break the booking itself.
+     */
+    protected function syncProfileFromBooking(\App\Models\User $user, array $validated, bool $panRequired): void
+    {
+        try {
+            $dirty = false;
+
+            if (empty($user->phone) && ! \App\Models\User::where('phone', $validated['lead_phone'])->where('id', '!=', $user->id)->exists()) {
+                $user->phone = $validated['lead_phone'];
+                $dirty = true;
+            }
+
+            if ($panRequired && ! empty($validated['pan_number'])) {
+                $govtIds = $user->govt_ids ?? [];
+                $hasPan = collect($govtIds)->contains(fn ($id) => ($id['type'] ?? null) === 'PAN Card');
+                if (! $hasPan) {
+                    $govtIds[] = ['type' => 'PAN Card', 'number' => strtoupper($validated['pan_number'])];
+                    $user->govt_ids = $govtIds;
+                    $dirty = true;
+                }
+            }
+
+            if ($dirty) {
+                $user->save();
+            }
+        } catch (\Throwable $e) {
+            Log::warning('profile_sync_from_booking_failed', ['user_id' => $user->id, 'message' => $e->getMessage()]);
+        }
+    }
+
     public function wishlist(Request $request)
     {
         $featuredHotels = Hotel::with(['destination', 'images'])
@@ -526,21 +560,34 @@ class FrontendController extends Controller
         $passportRequired = $option['compliance']['passportRequired'] ?? $option['ipm'] ?? false;
         $roomSlots = $this->roomSlotsFromDraft($draft);
 
+        // Matches the same format ProfileUpdateRequest already enforces for
+        // a PAN Card govt_id, so a booking's PAN and a profile's PAN are
+        // never validated against two different standards.
+        $panRegex = 'regex:/^[A-Za-z]{5}[0-9]{4}[A-Za-z]{1}$/';
+        $nameRegex = "regex:/^[A-Za-z\\s.'-]+$/"; // letters/spaces/., ' and - only — rejects digits and stray symbols
+        $phoneRule = function ($attribute, $value, $fail) {
+            $digits = preg_replace('/\D/', '', (string) $value);
+            $digits = preg_replace('/^91(?=\d{10}$)/', '', $digits); // strip an optional leading +91/91 country code
+            if (! preg_match('/^[6-9]\d{9}$/', $digits)) {
+                $fail('Please enter a valid 10-digit mobile number.');
+            }
+        };
+
         $rules = [
-            'lead_name' => 'required|string|max:255',
+            'lead_name' => ['required', 'string', 'max:255', $nameRegex],
             'lead_email' => 'required|email|max:255',
-            'lead_phone' => 'required|string|max:20',
-            'pan_number' => $panRequired ? 'required|string|max:20' : 'nullable|string|max:20',
+            'lead_phone' => ['required', 'string', 'max:20', $phoneRule],
+            'pan_number' => [$panRequired ? 'required' : 'nullable', 'string', $panRegex],
             'rooms' => 'required|array',
         ];
         foreach ($roomSlots as $ri => $slot) {
             $count = $slot['adults'] + ($slot['children'] ?? 0);
             for ($ti = 0; $ti < $count; $ti++) {
                 $rules["rooms.{$ri}.travelers.{$ti}.title"] = 'required|string|max:10';
-                $rules["rooms.{$ri}.travelers.{$ti}.first_name"] = 'required|string|max:100';
-                $rules["rooms.{$ri}.travelers.{$ti}.last_name"] = 'required|string|max:100';
+                $rules["rooms.{$ri}.travelers.{$ti}.first_name"] = ['required', 'string', 'max:100', $nameRegex];
+                $rules["rooms.{$ri}.travelers.{$ti}.last_name"] = ['required', 'string', 'max:100', $nameRegex];
                 if ($passportRequired) {
-                    $rules["rooms.{$ri}.travelers.{$ti}.passport_number"] = 'required|string|max:30';
+                    $rules["rooms.{$ri}.travelers.{$ti}.passport_number"] = ['required', 'string', 'regex:/^[A-Za-z0-9]{6,20}$/'];
                 }
             }
         }
@@ -589,6 +636,7 @@ class FrontendController extends Controller
         $basePrice = $pricing['basePrice'] ?? 0;
         $booking = Booking::create([
             'reference' => 'TYT'.strtoupper(Str::random(8)),
+            'user_id' => $request->user()->id,
             'guest_email' => $validated['lead_email'],
             'guest_phone' => $validated['lead_phone'],
             'vertical' => 'hotel',
@@ -637,6 +685,8 @@ class FrontendController extends Controller
                 ]);
             }
         }
+
+        $this->syncProfileFromBooking($request->user(), $validated, $panRequired);
 
         // Everything needed to complete the booking now lives on the Booking
         // row itself — the review draft has served its purpose.
@@ -702,6 +752,13 @@ class FrontendController extends Controller
     {
         $booking = Booking::with('hotel')->where('reference', $reference)->firstOrFail();
 
+        // A booking reference alone must never be enough to view someone
+        // else's booking — this route sits behind 'auth', but auth alone is
+        // only authentication, not authorization.
+        if ($booking->user_id !== auth()->id()) {
+            abort(403);
+        }
+
         $liveStatus = null;
         if ($booking->tripjack_booking_id) {
             try {
@@ -760,6 +817,10 @@ class FrontendController extends Controller
     public function showPayment($reference, RazorpayService $razorpay)
     {
         $booking = Booking::with('hotel')->where('reference', $reference)->firstOrFail();
+
+        if ($booking->user_id !== auth()->id()) {
+            abort(403);
+        }
 
         if (! in_array($booking->status, ['pending_payment', 'payment_failed'], true)) {
             return redirect()->route('hotel.booking.confirmation', $booking->reference);

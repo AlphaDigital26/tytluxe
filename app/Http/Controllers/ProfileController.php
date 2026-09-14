@@ -60,6 +60,75 @@ class ProfileController extends Controller
     }
 
     /**
+     * "Download My Data" — a personal-data export covering the profile
+     * fields, saved co-travellers, and booking history tied to this
+     * account. Deliberately excludes auth secrets (password hash, 2FA
+     * secrets, remember token) even though those are already hidden on the
+     * model — this is a separate, explicit allowlist so the export can
+     * never accidentally widen as new fields are added to User later.
+     */
+    public function exportData(Request $request)
+    {
+        $user = $request->user();
+
+        $payload = [
+            'exported_at' => now()->toIso8601String(),
+            'profile' => [
+                'name' => $user->name,
+                'last_name' => $user->last_name,
+                'email' => $user->email,
+                'phone' => $user->phone,
+                'dob' => $user->dob?->toDateString(),
+                'gender' => $user->gender,
+                'nationality' => $user->nationality,
+                'marital_status' => $user->marital_status,
+                'anniversary' => $user->anniversary?->toDateString(),
+                'passport_no' => $user->passport_no,
+                'passport_expiry' => $user->passport_expiry?->toDateString(),
+                'passport_issuing_country' => $user->passport_issuing_country,
+                'govt_ids' => $user->govt_ids,
+                'address' => $user->address,
+                'preferences' => $user->preferences,
+                'notifications' => $user->notifications,
+                'created_at' => $user->created_at?->toIso8601String(),
+            ],
+            'saved_travellers' => $user->savedTravellers->map(fn ($t) => [
+                'first_name' => $t->first_name,
+                'last_name' => $t->last_name,
+                'relationship' => $t->relationship,
+                'dob' => $t->dob?->toDateString(),
+                'gender' => $t->gender,
+                'nationality' => $t->nationality,
+                'passport_number' => $t->passport_number,
+                'passport_expiry' => $t->passport_expiry?->toDateString(),
+                'passport_issuing_country' => $t->passport_issuing_country,
+                'phone' => $t->phone,
+                'email' => $t->email,
+            ])->all(),
+            'bookings' => $user->bookings()->with('hotel')->get()->map(fn ($b) => [
+                'reference' => $b->reference,
+                'hotel' => $b->hotel?->title,
+                // check_in/check_out aren't cast to Carbon on Booking (plain
+                // date strings from the DB already) — unlike dob/anniversary/
+                // passport_expiry above, which are.
+                'check_in' => $b->check_in,
+                'check_out' => $b->check_out,
+                'lead_guest_name' => $b->lead_guest_name,
+                'total_amount' => $b->total_amount,
+                'currency' => $b->currency,
+                'status' => $b->status,
+                'booked_on' => $b->created_at?->toIso8601String(),
+            ])->all(),
+        ];
+
+        $filename = 'tytluxe-my-data-'.now()->format('Y-m-d').'.json';
+
+        return response()->streamDownload(function () use ($payload) {
+            echo json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+        }, $filename, ['Content-Type' => 'application/json']);
+    }
+
+    /**
      * Delete the user's account.
      */
     public function destroy(Request $request): RedirectResponse
