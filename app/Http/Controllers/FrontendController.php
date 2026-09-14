@@ -568,7 +568,11 @@ class FrontendController extends Controller
         $phoneRule = function ($attribute, $value, $fail) {
             $digits = preg_replace('/\D/', '', (string) $value);
             $digits = preg_replace('/^91(?=\d{10}$)/', '', $digits); // strip an optional leading +91/91 country code
-            if (! preg_match('/^[6-9]\d{9}$/', $digits)) {
+            // Just enough to reject garbage (too short/long, letters) — not
+            // an Indian-mobile-carrier-prefix check. Restricting to numbers
+            // starting 6-9 wrongly rejected real 10-digit numbers that don't
+            // happen to follow that convention.
+            if (! preg_match('/^\d{10}$/', $digits)) {
                 $fail('Please enter a valid 10-digit mobile number.');
             }
         };
