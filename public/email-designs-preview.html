@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TYT Luxe - Email Newsletter UI Designs</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: #0c0a08;
+      color: #e8e4de;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: 30px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .container {
+      max-width: 1200px;
+      width: 100%;
+      text-align: center;
+    }
+    h1 {
+      font-size: 28px;
+      color: #fff;
+      margin-bottom: 8px;
+      letter-spacing: 0.05em;
+    }
+    h1 span {
+      color: #c29a62;
+    }
+    p.subtitle {
+      color: #a8a29e;
+      font-size: 15px;
+      margin-bottom: 24px;
+    }
+    .image-card {
+      background: #14120e;
+      border: 1px solid rgba(194, 154, 98, 0.3);
+      border-radius: 12px;
+      padding: 12px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.8);
+      margin-bottom: 30px;
+    }
+    .image-card img {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 8px;
+    }
+    .labels-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      text-align: left;
+      margin-top: 10px;
+    }
+    @media (max-width: 768px) {
+      .labels-grid { grid-template-columns: 1fr; }
+    }
+    .concept-box {
+      background: #14120e;
+      border: 1px solid rgba(194, 154, 98, 0.2);
+      border-radius: 10px;
+      padding: 20px;
+    }
+    .concept-box h3 {
+      color: #c29a62;
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+    .concept-box p {
+      color: #9c958c;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>TYT LUXE &mdash; <span>Email UI Concepts</span></h1>
+    <p class="subtitle">Generated designs for the automated travel blog newsletter matching your brand identity</p>
+    
+    <div class="image-card">
+      <img src="assets/images/email_ui_designs.jpg" alt="TYT Luxe Email UI Concepts: Obsidian Noir, Ivory Editorial, and Grand Royale">
+    </div>
+
+    <div class="labels-grid">
+      <div class="concept-box">
+        <h3>1. Obsidian Noir (Left)</h3>
+        <p>Ultra-luxury dark theme with deep onyx background, brushed champagne gold accents, Amalfi hero cover photo, "READ FULL STORY" gold button, and WhatsApp Concierge quick chat bar.</p>
+      </div>
+      <div class="concept-box">
+        <h3>2. Ivory Editorial (Center)</h3>
+        <p>Prestigious magazine style with warm alabaster cream background, black serif typography, multi-photo editorial triptych, pull quote excerpt, and sleek minimalist footer.</p>
+      </div>
+      <div class="concept-box">
+        <h3>3. Grand Royale (Right)</h3>
+        <p>Hybrid luxury style featuring a midnight black header band, floating bordered ivory parchment card, reading time badge, and dual action buttons ("Read Journal" + "WhatsApp Concierge").</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

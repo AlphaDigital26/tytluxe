@@ -1345,14 +1345,37 @@ class FrontendController extends Controller
         ));
     }
 
-    public function blog()
+    public function blog(\Illuminate\Http\Request $request)
     {
         $categories = \App\Models\BlogCategory::where('is_active', true)->orderBy('sort_order')->get();
         $trendingPosts = \App\Models\BlogPost::with('category')->where('is_active', true)->where('is_trending', true)->orderBy('sort_order')->get();
-        $posts = \App\Models\BlogPost::with('category')->where('is_active', true)->orderBy('sort_order')->get();
+
+        $activeCategory = $request->query('category');
+
+        $postsQuery = \App\Models\BlogPost::with('category')->where('is_active', true)->orderBy('sort_order');
+        if ($activeCategory) {
+            $postsQuery->whereHas('category', fn ($q) => $q->where('slug', $activeCategory));
+        }
+        $posts = $postsQuery->paginate(9)->withQueryString();
+
         $destinations = \App\Models\FeaturedBlogDestination::orderBy('sort_order')->take(4)->get();
 
-        return view('pages.blog', compact('categories', 'trendingPosts', 'posts', 'destinations'));
+        return view('pages.blog', compact('categories', 'trendingPosts', 'posts', 'destinations', 'activeCategory'));
+    }
+
+    public function blogDetails($slug)
+    {
+        $post = \App\Models\BlogPost::with('category')->where('slug', $slug)->where('is_active', true)->firstOrFail();
+
+        $relatedPosts = \App\Models\BlogPost::with('category')
+            ->where('is_active', true)
+            ->where('id', '!=', $post->id)
+            ->when($post->blog_category_id, fn ($q) => $q->where('blog_category_id', $post->blog_category_id))
+            ->orderBy('sort_order')
+            ->take(3)
+            ->get();
+
+        return view('pages.blog-details', compact('post', 'relatedPosts'));
     }
     public function downloadItinerary($slug)
     {

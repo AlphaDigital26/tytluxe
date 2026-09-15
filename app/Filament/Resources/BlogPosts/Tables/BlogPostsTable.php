@@ -19,10 +19,12 @@ class BlogPostsTable
     {
         return $table
             ->columns([
-                ImageColumn::make('cover_image_url')
+                ImageColumn::make('cover_image_path')
                     ->label('Cover')
+                    ->disk('public')
                     ->height(50)
                     ->width(80)
+                    ->defaultImageUrl(fn ($record) => $record->cover_image_url ?: null)
                     ->extraImgAttributes(['style' => 'object-fit:cover;border-radius:4px;']),
 
                 TextColumn::make('title')

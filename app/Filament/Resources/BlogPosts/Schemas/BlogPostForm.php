@@ -4,6 +4,7 @@ namespace App\Filament\Resources\BlogPosts\Schemas;
 
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Schemas\Components\Section;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -51,11 +52,21 @@ class BlogPostForm
                 Section::make('Media')
                     ->icon('heroicon-o-photo')
                     ->schema([
+                        FileUpload::make('cover_image_path')
+                            ->label('Upload Cover Image')
+                            ->disk('public')
+                            ->image()
+                            ->imagePreviewHeight('160')
+                            ->maxSize(8192)
+                            ->saveUploadedFileUsing(fn ($file) => app(\App\Services\ImageOptimizer::class)->optimizeAndSave($file, 'hero', 'blog-covers'))
+                            ->helperText('Upload from your computer — takes priority over the URL below.')
+                            ->columnSpanFull(),
+
                         TextInput::make('cover_image_url')
-                            ->label('Cover Image URL')
+                            ->label('Or: External Image URL')
                             ->url()
                             ->maxLength(1000)
-                            ->helperText('Paste an Unsplash or any public image URL.')
+                            ->helperText('Paste an Unsplash or any public image URL. Used only if no image is uploaded above.')
                             ->columnSpanFull(),
                     ]),
 
