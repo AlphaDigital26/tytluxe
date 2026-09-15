@@ -64,6 +64,14 @@ class RazorpayService
      */
     public function verifyWebhookSignature(string $body, string $signature): bool
     {
+        // HMAC against an empty key is still a value anyone can compute
+        // themselves — an unset secret makes every signature forgeable, not
+        // just unverifiable. Fail closed rather than silently trusting a
+        // signature checked against a known/empty key.
+        if ($this->webhookSecret === '') {
+            return false;
+        }
+
         try {
             $this->api->utility->verifyWebhookSignature($body, $signature, $this->webhookSecret);
 

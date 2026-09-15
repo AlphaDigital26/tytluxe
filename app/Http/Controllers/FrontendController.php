@@ -638,42 +638,63 @@ class FrontendController extends Controller
         $breakdown = $pricing['pricingBreakdown'] ?? null;
         $customerPrice = $pricing['customerPrice'] ?? ($pricing['totalPrice'] ?? 0);
         $basePrice = $pricing['basePrice'] ?? 0;
-        $booking = Booking::create([
-            'reference' => 'TYT'.strtoupper(Str::random(8)),
-            'user_id' => $request->user()->id,
-            'guest_email' => $validated['lead_email'],
-            'guest_phone' => $validated['lead_phone'],
-            'vertical' => 'hotel',
-            'hotel_id' => $hotel->id,
-            // tripjack_booking_id stays null until Book is actually called,
-            // post-payment. tripjack_hold_id is Review's bookingId — the
-            // identifier Book() itself needs, kept regardless of payment.
-            'tripjack_hold_id' => $draft['bookingId'],
-            'tripjack_option_id' => $option['optionId'] ?? null,
-            'tripjack_hold_expires_at' => $option['deadlineDateTime'] ?? null,
-            // The exact Book-API payload, persisted so the post-payment Book
-            // call — which may run from a Razorpay webhook with no session —
-            // can reconstruct it from the DB alone.
-            'tripjack_room_traveller_payload' => $roomTravellerInfo,
-            'check_in' => $draft['check_in'],
-            'check_out' => $draft['check_out'],
-            'pax_adults' => $draft['adults'],
-            'pax_children' => $draft['children'],
-            'lead_guest_name' => $validated['lead_name'],
-            'base_amount' => $basePrice,
-            // Mirrors the customer-facing "Taxes & Fees" line on the review
-            // page: everything between TripJack's base price and our final
-            // customer price, so base_amount + tax_amount = total_amount.
-            'tax_amount' => $customerPrice - $basePrice,
-            'total_amount' => $customerPrice,
-            'tripjack_total_price' => $breakdown['tripjack_total_price'] ?? ($pricing['totalPrice'] ?? null),
-            'gst_slab' => $breakdown['gst_slab'] ?? null,
-            'margin_amount' => $breakdown['margin_amount'] ?? null,
-            'gst_on_margin' => $breakdown['gst_on_margin'] ?? null,
-            'razorpay_recovery' => $breakdown['razorpay_recovery'] ?? null,
-            'currency' => $pricing['currency'] ?? 'INR',
-            'status' => 'pending_payment', // awaiting Razorpay payment — Book hasn't been called yet
-        ]);
+
+        try {
+            $booking = Booking::create([
+                'reference' => 'TYT'.strtoupper(Str::random(8)),
+                'user_id' => $request->user()->id,
+                'guest_email' => $validated['lead_email'],
+                'guest_phone' => $validated['lead_phone'],
+                'vertical' => 'hotel',
+                'hotel_id' => $hotel->id,
+                // tripjack_booking_id stays null until Book is actually called,
+                // post-payment. tripjack_hold_id is Review's bookingId — the
+                // identifier Book() itself needs, kept regardless of payment.
+                // Unique-indexed at the DB level: it's one-per-Review, so it
+                // doubles as an idempotency key against a double form-submit
+                // racing this same request before the session draft is cleared.
+                'tripjack_hold_id' => $draft['bookingId'],
+                'tripjack_option_id' => $option['optionId'] ?? null,
+                'tripjack_hold_expires_at' => $option['deadlineDateTime'] ?? null,
+                // The exact Book-API payload, persisted so the post-payment Book
+                // call — which may run from a Razorpay webhook with no session —
+                // can reconstruct it from the DB alone.
+                'tripjack_room_traveller_payload' => $roomTravellerInfo,
+                'check_in' => $draft['check_in'],
+                'check_out' => $draft['check_out'],
+                'pax_adults' => $draft['adults'],
+                'pax_children' => $draft['children'],
+                'lead_guest_name' => $validated['lead_name'],
+                'base_amount' => $basePrice,
+                // Mirrors the customer-facing "Taxes & Fees" line on the review
+                // page: everything between TripJack's base price and our final
+                // customer price, so base_amount + tax_amount = total_amount.
+                'tax_amount' => $customerPrice - $basePrice,
+                'total_amount' => $customerPrice,
+                'tripjack_total_price' => $breakdown['tripjack_total_price'] ?? ($pricing['totalPrice'] ?? null),
+                'gst_slab' => $breakdown['gst_slab'] ?? null,
+                'margin_amount' => $breakdown['margin_amount'] ?? null,
+                'gst_on_margin' => $breakdown['gst_on_margin'] ?? null,
+                'razorpay_recovery' => $breakdown['razorpay_recovery'] ?? null,
+                'currency' => $pricing['currency'] ?? 'INR',
+                'status' => 'pending_payment', // awaiting Razorpay payment — Book hasn't been called yet
+            ]);
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Unique constraint on tripjack_hold_id — a racing double-submit
+            // already created this exact booking a moment ago. Send the guest
+            // to its payment page rather than creating a second Booking +
+            // Razorpay order for the same room hold.
+            if ((int) $e->getCode() === 23000) {
+                $existing = Booking::where('tripjack_hold_id', $draft['bookingId'])->first();
+                if ($existing) {
+                    session()->forget('tripjack_booking_draft');
+
+                    return redirect()->route('hotel.payment.show', $existing->reference);
+                }
+            }
+
+            throw $e;
+        }
 
         foreach ($roomSlots as $ri => $slot) {
             $adultCount = $slot['adults'];
@@ -789,6 +810,13 @@ class FrontendController extends Controller
                         $this->resolveOnHoldBooking($booking, $payment, $client, $razorpay);
                         $booking->refresh();
                     }
+                } elseif ($liveStatus === 'CANCELLED' && $booking->status !== 'cancelled') {
+                    // Catches a cancellation that was still CANCELLATION_PENDING
+                    // when submitCancellation() last checked and has since
+                    // resolved offline (TripJack's own docs: poll once daily —
+                    // this fires whenever the guest happens to revisit the page).
+                    $this->finalizeCancellation($booking, $details, $razorpay);
+                    $booking->refresh();
                 } elseif (! in_array($booking->status, ['refunded', 'failed_needs_review'], true)) {
                     $mapped = $this->mapTripjackBookingStatus($liveStatus);
                     if ($mapped !== $booking->status) {
@@ -804,8 +832,12 @@ class FrontendController extends Controller
         // payment_failed/refunded/failed_needs_review/cancelled will never
         // get a $liveStatus (no tripjack_booking_id, or already resolved) —
         // without this guard the page would meta-refresh pointlessly for
-        // the full 180s window instead of settling immediately.
+        // the full 180s window instead of settling immediately. A pending
+        // cancellation is explicitly NOT near-real-time (TripJack: poll
+        // Booking Details once per day), so it never gets the 5s meta-refresh
+        // either — a fresh page load is enough to check in on it.
         $stillPolling = ! in_array($booking->status, ['payment_failed', 'refunded', 'failed_needs_review', 'cancelled'], true)
+            && $booking->cancellation_requested_at === null
             && ! $this->isTerminalTripjackStatus($liveStatus)
             && (now()->timestamp - $pollingSince) < 180;
 
@@ -866,6 +898,14 @@ class FrontendController extends Controller
 
         $payment = Payment::where('razorpay_order_id', $request->input('razorpay_order_id'))->firstOrFail();
         $booking = $payment->booking;
+
+        // Defense in depth: a valid signature already proves this is a real
+        // Razorpay payment, but it doesn't prove the caller is the guest who
+        // made it — nothing stops another logged-in user from replaying a
+        // captured order_id/payment_id/signature trio they happened to see.
+        if ($booking->user_id !== auth()->id()) {
+            abort(403);
+        }
 
         if (! $razorpay->verifyPaymentSignature($request->only(['razorpay_payment_id', 'razorpay_order_id', 'razorpay_signature']))) {
             Log::channel('tripjack')->warning('razorpay_signature_invalid', ['booking_id' => $booking->id, 'order_id' => $request->input('razorpay_order_id')]);
@@ -1113,6 +1153,209 @@ class FrontendController extends Controller
                 'booking_id' => $booking->id, 'payment_id' => $payment->id, 'reason' => $reason, 'refund_error' => $e->getMessage(),
             ]);
         }
+    }
+
+    /**
+     * Reads the cancellation-penalty slab that applies right now from a
+     * bookingDetails() response's option-level cnp object (same structure
+     * Review/Detail expose, embedded here under itemInfos.HOTEL.hInfo.ops[0]).
+     * Returns null when no slab matches "now" or the shape is missing —
+     * treated as "unknown" by callers, never assumed to mean free cancellation.
+     *
+     * @return array{amount: float, isRefundable: bool}|null
+     */
+    protected function currentCancellationPenalty(array $bookingDetails): ?array
+    {
+        $op = $bookingDetails['itemInfos']['HOTEL']['hInfo']['ops'][0] ?? null;
+        $slabs = $op['cnp']['pd'] ?? null;
+        if (! is_array($slabs)) {
+            return null;
+        }
+
+        $now = now();
+        foreach ($slabs as $slab) {
+            try {
+                $from = \Illuminate\Support\Carbon::parse($slab['fdt']);
+                $to = \Illuminate\Support\Carbon::parse($slab['tdt']);
+            } catch (\Throwable) {
+                continue;
+            }
+            if ($now->betweenIncluded($from, $to)) {
+                return [
+                    'amount' => (float) ($slab['am'] ?? 0),
+                    'isRefundable' => (bool) ($op['cnp']['ifra'] ?? false),
+                ];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * GET /booking/{reference}/cancel — shows the guest what cancelling
+     * right now would cost before they confirm. Fetches bookingDetails()
+     * live rather than reusing anything cached, since the penalty schedule
+     * is time-based and only accurate as of "right now".
+     */
+    public function showCancellation($reference, TripJackClient $client)
+    {
+        $booking = Booking::with('hotel')->where('reference', $reference)->firstOrFail();
+
+        if ($booking->user_id !== auth()->id()) {
+            abort(403);
+        }
+
+        if ($booking->cancellation_requested_at !== null || $booking->status !== 'confirmed' || ! $booking->tripjack_booking_id) {
+            return redirect()->route('hotel.booking.confirmation', $booking->reference);
+        }
+
+        $penalty = null;
+        try {
+            $details = $client->bookingDetails($booking->tripjack_booking_id);
+            $penalty = $this->currentCancellationPenalty($details);
+        } catch (TripJackException $e) {
+            Log::channel('tripjack')->warning('cancellation_policy_lookup_failed', ['booking_id' => $booking->id, 'message' => $e->getMessage()]);
+        }
+
+        // The penalty TripJack quotes is in their raw price terms — scale it
+        // by the same ratio against what the guest actually paid us, so the
+        // estimate shown here is in the guest's own currency of "what I paid".
+        $estimatedRefund = null;
+        if ($penalty !== null && (float) $booking->tripjack_total_price > 0) {
+            $penaltyRatio = min(1, $penalty['amount'] / (float) $booking->tripjack_total_price);
+            $estimatedRefund = round((float) $booking->total_amount * (1 - $penaltyRatio), 2);
+        }
+
+        return view('pages.booking-cancel', compact('booking', 'penalty', 'estimatedRefund'));
+    }
+
+    /**
+     * POST /booking/{reference}/cancel — actually requests the cancellation.
+     * Claims cancellation_requested_at before calling TripJack (same
+     * claim-then-call idempotency pattern as resolveOnHoldBooking) so a
+     * double form-submit can't fire two cancel requests for one booking.
+     */
+    public function submitCancellation($reference, Request $request, TripJackClient $client, RazorpayService $razorpay)
+    {
+        $booking = Booking::where('reference', $reference)->firstOrFail();
+
+        if ($booking->user_id !== auth()->id()) {
+            abort(403);
+        }
+
+        if ($booking->status !== 'confirmed' || ! $booking->tripjack_booking_id) {
+            return redirect()->route('hotel.booking.confirmation', $booking->reference);
+        }
+
+        $claimed = DB::transaction(function () use ($booking) {
+            $fresh = Booking::whereKey($booking->id)->lockForUpdate()->first();
+            if ($fresh->cancellation_requested_at !== null) {
+                return false;
+            }
+            $fresh->update(['cancellation_requested_at' => now()]);
+
+            return true;
+        });
+
+        if (! $claimed) {
+            return redirect()->route('hotel.booking.confirmation', $booking->reference);
+        }
+
+        // The claim above wrote cancellation_requested_at via a separate
+        // $fresh instance inside the transaction — $booking's in-memory copy
+        // is still stale (cached as null). Without this refresh, releasing
+        // the claim below via $booking->update(['cancellation_requested_at'
+        // => null]) would be a no-op: Eloquent's dirty-checking sees
+        // null-to-null and skips writing it, even though the DB row itself
+        // holds a real timestamp.
+        $booking->refresh();
+
+        try {
+            $response = $client->cancelBooking($booking->tripjack_booking_id);
+        } catch (TripJackException $e) {
+            $errorCode = $e instanceof TripJackApiException ? $e->errorCode : null;
+            $described = TripJackErrorCatalog::describe($errorCode, 'We couldn\'t process your cancellation right now. Please try again.');
+            $this->logTripjackFailure($described['logLevel'], 'cancel_booking_failed', ['booking_id' => $booking->id, 'errorCode' => $errorCode, 'message' => $e->getMessage()]);
+            // Release the claim — the request never reached TripJack (or
+            // TripJack rejected it outright), so the guest should be able to
+            // retry rather than being stuck showing "pending" forever.
+            $booking->update(['cancellation_requested_at' => null]);
+
+            return redirect()->route('hotel.booking.cancel.show', $booking->reference)->with('booking_error', $described['message']);
+        }
+
+        if (! ($response['status']['success'] ?? false)) {
+            $errorCode = TripJackErrorCatalog::codeFromResponse($response);
+            $described = TripJackErrorCatalog::describe($errorCode, 'This booking could not be cancelled.');
+            $this->logTripjackFailure($described['logLevel'], 'cancel_booking_unsuccessful', ['booking_id' => $booking->id, 'errorCode' => $errorCode, 'response' => $response]);
+            $booking->update(['cancellation_requested_at' => null]);
+
+            return redirect()->route('hotel.booking.cancel.show', $booking->reference)->with('booking_error', $described['message']);
+        }
+
+        // Acknowledgement only — the real outcome (CANCELLED now, or
+        // CANCELLATION_PENDING for TripJack Ops to process offline, per
+        // their docs) comes from a bookingDetails() read, same as Book's
+        // own "request received" response.
+        try {
+            $details = $client->bookingDetails($booking->tripjack_booking_id);
+            $this->finalizeCancellation($booking, $details, $razorpay);
+        } catch (TripJackException $e) {
+            Log::channel('tripjack')->warning('booking_details_failed', ['bookingId' => $booking->tripjack_booking_id, 'message' => $e->getMessage()]);
+        }
+
+        return redirect()->route('hotel.booking.confirmation', $booking->reference);
+    }
+
+    /**
+     * Applies the outcome of a cancellation once bookingDetails() confirms
+     * it: marks the booking cancelled and auto-refunds only when the penalty
+     * is unambiguously zero — a real ₹0-or-not fact from TripJack's own
+     * policy, not a guess. Anything else (a partial penalty, or the penalty
+     * simply being unreadable) is left for manual refund review rather than
+     * this code inventing a split between "TripJack keeps this much, TYTLUXE
+     * keeps this much of its margin" — that's a business call, not a code one.
+     * Callable from both the immediate post-cancel-request check and the
+     * routine bookingConfirmation() poll; guarded so it only ever acts once.
+     */
+    protected function finalizeCancellation(Booking $booking, array $bookingDetails, RazorpayService $razorpay): void
+    {
+        $liveStatus = $bookingDetails['order']['status'] ?? null;
+        if ($liveStatus !== 'CANCELLED' || $booking->status === 'cancelled') {
+            return;
+        }
+
+        $penalty = $this->currentCancellationPenalty($bookingDetails);
+        $payment = $booking->payments()->where('status', 'captured')->latest()->first();
+
+        if ($payment && $penalty !== null && $penalty['amount'] <= 0.0) {
+            try {
+                $razorpay->refund($payment->razorpay_payment_id, (float) $payment->amount);
+                $payment->update(['status' => 'refunded', 'refund_amount' => $payment->amount, 'refund_reason' => 'Free cancellation — full refund.']);
+                $booking->update([
+                    'status' => 'cancelled',
+                    'cancellation_reason' => 'Cancelled within the free-cancellation window. Refunded in full automatically.',
+                ]);
+                Log::channel('tripjack')->info('booking_cancelled_and_refunded', ['booking_id' => $booking->id]);
+
+                return;
+            } catch (\Throwable $e) {
+                Log::channel('tripjack')->critical('cancellation_refund_failed', ['booking_id' => $booking->id, 'error' => $e->getMessage()]);
+                $booking->update([
+                    'status' => 'cancelled',
+                    'cancellation_reason' => 'Cancelled — free-cancellation refund failed automatically and needs manual processing: '.$e->getMessage(),
+                ]);
+
+                return;
+            }
+        }
+
+        $note = $penalty === null
+            ? 'Cancelled. Cancellation penalty could not be determined automatically — refund needs manual review.'
+            : sprintf('Cancelled with a cancellation penalty of %s %.2f. Refund needs manual review.', $booking->currency, $penalty['amount']);
+
+        $booking->update(['status' => 'cancelled', 'cancellation_reason' => $note]);
+        Log::channel('tripjack')->warning('booking_cancelled_needs_manual_refund', ['booking_id' => $booking->id, 'penalty' => $penalty]);
     }
 
     public function cruises()

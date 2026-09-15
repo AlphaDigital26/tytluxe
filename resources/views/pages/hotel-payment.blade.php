@@ -57,6 +57,11 @@
     color: #f3a3a3; font-family: 'Jost', sans-serif; font-size: 13px;
   }
   .pay-secure-note { font-family: 'Jost', sans-serif; font-size: 11px; color: var(--white-30); margin-top: 24px; line-height: 1.6; }
+
+  .pay-deadline { margin-bottom: 20px; padding: 10px 16px; border-radius: 10px; width: 100%; box-sizing: border-box;
+    background: rgba(201,168,76,0.08); border: 1px solid rgba(201,168,76,0.25);
+    color: var(--gold-light); font-family: 'Jost', sans-serif; font-size: 12.5px; }
+  .pay-deadline.pay-deadline-urgent { background: rgba(220,80,80,0.1); border-color: rgba(220,80,80,0.35); color: #f3a3a3; }
 </style>
 @endpush
 
@@ -73,6 +78,10 @@
 
     <p class="pay-amount">Amount Payable</p>
     <p class="pay-amount-value">{{ $payment->currency ?? 'INR' }} {{ number_format($payment->amount) }}</p>
+
+    @if($booking->tripjack_hold_expires_at)
+    <p class="pay-deadline" id="payDeadlineNote" data-deadline="{{ $booking->tripjack_hold_expires_at->toIso8601String() }}"></p>
+    @endif
 
     <div id="payWaiting">
       <div class="pay-spinner"></div>
@@ -103,6 +112,30 @@
     var waiting = document.getElementById('payWaiting');
     var retryBtn = document.getElementById('payRetryBtn');
     var failedNote = document.getElementById('payFailedNote');
+
+    // The hotel's rate hold is only good until TripJack's deadlineDateTime —
+    // pay after that and Book can still fail, triggering the automatic
+    // refund. Surfacing the countdown here means the guest sees "hurry" up
+    // front instead of "paid, then refunded" with no explanation after.
+    var deadlineNote = document.getElementById('payDeadlineNote');
+    if (deadlineNote && deadlineNote.dataset.deadline) {
+      var deadline = new Date(deadlineNote.dataset.deadline).getTime();
+      var tick = function () {
+        var remainingMs = deadline - Date.now();
+        if (remainingMs <= 0) {
+          deadlineNote.textContent = 'This rate hold has expired — please complete payment now or you may need to select the room again.';
+          deadlineNote.classList.add('pay-deadline-urgent');
+          return;
+        }
+        var mins = Math.floor(remainingMs / 60000);
+        var secs = Math.floor((remainingMs % 60000) / 1000);
+        var label = mins > 0 ? (mins + 'm ' + secs + 's') : (secs + 's');
+        deadlineNote.textContent = 'Complete payment within ' + label + ' to keep this rate held.';
+        deadlineNote.classList.toggle('pay-deadline-urgent', remainingMs < 5 * 60000);
+      };
+      tick();
+      setInterval(tick, 1000);
+    }
 
     function openCheckout() {
       waiting.style.display = '';
