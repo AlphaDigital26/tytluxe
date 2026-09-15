@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use App\Mail\BlogNewsletterMail;
 use App\Models\NewsletterSubscriber;
 
@@ -48,6 +49,18 @@ class BlogPost extends Model
     public function category()
     {
         return $this->belongsTo(BlogCategory::class, 'blog_category_id');
+    }
+
+    /**
+     * Resolved public cover image URL: an uploaded file takes priority over the external URL.
+     */
+    public function getResolvedCoverImageAttribute(): ?string
+    {
+        if ($this->cover_image_path && Storage::disk('public')->exists($this->cover_image_path)) {
+            return Storage::disk('public')->url($this->cover_image_path);
+        }
+
+        return $this->cover_image_url ?: null;
     }
 
     public function scopeTrending($query)

@@ -381,6 +381,27 @@
 }
 .read-link:hover { gap: 10px; }
 
+/* ── Pagination ──────────────────────────────────── */
+.blog-pagination { display: flex; justify-content: center; }
+.blog-pagination nav > div:first-child { display: none; } /* hide "Showing X to Y of Z" text, keep it compact */
+.blog-pagination .pagination { display: flex; gap: 6px; list-style: none; padding: 0; }
+.blog-pagination .pagination > * > span,
+.blog-pagination .pagination > * > a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 38px;
+  height: 38px;
+  padding: 0 10px;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  color: var(--text-dark);
+  text-decoration: none;
+  border: 1px solid var(--border);
+}
+.blog-pagination .pagination .active span { background: var(--gold); color: #fff; border-color: var(--gold); }
+.blog-pagination .pagination a:hover { background: rgba(0,0,0,0.04); }
+
 /* ── Empty state ──────────────────────────────────── */
 .empty-state {
   grid-column: 1 / -1;
@@ -469,7 +490,7 @@
   @if($trendingPosts->isNotEmpty())
     <div class="blog-slider-track">
       @foreach($trendingPosts as $post)
-        <div class="blog-hero-slide" style="background-image: url('{{ $post->cover_image_url ?? 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=1920&q=80' }}');">
+        <div class="blog-hero-slide" style="background-image: url('{{ $post->resolved_cover_image ?: 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=1920&q=80' }}');">
           <div class="blog-hero-inner">
             <span class="blog-hero-badge">✦ {{ $post->is_trending ? 'Trending' : 'Featured Story' }}</span>
             <h1 class="blog-hero-title">{{ $post->title }}</h1>
@@ -488,7 +509,7 @@
                 <span>{{ $post->category->name }}</span>
               @endif
             </div>
-            <a href="{{ route('blog.details') }}" class="hero-read-btn">
+            <a href="{{ route('blog.details', $post->slug) }}" class="hero-read-btn">
               Read Article
               <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
             </a>
@@ -518,9 +539,9 @@
 <nav class="filter-bar">
   <div class="filter-bar-inner">
     <div class="filter-tabs-container">
-      <a class="filter-tab active" href="#" data-category="all">All Blogs</a>
+      <a class="filter-tab {{ !$activeCategory ? 'active' : '' }}" href="{{ route('blog') }}">All Blogs</a>
       @foreach($categories as $cat)
-        <a class="filter-tab" href="#" data-category="{{ $cat->slug }}">{{ $cat->name }}</a>
+        <a class="filter-tab {{ $activeCategory === $cat->slug ? 'active' : '' }}" href="{{ route('blog', ['category' => $cat->slug]) }}">{{ $cat->name }}</a>
       @endforeach
     </div>
     <div class="filter-search">
@@ -538,10 +559,10 @@
 
     <div class="blog-grid" id="blogGrid">
       @forelse($posts as $post)
-        <a href="{{ route('blog.details') }}" class="blog-card" data-category="{{ $post->category?->slug ?? '' }}">
+        <a href="{{ route('blog.details', $post->slug) }}" class="blog-card" data-category="{{ $post->category?->slug ?? '' }}">
           <div class="blog-card-img-wrap">
             <img
-              src="{{ $post->cover_image_url ?? 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=800&q=80' }}"
+              src="{{ $post->resolved_cover_image ?: 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=800&q=80' }}"
               alt="{{ $post->title }}"
               loading="lazy"
             >
@@ -575,6 +596,12 @@
         </div>
       @endforelse
     </div>
+
+    @if($posts->hasPages())
+      <div class="blog-pagination">
+        {{ $posts->onEachSide(1)->links() }}
+      </div>
+    @endif
   </main>
 </div>
 
@@ -616,33 +643,7 @@
     const grid        = document.getElementById('blogGrid');
     const searchInput = document.getElementById('blogSearchInput');
 
-    // ── Filter Tabs ────────────────────────────────────
-    filterTabs.forEach(tab => {
-      tab.addEventListener('click', (e) => {
-        e.preventDefault();
-        filterTabs.forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
-
-        const category = tab.dataset.category;
-        const label    = tab.textContent.trim();
-
-        if (sectionTitle) {
-          sectionTitle.textContent = category === 'all'
-            ? 'From Our Travel Journal'
-            : 'Showing: ' + label;
-        }
-
-        fadeGrid(() => {
-          blogCards.forEach(card => {
-            if (category === 'all') {
-              card.style.display = 'flex';
-            } else {
-              card.style.display = (card.dataset.category === category) ? 'flex' : 'none';
-            }
-          });
-        });
-      });
-    });
+    // Category filtering is now server-rendered (filter tabs link to ?category=slug).
 
     // ── Search Bar ──────────────────────────────────────
     if (searchInput) {
