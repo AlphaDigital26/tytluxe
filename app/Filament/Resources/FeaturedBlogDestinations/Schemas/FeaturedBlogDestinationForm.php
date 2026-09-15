@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\FeaturedBlogDestinations\Schemas;
 
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Schema;
@@ -26,11 +27,20 @@ class FeaturedBlogDestinationForm
                     ->maxLength(100)
                     ->unique(ignoreRecord: true),
 
+                FileUpload::make('image_path')
+                    ->label('Upload Image')
+                    ->disk('public')
+                    ->directory('destination-cards')
+                    ->image()
+                    ->imagePreviewHeight('160')
+                    ->maxSize(8192)
+                    ->helperText('Upload from your computer — takes priority over the URL below.'),
+
                 TextInput::make('image_url')
-                    ->label('Image URL')
+                    ->label('Or: External Image URL')
                     ->url()
                     ->maxLength(1000)
-                    ->helperText('Paste an Unsplash or any public image URL for the destination card.'),
+                    ->helperText('Paste an Unsplash or any public image URL. Used only if no image is uploaded above.'),
 
                 TextInput::make('story_count')
                     ->label('Story Count')
