@@ -613,8 +613,8 @@
     <div class="dest-grid">
       @forelse($destinations as $dest)
         <div class="dest-card" data-dest="{{ $dest->name }}">
-          @if($dest->image_url)
-            <img src="{{ $dest->image_url }}" alt="{{ $dest->name }}" loading="lazy">
+          @if($dest->resolved_image)
+            <img src="{{ $dest->resolved_image }}" alt="{{ $dest->name }}" loading="lazy">
           @else
             <img src="https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=600&q=80" alt="{{ $dest->name }}" loading="lazy">
           @endif
