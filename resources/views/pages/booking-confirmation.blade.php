@@ -8,8 +8,14 @@
   // have no corresponding $liveStatus at all (no tripjack_booking_id exists
   // yet, or the booking was refunded after a late TripJack failure).
   $paymentFailed = $booking->status === 'payment_failed';
-  $terminalGood = $booking->status === 'confirmed';
+  // A cancellation can sit as TripJack's CANCELLATION_PENDING for days before
+  // it resolves offline — status stays 'confirmed' the whole time, so this
+  // has to be its own branch rather than folded into $terminalGood.
+  $cancellationPending = $booking->cancellation_requested_at !== null && $booking->status !== 'cancelled';
+  $terminalGood = $booking->status === 'confirmed' && ! $cancellationPending;
   $terminalBad = in_array($booking->status, ['refunded', 'failed_needs_review', 'cancelled'], true);
+  $canRequestCancellation = $booking->status === 'confirmed' && ! $cancellationPending
+      && $booking->check_in && \Illuminate\Support\Carbon::parse($booking->check_in)->isFuture();
 @endphp
 
 @if($stillPolling)
@@ -102,7 +108,11 @@
   @elseif($booking->status === 'cancelled')
     <div class="bc-icon-ring bad">⚠️</div>
     <h1 class="bc-title">Booking Cancelled</h1>
-    <p class="bc-sub">This booking has been cancelled. If a refund is due, it will be processed back to your original payment method.</p>
+    <p class="bc-sub">{{ $booking->cancellation_reason ?: 'This booking has been cancelled. If a refund is due, it will be processed back to your original payment method.' }}</p>
+  @elseif($cancellationPending)
+    <div class="bc-icon-ring pending">⏳</div>
+    <h1 class="bc-title">Cancellation In Progress</h1>
+    <p class="bc-sub">We've submitted your cancellation request to the hotel. Some cancellations are processed offline and can take a little while to finalise — this page will show "Booking Cancelled" once it's done. No need to keep refreshing.</p>
   @elseif($terminalGood)
     <div class="bc-icon-ring good">✅</div>
     <h1 class="bc-title">Booking Confirmed!</h1>
@@ -129,7 +139,7 @@
     <div class="bc-line">
       <span>Status</span>
       <span class="bc-status {{ ($terminalBad || $paymentFailed) ? 'bad' : ($terminalGood ? 'good' : 'pending') }}">
-        {{ $liveStatus ?? ucfirst(str_replace('_',' ',$booking->status)) }}
+        {{ $cancellationPending ? 'Cancellation Pending' : ($liveStatus ?? ucfirst(str_replace('_',' ',$booking->status))) }}
       </span>
     </div>
   </div>
@@ -142,6 +152,19 @@
   @if($terminalGood)
   <div class="bc-next">
     <strong>What happens next:</strong> you'll receive a confirmation email with your booking details and the hotel's contact information. No further action is needed from you.
+  </div>
+  @endif
+
+  @if($canRequestCancellation)
+  <div style="margin-top:24px;">
+    <a href="{{ route('hotel.booking.cancel.show', $booking->reference) }}"
+       style="display:inline-flex; align-items:center; gap:8px; padding:12px 24px; border-radius:100px;
+              background:transparent; border:1px solid rgba(220,80,80,0.35); color:#f3a3a3;
+              font-family:'Jost',sans-serif; font-size:12px; font-weight:600; letter-spacing:0.06em;
+              text-transform:uppercase; text-decoration:none; transition:all 0.28s ease;"
+       onmouseover="this.style.background='rgba(220,80,80,0.08)'" onmouseout="this.style.background='transparent'">
+      Cancel Booking
+    </a>
   </div>
   @endif
 

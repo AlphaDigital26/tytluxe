@@ -18,29 +18,47 @@ Route::middleware('guest')->group(function () {
     Route::get('auth/google/callback', [SocialLoginController::class, 'handleGoogleCallback'])->name('social.google.callback');
 
     Route::get('verify-otp',  [OtpController::class, 'showVerifyForm'])->name('otp.verify');
-    Route::post('verify-otp', [OtpController::class, 'verify'])->name('otp.verify.submit');
-    Route::post('verify-otp/resend', [OtpController::class, 'resend'])->name('otp.resend');
+    // verify() already tracks per-OTP attempts (5, then the code is invalidated) —
+    // this throttle is defense in depth against a fast automated guessing script.
+    Route::post('verify-otp', [OtpController::class, 'verify'])->name('otp.verify.submit')->middleware('throttle:10,1');
+    // Tightest limit here on purpose: resend() deletes the old OTP and its
+    // attempt counter and mints a fresh one — without a throttle, an attacker
+    // could use unlimited resends to reset verify()'s 5-attempt cap back to 0
+    // as many times as they like (turning a 5-guess limit into none), and it
+    // sends a real email every call (mail-bombing risk) regardless.
+    Route::post('verify-otp/resend', [OtpController::class, 'resend'])->name('otp.resend')->middleware('throttle:3,1');
     Route::get('register', [RegisteredUserController::class, 'create'])
         ->name('register');
 
-    Route::post('register', [RegisteredUserController::class, 'store']);
+    // Sends a real OTP email on every successful call — unthrottled this is a
+    // mail-bombing vector against any address (yours or someone else's).
+    Route::post('register', [RegisteredUserController::class, 'store'])->middleware('throttle:5,1');
 
     Route::get('login', [AuthenticatedSessionController::class, 'create'])
         ->name('login');
 
-    Route::post('login', [AuthenticatedSessionController::class, 'store']);
+    // LoginRequest::ensureIsNotRateLimited() already locks out after 5 failed
+    // attempts per email+IP — but that leaves an attacker who rotates through
+    // many different email addresses from one IP completely unthrottled. This
+    // adds a coarser IP-wide cap on top, closing that gap.
+    Route::post('login', [AuthenticatedSessionController::class, 'store'])->middleware('throttle:20,1');
 
     Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
         ->name('password.request');
 
+    // Sends a real reset-link email on every call — same mail-bombing risk as
+    // registration, plus a coarse guard against email-enumeration timing.
     Route::post('forgot-password', [PasswordResetLinkController::class, 'store'])
-        ->name('password.email');
+        ->name('password.email')
+        ->middleware('throttle:5,1');
 
     Route::get('reset-password/{token}', [NewPasswordController::class, 'create'])
         ->name('password.reset');
 
+    // Guards against brute-forcing the reset token itself.
     Route::post('reset-password', [NewPasswordController::class, 'store'])
-        ->name('password.store');
+        ->name('password.store')
+        ->middleware('throttle:6,1');
 });
 
 Route::middleware('auth')->group(function () {

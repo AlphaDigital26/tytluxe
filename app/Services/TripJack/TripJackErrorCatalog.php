@@ -55,6 +55,21 @@ class TripJackErrorCatalog
                 'logLevel' => 'warning',
                 'action' => 'contact_support',
             ],
+            '6511' => [ // BOOKING_NOT_FOUND
+                'message' => 'We couldn\'t find this booking with the hotel supplier. Our team has been notified.',
+                'logLevel' => 'error', // shouldn't happen for a booking we hold a tripjack_booking_id for
+                'action' => 'contact_support',
+            ],
+            '6512' => [ // CANCELLATION_NOT_ALLOWED
+                'message' => 'This booking is outside its cancellable window or is non-refundable, so it can\'t be cancelled online. Please contact us if you still need help.',
+                'logLevel' => 'info',
+                'action' => 'contact_support',
+            ],
+            '6513' => [ // CANCELLATION_ALREADY_IN_PROGRESS
+                'message' => 'A cancellation for this booking is already being processed.',
+                'logLevel' => 'info',
+                'action' => 'none',
+            ],
             '6528', '6529', '6530', '6531' => [ // CHILD_AGE_*
                 'message' => 'Please provide a valid age for every child before searching.',
                 'logLevel' => 'warning',
