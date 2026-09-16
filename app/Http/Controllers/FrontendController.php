@@ -666,6 +666,11 @@ class FrontendController extends Controller
         $breakdown = $pricing['pricingBreakdown'] ?? null;
         $customerPrice = $pricing['customerPrice'] ?? ($pricing['totalPrice'] ?? 0);
         $basePrice = $pricing['basePrice'] ?? 0;
+        // No local RoomType row exists for a live TripJack option (that
+        // catalog is only for the manually-added "Request Price" rooms), so
+        // room_type_id stays null below — this is the only place the room
+        // name is available at all, straight from TripJack's review response.
+        $roomName = collect($option['roomInfo'] ?? [])->pluck('name')->filter()->unique()->implode(' + ') ?: null;
 
         try {
             $booking = Booking::create([
@@ -675,6 +680,7 @@ class FrontendController extends Controller
                 'guest_phone' => $validated['lead_phone'],
                 'vertical' => 'hotel',
                 'hotel_id' => $hotel->id,
+                'room_name' => $roomName,
                 // tripjack_booking_id stays null until Book is actually called,
                 // post-payment. tripjack_hold_id is Review's bookingId — the
                 // identifier Book() itself needs, kept regardless of payment.
@@ -880,7 +886,7 @@ class FrontendController extends Controller
      */
     public function downloadInvoice($reference)
     {
-        $booking = Booking::with(['hotel', 'travelers'])->where('reference', $reference)->firstOrFail();
+        $booking = Booking::with(['hotel.destination', 'roomType', 'travelers'])->where('reference', $reference)->firstOrFail();
 
         if ($booking->user_id !== auth()->id()) {
             abort(403);

@@ -16,30 +16,30 @@
   .inv-meta-line { display: flex; justify-content: flex-end; gap: 8px; font-size: 10.5px; color: #999; margin-top: 5px; text-transform: uppercase; letter-spacing: 0.4px; }
   .inv-meta-line strong { color: #1a1a1a; font-size: 11px; text-transform: none; letter-spacing: normal; min-width: 110px; text-align: right; }
 
-  /* ===== Party blocks ===== */
-  .inv-parties { display: flex; gap: 24px; margin-bottom: 22px; }
-  .inv-party { flex: 1; border: 1px solid #eee; border-radius: 6px; padding: 14px 16px; }
+  /* ===== Party blocks (plain bordered boxes, like a wholesale-style invoice) ===== */
+  .inv-parties { display: flex; border: 1px solid #ccc; margin-bottom: 22px; }
+  .inv-party { flex: 1; padding: 12px 16px; }
+  .inv-party + .inv-party { border-left: 1px solid #ccc; }
   .inv-party-title { font-size: 9.5px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; color: #b8944a; margin-bottom: 7px; }
   .inv-party-name { font-size: 13.5px; font-weight: bold; color: #1a1a1a; margin-bottom: 3px; }
-  .inv-party-line { font-size: 10.5px; color: #777; line-height: 1.5; }
+  .inv-party-line { font-size: 10.5px; color: #666; line-height: 1.5; }
 
   .inv-status-badge { display: inline-block; margin-top: 8px; padding: 3px 11px; border-radius: 3px; font-size: 9.5px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; }
   .inv-status-good { background: #eafaf1; color: #1a7a4a; }
   .inv-status-bad { background: #fdeeee; color: #b83b3b; }
   .inv-status-neutral { background: #f4f0e6; color: #8a6d2f; }
 
-  /* ===== Itemized table ===== */
+  /* ===== Itemized table — full bordered grid, like the sample ===== */
   .inv-section-title { font-size: 9.5px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; color: #b8944a; margin-bottom: 8px; }
-  table.inv-table { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
+  table.inv-table { width: 100%; border-collapse: collapse; margin-bottom: 0; border: 1px solid #ccc; }
   table.inv-table thead th {
     background: #171717; color: #e8c96b; text-align: left; font-size: 9.5px; text-transform: uppercase;
     letter-spacing: 0.5px; padding: 8px 10px; border: 1px solid #171717;
   }
   table.inv-table thead th.right { text-align: right; }
-  table.inv-table tbody td { padding: 9px 10px; border: 1px solid #eee; font-size: 11px; vertical-align: top; }
+  table.inv-table tbody td { padding: 9px 10px; border: 1px solid #ddd; font-size: 11px; vertical-align: top; }
   table.inv-table tbody td.right { text-align: right; }
-  table.inv-table tbody tr:nth-child(even) { background: #fafafa; }
-  .inv-stay-strip { display: flex; gap: 26px; padding: 9px 10px; border: 1px solid #eee; border-top: none; font-size: 10.5px; color: #555; margin-bottom: 22px; }
+  .inv-stay-strip { display: flex; gap: 26px; padding: 9px 10px; border: 1px solid #ccc; border-top: none; font-size: 10.5px; color: #555; margin-bottom: 22px; }
   .inv-stay-strip strong { color: #1a1a1a; }
 
   /* ===== Charges summary ===== */
@@ -122,9 +122,9 @@
   <table class="inv-table">
     <thead>
       <tr>
-        <th>Hotel</th>
+        <th>Hotel Name</th>
         <th>Room Type</th>
-        <th>Guests</th>
+        <th>Guest(s)</th>
         <th class="right">Nights</th>
         <th class="right">Amount</th>
       </tr>
@@ -135,10 +135,12 @@
           <strong>{{ $booking->hotel->title }}</strong><br>
           <span style="color:#999;">{{ $booking->hotel->address }}</span>
         </td>
-        <td>{{ $booking->roomType->name ?? '—' }}</td>
+        <td>{{ $booking->room_name ?? $booking->roomType->name ?? '—' }}</td>
         <td>
-          {{ $booking->pax_adults }} Adult{{ $booking->pax_adults > 1 ? 's' : '' }}
-          @if($booking->pax_children), {{ $booking->pax_children }} Child{{ $booking->pax_children > 1 ? 'ren' : '' }} @endif
+          {{ $booking->lead_guest_name }}
+          @if($booking->travelers->count() > 1)
+            &amp; {{ $booking->travelers->count() - 1 }} other{{ $booking->travelers->count() - 1 > 1 ? 's' : '' }}
+          @endif
         </td>
         <td class="right">{{ $nights }}</td>
         <td class="right">{{ $booking->currency }} {{ number_format($booking->base_amount, 2) }}</td>
@@ -146,6 +148,7 @@
     </tbody>
   </table>
   <div class="inv-stay-strip">
+    <span>City <strong>{{ $booking->hotel->destination->name ?? '—' }}</strong></span>
     <span>Check-in <strong>{{ \Illuminate\Support\Carbon::parse($booking->check_in)->format('d M Y') }}</strong></span>
     <span>Check-out <strong>{{ \Illuminate\Support\Carbon::parse($booking->check_out)->format('d M Y') }}</strong></span>
     <span>Booked On <strong>{{ $booking->created_at->format('d M Y') }}</strong></span>

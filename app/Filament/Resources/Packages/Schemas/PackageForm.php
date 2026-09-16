@@ -80,7 +80,8 @@ class PackageForm
                                     'custom' => 'Custom / Private Tour  (tailor-made)',
                                 ])
                                 ->helperText('Group tours go on scheduled dates. Custom tours are arranged per group.')
-                                ->required(),
+                                ->required()
+                                ->live(),
 
                             Select::make('destination_id')
                                 ->label('Destination')
@@ -102,16 +103,20 @@ class PackageForm
                             TextInput::make('price_from')
                                 ->label('Starting Price  (₹)')
                                 ->placeholder('e.g.  6999')
-                                ->helperText('The lowest per-person price shown on the PDF.')
-                                ->required()
+                                ->helperText(fn ($get) => $get('tour_type') === 'custom'
+                                    ? 'Optional for a custom tour — leave blank if it\'s priced per group after enquiry.'
+                                    : 'The lowest per-person price shown on the PDF.')
+                                ->required(fn ($get) => $get('tour_type') !== 'custom')
                                 ->numeric()
                                 ->prefix('₹'),
 
                             TextInput::make('duration_nights')
                                 ->label('Duration  (number of nights)')
                                 ->placeholder('e.g.  2')
-                                ->helperText('A "2 Night 3 Day" trip = 2 nights.')
-                                ->required()
+                                ->helperText(fn ($get) => $get('tour_type') === 'custom'
+                                    ? 'Optional for a custom tour — leave blank if it varies per group.'
+                                    : 'A "2 Night 3 Day" trip = 2 nights.')
+                                ->required(fn ($get) => $get('tour_type') !== 'custom')
                                 ->numeric()
                                 ->suffix('nights'),
 

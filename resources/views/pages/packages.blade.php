@@ -494,7 +494,7 @@ Discover curated domestic and international travel packages with TYT Luxe. Honey
                   <button type="button" class="pkg-heart-btn js-wishlist-btn"
                     aria-label="Save {{ $pkg->title }} to wishlist"
                     data-type="package"
-                    data-badge="{{ $pkg->duration_nights }}N/{{ $pkg->duration_nights + 1 }}D"
+                    data-badge="{{ $pkg->duration_nights ? $pkg->duration_nights.'N/'.($pkg->duration_nights + 1).'D' : 'Custom' }}"
                     data-hotel-id="pkg-{{ $pkg->id }}"
                     data-hotel-slug="{{ $pkg->slug }}"
                     data-hotel-title="{{ $pkg->title }}"
@@ -516,7 +516,9 @@ Discover curated domestic and international travel packages with TYT Luxe. Honey
                     <div class="dest-card-name">{{ $pkg->title }}</div>
                     <div class="dest-card-meta">
                       <div class="dest-meta-row">
+                        @if($pkg->duration_nights)
                         <span class="dest-meta-item"><i class="fa-regular fa-clock"></i> {{ $pkg->duration_nights }}N/{{ $pkg->duration_nights + 1 }}D</span>
+                        @endif
                         @php
                           $dep = !empty($pkg->departure_from) ? (is_array($pkg->departure_from) ? implode(', ', $pkg->departure_from) : $pkg->departure_from) : null;
                           $arr = !empty($pkg->arrival_cities) ? (is_array($pkg->arrival_cities) ? implode(', ', $pkg->arrival_cities) : $pkg->arrival_cities) : $pkg->destination?->name;
@@ -547,7 +549,13 @@ Discover curated domestic and international travel packages with TYT Luxe. Honey
                         @endif
                       </div>
                       <div class="dest-meta-row" style="margin-top: 4px;">
-                        <span class="dest-meta-price" style="color:var(--gold);">From &#8377;{{ number_format($pkg->price_from) }} <span style="font-size: 10px; font-weight: 400; color: var(--white-60); margin-left: 4px;">(inclusive of all taxes)</span></span>
+                        <span class="dest-meta-price" style="color:var(--gold);">
+                          @if($pkg->price_from)
+                            From &#8377;{{ number_format($pkg->price_from) }} <span style="font-size: 10px; font-weight: 400; color: var(--white-60); margin-left: 4px;">(inclusive of all taxes)</span>
+                          @else
+                            Price on Enquiry
+                          @endif
+                        </span>
                       </div>
                     </div>
                     <div class="dest-card-cta">Explore Package <i class="fa-solid fa-arrow-right"></i></div>
@@ -600,7 +608,7 @@ Discover curated domestic and international travel packages with TYT Luxe. Honey
                   <button type="button" class="pkg-heart-btn js-wishlist-btn"
                     aria-label="Save {{ $pkg->title }} to wishlist"
                     data-type="package"
-                    data-badge="{{ $pkg->duration_nights }}N/{{ $pkg->duration_nights + 1 }}D"
+                    data-badge="{{ $pkg->duration_nights ? $pkg->duration_nights.'N/'.($pkg->duration_nights + 1).'D' : 'Custom' }}"
                     data-hotel-id="pkg-{{ $pkg->id }}"
                     data-hotel-slug="{{ $pkg->slug }}"
                     data-hotel-title="{{ $pkg->title }}"
@@ -622,7 +630,9 @@ Discover curated domestic and international travel packages with TYT Luxe. Honey
                     <div class="dest-card-name">{{ $pkg->title }}</div>
                     <div class="dest-card-meta">
                       <div class="dest-meta-row">
+                        @if($pkg->duration_nights)
                         <span class="dest-meta-item"><i class="fa-regular fa-clock"></i> {{ $pkg->duration_nights }}N/{{ $pkg->duration_nights + 1 }}D</span>
+                        @endif
                         @php
                           $dep = !empty($pkg->departure_from) ? (is_array($pkg->departure_from) ? implode(', ', $pkg->departure_from) : $pkg->departure_from) : null;
                           $arr = !empty($pkg->arrival_cities) ? (is_array($pkg->arrival_cities) ? implode(', ', $pkg->arrival_cities) : $pkg->arrival_cities) : $pkg->destination?->name;
@@ -653,7 +663,13 @@ Discover curated domestic and international travel packages with TYT Luxe. Honey
                         @endif
                       </div>
                       <div class="dest-meta-row" style="margin-top: 4px;">
-                        <span class="dest-meta-price" style="color:var(--gold);">From &#8377;{{ number_format($pkg->price_from) }} <span style="font-size: 10px; font-weight: 400; color: var(--white-60); margin-left: 4px;">(inclusive of all taxes)</span></span>
+                        <span class="dest-meta-price" style="color:var(--gold);">
+                          @if($pkg->price_from)
+                            From &#8377;{{ number_format($pkg->price_from) }} <span style="font-size: 10px; font-weight: 400; color: var(--white-60); margin-left: 4px;">(inclusive of all taxes)</span>
+                          @else
+                            Price on Enquiry
+                          @endif
+                        </span>
                       </div>
                     </div>
                     <div class="dest-card-cta">Explore Package <i class="fa-solid fa-arrow-right"></i></div>
@@ -706,7 +722,7 @@ Discover curated domestic and international travel packages with TYT Luxe. Honey
                   <button type="button" class="pkg-heart-btn js-wishlist-btn"
                     aria-label="Save {{ $pkg->title }} to wishlist"
                     data-type="package"
-                    data-badge="{{ $pkg->duration_nights }}N/{{ $pkg->duration_nights + 1 }}D"
+                    data-badge="{{ $pkg->duration_nights ? $pkg->duration_nights.'N/'.($pkg->duration_nights + 1).'D' : 'Custom' }}"
                     data-hotel-id="pkg-{{ $pkg->id }}"
                     data-hotel-slug="{{ $pkg->slug }}"
                     data-hotel-title="{{ $pkg->title }}"
@@ -728,7 +744,9 @@ Discover curated domestic and international travel packages with TYT Luxe. Honey
                     <div class="dest-card-name">{{ $pkg->title }}</div>
                     <div class="dest-card-meta">
                       <div class="dest-meta-row">
+                        @if($pkg->duration_nights)
                         <span class="dest-meta-item"><i class="fa-regular fa-clock"></i> {{ $pkg->duration_nights }}N/{{ $pkg->duration_nights + 1 }}D</span>
+                        @endif
                         @php
                           $dep = !empty($pkg->departure_from) ? (is_array($pkg->departure_from) ? implode(', ', $pkg->departure_from) : $pkg->departure_from) : null;
                           $arr = !empty($pkg->arrival_cities) ? (is_array($pkg->arrival_cities) ? implode(', ', $pkg->arrival_cities) : $pkg->arrival_cities) : $pkg->destination?->name;
@@ -759,7 +777,13 @@ Discover curated domestic and international travel packages with TYT Luxe. Honey
                         @endif
                       </div>
                       <div class="dest-meta-row" style="margin-top: 4px;">
-                        <span class="dest-meta-price" style="color:var(--gold);">From &#8377;{{ number_format($pkg->price_from) }} <span style="font-size: 10px; font-weight: 400; color: var(--white-60); margin-left: 4px;">(inclusive of all taxes)</span></span>
+                        <span class="dest-meta-price" style="color:var(--gold);">
+                          @if($pkg->price_from)
+                            From &#8377;{{ number_format($pkg->price_from) }} <span style="font-size: 10px; font-weight: 400; color: var(--white-60); margin-left: 4px;">(inclusive of all taxes)</span>
+                          @else
+                            Price on Enquiry
+                          @endif
+                        </span>
                       </div>
                     </div>
                     <div class="dest-card-cta">Explore Package <i class="fa-solid fa-arrow-right"></i></div>
