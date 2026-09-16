@@ -1106,19 +1106,19 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
           <div class="htl-filter-title">Star Rating</div>
           <div class="htl-filter-list" id="htlRatingFilterGroup">
             <label class="htl-filter-label">
-              <input type="radio" name="sidebar_rating" value="0" {{ ($minRating ?? 0) == 0 ? 'checked' : '' }}>
+              <input type="checkbox" name="sidebar_rating_any" id="sidebarRatingAny" value="0" {{ empty($minRatings ?? []) ? 'checked' : '' }}>
               Any Rating
             </label>
             <label class="htl-filter-label">
-              <input type="radio" name="sidebar_rating" value="5" {{ ($minRating ?? 0) == 5 ? 'checked' : '' }}>
+              <input type="checkbox" name="sidebar_rating" value="5" {{ in_array(5, $minRatings ?? []) ? 'checked' : '' }}>
               5 Stars
             </label>
             <label class="htl-filter-label">
-              <input type="radio" name="sidebar_rating" value="4" {{ ($minRating ?? 0) == 4 ? 'checked' : '' }}>
+              <input type="checkbox" name="sidebar_rating" value="4" {{ in_array(4, $minRatings ?? []) ? 'checked' : '' }}>
               4 Stars
             </label>
             <label class="htl-filter-label">
-              <input type="radio" name="sidebar_rating" value="3" {{ ($minRating ?? 0) == 3 ? 'checked' : '' }}>
+              <input type="checkbox" name="sidebar_rating" value="3" {{ in_array(3, $minRatings ?? []) ? 'checked' : '' }}>
               3 Stars
             </label>
           </div>
@@ -1385,6 +1385,16 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
           </div>
         </div>
       </a>
+
+      @if($hotels->isNotEmpty())
+      <div id="htlNoFilterResults" style="display:none; grid-column: 1 / -1; text-align: center; padding: 60px 40px; color: var(--white-60);">
+        <div style="display:inline-flex; align-items:center; justify-content:center; width:64px; height:64px; border-radius:50%; background:rgba(201,168,76,0.1); color:var(--gold); margin-bottom:20px;">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        </div>
+        <p style="font-family: 'Cormorant Garamond', serif; font-size: 1.8rem; color: #fff; margin-bottom: 12px;">No hotels match these filters</p>
+        <p style="font-family: 'Jost', sans-serif; font-size: 14px; font-weight: 300;">Try adjusting or clearing your filters to see more stays.</p>
+      </div>
+      @endif
 
       @empty
         @if(empty($hasSearched))
@@ -1918,27 +1928,40 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
     });
   }
 
-  function getMinRating() {
+  // Multi-select: any number of star ratings can be checked at once. Only
+  // the pre-search "More Options" pill (htlMinRatingInput/ratingSelect) is
+  // still single-value — the post-search sidebar checkboxes support
+  // multiple, so this always returns an array.
+  function getSelectedRatings() {
     const minRatingInput = document.getElementById('htlMinRatingInput');
-    if (minRatingInput) return parseInt(minRatingInput.value, 10) || 0;
-    if (ratingSelect) return parseInt(ratingSelect.value, 10) || 0;
-    const checkedRadio = document.querySelector('input[name="sidebar_rating"]:checked');
-    if (checkedRadio) return parseInt(checkedRadio.value, 10) || 0;
-    return 0;
+    if (minRatingInput) {
+      const v = parseInt(minRatingInput.value, 10) || 0;
+      return v > 0 ? [v] : [];
+    }
+    if (ratingSelect) {
+      const v = parseInt(ratingSelect.value, 10) || 0;
+      return v > 0 ? [v] : [];
+    }
+    return Array.from(document.querySelectorAll('input[name="sidebar_rating"]:checked'))
+      .map(cb => parseInt(cb.value, 10))
+      .filter(v => v > 0);
   }
 
   function applyHotelFilters() {
     const search = destinationSearch ? destinationSearch.value.trim().toLowerCase() : '';
-    const minRating = getMinRating();
+    const selectedRatings = getSelectedRatings();
     const requireFreeCancel = freeCancelCheckbox ? freeCancelCheckbox.checked : false;
     const maxPrice = priceSlider ? parseInt(priceSlider.value, 10) : 250000;
     const selectedMeals = Array.from(mealCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
 
     let delay = 0;
+    let visibleCount = 0;
 
-    // Sync hidden input for form submission
+    // Sync hidden input for form submission (comma-separated so a single
+    // hidden field can carry a multi-select rating forward across a new
+    // search from the results page).
     if (hiddenMinRating) {
-      hiddenMinRating.value = minRating;
+      hiddenMinRating.value = selectedRatings.join(',');
     }
 
     cards.forEach(card => {
@@ -1950,7 +1973,7 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
       ].join(' ').toLowerCase();
       
       const textMatch = !search || searchText.includes(search);
-      const ratingMatch = minRating === 0 || parseInt(card.dataset.rating || 0, 10) === minRating;
+      const ratingMatch = selectedRatings.length === 0 || selectedRatings.includes(parseInt(card.dataset.rating || 0, 10));
       
       const cardPrice = parseInt(card.dataset.price || 0, 10);
       // Hide 'Price on request' (cardPrice === 0) if a specific price filter is applied
@@ -1967,10 +1990,16 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
         card.offsetHeight;
         card.style.animation = `htlCardIn 0.45s ease ${delay}ms both`;
         delay += 60;
+        visibleCount++;
       } else {
         card.classList.add('htl-hidden');
       }
     });
+
+    const noFilterResultsEl = document.getElementById('htlNoFilterResults');
+    if (noFilterResultsEl) {
+      noFilterResultsEl.style.display = (visibleCount === 0 && cards.length > 0) ? 'block' : 'none';
+    }
   }
 
   /* ===== SEARCH FORM VALIDATION ===== */
@@ -2028,11 +2057,38 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
   if (ratingSelect) {
     ratingSelect.addEventListener('change', applyHotelFilters);
   }
-  ratingRadios.forEach(radio => {
-    radio.addEventListener('change', applyHotelFilters);
+  const anyRatingCheckbox = document.getElementById('sidebarRatingAny');
+  ratingRadios.forEach(cb => {
+    cb.addEventListener('change', () => {
+      // Any specific star selected turns off "Any Rating"; clearing every
+      // specific star falls back to "Any Rating" so the list isn't left
+      // showing nothing selected at all.
+      if (cb.checked && anyRatingCheckbox) {
+        anyRatingCheckbox.checked = false;
+      } else if (anyRatingCheckbox && ! Array.from(ratingRadios).some(r => r.checked)) {
+        anyRatingCheckbox.checked = true;
+      }
+      applyHotelFilters();
+    });
   });
+  if (anyRatingCheckbox) {
+    anyRatingCheckbox.addEventListener('change', () => {
+      if (anyRatingCheckbox.checked) {
+        ratingRadios.forEach(cb => { cb.checked = false; });
+      } else if (! Array.from(ratingRadios).some(r => r.checked)) {
+        // Can't leave nothing checked — re-check "Any Rating".
+        anyRatingCheckbox.checked = true;
+      }
+      applyHotelFilters();
+    });
+  }
   if (freeCancelCheckbox) freeCancelCheckbox.addEventListener('change', applyHotelFilters);
   mealCheckboxes.forEach(cb => cb.addEventListener('change', applyHotelFilters));
+
+  // Reflect server-rendered filter state (e.g. a rating carried over from a
+  // previous search, or a shared/bookmarked filtered URL) immediately,
+  // since star rating is no longer pre-filtered server-side.
+  applyHotelFilters();
 
   /* ===== CUSTOM RATING DROPDOWN ===== */
   const ratingWrap = document.getElementById('htlRatingDropdownWrap');

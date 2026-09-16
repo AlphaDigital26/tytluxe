@@ -39,7 +39,19 @@ class FrontendController extends Controller
         $children = max(0, (int) $request->query('children', 0));
         $roomCount = max(1, (int) $request->query('rooms', 1));
         $nationality = (string) $request->query('nationality', '106');
-        $minRating = (int) $request->query('min_rating', 0);
+        // Accepts a single value (pre-search "More Options" pill), a
+        // comma-separated string (the post-search sidebar's multi-select
+        // checkboxes sync into one hidden field), or an array — star rating
+        // filtering itself happens entirely client-side (see hotels.blade.php),
+        // this is only used to restore checked/selected state on page load.
+        $minRatingRaw = $request->query('min_rating', []);
+        $minRatings = collect(is_array($minRatingRaw) ? $minRatingRaw : explode(',', (string) $minRatingRaw))
+            ->map(fn ($v) => (int) trim((string) $v))
+            ->filter(fn ($v) => $v > 0)
+            ->unique()
+            ->values()
+            ->all();
+        $minRating = $minRatings[0] ?? 0;
         $childAges = $this->parseChildAges($request->query('child_ages', ''));
 
         $hasSearched = $request->has('destination') || $request->has('check_in') || $request->has('min_rating');
@@ -51,7 +63,7 @@ class FrontendController extends Controller
         if (!$hasSearched) {
             $hotels = collect();
         } else {
-            $hotelsQuery = Hotel::with(['destination', 'amenities', 'images'])->visibleOnWebsite();
+            $hotelsQuery = Hotel::with(['destination', 'amenities', 'images' => Hotel::visibleImagesConstraint()])->visibleOnWebsite();
 
             if ($destinationQuery !== '') {
                 $searchDestination = Destination::where('slug', Str::slug($destinationQuery))
@@ -65,9 +77,9 @@ class FrontendController extends Controller
                 }
             }
 
-            if ($minRating > 0) {
-                $hotelsQuery->where('star_rating', '=', $minRating);
-            }
+            // Star rating is filtered client-side (multi-select), not here —
+            // fetching every rating up front is what lets the sidebar
+            // checkboxes reveal/hide hotels instantly without a reload.
 
             $hotels = $hotelsQuery->latest()->get();
 
@@ -130,7 +142,7 @@ class FrontendController extends Controller
         return view('pages.hotels', compact(
             'hotels', 'liveOptions', 'searchActive', 'hasSearched', 'searchError',
             'destinationQuery', 'checkIn', 'checkOut', 'adults', 'children', 'roomCount', 'childAges',
-            'nationality', 'nationalities', 'minRating', 'destinations'
+            'nationality', 'nationalities', 'minRating', 'minRatings', 'destinations'
         ));
     }
 
@@ -299,14 +311,14 @@ class FrontendController extends Controller
 
     public function wishlist(Request $request)
     {
-        $featuredHotels = Hotel::with(['destination', 'images'])
+        $featuredHotels = Hotel::with(['destination', 'images' => Hotel::visibleImagesConstraint()])
             ->visibleOnWebsite()
             ->where('is_featured', true)
             ->take(4)
             ->get();
 
         if ($featuredHotels->isEmpty()) {
-            $featuredHotels = Hotel::with(['destination', 'images'])
+            $featuredHotels = Hotel::with(['destination', 'images' => Hotel::visibleImagesConstraint()])
                 ->visibleOnWebsite()
                 ->latest()
                 ->take(4)
@@ -328,7 +340,7 @@ class FrontendController extends Controller
             return response()->json(['hotels' => []]);
         }
 
-        $hotels = Hotel::with(['destination', 'images'])
+        $hotels = Hotel::with(['destination', 'images' => Hotel::visibleImagesConstraint()])
             ->visibleOnWebsite()
             ->whereIn('slug', $slugs)
             ->get()
@@ -350,7 +362,7 @@ class FrontendController extends Controller
 
     public function hotelDetails($slug, Request $request, TripJackClient $client)
     {
-        $hotel = Hotel::with(['destination', 'amenities', 'images', 'roomTypes', 'reviews'])
+        $hotel = Hotel::with(['destination', 'amenities', 'images' => Hotel::visibleImagesConstraint(), 'roomTypes', 'reviews'])
             ->visibleOnWebsite()
             ->where('slug', $slug)
             ->firstOrFail();
