@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Hotels\Schemas;
 
+use App\Models\HotelImage;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
@@ -199,13 +200,33 @@ class HotelForm
                         Tab::make('Photos')
                             ->icon('heroicon-o-photo')
                             ->schema([
+                                Repeater::make('tripjack_images')
+                                    ->label('Synced from TripJack')
+                                    ->helperText('Turn a photo off to hide it from customers without losing it — this survives future TripJack resyncs. Deleting a photo here removes it now, but it will reappear after the next resync if TripJack still supplies that photo, so Hide is the durable way to remove one.')
+                                    ->visible(fn ($record) => $record && $record->images()->where('path', 'like', 'http%')->exists())
+                                    ->relationship('images', modifyQueryUsing: fn ($query) => $query->where('path', 'like', 'http%')->orderBy('sort_order'))
+                                    ->schema([
+                                        Placeholder::make('preview')
+                                            ->hiddenLabel()
+                                            ->content(fn (?HotelImage $record) => $record
+                                                ? new \Illuminate\Support\HtmlString('<img src="'.e($record->path).'" loading="lazy" style="width:100%; height:110px; object-fit:cover; border-radius:8px; display:block;">')
+                                                : null)
+                                            ->columnSpanFull(),
+                                        Toggle::make('is_hidden')
+                                            ->label('Hide from customers')
+                                            ->default(false),
+                                    ])
+                                    ->grid(4)
+                                    ->columnSpanFull()
+                                    ->addable(false)
+                                    ->reorderable(false),
                                 Repeater::make('images')
-                                    ->label('Hotel Photos')
-                                    ->helperText('Upload photos of the hotel. The first photo is used as the cover image.')
-                                    ->relationship('images')
+                                    ->label('Manually Added Photos')
+                                    ->helperText('Upload additional photos of the hotel. Photos synced from TripJack are shown above and managed automatically during sync.')
+                                    ->relationship('images', modifyQueryUsing: fn ($query) => $query->where('path', 'not like', 'http%'))
                                     ->schema([
                                         FileUpload::make('path')
-->disk('public')
+                                            ->disk('public')
                                             ->label('Photo')
                                             ->image()
                                             ->saveUploadedFileUsing(fn ($file) => app(\App\Services\ImageOptimizer::class)->optimizeAndSave($file, 'hero', 'hotels'))

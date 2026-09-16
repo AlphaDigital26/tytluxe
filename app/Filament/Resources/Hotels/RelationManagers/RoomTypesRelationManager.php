@@ -3,6 +3,8 @@
 namespace App\Filament\Resources\Hotels\RelationManagers;
 
 use App\Filament\Resources\Hotels\HotelResource;
+use App\Services\TripJack\TripJackHotelSync;
+use Filament\Actions\Action;
 use Filament\Actions\AssociateAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
@@ -11,6 +13,7 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\DissociateAction;
 use Filament\Actions\DissociateBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Notifications\Notification;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -31,6 +34,32 @@ class RoomTypesRelationManager extends RelationManager
 {
     protected static string $relationship = 'roomTypes';
 
+    /**
+     * Rooms for TripJack hotels usually only exist via the live Pricing API
+     * (TripJack's static content is frequently incomplete/empty for rooms —
+     * see TripJackHotelSync::syncLiveRoomsFromPricing) and were previously
+     * only fetchable via a manual admin button. Auto-fetching once here, the
+     * first time an admin opens an empty Room Types tab, makes TripJack rooms
+     * show up the same way hotel details already do — without requiring a
+     * separate click — while still only calling the live API for hotels an
+     * admin actually views, not all ~900 on a schedule.
+     */
+    public function mount(): void
+    {
+        parent::mount();
+
+        $hotel = $this->getOwnerRecord();
+        if ($hotel->source === 'tripjack' && $hotel->tripjack_hotel_id && ! $hotel->roomTypes()->exists()) {
+            $result = app(TripJackHotelSync::class)->syncLiveRoomsFromPricing($hotel);
+
+            if ($result['synced'] > 0) {
+                Notification::make()->title("Fetched {$result['synced']} room type(s) from TripJack")->success()->send();
+            } elseif ($result['error']) {
+                Notification::make()->title('Could not auto-fetch rooms from TripJack')->body($result['error'])->warning()->send();
+            }
+        }
+    }
+
     public function form(Schema $schema): Schema
     {
         return $schema
@@ -41,13 +70,38 @@ class RoomTypesRelationManager extends RelationManager
                         ->required()
                         ->maxLength(255)
                         ->columnSpanFull(),
+                    Placeholder::make('tripjack_images_preview')
+                        ->label('Synced from TripJack')
+                        ->visible(fn ($record) => $record && (
+                            str_starts_with((string) $record->image_path, 'http')
+                            || collect($record->images ?? [])->contains(fn ($url) => str_starts_with((string) $url, 'http'))
+                        ))
+                        ->content(function ($record) {
+                            $urls = collect([$record->image_path])
+                                ->merge($record->images ?? [])
+                                ->filter(fn ($url) => str_starts_with((string) $url, 'http'))
+                                ->unique()
+                                ->values();
+
+                            $html = '<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:10px;">';
+                            foreach ($urls as $url) {
+                                $html .= '<div style="border-radius:8px; overflow:hidden; border:1px solid rgba(255,255,255,0.1);">'
+                                    .'<img src="'.e($url).'" loading="lazy" style="width:100%; height:90px; object-fit:cover; display:block;">'
+                                    .'</div>';
+                            }
+                            $html .= '</div>';
+
+                            return new \Illuminate\Support\HtmlString($html);
+                        })
+                        ->columnSpanFull(),
                     FileUpload::make('image_path')
-->disk('public')
+                        ->disk('public')
                         ->label('Main Thumbnail')
+                        ->helperText('Only needed for a manually-added room. TripJack-synced thumbnails are shown above.')
                         ->image()
                         ->saveUploadedFileUsing(fn ($file) => app(\App\Services\ImageOptimizer::class)->optimizeAndSave($file, 'thumbnail', 'room-images')),
                     FileUpload::make('images')
-->disk('public')
+                        ->disk('public')
                         ->label('Gallery Images (Multiple)')
                         ->multiple()
                         ->image()
@@ -155,6 +209,21 @@ class RoomTypesRelationManager extends RelationManager
                 //
             ])
             ->headerActions([
+                Action::make('fetchTripjackRooms')
+                    ->label('Fetch Rooms from TripJack')
+                    ->icon('heroicon-o-arrow-path')
+                    ->visible(fn () => $this->getOwnerRecord()->source === 'tripjack' && $this->getOwnerRecord()->tripjack_hotel_id)
+                    ->action(function () {
+                        $result = app(TripJackHotelSync::class)->syncLiveRoomsFromPricing($this->getOwnerRecord());
+
+                        if ($result['error']) {
+                            Notification::make()->title('Could not fetch rooms')->body($result['error'])->danger()->send();
+
+                            return;
+                        }
+
+                        Notification::make()->title("Synced {$result['synced']} room type(s) from TripJack")->success()->send();
+                    }),
                 CreateAction::make()
                     ->after(fn () => redirect(HotelResource::getUrl('index'))),
             ])

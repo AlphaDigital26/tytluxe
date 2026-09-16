@@ -46,4 +46,17 @@ class Hotel extends Model
     {
         return $query->where('is_active', true)->whereIn('star_rating', static::allowedStarRatings());
     }
+
+    /**
+     * Constrains an eager-loaded `images` relation to what customers should
+     * see (admin can hide a synced TripJack photo without deleting it — see
+     * TripJackHotelSync::upsertHotel). Use as `Hotel::with(['images' =>
+     * Hotel::visibleImagesConstraint()])` everywhere images are shown
+     * publicly; admin/Filament queries should keep using the bare `images`
+     * relation so hidden photos still show up for management there.
+     */
+    public static function visibleImagesConstraint(): \Closure
+    {
+        return fn ($query) => $query->where('is_hidden', false)->orderBy('sort_order');
+    }
 }

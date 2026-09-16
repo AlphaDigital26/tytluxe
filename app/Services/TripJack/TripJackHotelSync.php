@@ -696,15 +696,26 @@ class TripJackHotelSync
             ->values();
 
         if ($images->isNotEmpty()) {
-            $hotel->images()->delete();
+            // Upsert by path (not delete-and-recreate) so an admin's
+            // is_hidden choice on a photo survives every future resync —
+            // only genuinely-removed TripJack URLs are deleted. Manually
+            // added photos (non-http paths) are never touched here.
+            $seenPaths = [];
             foreach ($images->values() as $index => $image) {
-                HotelImage::create([
-                    'hotel_id' => $hotel->id,
-                    'path' => $image['url'],
-                    'sort_order' => $image['hero'] ? 0 : $index + 1,
-                    'alt_text' => $image['caption'],
-                ]);
+                $seenPaths[] = $image['url'];
+                HotelImage::updateOrCreate(
+                    ['hotel_id' => $hotel->id, 'path' => $image['url']],
+                    [
+                        'sort_order' => $image['hero'] ? 0 : $index + 1,
+                        'alt_text' => $image['caption'],
+                    ]
+                );
             }
+
+            $hotel->images()
+                ->where('path', 'like', 'http%')
+                ->whereNotIn('path', $seenPaths)
+                ->delete();
         }
 
         $this->syncAmenities($hotel, $detail['amenities'] ?? []);
@@ -824,5 +835,92 @@ class TripJackHotelSync
                 ->whereNotIn('tripjack_room_code', $seenCodes)
                 ->update(['is_active' => false]);
         }
+    }
+
+    /**
+     * Fallback for hotels whose TripJack static content has no room
+     * catalogue at all (common — TripJack's own docs say static content
+     * "can be stale or incomplete"; confirmed on real hotels that resync
+     * cleanly but still return zero rooms). Calls the same live Pricing API
+     * the public hotel page uses and derives admin-displayable room types
+     * from the rate options it returns, since that's the only place this
+     * hotel's rooms exist. Triggered on demand from the admin panel, not
+     * during bulk resync, to avoid hammering the live pricing endpoint for
+     * hundreds of hotels at once.
+     *
+     * @return array{synced:int, error:?string}
+     */
+    public function syncLiveRoomsFromPricing(Hotel $hotel): array
+    {
+        if ($hotel->source !== 'tripjack' || ! $hotel->tripjack_hotel_id) {
+            return ['synced' => 0, 'error' => 'Not a TripJack-sourced hotel.'];
+        }
+
+        $checkIn = now()->addDay()->format('Y-m-d');
+        $checkOut = now()->addDays(2)->format('Y-m-d');
+
+        try {
+            $response = $this->client->pricing(
+                $hotel->tripjack_hotel_id,
+                $checkIn,
+                $checkOut,
+                [['adults' => 2]],
+                TripJackClient::newCorrelationId(),
+            );
+        } catch (\Throwable $e) {
+            Log::channel('tripjack')->warning('live_room_sync_failed', ['hotel_id' => $hotel->id, 'message' => $e->getMessage()]);
+
+            return ['synced' => 0, 'error' => 'Live rates are temporarily unavailable for this hotel. Please try again shortly.'];
+        }
+
+        $options = collect($response['options'] ?? []);
+        if ($options->isEmpty()) {
+            return ['synced' => 0, 'error' => 'TripJack returned no room options for this hotel and these dates.'];
+        }
+
+        // Group rate-plan variants (Breakfast/Non-Refundable/... of the same
+        // physical room) under one room type, same as the public page does —
+        // one row per distinct room name, not one per rate plan.
+        $grouped = $options->groupBy(fn ($option) => collect($option['roomInfo'] ?? [])->pluck('name')->unique()->implode(' + ') ?: 'Standard Room');
+
+        $seenCodes = [];
+        foreach ($grouped as $roomName => $roomOptions) {
+            $cheapest = $roomOptions->sortBy('pricing.totalPrice')->first();
+            $roomInfo = collect($cheapest['roomInfo'] ?? [])->first();
+            // TripJack's per-option `inclusions` array is routinely empty even
+            // when the option clearly has one (e.g. "Breakfast") — that detail
+            // lives in the separate `mealBasis` field instead. Fold both into
+            // one inclusions list rather than losing mealBasis in a
+            // description field nobody reads for TripJack-sourced rooms.
+            $inclusions = collect($roomOptions)
+                ->flatMap(fn ($o) => array_filter(array_merge($o['inclusions'] ?? [], [$o['mealBasis'] ?? null])))
+                ->unique()
+                ->values()
+                ->all();
+            // Prefer TripJack's own static room code (roomInfo[0].id) when
+            // present — it's stable across resyncs — falling back to a name
+            // slug only when TripJack omits it.
+            $roomCode = 'live-'.($roomInfo['id'] ?? Str::slug($roomName));
+            $seenCodes[] = $roomCode;
+
+            RoomType::updateOrCreate(
+                ['hotel_id' => $hotel->id, 'tripjack_room_code' => $roomCode],
+                [
+                    'name' => $roomName,
+                    'occupancy_adults' => max(1, (int) ($roomInfo['adults'] ?? 2)),
+                    'occupancy_children' => (int) ($roomInfo['children'] ?? 0),
+                    'inclusions' => ! empty($inclusions) ? $inclusions : null,
+                    'is_active' => true,
+                ]
+            );
+        }
+
+        RoomType::where('hotel_id', $hotel->id)
+            ->whereNotNull('tripjack_room_code')
+            ->where('tripjack_room_code', 'like', 'live-%')
+            ->whereNotIn('tripjack_room_code', $seenCodes)
+            ->update(['is_active' => false]);
+
+        return ['synced' => count($seenCodes), 'error' => null];
     }
 }
