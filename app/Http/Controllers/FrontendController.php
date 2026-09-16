@@ -51,7 +51,7 @@ class FrontendController extends Controller
         if (!$hasSearched) {
             $hotels = collect();
         } else {
-            $hotelsQuery = Hotel::with(['destination', 'amenities', 'images'])->where('is_active', true);
+            $hotelsQuery = Hotel::with(['destination', 'amenities', 'images'])->visibleOnWebsite();
 
             if ($destinationQuery !== '') {
                 $searchDestination = Destination::where('slug', Str::slug($destinationQuery))
@@ -300,14 +300,14 @@ class FrontendController extends Controller
     public function wishlist(Request $request)
     {
         $featuredHotels = Hotel::with(['destination', 'images'])
-            ->where('is_active', true)
+            ->visibleOnWebsite()
             ->where('is_featured', true)
             ->take(4)
             ->get();
 
         if ($featuredHotels->isEmpty()) {
             $featuredHotels = Hotel::with(['destination', 'images'])
-                ->where('is_active', true)
+                ->visibleOnWebsite()
                 ->latest()
                 ->take(4)
                 ->get();
@@ -329,7 +329,7 @@ class FrontendController extends Controller
         }
 
         $hotels = Hotel::with(['destination', 'images'])
-            ->where('is_active', true)
+            ->visibleOnWebsite()
             ->whereIn('slug', $slugs)
             ->get()
             ->map(function ($h) {
@@ -351,7 +351,7 @@ class FrontendController extends Controller
     public function hotelDetails($slug, Request $request, TripJackClient $client)
     {
         $hotel = Hotel::with(['destination', 'amenities', 'images', 'roomTypes', 'reviews'])
-            ->where('is_active', true)
+            ->visibleOnWebsite()
             ->where('slug', $slug)
             ->firstOrFail();
 
@@ -386,8 +386,15 @@ class FrontendController extends Controller
                 // re-deriving it from the raw TripJack price.
                 $liveOptions = collect($response['options'] ?? [])->map(function ($option) {
                     if (isset($option['pricing']['totalPrice'])) {
-                        $option['pricing']['pricingBreakdown'] = HotelPricingService::price((float) $option['pricing']['totalPrice']);
-                        $option['pricing']['customerPrice'] = $option['pricing']['pricingBreakdown']['customer_price'];
+                        $breakdown = HotelPricingService::price((float) $option['pricing']['totalPrice']);
+                        // TripJack requires mf (management fee) and mft (its tax) to be
+                        // shown as separate line items to the end user. They're already
+                        // included inside totalPrice, so this is display-only passthrough —
+                        // it does not feed into or change the markup formula above.
+                        $breakdown['tripjack_mf'] = round((float) ($option['pricing']['mf'] ?? 0), 2);
+                        $breakdown['tripjack_mft'] = round((float) ($option['pricing']['mft'] ?? 0), 2);
+                        $option['pricing']['pricingBreakdown'] = $breakdown;
+                        $option['pricing']['customerPrice'] = $breakdown['customer_price'];
                     }
 
                     return $option;
@@ -428,7 +435,7 @@ class FrontendController extends Controller
      */
     public function reviewRoom($slug, Request $request, TripJackClient $client)
     {
-        $hotel = Hotel::where('is_active', true)->where('slug', $slug)->firstOrFail();
+        $hotel = Hotel::visibleOnWebsite()->where('slug', $slug)->firstOrFail();
 
         if ($hotel->source !== 'tripjack' || ! $hotel->tripjack_hotel_id) {
             abort(404);
@@ -482,8 +489,13 @@ class FrontendController extends Controller
         // the review/checkout page and what ultimately gets booked/charged.
         $option = $response['option'] ?? null;
         if (isset($option['pricing']['totalPrice'])) {
-            $option['pricing']['pricingBreakdown'] = HotelPricingService::price((float) $option['pricing']['totalPrice']);
-            $option['pricing']['customerPrice'] = $option['pricing']['pricingBreakdown']['customer_price'];
+            $breakdown = HotelPricingService::price((float) $option['pricing']['totalPrice']);
+            // See hotelDetails() — mf/mft passthrough for TripJack's separate-line-item
+            // requirement, display-only, does not affect the markup formula.
+            $breakdown['tripjack_mf'] = round((float) ($option['pricing']['mf'] ?? 0), 2);
+            $breakdown['tripjack_mft'] = round((float) ($option['pricing']['mft'] ?? 0), 2);
+            $option['pricing']['pricingBreakdown'] = $breakdown;
+            $option['pricing']['customerPrice'] = $breakdown['customer_price'];
         }
 
         session(['tripjack_booking_draft' => [
@@ -513,7 +525,7 @@ class FrontendController extends Controller
      */
     public function showReview($slug)
     {
-        $hotel = Hotel::where('is_active', true)->where('slug', $slug)->firstOrFail();
+        $hotel = Hotel::visibleOnWebsite()->where('slug', $slug)->firstOrFail();
         $draft = session('tripjack_booking_draft');
 
         if (! $draft || $draft['hotel_id'] !== $hotel->id) {
@@ -545,7 +557,7 @@ class FrontendController extends Controller
      */
     public function submitBooking($slug, Request $request, RazorpayService $razorpay)
     {
-        $hotel = Hotel::where('is_active', true)->where('slug', $slug)->firstOrFail();
+        $hotel = Hotel::visibleOnWebsite()->where('slug', $slug)->firstOrFail();
         $draft = session('tripjack_booking_draft');
 
         if (! $draft || $draft['hotel_id'] !== $hotel->id) {
@@ -775,7 +787,7 @@ class FrontendController extends Controller
 
     public function bookingConfirmation($reference, Request $request, TripJackClient $client, RazorpayService $razorpay)
     {
-        $booking = Booking::with('hotel')->where('reference', $reference)->firstOrFail();
+        $booking = Booking::with(['hotel.images', 'hotel.amenities', 'roomType', 'travelers'])->where('reference', $reference)->firstOrFail();
 
         // A booking reference alone must never be enough to view someone
         // else's booking — this route sits behind 'auth', but auth alone is
