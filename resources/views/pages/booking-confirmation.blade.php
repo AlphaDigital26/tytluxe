@@ -261,6 +261,8 @@
           @endforeach
         </div>
         @endif
+        @elseif($booking->room_name)
+        <div class="bd-room-name">{{ $booking->room_name }}</div>
         @endif
       </div>
 

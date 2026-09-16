@@ -585,9 +585,15 @@
           {{-- Price Card --}}
           <div class="pd-sidebar-card">
             <div class="pd-price-card-top">
-              <div class="pd-price-label">Starting From</div>
-              <div class="pd-price-val"><span class="curr">&#8377;</span>{{ number_format($package->price_from, 0) }} <span style="font-size: 13px; font-weight: 500; color: var(--white-80); margin-left: 6px;">(inclusive of all taxes)</span></div>
-              <div class="pd-price-pp">per person{{ !empty($package->departure_from) ? ' (ex. ' . (is_array($package->departure_from) ? implode(', ', $package->departure_from) : $package->departure_from) . ')' : '' }}</div>
+              @if($package->price_from)
+                <div class="pd-price-label">Starting From</div>
+                <div class="pd-price-val"><span class="curr">&#8377;</span>{{ number_format($package->price_from, 0) }} <span style="font-size: 13px; font-weight: 500; color: var(--white-80); margin-left: 6px;">(inclusive of all taxes)</span></div>
+                <div class="pd-price-pp">per person{{ !empty($package->departure_from) ? ' (ex. ' . (is_array($package->departure_from) ? implode(', ', $package->departure_from) : $package->departure_from) . ')' : '' }}</div>
+              @else
+                <div class="pd-price-label">Pricing</div>
+                <div class="pd-price-val" style="font-size: 22px;">Customized for your group</div>
+                <div class="pd-price-pp">Enquire below for a quote</div>
+              @endif
             </div>
             <div class="pd-price-card-body">
               @if($package->duration_nights)
