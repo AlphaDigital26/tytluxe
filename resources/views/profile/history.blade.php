@@ -57,13 +57,22 @@
                             'location' => $location,
                             'imageUrl' => $imageUrl,
                             'status' => ucfirst(str_replace('_', ' ', $booking->status)),
+                            'statusRaw' => $booking->status,
                             'checkIn' => $booking->check_in ? \Carbon\Carbon::parse($booking->check_in)->format('d M Y') : null,
                             'checkOut' => $booking->check_out ? \Carbon\Carbon::parse($booking->check_out)->format('d M Y') : null,
                             'guests' => $guestsLabel,
                             'roomType' => $booking->roomType->name ?? null,
                             'total' => $booking->total_amount ? number_format($booking->total_amount, 2) : null,
+                            'baseAmount' => $booking->base_amount ? number_format($booking->base_amount, 2) : null,
+                            'taxAmount' => $booking->tax_amount ? number_format($booking->tax_amount, 2) : null,
+                            'discountAmount' => $booking->discount_amount ? number_format($booking->discount_amount, 2) : null,
                             'currency' => $booking->currency,
-                            'detailsUrl' => route('hotel.booking.confirmation', $booking->reference),
+                            'leadGuestName' => $booking->lead_guest_name,
+                            'guestEmail' => $booking->guest_email,
+                            'guestPhone' => $booking->guest_phone,
+                            'specialRequests' => $booking->special_requests,
+                            'cancellationReason' => $booking->cancellation_reason,
+                            'invoiceUrl' => ! in_array($booking->status, ['pending_payment', 'payment_failed'], true) ? route('hotel.booking.invoice', $booking->reference) : null,
                         ];
                     @endphp
                     <img src="{{ $imageUrl }}" alt="{{ $title }}" class="journey-img">
@@ -154,13 +163,22 @@
                                 'location' => $location,
                                 'imageUrl' => $imageUrl,
                                 'status' => ucfirst(str_replace('_', ' ', $booking->status)),
+                                'statusRaw' => $booking->status,
                                 'checkIn' => $booking->check_in ? \Carbon\Carbon::parse($booking->check_in)->format('d M Y') : null,
                                 'checkOut' => $booking->check_out ? \Carbon\Carbon::parse($booking->check_out)->format('d M Y') : null,
                                 'guests' => $guestsLabel,
                                 'roomType' => $booking->roomType->name ?? null,
                                 'total' => $booking->total_amount ? number_format($booking->total_amount, 2) : null,
+                                'baseAmount' => $booking->base_amount ? number_format($booking->base_amount, 2) : null,
+                                'taxAmount' => $booking->tax_amount ? number_format($booking->tax_amount, 2) : null,
+                                'discountAmount' => $booking->discount_amount ? number_format($booking->discount_amount, 2) : null,
                                 'currency' => $booking->currency,
-                                'detailsUrl' => route('hotel.booking.confirmation', $booking->reference),
+                                'leadGuestName' => $booking->lead_guest_name,
+                                'guestEmail' => $booking->guest_email,
+                                'guestPhone' => $booking->guest_phone,
+                                'specialRequests' => $booking->special_requests,
+                                'cancellationReason' => $booking->cancellation_reason,
+                                'invoiceUrl' => ! in_array($booking->status, ['pending_payment', 'payment_failed'], true) ? route('hotel.booking.invoice', $booking->reference) : null,
                             ];
                         @endphp
                         <div class="past-card">
@@ -234,31 +252,81 @@
     </div>
     <div class="bd-modal-body">
       <div class="bd-modal-grid">
-        <div>
-          <div class="bd-modal-label">Check-in</div>
-          <div class="bd-modal-value" id="bdModalCheckin">—</div>
+        <div class="bd-modal-stat">
+          <div class="bd-modal-stat-icon">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-6.5 8-12.5A8 8 0 004 9.5C4 15.5 12 22 12 22z"/><circle cx="12" cy="9.5" r="2.5"/></svg>
+          </div>
+          <div>
+            <div class="bd-modal-label">Check-in</div>
+            <div class="bd-modal-value" id="bdModalCheckin">—</div>
+          </div>
         </div>
-        <div>
-          <div class="bd-modal-label">Check-out</div>
-          <div class="bd-modal-value" id="bdModalCheckout">—</div>
+        <div class="bd-modal-stat">
+          <div class="bd-modal-stat-icon">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-6.5 8-12.5A8 8 0 004 9.5C4 15.5 12 22 12 22z"/><circle cx="12" cy="9.5" r="2.5"/></svg>
+          </div>
+          <div>
+            <div class="bd-modal-label">Check-out</div>
+            <div class="bd-modal-value" id="bdModalCheckout">—</div>
+          </div>
         </div>
-        <div>
-          <div class="bd-modal-label">Guests</div>
-          <div class="bd-modal-value" id="bdModalGuests">—</div>
+        <div class="bd-modal-stat">
+          <div class="bd-modal-stat-icon">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+          </div>
+          <div>
+            <div class="bd-modal-label">Guests</div>
+            <div class="bd-modal-value" id="bdModalGuests">—</div>
+          </div>
         </div>
-        <div id="bdModalRoomWrap" hidden>
-          <div class="bd-modal-label">Room Type</div>
-          <div class="bd-modal-value" id="bdModalRoom">—</div>
+        <div class="bd-modal-stat" id="bdModalRoomWrap" hidden>
+          <div class="bd-modal-stat-icon">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v11m0-11a2 2 0 012-2h4a2 2 0 012 2m-8 0h18M9 7v11m9-11v11m0-11a2 2 0 012 2v9"/></svg>
+          </div>
+          <div>
+            <div class="bd-modal-label">Room Type</div>
+            <div class="bd-modal-value" id="bdModalRoom">—</div>
+          </div>
         </div>
       </div>
+
+      <div class="bd-modal-section" id="bdModalGuestSection" hidden>
+        <div class="bd-modal-section-title">Lead Guest</div>
+        <div class="bd-modal-value" id="bdModalGuestName">—</div>
+        <div class="bd-modal-subvalue" id="bdModalGuestContact"></div>
+      </div>
+
+      <div class="bd-modal-section" id="bdModalRequestSection" hidden>
+        <div class="bd-modal-section-title">Special Requests</div>
+        <div class="bd-modal-subvalue" id="bdModalRequestText"></div>
+      </div>
+
+      <div class="bd-modal-section" id="bdModalCancelSection" hidden>
+        <div class="bd-modal-section-title">Cancellation Note</div>
+        <div class="bd-modal-subvalue" id="bdModalCancelText"></div>
+      </div>
+
+      <div class="bd-modal-section" id="bdModalPriceSection" hidden>
+        <div class="bd-modal-section-title">Price Breakdown</div>
+        <div class="bd-modal-price-row" id="bdModalBaseRow" hidden>
+          <span>Room Charges</span><span id="bdModalBaseValue">—</span>
+        </div>
+        <div class="bd-modal-price-row" id="bdModalTaxRow" hidden>
+          <span>Taxes &amp; Fees</span><span id="bdModalTaxValue">—</span>
+        </div>
+        <div class="bd-modal-price-row bd-modal-price-discount" id="bdModalDiscountRow" hidden>
+          <span>Discount</span><span id="bdModalDiscountValue">—</span>
+        </div>
+      </div>
+
       <div class="bd-modal-footer">
         <div id="bdModalTotalWrap" hidden>
-          <div class="bd-modal-label">Total Paid</div>
+          <div class="bd-modal-label" id="bdModalTotalLabel">Total Paid</div>
           <div class="bd-modal-total" id="bdModalTotal">—</div>
         </div>
-        <a href="#" id="bdModalFullLink" class="bd-modal-btn">
-          View Full Details
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        <a href="#" id="bdModalInvoiceLink" class="bd-modal-btn" hidden>
+          Download Invoice
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 19h16"/></svg>
         </a>
       </div>
       <div class="bd-modal-ref" id="bdModalRef"></div>
@@ -279,8 +347,13 @@
     max-width: 480px; width: 100%; max-height: 90vh; overflow-y: auto; position: relative;
     box-shadow: 0 24px 70px rgba(0,0,0,0.9), 0 0 35px rgba(201,168,76,0.12);
     transform: translateY(20px) scale(0.97); transition: transform 0.32s cubic-bezier(0.25,0.46,0.45,0.94);
+    scrollbar-width: thin; scrollbar-color: rgba(201,168,76,0.4) transparent;
   }
   .bd-modal-backdrop.open .bd-modal-card { transform: translateY(0) scale(1); }
+  .bd-modal-card::-webkit-scrollbar { width: 6px; }
+  .bd-modal-card::-webkit-scrollbar-track { background: transparent; margin: 20px 0; }
+  .bd-modal-card::-webkit-scrollbar-thumb { background: rgba(201,168,76,0.35); border-radius: 100px; }
+  .bd-modal-card::-webkit-scrollbar-thumb:hover { background: rgba(201,168,76,0.6); }
 
   .bd-modal-close {
     position: absolute; top: 14px; right: 14px; z-index: 2;
@@ -299,21 +372,40 @@
   .bd-modal-status {
     align-self: flex-start; padding: 3px 12px; border-radius: 100px; font-size: 11px; font-weight: 700;
     letter-spacing: 0.04em; font-family: 'Jost', sans-serif; background: rgba(74,222,128,0.15); color: #4ade80;
-    margin-bottom: 8px;
+    margin-bottom: 8px; border: 1px solid rgba(74,222,128,0.3);
   }
+  .bd-modal-status--bad { background: rgba(248,113,113,0.15); color: #f87171; border-color: rgba(248,113,113,0.3); }
+  .bd-modal-status--neutral { background: rgba(232,201,107,0.15); color: #e8c96b; border-color: rgba(232,201,107,0.3); }
   .bd-modal-img-overlay h3 { font-family: 'Cormorant Garamond', serif; color: #fff; font-size: 22px; margin: 0 0 2px; }
   .bd-modal-img-overlay p { font-family: 'Jost', sans-serif; font-size: 12.5px; color: rgba(255,255,255,0.65); margin: 0; }
 
   .bd-modal-body { padding: 22px; }
-  .bd-modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 14px; margin-bottom: 20px; }
-  .bd-modal-label { font-family: 'Jost', sans-serif; font-size: 10.5px; color: rgba(255,255,255,0.35); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 5px; }
-  .bd-modal-value { font-family: 'Jost', sans-serif; font-size: 14px; color: #fff; font-weight: 500; }
+  .bd-modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+  .bd-modal-stat {
+    display: flex; align-items: flex-start; gap: 10px; padding: 12px; border-radius: 12px;
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+  }
+  .bd-modal-stat-icon {
+    flex-shrink: 0; width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center;
+    background: rgba(201,168,76,0.12); color: #c9a84c; margin-top: 1px;
+  }
+  .bd-modal-label { font-family: 'Jost', sans-serif; font-size: 10.5px; color: rgba(255,255,255,0.35); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+  .bd-modal-value { font-family: 'Jost', sans-serif; font-size: 13.5px; color: #fff; font-weight: 500; line-height: 1.3; }
+  .bd-modal-subvalue { font-family: 'Jost', sans-serif; font-size: 12.5px; color: rgba(255,255,255,0.55); line-height: 1.5; margin-top: 3px; }
+
+  .bd-modal-section { margin-bottom: 16px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.07); }
+  .bd-modal-section-title { font-family: 'Jost', sans-serif; font-size: 10.5px; color: #c9a84c; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+  .bd-modal-price-row {
+    display: flex; justify-content: space-between; font-family: 'Jost', sans-serif; font-size: 13px;
+    color: rgba(255,255,255,0.75); padding: 4px 0;
+  }
+  .bd-modal-price-discount { color: #4ade80; }
 
   .bd-modal-footer {
     display: flex; align-items: center; justify-content: space-between; gap: 12px;
-    padding-top: 16px; border-top: 1px dashed rgba(255,255,255,0.1);
+    padding-top: 18px; border-top: 1px dashed rgba(255,255,255,0.1);
   }
-  .bd-modal-total { font-family: 'Jost', sans-serif; font-size: 18px; font-weight: 700; color: #e8c96b; }
+  .bd-modal-total { font-family: 'Jost', sans-serif; font-size: 19px; font-weight: 700; color: #e8c96b; }
   .bd-modal-btn {
     display: inline-flex; align-items: center; gap: 6px; padding: 11px 20px; border-radius: 100px;
     background: linear-gradient(90deg, #c9a84c, #e8c96b); color: #0d0d0d;
@@ -324,6 +416,7 @@
   .bd-modal-ref { margin-top: 14px; font-family: 'Jost', sans-serif; font-size: 11px; color: rgba(255,255,255,0.3); text-align: center; }
 
   @media (max-width: 480px) {
+    .bd-modal-grid { grid-template-columns: 1fr; }
     .bd-modal-footer { flex-direction: column; align-items: stretch; }
     .bd-modal-btn { justify-content: center; }
   }
@@ -339,7 +432,17 @@
     document.getElementById('bdModalImg').alt = data.title || '';
     document.getElementById('bdModalTitle').textContent = data.title || '';
     document.getElementById('bdModalLocation').textContent = data.location || '';
-    document.getElementById('bdModalStatus').textContent = data.status || '';
+    const statusEl = document.getElementById('bdModalStatus');
+    statusEl.textContent = data.status || '';
+    statusEl.classList.remove('bd-modal-status--bad', 'bd-modal-status--neutral');
+    const badStatuses = ['cancelled', 'refunded', 'failed_needs_review', 'payment_failed'];
+    const neutralStatuses = ['pending_payment', 'cancellation_pending'];
+    if (badStatuses.includes(data.statusRaw)) {
+      statusEl.classList.add('bd-modal-status--bad');
+    } else if (neutralStatuses.includes(data.statusRaw)) {
+      statusEl.classList.add('bd-modal-status--neutral');
+    }
+
     document.getElementById('bdModalCheckin').textContent = data.checkIn || '—';
     document.getElementById('bdModalCheckout').textContent = data.checkOut || '—';
     document.getElementById('bdModalGuests').textContent = data.guests || '—';
@@ -352,15 +455,78 @@
       roomWrap.hidden = true;
     }
 
+    const guestSection = document.getElementById('bdModalGuestSection');
+    if (data.leadGuestName) {
+      guestSection.hidden = false;
+      document.getElementById('bdModalGuestName').textContent = data.leadGuestName;
+      const contactParts = [data.guestEmail, data.guestPhone].filter(Boolean);
+      document.getElementById('bdModalGuestContact').textContent = contactParts.join(' • ');
+    } else {
+      guestSection.hidden = true;
+    }
+
+    const requestSection = document.getElementById('bdModalRequestSection');
+    if (data.specialRequests) {
+      requestSection.hidden = false;
+      document.getElementById('bdModalRequestText').textContent = data.specialRequests;
+    } else {
+      requestSection.hidden = true;
+    }
+
+    const cancelSection = document.getElementById('bdModalCancelSection');
+    if (data.cancellationReason) {
+      cancelSection.hidden = false;
+      document.getElementById('bdModalCancelText').textContent = data.cancellationReason;
+    } else {
+      cancelSection.hidden = true;
+    }
+
+    const priceSection = document.getElementById('bdModalPriceSection');
+    const baseRow = document.getElementById('bdModalBaseRow');
+    const taxRow = document.getElementById('bdModalTaxRow');
+    const discountRow = document.getElementById('bdModalDiscountRow');
+    let hasPriceRow = false;
+
+    if (data.baseAmount) {
+      baseRow.hidden = false;
+      document.getElementById('bdModalBaseValue').textContent = (data.currency || 'INR') + ' ' + data.baseAmount;
+      hasPriceRow = true;
+    } else {
+      baseRow.hidden = true;
+    }
+    if (data.taxAmount) {
+      taxRow.hidden = false;
+      document.getElementById('bdModalTaxValue').textContent = (data.currency || 'INR') + ' ' + data.taxAmount;
+      hasPriceRow = true;
+    } else {
+      taxRow.hidden = true;
+    }
+    if (data.discountAmount) {
+      discountRow.hidden = false;
+      document.getElementById('bdModalDiscountValue').textContent = '− ' + (data.currency || 'INR') + ' ' + data.discountAmount;
+      hasPriceRow = true;
+    } else {
+      discountRow.hidden = true;
+    }
+    priceSection.hidden = !hasPriceRow;
+
     const totalWrap = document.getElementById('bdModalTotalWrap');
     if (data.total) {
       totalWrap.hidden = false;
+      document.getElementById('bdModalTotalLabel').textContent = data.statusRaw === 'refunded' ? 'Total Refunded' : 'Total Paid';
       document.getElementById('bdModalTotal').textContent = (data.currency || 'INR') + ' ' + data.total;
     } else {
       totalWrap.hidden = true;
     }
 
-    document.getElementById('bdModalFullLink').href = data.detailsUrl || '#';
+    const invoiceLink = document.getElementById('bdModalInvoiceLink');
+    if (data.invoiceUrl) {
+      invoiceLink.hidden = false;
+      invoiceLink.href = data.invoiceUrl;
+    } else {
+      invoiceLink.hidden = true;
+    }
+
     document.getElementById('bdModalRef').textContent = data.reference ? ('Booking Reference: ' + data.reference) : '';
 
     backdrop.classList.add('open');

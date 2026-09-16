@@ -27,6 +27,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/booking/{reference}', [FrontendController::class, 'bookingConfirmation'])->name('hotel.booking.confirmation');
     Route::get('/booking/{reference}/cancel', [FrontendController::class, 'showCancellation'])->name('hotel.booking.cancel.show');
     Route::post('/booking/{reference}/cancel', [FrontendController::class, 'submitCancellation'])->name('hotel.booking.cancel')->middleware('throttle:5,1');
+    Route::get('/booking/{reference}/invoice', [FrontendController::class, 'downloadInvoice'])->name('hotel.booking.invoice')->middleware('throttle:20,1');
 });
 
 // Razorpay's server calls this directly — no user session exists here, so it

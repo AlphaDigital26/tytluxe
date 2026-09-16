@@ -94,7 +94,14 @@
   .bd-stat-label { font-family: 'Jost', sans-serif; font-size: 10.5px; color: var(--white-30); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
   .bd-stat-value { font-family: 'Jost', sans-serif; font-size: 15px; color: #fff; font-weight: 500; }
 
-  .bd-nights-pill { display: inline-flex; align-items: center; gap: 8px; margin: 18px 0 4px; padding: 8px 16px; border-radius: 100px; background: rgba(201,168,76,0.08); border: 1px solid rgba(201,168,76,0.2); font-family: 'Jost', sans-serif; font-size: 12px; color: var(--gold-light); }
+  /* Check-in ⟶ Check-out with the night count riding the connecting line —
+     reads as a single date range at a glance instead of two disconnected stats. */
+  .bd-stay-dates { display: flex; align-items: center; gap: 12px; }
+  .bd-stay-duration { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; padding-top: 2px; min-width: 70px; }
+  .bd-stay-duration span { font-family: 'Jost', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; color: var(--gold-light); white-space: nowrap; }
+  .bd-stay-duration-line { position: relative; width: 100%; height: 1px; background: rgba(201,168,76,0.3); display: flex; align-items: center; justify-content: center; }
+  .bd-stay-duration-line svg { position: relative; background: var(--dark-2); color: var(--gold); padding: 0 4px; flex-shrink: 0; }
+  @media (max-width: 480px) { .bd-stay-dates { flex-direction: column; align-items: stretch; gap: 10px; } .bd-stay-duration { flex-direction: row; justify-content: center; } .bd-stay-duration-line { display: none; } }
 
   .bd-room-name { font-family: 'Cormorant Garamond', serif; font-size: 20px; color: #fff; margin-top: 18px; margin-bottom: 8px; }
   .bd-chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
@@ -183,8 +190,11 @@
 </div>
 
 @php
+  // diffInDays() returns a float — comparing that against the int 1 with
+  // !== always fails (1.0 !== 1), which was silently breaking the "1 Night"
+  // vs "2 Nights" singular/plural check below. Cast once here.
   $nights = ($booking->check_in && $booking->check_out)
-      ? \Illuminate\Support\Carbon::parse($booking->check_in)->diffInDays(\Illuminate\Support\Carbon::parse($booking->check_out))
+      ? (int) \Illuminate\Support\Carbon::parse($booking->check_in)->diffInDays(\Illuminate\Support\Carbon::parse($booking->check_out))
       : null;
   $heroImage = $booking->hotel?->images?->first()?->image_path;
   if ($heroImage && ! str_starts_with($heroImage, 'http')) {
@@ -218,27 +228,29 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
           Your Stay
         </div>
-        <div class="bd-stay-grid">
+        <div class="bd-stay-dates">
           <div>
             <div class="bd-stat-label">Check-in</div>
             <div class="bd-stat-value">{{ \Illuminate\Support\Carbon::parse($booking->check_in)->format('d M Y') }}</div>
           </div>
-          <div>
+          @if($nights !== null)
+          <div class="bd-stay-duration" aria-hidden="true">
+            <span>{{ $nights }} Night{{ $nights !== 1 ? 's' : '' }}</span>
+            <div class="bd-stay-duration-line"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
+          </div>
+          @endif
+          <div style="text-align:right;">
             <div class="bd-stat-label">Check-out</div>
             <div class="bd-stat-value">{{ \Illuminate\Support\Carbon::parse($booking->check_out)->format('d M Y') }}</div>
           </div>
+        </div>
+
+        <div class="bd-stay-grid" style="margin-top:20px;">
           <div>
             <div class="bd-stat-label">Guests</div>
             <div class="bd-stat-value">{{ $booking->pax_adults }} Adult{{ $booking->pax_adults > 1 ? 's' : '' }}@if($booking->pax_children), {{ $booking->pax_children }} Child(ren) @endif</div>
           </div>
         </div>
-
-        @if($nights !== null)
-        <div class="bd-nights-pill">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M2 12h20"/></svg>
-          {{ $nights }} Night{{ $nights !== 1 ? 's' : '' }} Stay
-        </div>
-        @endif
 
         @if($booking->roomType)
         <div class="bd-room-name">{{ $booking->roomType->name }}</div>
@@ -305,10 +317,17 @@
         @endif
 
         @if($booking->hotel->amenities && $booking->hotel->amenities->count())
+        @php $visibleAmenities = 10; @endphp
         <div class="bd-chip-row" style="margin-top:16px;">
-          @foreach($booking->hotel->amenities as $amenity)
-          <span class="bd-chip">{{ $amenity->name }}</span>
+          @foreach($booking->hotel->amenities as $i => $amenity)
+          <span class="bd-chip" @if($i >= $visibleAmenities) hidden data-bd-amenity-extra @endif>{{ $amenity->name }}</span>
           @endforeach
+          @if($booking->hotel->amenities->count() > $visibleAmenities)
+          <button type="button" class="bd-chip bd-chip-more" data-bd-amenity-toggle
+                  style="cursor:pointer; border:1px solid rgba(201,168,76,0.35); color:var(--gold); background:rgba(201,168,76,0.08); font-family:'Jost',sans-serif;">
+            +{{ $booking->hotel->amenities->count() - $visibleAmenities }} more
+          </button>
+          @endif
         </div>
         @endif
 
@@ -369,6 +388,20 @@
       </div>
       @endif
 
+      @if(! in_array($booking->status, ['pending_payment', 'payment_failed'], true))
+      <div style="margin-top:16px;">
+        <a href="{{ route('hotel.booking.invoice', $booking->reference) }}"
+           style="display:flex; align-items:center; justify-content:center; gap:8px; padding:13px 24px; border-radius:100px;
+                  background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15); color:#fff;
+                  font-family:'Jost',sans-serif; font-size:12.5px; font-weight:600; letter-spacing:0.06em;
+                  text-transform:uppercase; text-decoration:none; transition:all 0.28s ease;"
+           onmouseover="this.style.background='rgba(255,255,255,0.12)'" onmouseout="this.style.background='rgba(255,255,255,0.06)'">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+          Download Invoice
+        </a>
+      </div>
+      @endif
+
       @if($canRequestCancellation)
       <div style="margin-top:16px;">
         <a href="{{ route('hotel.booking.cancel.show', $booking->reference) }}"
@@ -419,4 +452,18 @@
     </div>
   </div>
 </div>
+
+@push('scripts')
+<script>
+  document.querySelectorAll('[data-bd-amenity-toggle]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      const row = btn.closest('.bd-chip-row');
+      row.querySelectorAll('[data-bd-amenity-extra]').forEach(function (chip) {
+        chip.hidden = false;
+      });
+      btn.hidden = true;
+    });
+  });
+</script>
+@endpush
 @endsection
