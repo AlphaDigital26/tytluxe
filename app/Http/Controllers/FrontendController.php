@@ -545,6 +545,10 @@ class FrontendController extends Controller
             'panRequired' => $panRequired,
             'passportRequired' => $passportRequired,
             'draft' => $draft,
+            // Lets a returning guest pick a saved co-traveller instead of
+            // retyping name/passport for every room — see the picker in the
+            // traveler fields.
+            'savedTravellers' => auth()->user()->savedTravellers,
         ]);
     }
 
@@ -854,6 +858,30 @@ class FrontendController extends Controller
             && (now()->timestamp - $pollingSince) < 180;
 
         return view('pages.booking-confirmation', compact('booking', 'liveStatus', 'stillPolling', 'pollingSince'));
+    }
+
+    /**
+     * Streams a PDF invoice for a booking. Gated to bookings that actually
+     * had a payment captured at some point (pending_payment/payment_failed
+     * never did) — an invoice for money that was never taken doesn't mean
+     * anything.
+     */
+    public function downloadInvoice($reference)
+    {
+        $booking = Booking::with(['hotel', 'travelers'])->where('reference', $reference)->firstOrFail();
+
+        if ($booking->user_id !== auth()->id()) {
+            abort(403);
+        }
+
+        if (in_array($booking->status, ['pending_payment', 'payment_failed'], true)) {
+            abort(404);
+        }
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.invoice', compact('booking'))
+            ->setPaper('a4', 'portrait');
+
+        return $pdf->download("invoice-{$booking->reference}.pdf");
     }
 
     /**

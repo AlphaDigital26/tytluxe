@@ -209,10 +209,27 @@
                 $passportField = "rooms.{$ri}.travelers.{$ti}.passport_number";
                 $oldTitle = old($titleField);
               @endphp
+              @if($savedTravellers->isNotEmpty())
+              <div class="br-field" style="margin-bottom:14px;">
+                <label>Fill From Saved Traveller</label>
+                <select class="br-saved-picker" data-is-child="{{ $isChild ? '1' : '0' }}">
+                  <option value="">— Select a saved co-traveller —</option>
+                  @foreach($savedTravellers as $saved)
+                  <option
+                    value="{{ $saved->id }}"
+                    data-first-name="{{ $saved->first_name }}"
+                    data-last-name="{{ $saved->last_name }}"
+                    data-gender="{{ $saved->gender }}"
+                    data-passport="{{ $saved->passport_number }}"
+                  >{{ $saved->first_name }} {{ $saved->last_name }}@if($saved->relationship) ({{ $saved->relationship }}) @endif</option>
+                  @endforeach
+                </select>
+              </div>
+              @endif
               <div class="br-row-3">
                 <div class="br-field {{ $errors->has($titleField) ? 'error' : '' }}">
                   <label>Title</label>
-                  <select name="rooms[{{ $ri }}][travelers][{{ $ti }}][title]" required>
+                  <select name="rooms[{{ $ri }}][travelers][{{ $ti }}][title]" data-field="title" required>
                     @if($isChild)
                       <option value="Master" {{ $oldTitle === 'Master' ? 'selected' : '' }}>Master</option>
                       <option value="Miss" {{ $oldTitle === 'Miss' ? 'selected' : '' }}>Miss</option>
@@ -225,17 +242,17 @@
                 </div>
                 <div class="br-field {{ $errors->has($firstNameField) ? 'error' : '' }}">
                   <label>First Name</label>
-                  <input type="text" name="rooms[{{ $ri }}][travelers][{{ $ti }}][first_name]" value="{{ old($firstNameField) }}" required>
+                  <input type="text" name="rooms[{{ $ri }}][travelers][{{ $ti }}][first_name]" value="{{ old($firstNameField) }}" data-field="first_name" required>
                 </div>
                 <div class="br-field {{ $errors->has($lastNameField) ? 'error' : '' }}">
                   <label>Last Name</label>
-                  <input type="text" name="rooms[{{ $ri }}][travelers][{{ $ti }}][last_name]" value="{{ old($lastNameField) }}" required>
+                  <input type="text" name="rooms[{{ $ri }}][travelers][{{ $ti }}][last_name]" value="{{ old($lastNameField) }}" data-field="last_name" required>
                 </div>
               </div>
               @if($passportRequired)
               <div class="br-field {{ $errors->has($passportField) ? 'error' : '' }}">
                 <label>Passport Number</label>
-                <input type="text" name="rooms[{{ $ri }}][travelers][{{ $ti }}][passport_number]" value="{{ old($passportField) }}" required>
+                <input type="text" name="rooms[{{ $ri }}][travelers][{{ $ti }}][passport_number]" value="{{ old($passportField) }}" data-field="passport_number" required>
               </div>
               @endif
             </div>
@@ -305,6 +322,40 @@
     window.addEventListener('pageshow', function () {
       btn.classList.remove('loading');
       btn.disabled = false;
+    });
+
+    document.querySelectorAll('.br-saved-picker').forEach(function (picker) {
+      picker.addEventListener('change', function () {
+        var traveler = picker.closest('.br-traveler');
+        if (!traveler) return;
+        var option = picker.options[picker.selectedIndex];
+        if (!option || !option.value) return;
+
+        var firstName = option.getAttribute('data-first-name') || '';
+        var lastName = option.getAttribute('data-last-name') || '';
+        var gender = option.getAttribute('data-gender') || '';
+        var passport = option.getAttribute('data-passport') || '';
+        var isChild = picker.getAttribute('data-is-child') === '1';
+
+        var firstNameField = traveler.querySelector('[data-field="first_name"]');
+        if (firstNameField) firstNameField.value = firstName;
+
+        var lastNameField = traveler.querySelector('[data-field="last_name"]');
+        if (lastNameField) lastNameField.value = lastName;
+
+        var passportField = traveler.querySelector('[data-field="passport_number"]');
+        if (passportField && passport) passportField.value = passport;
+
+        var titleField = traveler.querySelector('[data-field="title"]');
+        if (titleField && gender) {
+          var title = '';
+          if (gender === 'Male') title = isChild ? 'Master' : 'Mr';
+          else if (gender === 'Female') title = isChild ? 'Miss' : 'Ms';
+          if (title && Array.prototype.some.call(titleField.options, function (o) { return o.value === title; })) {
+            titleField.value = title;
+          }
+        }
+      });
     });
   })();
 </script>
