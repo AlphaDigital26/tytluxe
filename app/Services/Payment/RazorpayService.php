@@ -85,14 +85,39 @@ class RazorpayService
      * Refunds a captured payment — full refund when $amountRupees is null,
      * partial otherwise. Used when TripJack's Book call fails after payment
      * was already captured.
+     *
+     * Retries on failure: observed live against Razorpay's real test-mode
+     * API, refund calls for an otherwise-valid amount occasionally come back
+     * with a generic "invalid request sent" BadRequestError that has no
+     * discernible cause — retrying the identical request shortly after
+     * frequently succeeds. Since the caller (refundAndMarkFailed) treats any
+     * exception here as "needs a human," a few quick retries meaningfully
+     * cut down how often a customer's refund gets stuck waiting on manual
+     * intervention for what's really just sandbox flakiness.
      */
     public function refund(string $paymentId, ?float $amountRupees = null): array
     {
         $attributes = $amountRupees !== null ? ['amount' => $this->toPaise($amountRupees)] : [];
 
-        $refund = $this->api->payment->fetch($paymentId)->refund($attributes);
+        $attempts = 0;
+        $lastException = null;
 
-        return $refund->toArray();
+        while ($attempts < 3) {
+            $attempts++;
+
+            try {
+                $refund = $this->api->payment->fetch($paymentId)->refund($attributes);
+
+                return $refund->toArray();
+            } catch (\Throwable $e) {
+                $lastException = $e;
+                if ($attempts < 3) {
+                    usleep(500_000 * $attempts); // 0.5s, then 1s
+                }
+            }
+        }
+
+        throw $lastException;
     }
 
     protected function toPaise(float $amountRupees): int
