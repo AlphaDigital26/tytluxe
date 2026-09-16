@@ -2810,7 +2810,14 @@ html { scroll-behavior: smooth; }
             <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
           </svg>
           <span>{{ $hotel->address ?? $destination }}</span>
-          <button type="button" class="hd-show-map-btn" id="hdScrollToMap">Show on map</button>
+          @if($hotel->lat && $hotel->lng)
+            <a
+              href="https://www.google.com/maps/search/?api=1&query={{ $hotel->lat }},{{ $hotel->lng }}"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="hd-show-map-btn"
+            >Show on map</a>
+          @endif
         </div>
       </div>
 
@@ -4059,7 +4066,7 @@ html { scroll-behavior: smooth; }
 <div style="max-width:1280px; margin:0 auto; padding:0 40px 48px; scroll-margin-top:80px;" id="hd-anchor-location">
   <div class="hd-section">
     <div class="hd-lux-container">
-      
+
       {{-- Section Header --}}
       <div class="hd-lux-header">
         <div class="hd-lux-header-left">
@@ -4923,15 +4930,6 @@ html { scroll-behavior: smooth; }
           }
         });
       }
-
-      // Smooth scroll to map
-      document.getElementById('hdScrollToMap')?.addEventListener('click', function (e) {
-        const mapSection = document.getElementById('hd-anchor-location') || document.querySelector('[id*="location"]');
-        if (mapSection) {
-          e.preventDefault();
-          mapSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      });
     })();
 
     /* ===== SECTION NAV: ACTIVE LINK ON SCROLL ===== */
