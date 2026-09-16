@@ -136,12 +136,35 @@
     },
 
     /**
+     * Send a guest to login when they try to save something, then bring
+     * them back to the page they were on.
+     */
+    promptLogin: function () {
+      if (typeof window.showToast === 'function') {
+        window.showToast(
+          'Login Required',
+          'Please log in to save items to your wishlist.',
+          'error'
+        );
+      }
+      const loginUrl = window.TYT_LOGIN_URL || '/login';
+      const redirectTo = window.location.pathname + window.location.search;
+      setTimeout(function () {
+        window.location.href = loginUrl + '?redirect=' + encodeURIComponent(redirectTo);
+      }, 900);
+    },
+
+    /**
      * Add item to wishlist
      * @param {Object} itemData
      * @param {boolean} [silent=false]
      */
     add: function (itemData, silent) {
       if (!itemData || (!itemData.slug && !itemData.id)) return;
+      if (!window.TYT_AUTH) {
+        this.promptLogin();
+        return;
+      }
       const items = this.get();
       const identifier = itemData.slug || itemData.id;
       const type = itemData.type || this.getItemType(itemData);
@@ -320,6 +343,14 @@
         e.stopPropagation();
       }
       if (!btn) return;
+
+      // Only gate adds — removing an already-saved item (only possible if it
+      // was added while logged in on another session) should still work.
+      const alreadySaved = btn.classList.contains('active');
+      if (!alreadySaved && !window.TYT_AUTH) {
+        this.promptLogin();
+        return;
+      }
 
       const id = btn.getAttribute('data-hotel-id') || btn.getAttribute('data-id') || '';
       const slug = btn.getAttribute('data-hotel-slug') || btn.getAttribute('data-slug') || '';

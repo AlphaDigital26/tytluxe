@@ -12,10 +12,20 @@ use Illuminate\View\View;
 class AuthenticatedSessionController extends Controller
 {
     /**
-     * Display the login view.
+     * Display the login view. A ?redirect= query param (e.g. from a
+     * "Login to Book" link on a page a guest can't act on yet) is stashed as
+     * the post-login intended URL — store()'s redirect()->intended() below
+     * then lands back there instead of the home page. Only same-site relative
+     * paths are honored (must start with a single '/', not '//') to rule out
+     * an open redirect via this param.
      */
-    public function create(): View
+    public function create(Request $request): View
     {
+        $redirect = $request->query('redirect');
+        if (is_string($redirect) && str_starts_with($redirect, '/') && ! str_starts_with($redirect, '//')) {
+            $request->session()->put('url.intended', $redirect);
+        }
+
         return view('auth.login');
     }
 

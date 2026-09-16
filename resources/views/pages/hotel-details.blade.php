@@ -3861,8 +3861,10 @@ html { scroll-behavior: smooth; }
                          Linking straight to /login (rather than POSTing to an
                          auth-gated route) means the post-login redirect lands
                          back on this GET page, not a POST-only URL it can't
-                         re-submit to. --}}
-                    <a href="{{ route('login') }}" class="hd-room-btn" style="width: 100%; border-radius: 100px; padding: 12px 16px; text-decoration: none;">
+                         re-submit to. The redirect param sends the guest right
+                         back to this same hotel + search (dates/guests) after
+                         logging in, instead of dropping them on the home page. --}}
+                    <a href="{{ route('login', ['redirect' => request()->getRequestUri()]) }}" class="hd-room-btn" style="width: 100%; border-radius: 100px; padding: 12px 16px; text-decoration: none;">
                       <span class="hd-room-btn-label">Login to Book</span>
                     </a>
                     @endauth

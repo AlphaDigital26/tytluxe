@@ -248,6 +248,10 @@ class TripJackClient
      * for terminal status.
      *
      * @param  array<int, array{travellerInfo: array<int, array{ti:string, pt:string, fN:string, lN:string, pan?:string, pNum?:string}>}>  $roomTravellerInfo
+     * @param  array{gstNumber:string, registeredName:string}|null  $gstInfo  Only send when
+     *         the reviewed option's compliance.gstType is PASSTHROUGH/RESELLER — not wired
+     *         up to any caller yet, since which GSTIN to send (guest's vs. TYTLUXE's own) is
+     *         a business decision, not something to infer from TripJack's response alone.
      */
     public function book(
         string $bookingId,
@@ -256,6 +260,7 @@ class TripJackClient
         array $contacts,
         array $dialCodes,
         ?float $amount = null,
+        ?array $gstInfo = null,
     ): array {
         $payload = [
             'bookingId' => $bookingId,
@@ -270,6 +275,10 @@ class TripJackClient
 
         if ($amount !== null) {
             $payload['paymentInfos'] = [['amount' => $amount]];
+        }
+
+        if ($gstInfo !== null) {
+            $payload['gstInfo'] = $gstInfo;
         }
 
         return $this->request('booker', 'POST', '/hotel/book', $payload);
@@ -364,10 +373,24 @@ class TripJackClient
             ])
                 ->timeout($this->timeout)
                 ->connectTimeout($this->connectTimeout)
-                ->retry($this->retryTimes, $this->retrySleepMs, function ($exception) {
+                ->retry($this->retryTimes, function (int $attempt, \Exception $exception) {
+                    // Rate-limit responses (429) tell us exactly how long to wait via
+                    // Retry-After — honor it instead of guessing.
+                    if ($exception instanceof \Illuminate\Http\Client\RequestException
+                        && $exception->response->status() === 429) {
+                        $retryAfter = $exception->response->header('Retry-After');
+                        if (is_numeric($retryAfter)) {
+                            return ((int) $retryAfter) * 1000;
+                        }
+                    }
+
+                    // Otherwise: exponential backoff per TripJack's documented
+                    // guidance for 5xx/connection failures — 1s, 2s, 4s.
+                    return 1000 * (2 ** ($attempt - 1));
+                }, function ($exception) {
                     return $exception instanceof ConnectionException
                         || ($exception instanceof \Illuminate\Http\Client\RequestException
-                            && $exception->response->status() >= 500);
+                            && ($exception->response->status() >= 500 || $exception->response->status() === 429));
                 }, throw: false)
                 ->send($method, $url, [$mode === 'query' ? 'query' : 'json' => $payload]);
         } catch (ConnectionException $e) {
