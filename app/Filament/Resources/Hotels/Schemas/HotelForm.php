@@ -202,7 +202,7 @@ class HotelForm
                             ->schema([
                                 Repeater::make('tripjack_images')
                                     ->label('Synced from TripJack')
-                                    ->helperText('Turn a photo off to hide it from customers without losing it — this survives future TripJack resyncs. Deleting a photo here removes it now, but it will reappear after the next resync if TripJack still supplies that photo, so Hide is the durable way to remove one.')
+                                    ->helperText('Turn a photo off to hide it from customers without losing it — this survives future TripJack resyncs. Deleting isn\'t available here since TripJack would just resupply the photo on the next sync; Hide is the durable way to remove one.')
                                     ->visible(fn ($record) => $record && $record->images()->where('path', 'like', 'http%')->exists())
                                     ->relationship('images', modifyQueryUsing: fn ($query) => $query->where('path', 'like', 'http%')->orderBy('sort_order'))
                                     ->schema([
@@ -219,7 +219,8 @@ class HotelForm
                                     ->grid(4)
                                     ->columnSpanFull()
                                     ->addable(false)
-                                    ->reorderable(false),
+                                    ->reorderable(false)
+                                    ->deletable(false),
                                 Repeater::make('images')
                                     ->label('Manually Added Photos')
                                     ->helperText('Upload additional photos of the hotel. Photos synced from TripJack are shown above and managed automatically during sync.')
