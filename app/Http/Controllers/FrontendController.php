@@ -610,6 +610,7 @@ class FrontendController extends Controller
             'lead_email' => 'required|email|max:255',
             'lead_phone' => ['required', 'string', 'max:20', $phoneRule],
             'pan_number' => [$panRequired ? 'required' : 'nullable', 'string', $panRegex],
+            'special_requests' => 'nullable|string|max:500',
             'rooms' => 'required|array',
         ];
         foreach ($roomSlots as $ri => $slot) {
@@ -699,6 +700,7 @@ class FrontendController extends Controller
                 'pax_adults' => $draft['adults'],
                 'pax_children' => $draft['children'],
                 'lead_guest_name' => $validated['lead_name'],
+                'special_requests' => $validated['special_requests'] ?? null,
                 'base_amount' => $basePrice,
                 // Mirrors the customer-facing "Taxes & Fees" line on the review
                 // page: everything between TripJack's base price and our final

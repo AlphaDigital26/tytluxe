@@ -376,9 +376,18 @@
     return '₹' + num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
-  window.openCancellationPolicyModal = function(data) {
-    const backdrop = document.getElementById('tytCancellationModalBackdrop');
-    if (!backdrop) return;
+  // Shared renderer: builds the bullets/timeline/table markup used both by
+  // the modal (any page with a .htl-cancel-policy-trigger) and by an inline
+  // always-visible copy (the booking review page) — same data, different
+  // target element ids, so neither call site duplicates this logic.
+  window.renderCancellationPolicyInto = function(data, ids) {
+    ids = ids || {};
+    const bulletsContainer = document.getElementById(ids.bullets || 'tytCancelPolicyBullets');
+    const barContainer = document.getElementById(ids.bar || 'tytCancelBarContainer');
+    const ticksContainer = document.getElementById(ids.ticks || 'tytCancelTimelineTicks');
+    const explNoteEl = document.getElementById(ids.expl || 'tytCancelExplNote');
+    const tableBody = document.getElementById(ids.tableBody || 'tytCancelTableBody');
+    if (!bulletsContainer || !barContainer || !ticksContainer || !explNoteEl || !tableBody) return;
 
     let cancellation = data.cancellation;
     if (typeof cancellation === 'string') {
@@ -386,27 +395,11 @@
     }
     cancellation = cancellation || {};
 
-    const roomName = data.roomName || data.room_name || '';
-    const hotelTitle = data.hotelTitle || data.hotel_title || '';
     const checkIn = data.checkIn || data.checkin || '';
-    const checkOut = data.checkOut || data.checkout || '';
     const customerPrice = data.price || data.customerPrice || 0;
-
-    // Subtitle
-    const subtitleEl = document.getElementById('tytCancelModalSubtitle');
-    const parts = [];
-    if (roomName) parts.push(roomName);
-    if (hotelTitle) parts.push(hotelTitle);
-    subtitleEl.textContent = parts.join(' · ');
 
     const isRefundable = cancellation.isRefundable ?? (data.isRefundable ?? true);
     const penalties = Array.isArray(cancellation.penalties) ? cancellation.penalties : [];
-
-    const bulletsContainer = document.getElementById('tytCancelPolicyBullets');
-    const barContainer = document.getElementById('tytCancelBarContainer');
-    const ticksContainer = document.getElementById('tytCancelTimelineTicks');
-    const explNoteEl = document.getElementById('tytCancelExplNote');
-    const tableBody = document.getElementById('tytCancelTableBody');
 
     // Find 0 penalty (free cancellation window)
     const freeTier = penalties.find(p => Number(p.amount) === 0);
@@ -539,6 +532,28 @@
         `;
       }
     }
+  };
+
+  window.openCancellationPolicyModal = function(data) {
+    const backdrop = document.getElementById('tytCancellationModalBackdrop');
+    if (!backdrop) return;
+
+    const roomName = data.roomName || data.room_name || '';
+    const hotelTitle = data.hotelTitle || data.hotel_title || '';
+
+    const subtitleEl = document.getElementById('tytCancelModalSubtitle');
+    const parts = [];
+    if (roomName) parts.push(roomName);
+    if (hotelTitle) parts.push(hotelTitle);
+    subtitleEl.textContent = parts.join(' · ');
+
+    window.renderCancellationPolicyInto(data, {
+      bullets: 'tytCancelPolicyBullets',
+      bar: 'tytCancelBarContainer',
+      ticks: 'tytCancelTimelineTicks',
+      expl: 'tytCancelExplNote',
+      tableBody: 'tytCancelTableBody',
+    });
 
     backdrop.classList.add('open');
     document.body.style.overflow = 'hidden';

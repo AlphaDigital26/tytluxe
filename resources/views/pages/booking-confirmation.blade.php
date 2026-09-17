@@ -34,6 +34,12 @@
   .bc-wrap { max-width: 640px; margin: 0 auto; padding: 105px 24px 0; text-align: center; }
   @media (max-width: 560px) { .bc-wrap { padding: 90px 18px 0; } }
 
+  @media (max-width: 480px) {
+    .tyt-stepper { font-size: 9px; letter-spacing: 0.03em; }
+    .tyt-stepper-label { display: none; }
+    .tyt-stepper-connector { margin: 0 6px; min-width: 10px; }
+  }
+
   .bc-icon-ring {
     width: 76px; height: 76px; margin: 0 auto 22px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center; font-size: 32px;
@@ -135,20 +141,20 @@
 <div class="bc-wrap">
 
   {{-- Step completion bar --}}
-  <div style="display:flex; align-items:center; gap:0; margin-bottom:36px; font-family:'Jost',sans-serif; font-size:11px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; max-width:480px; margin-left:auto; margin-right:auto;">
+  <div class="tyt-stepper" style="display:flex; align-items:center; gap:0; margin-bottom:36px; font-family:'Jost',sans-serif; font-size:11px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; max-width:480px; margin-left:auto; margin-right:auto;">
     <div style="display:flex; align-items:center; gap:8px; color:rgba(255,255,255,0.35);">
       <span style="width:22px; height:22px; border-radius:50%; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; font-size:10px; flex-shrink:0;">✓</span>
-      Choose Room
+      <span class="tyt-stepper-label">Choose Room</span>
     </div>
-    <div style="flex:1; height:1px; background:rgba(201,168,76,0.3); margin:0 12px; min-width:14px;"></div>
+    <div class="tyt-stepper-connector" style="flex:1; height:1px; background:rgba(201,168,76,0.3); margin:0 12px; min-width:14px;"></div>
     <div style="display:flex; align-items:center; gap:8px; color:rgba(255,255,255,0.35);">
       <span style="width:22px; height:22px; border-radius:50%; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; font-size:10px; flex-shrink:0;">✓</span>
-      Guest Details
+      <span class="tyt-stepper-label">Guest Details</span>
     </div>
-    <div style="flex:1; height:1px; background:rgba(201,168,76,0.3); margin:0 12px; min-width:14px;"></div>
+    <div class="tyt-stepper-connector" style="flex:1; height:1px; background:rgba(201,168,76,0.3); margin:0 12px; min-width:14px;"></div>
     <div style="display:flex; align-items:center; gap:8px; color:{{ $terminalGood ? '#4ade80' : ($terminalBad ? '#f3a3a3' : '#c9a84c') }};">
       <span style="width:22px; height:22px; border-radius:50%; background:{{ $terminalGood ? 'rgba(74,222,128,0.12)' : ($terminalBad ? 'rgba(220,80,80,0.08)' : 'rgba(201,168,76,0.1)') }}; border:1px solid {{ $terminalGood ? '#4ade80' : ($terminalBad ? '#f3a3a3' : '#c9a84c') }}; display:flex; align-items:center; justify-content:center; font-size:10px; flex-shrink:0;">{{ $terminalGood ? '✓' : ($terminalBad ? '!' : '3') }}</span>
-      Confirmed
+      <span class="tyt-stepper-label">Confirmed</span>
     </div>
   </div>
 
