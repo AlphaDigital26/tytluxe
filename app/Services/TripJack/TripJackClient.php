@@ -351,6 +351,24 @@ class TripJackClient
     }
 
     /**
+     * Static Detail API — POST /hotel/static-detail. Single-hotel content
+     * lookup, richer than fetchHotelContent() for room data specifically:
+     * some properties return zero rooms via the bulk content endpoint but
+     * do have full per-room data (images, bed_config, occupancy, amenities)
+     * here, keyed by the same room id used in Pricing's roomInfo[].id.
+     *
+     * Deliberately NOT used for bulk/whole-city syncing — one call per
+     * hotel is what triggered TripJack's rate limiting during a full
+     * resync in the past (see TripJackHotelSync::resyncAll()'s chunked
+     * fetchHotelContent() comment). Use only as a targeted, per-hotel
+     * fallback when bulk content sync left a hotel with no room images.
+     */
+    public function staticDetail(string $hid): array
+    {
+        return $this->request('hms', 'POST', '/hotel/static-detail', ['hid' => $hid]);
+    }
+
+    /**
      * Low-level request wrapper: auth headers, timeouts, retry-on-5xx/connection
      * error, structured logging, and typed exceptions on failure.
      */

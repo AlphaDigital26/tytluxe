@@ -1699,6 +1699,21 @@ html { scroll-behavior: smooth; }
 }
 .hd-room-group-row { display: flex; flex-direction: column; }
 @media (min-width: 992px) { .hd-room-group-row { flex-direction: row; align-items: flex-start; } }
+.hd-room-card-gallery-btn {
+  position: absolute; top: 50%; transform: translateY(-50%); z-index: 2;
+  width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.2); color: #fff; cursor: pointer;
+  transition: background 0.2s ease; opacity: 0; pointer-events: none;
+}
+.hd-room-card-gallery:hover .hd-room-card-gallery-btn { opacity: 1; pointer-events: auto; }
+.hd-room-card-gallery-btn:hover { background: rgba(201,168,76,0.8); }
+.hd-room-card-gallery-prev { left: 8px; }
+.hd-room-card-gallery-next { right: 8px; }
+.hd-room-card-gallery-count {
+  position: absolute; bottom: 8px; right: 8px; z-index: 2;
+  background: rgba(0,0,0,0.6); color: #fff; font-family: 'Jost', sans-serif; font-size: 10.5px; font-weight: 600;
+  padding: 3px 9px; border-radius: 100px; letter-spacing: 0.02em;
+}
 .hd-room-img { 
   width: 100%; 
   height: 200px; 
@@ -3701,18 +3716,34 @@ html { scroll-behavior: smooth; }
 
       @foreach($groupedOptions as $roomName => $options)
         @php
-          // Attempt to find a matching local room type to pull an image and description
+          // Match this live rate-option group back to its synced local room type
+          // (which carries the real TripJack room photo). The live Pricing API and
+          // the static Content API are two separate TripJack endpoints, so we
+          // first try the reliable join — TripJack's own room id, present as
+          // roomInfo[].id on the option and stored as tripjack_room_code on sync
+          // — and only fall back to fuzzy name matching when no option in this
+          // group carries an id we've synced (e.g. a newly-added rate TripJack
+          // hasn't surfaced via static content yet).
           $localRoom = null;
-          if($hotel->roomTypes) {
-              // simple fuzzy match on name
-              $localRoom = $hotel->roomTypes->first(function($rt) use ($roomName) {
-                  return str_contains(strtolower($roomName), strtolower($rt->name)) || str_contains(strtolower($rt->name), strtolower($roomName));
-              });
+          if ($hotel->roomTypes) {
+              $optionRoomCodes = $options->flatMap(fn($opt) => collect($opt['roomInfo'] ?? [])->pluck('id'))->filter()->unique();
+              if ($optionRoomCodes->isNotEmpty()) {
+                  $localRoom = $hotel->roomTypes->firstWhere(fn($rt) => $optionRoomCodes->contains($rt->tripjack_room_code));
+              }
+              if (! $localRoom) {
+                  // Fuzzy fallback: simple name match
+                  $localRoom = $hotel->roomTypes->first(function($rt) use ($roomName) {
+                      return str_contains(strtolower($roomName), strtolower($rt->name)) || str_contains(strtolower($rt->name), strtolower($roomName));
+                  });
+              }
           }
           $roomImage = match(true) {
-              empty($localRoom?->image_path) => 'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=600&q=80', // Placeholder
-              Str::startsWith($localRoom->image_path, ['http://', 'https://']) => $localRoom->image_path,
-              default => Storage::disk('public')->url($localRoom->image_path),
+              ! empty($localRoom?->image_path) && Str::startsWith($localRoom->image_path, ['http://', 'https://']) => $localRoom->image_path,
+              ! empty($localRoom?->image_path) => Storage::disk('public')->url($localRoom->image_path),
+              // No matched room photo — use the hotel's own real photo rather than
+              // an unrelated stock image, so guests never see a room that isn't this property.
+              ! empty($photoList[0]['url'] ?? null) => $photoList[0]['url'],
+              default => 'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=600&q=80',
           };
           // More rate-option cards in a room group means less vertical room per
           // card, so show fewer inclusion pills per card as the card count grows.
@@ -3720,6 +3751,33 @@ html { scroll-behavior: smooth; }
               $options->count() <= 1 => 6,
               $options->count() == 2 => 4,
               default => 3,
+          };
+
+          // TripJack's static content sync stores every room photo (not just the
+          // hero) on `images`, but this card only ever rendered $roomImage — throw
+          // away the rest. Build the full gallery here so guests can flip through
+          // it, same as the raw TripJack test portal does.
+          $roomGallery = collect();
+          if ($localRoom) {
+              if (! empty($localRoom->image_path)) $roomGallery->push($localRoom->image_path);
+              if (is_array($localRoom->images)) {
+                  foreach ($localRoom->images as $img) $roomGallery->push($img);
+              }
+          }
+          $roomGallery = $roomGallery->unique()->values();
+          $toAbsoluteUrl = fn($img) => Str::startsWith($img, ['http://', 'https://']) ? $img : Storage::disk('public')->url($img);
+
+          // Some properties never got room-level photos from TripJack at all —
+          // neither the static Content API nor the live Pricing API return any
+          // for them (verified directly against TripJack's own responses, not
+          // assumed). Rather than a single repeated photo, give guests a real
+          // multi-photo gallery of the actual property (hotel's own synced
+          // photos) so the room card still behaves like a gallery, never a
+          // stock/unrelated image.
+          $roomGalleryUrls = match(true) {
+              $roomGallery->isNotEmpty() => $roomGallery->map($toAbsoluteUrl)->values(),
+              collect($photoList)->isNotEmpty() => collect($photoList)->pluck('url')->take(5)->values(),
+              default => collect([$roomImage]),
           };
         @endphp
 
@@ -3732,8 +3790,17 @@ html { scroll-behavior: smooth; }
 
             <!-- Left Column: Room Info -->
             <div style="width: 100%; max-width: 320px; border-right: 1px solid rgba(255,255,255,0.08); padding: 20px;">
-              <div style="border-radius: 12px; overflow: hidden; height: 180px; margin-bottom: 16px; position: relative;">
-                <img src="{{ $roomImage }}" alt="{{ $roomName }}" style="width: 100%; height: 100%; object-fit: cover;">
+              <div class="hd-room-card-gallery" data-images="{{ $roomGalleryUrls->toJson() }}" data-index="0" style="border-radius: 12px; overflow: hidden; height: 180px; margin-bottom: 16px; position: relative;">
+                <img class="hd-room-card-gallery-img" src="{{ $roomGalleryUrls->first() }}" alt="{{ $roomName }}" style="width: 100%; height: 100%; object-fit: cover;">
+                @if($roomGalleryUrls->count() > 1)
+                  <button type="button" class="hd-room-card-gallery-btn hd-room-card-gallery-prev" aria-label="Previous photo">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+                  </button>
+                  <button type="button" class="hd-room-card-gallery-btn hd-room-card-gallery-next" aria-label="Next photo">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+                  </button>
+                  <span class="hd-room-card-gallery-count">1 / {{ $roomGalleryUrls->count() }}</span>
+                @endif
               </div>
               <div class="hd-room-specs" style="display: flex; flex-wrap: wrap; gap: 10px;">
                 @if($localRoom && $localRoom->bed_type)
@@ -5217,6 +5284,36 @@ html { scroll-behavior: smooth; }
         slider.scrollBy({ left: scrollAmount, behavior: 'smooth' });
       });
     });
+
+    /* ===== ROOM CARD PHOTO GALLERY (Available Rooms list) ===== */
+    document.querySelectorAll('.hd-room-card-gallery').forEach(gallery => {
+      let images = [];
+      try { images = JSON.parse(gallery.dataset.images || '[]'); } catch (e) { images = []; }
+      if (images.length < 2) return;
+
+      const img = gallery.querySelector('.hd-room-card-gallery-img');
+      const countLabel = gallery.querySelector('.hd-room-card-gallery-count');
+      let index = 0;
+
+      function render() {
+        img.src = images[index];
+        if (countLabel) countLabel.textContent = (index + 1) + ' / ' + images.length;
+      }
+
+      gallery.querySelector('.hd-room-card-gallery-prev')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        index = (index - 1 + images.length) % images.length;
+        render();
+      });
+      gallery.querySelector('.hd-room-card-gallery-next')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        index = (index + 1) % images.length;
+        render();
+      });
+    });
+
     /* ===== STAY MODIFIER BAR (Change Dates, Guests, Place) ===== */
     (function () {
       const form = document.getElementById('hdSearchForm');
