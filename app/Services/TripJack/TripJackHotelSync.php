@@ -586,6 +586,19 @@ class TripJackHotelSync
     }
 
     /**
+     * TripJack fills in a generic gray stock graphic (St1.png, St4.png,
+     * St6.png, ...) on static.tripjack.com when it has no real photo for a
+     * room — the same handful of files repeated verbatim across unrelated
+     * rooms and unrelated hotels. Treat these as "no photo", same as an
+     * empty images array, so the page's own real-hotel-gallery fallback
+     * kicks in instead of displaying a fake generic room graphic.
+     */
+    protected function isGenericTripjackPlaceholder(string $url): bool
+    {
+        return (bool) preg_match('#static\.tripjack\.com/img/HotelImages/St\d+\.png#i', $url);
+    }
+
+    /**
      * TripJack's docs claim bed_config.description is a ready-made summary
      * string ("1 King Bed, 2 Twin Beds"), but real responses only include
      * bed_count/bedroom_count/configuration[] with no description field —
@@ -693,6 +706,7 @@ class TripJackHotelSync
                 return $href ? ['url' => $href, 'caption' => $image['caption'] ?? null, 'hero' => (bool) ($image['is_hero_image'] ?? false)] : null;
             })
             ->filter()
+            ->reject(fn ($image) => $this->isGenericTripjackPlaceholder($image['url']))
             ->values();
 
         if ($images->isNotEmpty()) {
@@ -797,10 +811,14 @@ class TripJackHotelSync
             $images = collect($room['images'] ?? [])
                 ->map(fn ($image) => $this->largestImageUrl($image['links'] ?? []))
                 ->filter()
+                ->reject(fn ($url) => $this->isGenericTripjackPlaceholder($url))
                 ->values();
 
             $heroImage = collect($room['images'] ?? [])->firstWhere('hero_image', true);
             $heroUrl = $heroImage ? $this->largestImageUrl($heroImage['links'] ?? []) : null;
+            if ($heroUrl && $this->isGenericTripjackPlaceholder($heroUrl)) {
+                $heroUrl = null;
+            }
             $heroUrl ??= $images->first();
 
             $roomAmenities = collect($room['amenities'] ?? [])->pluck('name')->filter()->values()->all();
