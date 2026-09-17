@@ -838,6 +838,48 @@ class TripJackHotelSync
     }
 
     /**
+     * Fetches real per-room data — including images, bed config, and
+     * occupancy — via TripJack's single-hotel Static Detail API
+     * (POST /hotel/static-detail), which routinely has full `rooms[]` data
+     * (with images) for properties whose *bulk* fetchHotelContent() sync
+     * returned an empty rooms map (see resyncAll()'s comment on why bulk
+     * sync doesn't call this endpoint for every hotel — rate limiting).
+     * Reuses syncRoomTypes()'s existing upsert/dedupe/deactivate logic
+     * unchanged, so any stale rows from syncLiveRoomsFromPricing()'s
+     * image-less `live-*` fallback are automatically deactivated once real
+     * rows with real TripJack room ids land.
+     *
+     * Prefer this over syncLiveRoomsFromPricing() whenever possible — try
+     * it first; only fall back to live-pricing-derived rooms if TripJack
+     * genuinely has no static room content for this hotel either.
+     *
+     * @return array{synced:int, error:?string}
+     */
+    public function syncRoomImagesFromStaticDetail(Hotel $hotel): array
+    {
+        if ($hotel->source !== 'tripjack' || ! $hotel->tripjack_hotel_id) {
+            return ['synced' => 0, 'error' => 'Not a TripJack-sourced hotel.'];
+        }
+
+        try {
+            $response = $this->client->staticDetail($hotel->tripjack_hotel_id);
+        } catch (\Throwable $e) {
+            Log::channel('tripjack')->warning('static_detail_room_sync_failed', ['hotel_id' => $hotel->id, 'message' => $e->getMessage()]);
+
+            return ['synced' => 0, 'error' => 'TripJack static detail is temporarily unavailable for this hotel. Please try again shortly.'];
+        }
+
+        $roomsMap = $response['rooms'] ?? [];
+        if (empty($roomsMap)) {
+            return ['synced' => 0, 'error' => 'TripJack has no static room content for this hotel either.'];
+        }
+
+        $this->syncRoomTypes($hotel, $roomsMap);
+
+        return ['synced' => count($roomsMap), 'error' => null];
+    }
+
+    /**
      * Fallback for hotels whose TripJack static content has no room
      * catalogue at all (common — TripJack's own docs say static content
      * "can be stale or incomplete"; confirmed on real hotels that resync
@@ -847,6 +889,10 @@ class TripJackHotelSync
      * hotel's rooms exist. Triggered on demand from the admin panel, not
      * during bulk resync, to avoid hammering the live pricing endpoint for
      * hundreds of hotels at once.
+     *
+     * Prefer syncRoomImagesFromStaticDetail() first — it returns real room
+     * images, this does not (the live Pricing API has none). Only use this
+     * when that one also comes back empty.
      *
      * @return array{synced:int, error:?string}
      */

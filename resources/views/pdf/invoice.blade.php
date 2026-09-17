@@ -8,13 +8,13 @@
   body { font-family: 'DejaVu Sans', sans-serif; font-size: 11.5px; color: #262626; padding: 34px 40px; }
 
   /* ===== Header ===== */
-  .inv-header { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 18px; border-bottom: 2px solid #c9a84c; margin-bottom: 22px; }
-  .inv-logo { height: 46px; }
-  .inv-brand-sub { font-size: 9.5px; color: #888; letter-spacing: 2px; text-transform: uppercase; margin-top: 6px; }
+  .inv-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 20px; border-bottom: 2px solid #c9a84c; margin-bottom: 24px; }
+  .inv-logo { height: 58px; display: block; }
   .inv-meta { text-align: right; }
-  .inv-title { font-size: 19px; font-weight: bold; color: #b8944a; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 6px; }
-  .inv-meta-line { font-size: 10.5px; color: #555; margin-top: 4px; }
-  .inv-meta-line strong { color: #1a1a1a; }
+  .inv-title { font-size: 21px; font-weight: bold; color: #171717; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 10px; }
+  .inv-title span { color: #c9a84c; }
+  .inv-meta-line { display: flex; justify-content: flex-end; gap: 8px; font-size: 10.5px; color: #999; margin-top: 5px; text-transform: uppercase; letter-spacing: 0.4px; }
+  .inv-meta-line strong { color: #1a1a1a; font-size: 11px; text-transform: none; letter-spacing: normal; min-width: 110px; text-align: right; }
 
   /* ===== Party blocks (plain bordered boxes, like a wholesale-style invoice) ===== */
   .inv-parties { display: flex; border: 1px solid #ccc; margin-bottom: 22px; }
@@ -83,14 +83,12 @@
       @else
         <div style="font-size:22px;font-weight:bold;color:#0d0d0d;letter-spacing:1px;">TYTLUXE</div>
       @endif
-      <div class="inv-brand-sub">Take Your Trip</div>
     </div>
     <div class="inv-meta">
-      <div class="inv-title">Invoice</div>
-      <div class="inv-meta-line">Invoice No. &mdash; <strong>{{ $booking->reference }}</strong></div>
-      <div class="inv-meta-line">Invoice Date &mdash; <strong>{{ now()->format('d M Y') }}</strong></div>
-      <div class="inv-meta-line">Confirmation No. &mdash; <strong>{{ ucfirst(str_replace('_', ' ', $booking->status)) }}</strong></div>
-      <div class="inv-meta-line">Booking ID &mdash; <strong>{{ $booking->tripjack_booking_id ?: $booking->reference }}</strong></div>
+      <div class="inv-title">In<span>voice</span></div>
+      <div class="inv-meta-line">Invoice No <strong>{{ $booking->reference }}</strong></div>
+      <div class="inv-meta-line">Invoice Date <strong>{{ now()->format('d M Y') }}</strong></div>
+      <div class="inv-meta-line">Booking Reference <strong>{{ $booking->reference }}</strong></div>
     </div>
   </div>
 

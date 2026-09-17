@@ -35,14 +35,19 @@ class RoomTypesRelationManager extends RelationManager
     protected static string $relationship = 'roomTypes';
 
     /**
-     * Rooms for TripJack hotels usually only exist via the live Pricing API
-     * (TripJack's static content is frequently incomplete/empty for rooms —
-     * see TripJackHotelSync::syncLiveRoomsFromPricing) and were previously
-     * only fetchable via a manual admin button. Auto-fetching once here, the
-     * first time an admin opens an empty Room Types tab, makes TripJack rooms
-     * show up the same way hotel details already do — without requiring a
-     * separate click — while still only calling the live API for hotels an
-     * admin actually views, not all ~900 on a schedule.
+     * Rooms for TripJack hotels usually only exist via a live API call —
+     * bulk static-content sync (TripJackHotelSync::syncRoomTypes) is
+     * frequently empty for rooms — and were previously only fetchable via a
+     * manual admin button. Auto-fetching once here, the first time an admin
+     * opens an empty Room Types tab, makes TripJack rooms show up the same
+     * way hotel details already do — without requiring a separate click —
+     * while still only calling the live API for hotels an admin actually
+     * views, not all ~900 on a schedule.
+     *
+     * Tries the single-hotel Static Detail API first (real room images —
+     * see TripJackHotelSync::syncRoomImagesFromStaticDetail), falling back
+     * to the live Pricing API (no images, but better than nothing) only if
+     * TripJack genuinely has no static room content for this hotel either.
      */
     public function mount(): void
     {
@@ -50,7 +55,11 @@ class RoomTypesRelationManager extends RelationManager
 
         $hotel = $this->getOwnerRecord();
         if ($hotel->source === 'tripjack' && $hotel->tripjack_hotel_id && ! $hotel->roomTypes()->exists()) {
-            $result = app(TripJackHotelSync::class)->syncLiveRoomsFromPricing($hotel);
+            $sync = app(TripJackHotelSync::class);
+            $result = $sync->syncRoomImagesFromStaticDetail($hotel);
+            if ($result['synced'] === 0) {
+                $result = $sync->syncLiveRoomsFromPricing($hotel);
+            }
 
             if ($result['synced'] > 0) {
                 Notification::make()->title("Fetched {$result['synced']} room type(s) from TripJack")->success()->send();
@@ -209,8 +218,23 @@ class RoomTypesRelationManager extends RelationManager
                 //
             ])
             ->headerActions([
+                Action::make('fetchTripjackRoomImages')
+                    ->label('Fetch Room Images from TripJack')
+                    ->icon('heroicon-o-photo')
+                    ->visible(fn () => $this->getOwnerRecord()->source === 'tripjack' && $this->getOwnerRecord()->tripjack_hotel_id)
+                    ->action(function () {
+                        $result = app(TripJackHotelSync::class)->syncRoomImagesFromStaticDetail($this->getOwnerRecord());
+
+                        if ($result['error']) {
+                            Notification::make()->title('Could not fetch room images')->body($result['error'])->danger()->send();
+
+                            return;
+                        }
+
+                        Notification::make()->title("Synced {$result['synced']} room type(s) with real TripJack photos")->success()->send();
+                    }),
                 Action::make('fetchTripjackRooms')
-                    ->label('Fetch Rooms from TripJack')
+                    ->label('Fetch Rooms from TripJack (no images)')
                     ->icon('heroicon-o-arrow-path')
                     ->visible(fn () => $this->getOwnerRecord()->source === 'tripjack' && $this->getOwnerRecord()->tripjack_hotel_id)
                     ->action(function () {
