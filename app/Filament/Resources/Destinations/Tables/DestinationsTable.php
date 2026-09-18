@@ -145,6 +145,7 @@ class DestinationsTable
                     DeleteBulkAction::make(),
                 ]),
             ])
+            ->poll('5s')
             ->defaultSort('name', 'asc')
             ->striped()
             ->emptyStateHeading('No destinations yet')

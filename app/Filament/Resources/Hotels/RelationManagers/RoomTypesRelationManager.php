@@ -3,7 +3,9 @@
 namespace App\Filament\Resources\Hotels\RelationManagers;
 
 use App\Filament\Resources\Hotels\HotelResource;
+use App\Services\TripJack\TripJackClient;
 use App\Services\TripJack\TripJackHotelSync;
+use Illuminate\Support\Facades\Cache;
 use Filament\Actions\Action;
 use Filament\Actions\AssociateAction;
 use Filament\Actions\BulkActionGroup;
@@ -67,6 +69,68 @@ class RoomTypesRelationManager extends RelationManager
                 Notification::make()->title('Could not auto-fetch rooms from TripJack')->body($result['error'])->warning()->send();
             }
         }
+    }
+
+    /**
+     * The admin's Room Types list is TripJack's static content catalogue
+     * (24+ named variants is normal), which is a different thing entirely
+     * from what's actually bookable on the storefront — that's driven by a
+     * live Pricing API call for the guest's specific search dates and can
+     * be a small fraction of the catalogue. Without this, "24 rooms here,
+     * 6 on the site" reads as a bug when it's the two data sources doing
+     * what they're supposed to. Runs one sample Pricing check (tomorrow,
+     * 2 adults, 1 room — not the guest's actual dates, just a representative
+     * snapshot) so the table can flag which rows are live right now, and
+     * what meal-basis rate plans (Room Only / Breakfast / Dinner, ...) each
+     * one currently has on offer — a single room type routinely has several
+     * of these as separate rate options, which TripJack calls `mealBasis`
+     * per option rather than per room, so it's otherwise invisible here.
+     *
+     * Cached briefly per hotel since this method is called on every table
+     * render (Livewire) and would otherwise hit TripJack's live API far
+     * more than the sample it produces is worth.
+     *
+     * @return \Illuminate\Support\Collection<string, \Illuminate\Support\Collection<int, string>>
+     *         keyed by tripjack_room_code, each value the distinct meal
+     *         plans currently on offer for that room.
+     */
+    protected function liveRoomInfo(): \Illuminate\Support\Collection
+    {
+        $hotel = $this->getOwnerRecord();
+
+        if ($hotel->source !== 'tripjack' || ! $hotel->tripjack_hotel_id) {
+            return collect();
+        }
+
+        return Cache::remember(
+            "tripjack_live_room_info:{$hotel->id}",
+            now()->addMinutes(15),
+            function () use ($hotel) {
+                try {
+                    $response = app(TripJackClient::class)->pricing(
+                        $hotel->tripjack_hotel_id,
+                        now()->addDay()->format('Y-m-d'),
+                        now()->addDays(2)->format('Y-m-d'),
+                        [['adults' => 2]],
+                        TripJackClient::newCorrelationId(),
+                    );
+                } catch (\Throwable $e) {
+                    return collect();
+                }
+
+                return collect($response['options'] ?? [])
+                    ->flatMap(function ($option) {
+                        $mealBasis = $option['mealBasis'] ?? null;
+
+                        return collect($option['roomInfo'] ?? [])
+                            ->pluck('id')
+                            ->filter()
+                            ->map(fn ($code) => ['code' => (string) $code, 'meal' => $mealBasis]);
+                    })
+                    ->groupBy('code')
+                    ->map(fn ($rows) => $rows->pluck('meal')->filter()->unique()->values());
+            }
+        );
     }
 
     public function form(Schema $schema): Schema
@@ -172,13 +236,41 @@ class RoomTypesRelationManager extends RelationManager
 
     public function table(Table $table): Table
     {
+        $liveInfo = $this->liveRoomInfo();
+
         return $table
             ->recordTitleAttribute('name')
+            ->modifyQueryUsing(function ($query) use ($liveInfo) {
+                if ($liveInfo->isEmpty()) {
+                    return $query;
+                }
+
+                $codes = $liveInfo->keys()->all();
+                $placeholders = implode(',', array_fill(0, count($codes), '?'));
+
+                return $query->orderByRaw("CASE WHEN tripjack_room_code IN ({$placeholders}) THEN 0 ELSE 1 END", $codes);
+            })
+            ->defaultSort('name')
             ->columns([
                 ImageColumn::make('image_path')->circular(),
                 TextColumn::make('name')
                     ->label('Room Type')
                     ->searchable(),
+                TextColumn::make('tripjack_room_code')
+                    ->label('Bookable Now')
+                    ->visible(fn () => $this->getOwnerRecord()->source === 'tripjack')
+                    ->badge()
+                    ->state(fn ($record) => $liveInfo->has($record->tripjack_room_code) ? 'Live' : 'Catalog only')
+                    ->color(fn ($record) => $liveInfo->has($record->tripjack_room_code) ? 'success' : 'gray')
+                    ->tooltip('Checked against a sample 1-night search (tomorrow, 2 adults) — actual availability varies by the dates a guest searches.'),
+                TextColumn::make('rate_plans')
+                    ->label('Rate Plans')
+                    ->visible(fn () => $this->getOwnerRecord()->source === 'tripjack')
+                    ->badge()
+                    ->separator(',')
+                    ->state(fn ($record) => $liveInfo->get($record->tripjack_room_code, collect())->all())
+                    ->placeholder('—')
+                    ->tooltip('Meal-basis rate plans currently on offer for this room in the sample search (e.g. Room Only, Breakfast, Dinner).'),
                 TextColumn::make('occupancy_adults')
                     ->label('Adults')
                     ->numeric()

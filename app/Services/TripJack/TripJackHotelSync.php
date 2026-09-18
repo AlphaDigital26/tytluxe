@@ -570,19 +570,36 @@ class TripJackHotelSync
     }
 
     /**
-     * Room-type images.links is keyed by pixel width ("70px", "200px", ...)
-     * with no guaranteed key order — picks the largest available rather than
-     * assuming any particular key exists or that array order is meaningful.
+     * Room-type images.links is keyed by a size tier — either a genuine
+     * resolution ladder for ONE photo ("70px", "200px", ..., "1000px", or
+     * "XL"/"XXL"), or the same tier repeated with a "_1", "_2", ... suffix
+     * per photo when a caption group actually bundles several distinct
+     * photos of the same subject (e.g. "XXL", "XXL_1", "XXL_2" are three
+     * different room photos, not three resolutions of one photo — verified
+     * against TripJack's real Expedia-sourced responses, not assumed).
+     *
+     * A repeated base key after stripping the "_N" suffix means separate
+     * photos, so every href is kept. Distinct base keys mean a real
+     * resolution ladder for a single photo, so only the largest is kept.
      *
      * @param  array<string, array{href?:string}>  $links
+     * @return list<string>
      */
-    protected function largestImageUrl(array $links): ?string
+    protected function imageUrlsFromLinks(array $links): array
     {
-        return collect($links)
+        $byBase = collect($links)->groupBy(fn ($link, $key) => preg_replace('/_\d+$/', '', $key));
+
+        if ($byBase->count() === 1) {
+            return $byBase->first()->pluck('href')->filter()->values()->all();
+        }
+
+        $largest = collect($links)
             ->sortByDesc(fn ($link, $key) => (int) filter_var($key, FILTER_SANITIZE_NUMBER_INT))
             ->pluck('href')
             ->filter()
             ->first();
+
+        return $largest ? [$largest] : [];
     }
 
     /**
@@ -809,13 +826,14 @@ class TripJackHotelSync
             $seenCodes[] = $tripjackRoomCode;
 
             $images = collect($room['images'] ?? [])
-                ->map(fn ($image) => $this->largestImageUrl($image['links'] ?? []))
+                ->flatMap(fn ($image) => $this->imageUrlsFromLinks($image['links'] ?? []))
                 ->filter()
                 ->reject(fn ($url) => $this->isGenericTripjackPlaceholder($url))
+                ->unique()
                 ->values();
 
             $heroImage = collect($room['images'] ?? [])->firstWhere('hero_image', true);
-            $heroUrl = $heroImage ? $this->largestImageUrl($heroImage['links'] ?? []) : null;
+            $heroUrl = $heroImage ? ($this->imageUrlsFromLinks($heroImage['links'] ?? [])[0] ?? null) : null;
             if ($heroUrl && $this->isGenericTripjackPlaceholder($heroUrl)) {
                 $heroUrl = null;
             }
