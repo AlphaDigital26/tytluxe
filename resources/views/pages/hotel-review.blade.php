@@ -94,6 +94,9 @@
   }
   .br-submit:hover:not(:disabled) { background: linear-gradient(90deg, #e8c96b, #f5e4a8); box-shadow: 0 8px 24px rgba(201,168,76,0.3); transform: translateY(-1px); }
   .br-submit:disabled { opacity: 0.7; cursor: wait; }
+  @media (max-width: 480px) {
+    .br-submit { padding: 13px; font-size: 11.5px; letter-spacing: 0.08em; }
+  }
   .br-spinner { width: 15px; height: 15px; border: 2px solid rgba(13,13,13,0.25); border-top-color: var(--dark); border-radius: 50%; animation: brSpin 0.7s linear infinite; display: none; }
   .br-submit.loading .br-spinner { display: inline-block; }
   .br-submit.loading .br-submit-label { display: none; }

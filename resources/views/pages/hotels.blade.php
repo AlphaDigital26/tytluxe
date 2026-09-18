@@ -512,6 +512,16 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
   border-radius: 22px 0 0 22px;
 }
 .htl-list-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.htl-thumb-gallery-btn {
+  position: absolute; top: 50%; transform: translateY(-50%); z-index: 2;
+  width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.2); color: #fff; cursor: pointer;
+  transition: background 0.2s ease, opacity 0.2s ease; opacity: 0; pointer-events: none;
+}
+.htl-thumb-gallery:hover .htl-thumb-gallery-btn { opacity: 1; pointer-events: auto; }
+.htl-thumb-gallery-btn:hover { background: rgba(201,168,76,0.8); }
+.htl-thumb-gallery-prev { left: 10px; }
+.htl-thumb-gallery-next { right: 10px; }
 .htl-list-mid {
   flex: 1; min-width: 0; height: 100%; padding: 18px 20px; display: flex; flex-direction: column;
   border-right: 1px solid rgba(255,255,255,0.07); overflow: hidden;
@@ -1247,6 +1257,13 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
         $firstImage   = $firstImagePath
                           ? (Str::startsWith($firstImagePath, ['http://', 'https://']) ? $firstImagePath : Storage::disk('public')->url($firstImagePath))
                           : null;
+        // Capped well below $imageCount (which can run into the dozens for a
+        // synced TripJack hotel) — this is a listing-card preview slider, not
+        // the full gallery on the detail page, and every card on the page
+        // pays for however many URLs are embedded here.
+        $galleryImages = $images->take(8)->map(
+            fn ($img) => Str::startsWith($img->path, ['http://', 'https://']) ? $img->path : Storage::disk('public')->url($img->path)
+        )->values();
         $stars        = min((int) $hotel->star_rating, 5);
         $liveOption   = ($liveOptions ?? collect())->get((string) $hotel->tripjack_hotel_id);
         $amenities    = $hotel->amenities ?? collect();
@@ -1291,9 +1308,17 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
          style="text-decoration: none;">
 
         <!-- Thumbnail -->
-        <div class="htl-list-thumb">
+        <div class="htl-list-thumb htl-thumb-gallery" data-images="{{ $galleryImages->toJson() }}">
           @if($firstImage)
-            <img src="{{ $firstImage }}" alt="{{ $hotel->title }}, {{ $destination }}" loading="lazy" style="width:100%; height:100%; object-fit:cover;" />
+            <img class="htl-thumb-gallery-img" src="{{ $firstImage }}" alt="{{ $hotel->title }}, {{ $destination }}" loading="lazy" style="width:100%; height:100%; object-fit:cover;" />
+            @if($galleryImages->count() > 1)
+              <button type="button" class="htl-thumb-gallery-btn htl-thumb-gallery-prev" aria-label="Previous photo" onclick="event.preventDefault(); event.stopPropagation();">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+              </button>
+              <button type="button" class="htl-thumb-gallery-btn htl-thumb-gallery-next" aria-label="Next photo" onclick="event.preventDefault(); event.stopPropagation();">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+              </button>
+            @endif
           @else
             <div style="width:100%; height:100%; background:linear-gradient(135deg,#1c1c1c,#252525); display:flex; align-items:center; justify-content:center; flex-direction:column; gap:12px;">
               <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="rgba(201,168,76,0.25)" stroke-width="1.2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
@@ -1318,10 +1343,12 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block; transform:translateY(1px);"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
           </button>
 
-          {{-- Image counter bottom center --}}
-          @if($imageCount > 0)
-          <div style="position:absolute; bottom:12px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.65); color:#fff; font-family:'Jost',sans-serif; font-size:11px; font-weight:600; padding:4px 10px; border-radius:12px; z-index:2; backdrop-filter:blur(4px);">
-            1 / {{ $imageCount }}
+          {{-- Image counter bottom center — counts the slider's own (capped)
+               photo set, not the hotel's full gallery, so it never shows a
+               number higher than what's actually browsable here. --}}
+          @if($galleryImages->count() > 0)
+          <div class="htl-thumb-gallery-count" style="position:absolute; bottom:12px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.65); color:#fff; font-family:'Jost',sans-serif; font-size:11px; font-weight:600; padding:4px 10px; border-radius:12px; z-index:2; backdrop-filter:blur(4px);">
+            1 / {{ $galleryImages->count() }}
           </div>
           @endif
         </div>
@@ -2320,6 +2347,51 @@ function truncateAmenityChips() {
   }
   window.addEventListener('load', truncateAmenityChips);
   window.addEventListener('resize', truncateAmenityChips);
+
+  /* ===== HOTEL CARD PHOTO SLIDER (listing thumbnails) ===== */
+  document.querySelectorAll('.htl-thumb-gallery').forEach(function (gallery) {
+    var images = [];
+    try { images = JSON.parse(gallery.dataset.images || '[]'); } catch (e) { images = []; }
+    if (images.length < 2) return;
+
+    var img = gallery.querySelector('.htl-thumb-gallery-img');
+    var countLabel = gallery.querySelector('.htl-thumb-gallery-count');
+    var index = 0;
+
+    function render() {
+      img.src = images[index];
+      if (countLabel) countLabel.textContent = (index + 1) + ' / ' + images.length;
+    }
+
+    function prev(e) {
+      if (e) { e.preventDefault(); e.stopPropagation(); }
+      index = (index - 1 + images.length) % images.length;
+      render();
+    }
+
+    function next(e) {
+      if (e) { e.preventDefault(); e.stopPropagation(); }
+      index = (index + 1) % images.length;
+      render();
+    }
+
+    gallery.querySelector('.htl-thumb-gallery-prev')?.addEventListener('click', prev);
+    gallery.querySelector('.htl-thumb-gallery-next')?.addEventListener('click', next);
+
+    // Arrows only reveal on hover (desktop) — swipe covers touch devices,
+    // where a hover-only control would otherwise be unreachable.
+    var touchStartX = null;
+    gallery.addEventListener('touchstart', function (e) {
+      touchStartX = e.touches[0].clientX;
+    }, { passive: true });
+    gallery.addEventListener('touchend', function (e) {
+      if (touchStartX === null) return;
+      var deltaX = e.changedTouches[0].clientX - touchStartX;
+      touchStartX = null;
+      if (Math.abs(deltaX) < 30) return; // treat as a tap, not a swipe — let the card's link click through
+      deltaX < 0 ? next() : prev();
+    }, { passive: true });
+  });
 
 })();
 </script>

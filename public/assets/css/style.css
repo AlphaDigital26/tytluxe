@@ -1039,6 +1039,16 @@ main {
         display: block;
     }
 
+    /* The fixed header is sized around this 80px logo everywhere else —
+       on mobile it was still 80px while pages only reserved ~80px of total
+       top padding for the whole header, so the header's own padding pushed
+       page content up underneath it. Shrinking the logo (matching the size
+       already used for it inside the mobile nav panel) brings the header's
+       real height back in line with what pages actually reserve. */
+    .logo img {
+        height: 44px;
+    }
+
     .nav-menu {
         position: fixed;
         top: 0;
