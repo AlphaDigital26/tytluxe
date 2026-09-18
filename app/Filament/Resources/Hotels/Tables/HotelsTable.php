@@ -7,6 +7,7 @@ use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Support\Enums\Width;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ToggleColumn;
@@ -143,6 +144,27 @@ class HotelsTable
                     ->trueLabel('Featured only')
                     ->falseLabel('Not featured'),
             ])
+            ->filtersFormColumns(2)
+            ->filtersFormWidth(Width::Large)
+            ->filtersTriggerAction(
+                fn ($action) => $action
+                    ->button()
+                    ->label('Filters')
+                    ->icon('heroicon-o-funnel')
+                    ->color('gray'),
+            )
+            // The dropdown filter panel stays open after "Apply filters" by
+            // default (it's plain Alpine state, unrelated to the Livewire
+            // apply request). alpineClickHandler() (not extraAttributes —
+            // that gets silently clobbered by the action's own blank
+            // x-on:click during attribute merging) replaces the button's
+            // wire:click with an Alpine call into the same Livewire method
+            // so we can await it — the panel only closes once the filtered
+            // results have actually finished loading, not the instant it's
+            // clicked.
+            ->filtersApplyAction(
+                fn ($action) => $action->alpineClickHandler('$wire.applyTableFilters().then(() => close())'),
+            )
             ->recordActions([
                 Action::make('view_live')
                     ->label('View Live')
