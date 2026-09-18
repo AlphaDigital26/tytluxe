@@ -27,7 +27,7 @@ class CruiseResource extends Resource
 
     protected static ?string $navigationLabel = 'Cruises';
 
-    protected static ?string $recordTitleAttribute = 'name';
+    protected static ?string $recordTitleAttribute = 'title';
 
     public static function form(Schema $schema): Schema
     {

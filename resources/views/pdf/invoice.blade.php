@@ -161,17 +161,11 @@
       <tr><th>Name</th><th class="right">Type</th></tr>
     </thead>
     <tbody>
-      <tr>
-        <td>{{ $booking->lead_guest_name }} (Lead Guest)</td>
-        <td class="right">Adult</td>
-      </tr>
       @foreach($booking->travelers as $traveler)
-        @if($traveler->full_name !== $booking->lead_guest_name)
         <tr>
           <td>{{ $traveler->full_name }}</td>
           <td class="right">{{ ucfirst($traveler->traveler_type) }}</td>
         </tr>
-        @endif
       @endforeach
     </tbody>
   </table>

@@ -441,18 +441,30 @@
       const freeUntilStr = freeTier ? formatOrdinalDate(freeTier.to) : '';
       const noRefundStr = lastPenalty ? formatOrdinalDate(lastPenalty.from) : '';
 
-      bulletsContainer.innerHTML = `
-        ${freeUntilStr ? `
-        <div class="tyt-cancel-bullet-item">
-          <span class="tyt-cancel-bullet-icon success">✓</span>
-          <span>Free Cancellation till <strong>${freeUntilStr}</strong></span>
-        </div>` : ''}
-        ${noRefundStr && noRefundStr !== freeUntilStr ? `
-        <div class="tyt-cancel-bullet-item">
-          <span class="tyt-cancel-bullet-icon warning">✓</span>
-          <span>No Refund if canceled after <strong>${noRefundStr}</strong></span>
-        </div>` : ''}
-      `;
+      if (freeUntilStr || noRefundStr) {
+        bulletsContainer.innerHTML = `
+          ${freeUntilStr ? `
+          <div class="tyt-cancel-bullet-item">
+            <span class="tyt-cancel-bullet-icon success">✓</span>
+            <span>Free Cancellation till <strong>${freeUntilStr}</strong></span>
+          </div>` : ''}
+          ${noRefundStr && noRefundStr !== freeUntilStr ? `
+          <div class="tyt-cancel-bullet-item">
+            <span class="tyt-cancel-bullet-icon warning">✓</span>
+            <span>No Refund if canceled after <strong>${noRefundStr}</strong></span>
+          </div>` : ''}
+        `;
+      } else {
+        // TripJack sent no penalty tiers at all (rare, but happens) — rather
+        // than leaving this list blank while the table/bar below still show
+        // a generic policy, say so plainly instead of implying no policy exists.
+        bulletsContainer.innerHTML = `
+          <div class="tyt-cancel-bullet-item">
+            <span class="tyt-cancel-bullet-icon success">✓</span>
+            <span>Free Cancellation (100% refund) until <strong>48 hours before check-in</strong></span>
+          </div>
+        `;
+      }
 
       // Build Segments & Ticks
       if (penalties.length >= 3) {

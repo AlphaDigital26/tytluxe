@@ -27,10 +27,13 @@ use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
+use App\Models\RoomType;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ImageColumn;
+use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Table;
+use Illuminate\Support\HtmlString;
 
 class RoomTypesRelationManager extends RelationManager
 {
@@ -138,99 +141,166 @@ class RoomTypesRelationManager extends RelationManager
         return $schema
             ->columns(1)
             ->components([
-                Section::make('Room Details')->schema([
-                    TextInput::make('name')
-                        ->required()
-                        ->maxLength(255)
-                        ->columnSpanFull(),
-                    Placeholder::make('tripjack_images_preview')
-                        ->label('Synced from TripJack')
-                        ->visible(fn ($record) => $record && (
-                            str_starts_with((string) $record->image_path, 'http')
-                            || collect($record->images ?? [])->contains(fn ($url) => str_starts_with((string) $url, 'http'))
-                        ))
-                        ->content(function ($record) {
-                            $urls = collect([$record->image_path])
-                                ->merge($record->images ?? [])
-                                ->filter(fn ($url) => str_starts_with((string) $url, 'http'))
-                                ->unique()
-                                ->values();
+                Section::make('📸 Room Photos')
+                    ->description('Upload and manage photos for this room type. Photos uploaded here will be displayed on the customer room selection card.')
+                    ->schema([
+                        Placeholder::make('tripjack_images_preview')
+                            ->label('Synced Photos from TripJack')
+                            ->visible(fn ($record) => $record && (
+                                str_starts_with((string) $record->image_path, 'http')
+                                || collect($record->images ?? [])->contains(fn ($url) => str_starts_with((string) $url, 'http'))
+                            ))
+                            ->content(function ($record) {
+                                $urls = collect([$record->image_path])
+                                    ->merge($record->images ?? [])
+                                    ->filter(fn ($url) => str_starts_with((string) $url, 'http'))
+                                    ->unique()
+                                    ->values();
 
-                            $html = '<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:10px;">';
-                            foreach ($urls as $url) {
-                                $html .= '<div style="border-radius:8px; overflow:hidden; border:1px solid rgba(255,255,255,0.1);">'
-                                    .'<img src="'.e($url).'" loading="lazy" style="width:100%; height:90px; object-fit:cover; display:block;">'
-                                    .'</div>';
-                            }
-                            $html .= '</div>';
+                                $html = '<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:10px;">';
+                                foreach ($urls as $url) {
+                                    $html .= '<div style="border-radius:8px; overflow:hidden; border:1px solid rgba(255,255,255,0.1);">'
+                                        .'<img src="'.e($url).'" loading="lazy" style="width:100%; height:90px; object-fit:cover; display:block;">'
+                                        .'</div>';
+                                }
+                                $html .= '</div>';
 
-                            return new \Illuminate\Support\HtmlString($html);
-                        })
-                        ->columnSpanFull(),
-                    FileUpload::make('image_path')
-                        ->disk('public')
-                        ->label('Main Thumbnail')
-                        ->helperText('Only needed for a manually-added room. TripJack-synced thumbnails are shown above.')
-                        ->image()
-                        ->saveUploadedFileUsing(fn ($file) => app(\App\Services\ImageOptimizer::class)->optimizeAndSave($file, 'thumbnail', 'room-images')),
-                    FileUpload::make('images')
-                        ->disk('public')
-                        ->label('Gallery Images (Multiple)')
-                        ->multiple()
-                        ->image()
-                        ->reorderable()
-                        ->saveUploadedFileUsing(fn ($file) => app(\App\Services\ImageOptimizer::class)->optimizeAndSave($file, 'thumbnail', 'room-images')),
-                    Textarea::make('description')
-                        ->rows(3)
-                        ->columnSpanFull(),
-                ])->columns(2),
+                                return new HtmlString($html);
+                            })
+                            ->columnSpanFull(),
 
-                Section::make('Specifications & Occupancy')->schema([
-                    TextInput::make('room_size')
-                        ->placeholder('e.g. 300 sq.ft'),
-                    TextInput::make('bed_type')
-                        ->placeholder('e.g. 1 King Bed'),
-                    TextInput::make('occupancy_adults')
-                        ->required()
-                        ->numeric()
-                        ->default(2),
-                    TextInput::make('occupancy_children')
-                        ->required()
-                        ->numeric()
-                        ->default(0),
-                ])->columns(2),
+                        FileUpload::make('image_path')
+                            ->disk('public')
+                            ->label('Main Room Thumbnail')
+                            ->helperText('Upload a high-resolution photo for the room card thumbnail.')
+                            ->image()
+                            ->saveUploadedFileUsing(fn ($file) => app(\App\Services\ImageOptimizer::class)->optimizeAndSave($file, 'thumbnail', 'room-images')),
 
-                Section::make('Room Settings')->schema([
-                    Placeholder::make('room_pricing_note')
-                        ->label('')
-                        ->content(new \Illuminate\Support\HtmlString(
-                            '<div style="background: rgba(201,168,76,0.08); border: 1px solid rgba(201,168,76,0.3); border-radius: 8px; padding: 12px 16px; font-size: 13px; line-height: 1.6; color: #e8c96b;">'
-                            . '💡 <strong>Room Pricing:</strong> You do not need to enter a price. Customers will click "Request Price" and send an enquiry — you then share the price directly with them.'
-                            . '</div>'
-                        ))
-                        ->columnSpanFull(),
-                    Select::make('cancellation_policy')
-                        ->label('Refund / Cancellation Policy')
-                        ->helperText('What happens if the customer cancels their booking?')
-                        ->options([
-                            'free_cancellation' => '✅  Free Cancellation (customer gets full refund)',
-                            'non_refundable'    => '❌  Non-Refundable (no refund on cancellation)',
-                            'partial'           => '⚠️  Partial Refund (partial amount returned)',
-                        ])
-                        ->nullable()
-                        ->native(false),
-                    TagsInput::make('inclusions')
-                        ->label("What's Included in this Room?")
-                        ->helperText('Type each inclusion and press Enter — e.g. Free Breakfast, Free WiFi, Swimming Pool Access')
-                        ->placeholder('Type and press Enter...')
-                        ->columnSpanFull(),
-                    Toggle::make('is_active')
-                        ->label('Show this Room on the Website')
-                        ->helperText('Turn OFF to hide this room type from customers without deleting it.')
-                        ->default(true)
-                        ->required()
-                        ->columnSpanFull(),
-                ])->columns(2),
+                        FileUpload::make('images')
+                            ->disk('public')
+                            ->label('Room Gallery Images (Multiple)')
+                            ->helperText('Upload additional room photos (bedroom, bathroom, view). Drag to reorder.')
+                            ->multiple()
+                            ->image()
+                            ->reorderable()
+                            ->saveUploadedFileUsing(fn ($file) => app(\App\Services\ImageOptimizer::class)->optimizeAndSave($file, 'thumbnail', 'room-images')),
+                    ])->columns(2),
+
+                Section::make('🏨 Room Details (Read-Only)')
+                    ->description('Room specifications and policies are read-only to preserve inventory consistency.')
+                    ->schema([
+                        TextInput::make('name')
+                            ->label('Room Type Name')
+                            ->required()
+                            ->maxLength(255)
+                            ->columnSpanFull()
+                            ->visible(fn (?RoomType $record) => $record === null),
+                        Placeholder::make('name_view')
+                            ->label('Room Type Name')
+                            ->content(fn (?RoomType $record) => $record?->name ?? '—')
+                            ->columnSpanFull()
+                            ->visible(fn (?RoomType $record) => $record !== null),
+
+                        Textarea::make('description')
+                            ->label('Room Description')
+                            ->rows(3)
+                            ->columnSpanFull()
+                            ->visible(fn (?RoomType $record) => $record === null),
+                        Placeholder::make('description_view')
+                            ->label('Room Description')
+                            ->content(fn (?RoomType $record) => $record?->description ?: '—')
+                            ->columnSpanFull()
+                            ->visible(fn (?RoomType $record) => $record !== null),
+
+                        Grid::make(4)->schema([
+                            TextInput::make('room_size')
+                                ->label('Room Size')
+                                ->placeholder('e.g. 300 sq.ft')
+                                ->visible(fn (?RoomType $record) => $record === null),
+                            Placeholder::make('room_size_view')
+                                ->label('Room Size')
+                                ->content(fn (?RoomType $record) => $record?->room_size ?: '—')
+                                ->visible(fn (?RoomType $record) => $record !== null),
+
+                            TextInput::make('bed_type')
+                                ->label('Bed Type')
+                                ->placeholder('e.g. 1 King Bed')
+                                ->visible(fn (?RoomType $record) => $record === null),
+                            Placeholder::make('bed_type_view')
+                                ->label('Bed Type')
+                                ->content(fn (?RoomType $record) => $record?->bed_type ?: '—')
+                                ->visible(fn (?RoomType $record) => $record !== null),
+
+                            TextInput::make('occupancy_adults')
+                                ->label('Max Adults')
+                                ->required()
+                                ->numeric()
+                                ->default(2)
+                                ->visible(fn (?RoomType $record) => $record === null),
+                            Placeholder::make('occupancy_adults_view')
+                                ->label('Max Adults')
+                                ->content(fn (?RoomType $record) => $record?->occupancy_adults ? $record->occupancy_adults.' Adults' : '—')
+                                ->visible(fn (?RoomType $record) => $record !== null),
+
+                            TextInput::make('occupancy_children')
+                                ->label('Max Children')
+                                ->required()
+                                ->numeric()
+                                ->default(0)
+                                ->visible(fn (?RoomType $record) => $record === null),
+                            Placeholder::make('occupancy_children_view')
+                                ->label('Max Children')
+                                ->content(fn (?RoomType $record) => $record?->occupancy_children !== null ? $record->occupancy_children.' Children' : '—')
+                                ->visible(fn (?RoomType $record) => $record !== null),
+                        ]),
+
+                        Select::make('cancellation_policy')
+                            ->label('Refund / Cancellation Policy')
+                            ->options([
+                                'free_cancellation' => '✅  Free Cancellation (Full refund)',
+                                'non_refundable'    => '❌  Non-Refundable (No refund)',
+                                'partial'           => '⚠️  Partial Refund',
+                            ])
+                            ->nullable()
+                            ->native(false)
+                            ->visible(fn (?RoomType $record) => $record === null),
+                        Placeholder::make('cancellation_policy_view')
+                            ->label('Refund / Cancellation Policy')
+                            ->content(fn (?RoomType $record) => match($record?->cancellation_policy) {
+                                'free_cancellation' => '✅ Free Cancellation (Full refund)',
+                                'non_refundable'    => '❌ Non-Refundable (No refund)',
+                                'partial'           => '⚠️ Partial Refund',
+                                default             => $record?->cancellation_policy ?: '—',
+                            })
+                            ->visible(fn (?RoomType $record) => $record !== null),
+
+                        TagsInput::make('inclusions')
+                            ->label("What's Included in this Room")
+                            ->placeholder('Type and press Enter...')
+                            ->columnSpanFull()
+                            ->visible(fn (?RoomType $record) => $record === null),
+                        Placeholder::make('inclusions_view')
+                            ->label("What's Included in this Room")
+                            ->content(function (?RoomType $record) {
+                                $inclusions = (array) ($record?->inclusions ?? []);
+                                if (empty($inclusions)) return '—';
+                                $html = '<div style="display:flex; flex-wrap:wrap; gap:6px;">';
+                                foreach ($inclusions as $item) {
+                                    $html .= '<span style="background:rgba(201,168,76,0.12); border:1px solid rgba(201,168,76,0.3); border-radius:999px; padding:3px 10px; font-size:12px; color:#e8c96b;">'.e($item).'</span>';
+                                }
+                                $html .= '</div>';
+                                return new HtmlString($html);
+                            })
+                            ->columnSpanFull()
+                            ->visible(fn (?RoomType $record) => $record !== null),
+
+                        Toggle::make('is_active')
+                            ->label('Show this Room on the Website')
+                            ->helperText('Turn OFF to hide this room type from visitors without deleting it.')
+                            ->default(true)
+                            ->required()
+                            ->columnSpanFull(),
+                    ])->columns(2),
             ]);
     }
 
@@ -252,17 +322,32 @@ class RoomTypesRelationManager extends RelationManager
             })
             ->defaultSort('name')
             ->columns([
-                ImageColumn::make('image_path')->circular(),
+                ImageColumn::make('image_path')
+                    ->label('Photo')
+                    ->state(function ($record): ?string {
+                        $url = $record->image_path ?: ($record->images[0] ?? null);
+                        if (! $url) {
+                            return null;
+                        }
+
+                        return str_starts_with($url, 'http') ? $url : asset('storage/' . $url);
+                    })
+                    ->circular(),
+
                 TextColumn::make('name')
                     ->label('Room Type')
-                    ->searchable(),
+                    ->searchable()
+                    ->weight('bold'),
+
                 TextColumn::make('tripjack_room_code')
                     ->label('Bookable Now')
                     ->visible(fn () => $this->getOwnerRecord()->source === 'tripjack')
                     ->badge()
                     ->state(fn ($record) => $liveInfo->has($record->tripjack_room_code) ? 'Live' : 'Catalog only')
                     ->color(fn ($record) => $liveInfo->has($record->tripjack_room_code) ? 'success' : 'gray')
-                    ->tooltip('Checked against a sample 1-night search (tomorrow, 2 adults) — actual availability varies by the dates a guest searches.'),
+                    ->tooltip('Checked against a sample 1-night search (tomorrow, 2 adults) — actual availability varies by the dates a guest searches.')
+                    ->toggleable(isToggledHiddenByDefault: true),
+
                 TextColumn::make('rate_plans')
                     ->label('Rate Plans')
                     ->visible(fn () => $this->getOwnerRecord()->source === 'tripjack')
@@ -270,15 +355,13 @@ class RoomTypesRelationManager extends RelationManager
                     ->separator(',')
                     ->state(fn ($record) => $liveInfo->get($record->tripjack_room_code, collect())->all())
                     ->placeholder('—')
-                    ->tooltip('Meal-basis rate plans currently on offer for this room in the sample search (e.g. Room Only, Breakfast, Dinner).'),
-                TextColumn::make('occupancy_adults')
-                    ->label('Adults')
-                    ->numeric()
-                    ->sortable(),
-                TextColumn::make('occupancy_children')
-                    ->label('Children')
-                    ->numeric()
-                    ->sortable(),
+                    ->tooltip('Meal-basis rate plans currently on offer for this room in the sample search (e.g. Room Only, Breakfast, Dinner).')
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('occupancy')
+                    ->label('Occupancy')
+                    ->state(fn ($record): string => "👥 {$record->occupancy_adults} Adults" . ($record->occupancy_children ? ", {$record->occupancy_children} Children" : '')),
+
                 TextColumn::make('cancellation_policy')
                     ->label('Refund Policy')
                     ->badge()
@@ -286,7 +369,7 @@ class RoomTypesRelationManager extends RelationManager
                         'free_cancellation' => 'Free Cancellation',
                         'non_refundable'    => 'Non-Refundable',
                         'partial'           => 'Partial Refund',
-                        default             => $state,
+                        default             => $state ?: '—',
                     })
                     ->color(fn ($state) => match($state) {
                         'free_cancellation' => 'success',
@@ -294,14 +377,13 @@ class RoomTypesRelationManager extends RelationManager
                         'partial'           => 'warning',
                         default             => 'gray',
                     }),
-                IconColumn::make('is_active')
+
+                ToggleColumn::make('is_active')
                     ->label('Visible')
-                    ->boolean(),
-                TextColumn::make('created_at')
-                    ->dateTime('M j, Y h:i A')
                     ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('updated_at')
+                    ->tooltip('Turn on to show this room on website, off to hide'),
+
+                TextColumn::make('created_at')
                     ->dateTime('M j, Y h:i A')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -310,42 +392,37 @@ class RoomTypesRelationManager extends RelationManager
                 //
             ])
             ->headerActions([
-                Action::make('fetchTripjackRoomImages')
-                    ->label('Fetch Room Images from TripJack')
-                    ->icon('heroicon-o-photo')
-                    ->visible(fn () => $this->getOwnerRecord()->source === 'tripjack' && $this->getOwnerRecord()->tripjack_hotel_id)
-                    ->action(function () {
-                        $result = app(TripJackHotelSync::class)->syncRoomImagesFromStaticDetail($this->getOwnerRecord());
-
-                        if ($result['error']) {
-                            Notification::make()->title('Could not fetch room images')->body($result['error'])->danger()->send();
-
-                            return;
-                        }
-
-                        Notification::make()->title("Synced {$result['synced']} room type(s) with real TripJack photos")->success()->send();
-                    }),
                 Action::make('fetchTripjackRooms')
-                    ->label('Fetch Rooms from TripJack (no images)')
+                    ->label('Fetch Rooms from TripJack')
                     ->icon('heroicon-o-arrow-path')
                     ->visible(fn () => $this->getOwnerRecord()->source === 'tripjack' && $this->getOwnerRecord()->tripjack_hotel_id)
                     ->action(function () {
-                        $result = app(TripJackHotelSync::class)->syncLiveRoomsFromPricing($this->getOwnerRecord());
+                        $hotel = $this->getOwnerRecord();
+                        $sync = app(TripJackHotelSync::class);
+
+                        // Real room photos come from the single-hotel Static
+                        // Detail API — try that first, and only fall back to
+                        // the live Pricing API (rooms with no images) if
+                        // TripJack genuinely has no static room content for
+                        // this hotel. Mirrors the auto-fetch in mount().
+                        $result = $sync->syncRoomImagesFromStaticDetail($hotel);
+                        if ($result['synced'] === 0) {
+                            $result = $sync->syncLiveRoomsFromPricing($hotel);
+                        }
 
                         if ($result['error']) {
-                            Notification::make()->title('Could not fetch rooms')->body($result['error'])->danger()->send();
+                            Notification::make()->title('Could not fetch rooms from TripJack')->body($result['error'])->danger()->send();
 
                             return;
                         }
 
                         Notification::make()->title("Synced {$result['synced']} room type(s) from TripJack")->success()->send();
                     }),
-                CreateAction::make()
-                    ->after(fn () => redirect(HotelResource::getUrl('index'))),
+
+                CreateAction::make(),
             ])
             ->recordActions([
-                EditAction::make()
-                    ->after(fn () => redirect(HotelResource::getUrl('index'))),
+                EditAction::make(),
                 DeleteAction::make(),
             ])
             ->toolbarActions([

@@ -52,6 +52,8 @@ class BookingForm
                     ->numeric()
                     ->default(0),
                 TextInput::make('lead_guest_name')
+                    ->label('Primary Guest Name')
+                    ->helperText('Taken from the first traveler on the booking.')
                     ->required(),
                 TextInput::make('special_requests')
                     ->default(null),

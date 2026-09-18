@@ -142,7 +142,28 @@ class DestinationsTable
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->before(function (DeleteBulkAction $action, \Illuminate\Support\Collection $records) {
+                            $blocked = $records->filter(
+                                fn (Destination $destination) => $destination->hotels()->exists()
+                                    || $destination->cruises()->exists()
+                                    || $destination->packages()->exists()
+                            );
+
+                            if ($blocked->isEmpty()) {
+                                return;
+                            }
+
+                            $names = $blocked->pluck('name')->implode(', ');
+
+                            Notification::make()
+                                ->title('Cannot delete some destinations')
+                                ->body("{$names} still have hotels, cruises, or packages attached. Remove or reassign them first.")
+                                ->danger()
+                                ->send();
+
+                            $action->halt();
+                        }),
                 ]),
             ])
             ->poll('5s')

@@ -286,8 +286,8 @@ class FrontendController extends Controller
         try {
             $dirty = false;
 
-            if (empty($user->phone) && ! \App\Models\User::where('phone', $validated['lead_phone'])->where('id', '!=', $user->id)->exists()) {
-                $user->phone = $validated['lead_phone'];
+            if (empty($user->phone) && ! \App\Models\User::where('phone', $validated['contact_phone'])->where('id', '!=', $user->id)->exists()) {
+                $user->phone = $validated['contact_phone'];
                 $dirty = true;
             }
 
@@ -295,7 +295,7 @@ class FrontendController extends Controller
                 $govtIds = $user->govt_ids ?? [];
                 $hasPan = collect($govtIds)->contains(fn ($id) => ($id['type'] ?? null) === 'PAN Card');
                 if (! $hasPan) {
-                    $govtIds[] = ['type' => 'PAN Card', 'number' => strtoupper($validated['pan_number'])];
+                    $govtIds[] = ['type' => 'PAN Card', 'number' => strtoupper($validated['pan_number']), 'name' => $validated['pan_name'] ?? null];
                     $user->govt_ids = $govtIds;
                     $dirty = true;
                 }
@@ -549,6 +549,30 @@ class FrontendController extends Controller
         $panRequired = $option['compliance']['panRequired'] ?? $option['ipr'] ?? false;
         $passportRequired = $option['compliance']['passportRequired'] ?? $option['ipm'] ?? false;
 
+        // Same TripJack-room-id-first, name-fallback match used on the room
+        // selection page (hotel-details.blade.php) so the photo the guest
+        // picked a room by carries over to this confirm/pay step instead of
+        // vanishing — this page previously showed no room photo at all.
+        $localRoom = null;
+        $optionRoomCodes = collect($option['roomInfo'] ?? [])->pluck('id')->filter()->unique();
+        if ($optionRoomCodes->isNotEmpty()) {
+            $localRoom = $hotel->roomTypes->firstWhere(fn ($rt) => $optionRoomCodes->contains($rt->tripjack_room_code));
+        }
+        if (! $localRoom) {
+            $roomNameForMatch = collect($option['roomInfo'] ?? [])->pluck('name')->unique()->implode(' + ');
+            $localRoom = $hotel->roomTypes->first(
+                fn ($rt) => $roomNameForMatch && (str_contains(strtolower($roomNameForMatch), strtolower($rt->name)) || str_contains(strtolower($rt->name), strtolower($roomNameForMatch)))
+            );
+        }
+        $roomImage = match (true) {
+            ! empty($localRoom?->image_path) && Str::startsWith($localRoom->image_path, ['http://', 'https://']) => $localRoom->image_path,
+            ! empty($localRoom?->image_path) => Storage::disk('public')->url($localRoom->image_path),
+            default => $hotel->images->first()?->path,
+        };
+        if ($roomImage && ! Str::startsWith($roomImage, ['http://', 'https://'])) {
+            $roomImage = Storage::disk('public')->url($roomImage);
+        }
+
         return view('pages.hotel-review', [
             'hotel' => $hotel,
             'option' => $option,
@@ -556,6 +580,7 @@ class FrontendController extends Controller
             'roomSlots' => $roomSlots,
             'panRequired' => $panRequired,
             'passportRequired' => $passportRequired,
+            'roomImage' => $roomImage,
             'draft' => $draft,
             // Lets a returning guest pick a saved co-traveller instead of
             // retyping name/passport for every room — see the picker in the
@@ -606,9 +631,9 @@ class FrontendController extends Controller
         };
 
         $rules = [
-            'lead_name' => ['required', 'string', 'max:255', $nameRegex],
-            'lead_email' => 'required|email|max:255',
-            'lead_phone' => ['required', 'string', 'max:20', $phoneRule],
+            'contact_email' => 'required|email|max:255',
+            'contact_phone' => ['required', 'string', 'max:20', $phoneRule],
+            'pan_name' => [$panRequired ? 'required' : 'nullable', 'string', 'max:255', $nameRegex],
             'pan_number' => [$panRequired ? 'required' : 'nullable', 'string', $panRegex],
             'special_requests' => 'nullable|string|max:500',
             'rooms' => 'required|array',
@@ -619,6 +644,7 @@ class FrontendController extends Controller
                 $rules["rooms.{$ri}.travelers.{$ti}.title"] = 'required|string|max:10';
                 $rules["rooms.{$ri}.travelers.{$ti}.first_name"] = ['required', 'string', 'max:100', $nameRegex];
                 $rules["rooms.{$ri}.travelers.{$ti}.last_name"] = ['required', 'string', 'max:100', $nameRegex];
+                $rules["rooms.{$ri}.travelers.{$ti}.save_to_list"] = 'nullable|boolean';
                 if ($passportRequired) {
                     $rules["rooms.{$ri}.travelers.{$ti}.passport_number"] = ['required', 'string', 'regex:/^[A-Za-z0-9]{6,20}$/'];
                 }
@@ -650,6 +676,7 @@ class FrontendController extends Controller
                 ];
                 if ($panRequired) {
                     $entry['pan'] = $validated['pan_number'];
+                    $entry['panName'] = $validated['pan_name'];
                 }
                 if ($passportRequired) {
                     $entry['pNum'] = $t['passport_number'] ?? null;
@@ -673,12 +700,19 @@ class FrontendController extends Controller
         // name is available at all, straight from TripJack's review response.
         $roomName = collect($option['roomInfo'] ?? [])->pluck('name')->filter()->unique()->implode(' + ') ?: null;
 
+        // No separate "Lead Guest" field is collected any more — the first
+        // traveler on the first room stands in as the booking's primary
+        // guest name (used on the invoice, admin panel, etc.).
+        $leadGuestName = trim(
+            ($validated['rooms'][0]['travelers'][0]['first_name'] ?? '').' '.($validated['rooms'][0]['travelers'][0]['last_name'] ?? '')
+        );
+
         try {
             $booking = Booking::create([
                 'reference' => 'TYT'.strtoupper(Str::random(8)),
                 'user_id' => $request->user()->id,
-                'guest_email' => $validated['lead_email'],
-                'guest_phone' => $validated['lead_phone'],
+                'guest_email' => $validated['contact_email'],
+                'guest_phone' => $validated['contact_phone'],
                 'vertical' => 'hotel',
                 'hotel_id' => $hotel->id,
                 'room_name' => $roomName,
@@ -699,7 +733,7 @@ class FrontendController extends Controller
                 'check_out' => $draft['check_out'],
                 'pax_adults' => $draft['adults'],
                 'pax_children' => $draft['children'],
-                'lead_guest_name' => $validated['lead_name'],
+                'lead_guest_name' => $leadGuestName,
                 'special_requests' => $validated['special_requests'] ?? null,
                 'base_amount' => $basePrice,
                 // Mirrors the customer-facing "Taxes & Fees" line on the review
@@ -743,7 +777,18 @@ class FrontendController extends Controller
                     'traveler_type' => $ti < $adultCount ? 'adult' : 'child',
                     'passport_number' => $t['passport_number'] ?? null,
                     'pan_number' => $panRequired ? $validated['pan_number'] : null,
+                    'pan_name' => $panRequired ? $validated['pan_name'] : null,
                 ]);
+
+                // "Add this guest to my guest list" — save (or refresh) this
+                // traveler as a UserTraveller so it shows up in the "Fill
+                // From Saved Traveller" picker on a future booking.
+                if (! empty($t['save_to_list'])) {
+                    $request->user()->savedTravellers()->updateOrCreate(
+                        ['first_name' => $t['first_name'], 'last_name' => $t['last_name']],
+                        ['passport_number' => $t['passport_number'] ?? null]
+                    );
+                }
             }
         }
 

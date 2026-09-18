@@ -50,6 +50,7 @@ class BookingsTable
                     ->numeric()
                     ->sortable(),
                 TextColumn::make('lead_guest_name')
+                    ->label('Primary Guest')
                     ->searchable(),
                 TextColumn::make('special_requests')
                     ->searchable(),
