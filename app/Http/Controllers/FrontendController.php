@@ -133,7 +133,11 @@ class FrontendController extends Controller
             }
         }
         $nationalities = $this->tripjackNationalities($client);
-        $destinations = Destination::orderBy('name')->pluck('name')
+        // Only destinations that actually have synced, visible hotels — every
+        // suggestion the search bar offers should lead to real results, never
+        // a dead-end "no hotels found" page for a destination we haven't
+        // synced inventory for yet.
+        $destinations = Destination::whereHas('hotelsOnWebsite')->orderBy('name')->pluck('name')
             ->map(fn ($d) => trim($d))
             ->filter()
             ->unique(fn ($d) => strtolower($d))
@@ -462,7 +466,9 @@ class FrontendController extends Controller
             }
         }
 
-        $destinations = Destination::orderBy('name')->pluck('name')
+        // Only destinations that actually have synced, visible hotels — see
+        // the same guard in hotels() for why.
+        $destinations = Destination::whereHas('hotelsOnWebsite')->orderBy('name')->pluck('name')
             ->map(fn ($d) => trim($d))
             ->filter()
             ->unique(fn ($d) => strtolower($d))
