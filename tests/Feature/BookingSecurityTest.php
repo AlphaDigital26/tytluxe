@@ -72,7 +72,7 @@ class BookingSecurityTest extends TestCase
         $hotel = $this->makeHotel('login-required-book-hotel', '777000004');
 
         $this->post("/hotels/{$hotel->slug}/book", [
-            'lead_name' => 'John Doe', 'lead_email' => 'john@example.com', 'lead_phone' => '9876543210',
+            'contact_email' => 'john@example.com', 'contact_phone' => '9876543210',
         ])->assertRedirect(route('login'));
     }
 
@@ -91,7 +91,7 @@ class BookingSecurityTest extends TestCase
         ]]);
 
         $this->post("/hotels/{$hotel->slug}/book", [
-            'lead_name' => 'John Doe', 'lead_email' => 'john@example.com', 'lead_phone' => '9876543210',
+            'contact_email' => 'john@example.com', 'contact_phone' => '9876543210',
             'rooms' => [0 => ['travelers' => [0 => ['title' => 'Mr', 'first_name' => 'John', 'last_name' => 'Doe']]]],
         ]);
 
@@ -146,8 +146,8 @@ class BookingSecurityTest extends TestCase
         ]]);
 
         $payload = [
-            'lead_name' => 'John Doe', 'lead_email' => 'john@example.com', 'lead_phone' => '9876543210',
-            'pan_number' => 'ABCDE1234F',
+            'contact_email' => 'john@example.com', 'contact_phone' => '9876543210',
+            'pan_name' => 'John Doe', 'pan_number' => 'ABCDE1234F',
             'rooms' => [0 => ['travelers' => [0 => ['title' => 'Mr', 'first_name' => 'John', 'last_name' => 'Doe']]]],
         ];
         data_set($payload, $field, $value);
@@ -160,8 +160,8 @@ class BookingSecurityTest extends TestCase
     {
         return [
             'PAN with wrong format' => ['pan_number', 'NOTAPAN123'],
-            'phone with too few digits' => ['lead_phone', '12345'],
-            'name containing digits' => ['lead_name', 'John123'],
+            'phone with too few digits' => ['contact_phone', '12345'],
+            'PAN name containing digits' => ['pan_name', 'John123'],
             'traveler first name containing digits' => ['rooms.0.travelers.0.first_name', 'John1'],
         ];
     }
@@ -180,7 +180,7 @@ class BookingSecurityTest extends TestCase
         ]]);
 
         $this->post("/hotels/{$hotel->slug}/book", [
-            'lead_name' => 'John Doe', 'lead_email' => 'john@example.com', 'lead_phone' => '9876543210',
+            'contact_email' => 'john@example.com', 'contact_phone' => '9876543210',
             'rooms' => [0 => ['travelers' => [0 => ['title' => 'Mr', 'first_name' => 'John', 'last_name' => 'Doe']]]],
         ]);
 
@@ -201,7 +201,7 @@ class BookingSecurityTest extends TestCase
         ]]);
 
         $this->post("/hotels/{$hotel->slug}/book", [
-            'lead_name' => 'John Doe', 'lead_email' => 'john@example.com', 'lead_phone' => '9222222222',
+            'contact_email' => 'john@example.com', 'contact_phone' => '9222222222',
             'rooms' => [0 => ['travelers' => [0 => ['title' => 'Mr', 'first_name' => 'John', 'last_name' => 'Doe']]]],
         ]);
 

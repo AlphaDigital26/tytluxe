@@ -126,9 +126,9 @@ class TripJackBookingFlowTest extends TestCase
 
         // Step 4: submit guest details -> Book
         $bookPost = $this->post("/hotels/{$hotel->slug}/book", [
-            'lead_name' => 'John Doe',
-            'lead_email' => 'john@example.com',
-            'lead_phone' => '9876543210',
+            'contact_email' => 'john@example.com',
+            'contact_phone' => '9876543210',
+            'pan_name' => 'John Doe',
             'pan_number' => 'ABCDE1234F',
             'rooms' => [
                 0 => ['travelers' => [
@@ -180,7 +180,7 @@ class TripJackBookingFlowTest extends TestCase
         ]]);
 
         $response = $this->post("/hotels/{$hotel->slug}/book", [
-            'lead_name' => 'Jane Doe', 'lead_email' => 'jane@example.com', 'lead_phone' => '9876543210',
+            'contact_email' => 'jane@example.com', 'contact_phone' => '9876543210',
             'rooms' => [
                 0 => ['travelers' => [0 => ['title' => 'Mr', 'first_name' => 'John', 'last_name' => 'Doe']]],
                 1 => ['travelers' => [0 => ['title' => 'Mr', 'first_name' => 'John', 'last_name' => 'Doe']]],
