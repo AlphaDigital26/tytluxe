@@ -147,6 +147,39 @@ class FrontendController extends Controller
     }
 
     /**
+     * Powers the search bar's "city, area or property" autocomplete — matching
+     * hotel titles as the guest types, alongside the destinations list already
+     * rendered server-side. Kept separate from hotels() (and only queried via
+     * AJAX once the guest has typed 2+ characters) rather than shipping every
+     * hotel's title into the page up front, which would bloat every page load
+     * just to support an autocomplete that's rarely all scrolled through.
+     */
+    public function hotelSearchSuggestions(Request $request)
+    {
+        $query = trim((string) $request->query('q', ''));
+
+        if (mb_strlen($query) < 2) {
+            return response()->json(['hotels' => []]);
+        }
+
+        $hotels = Hotel::visibleOnWebsite()
+            ->with('destination')
+            ->where('title', 'LIKE', '%'.$query.'%')
+            ->orderBy('title')
+            ->limit(6)
+            ->get(['id', 'title', 'slug', 'destination_id'])
+            ->map(fn ($hotel) => [
+                'title' => $hotel->title,
+                'slug' => $hotel->slug,
+                'city' => $hotel->destination?->name,
+                'url' => route('hotel.details', $hotel->slug),
+            ])
+            ->values();
+
+        return response()->json(['hotels' => $hotels]);
+    }
+
+    /**
      * Fetch nationality list with a short-lived cache.
      *
      * The nationality dropdown is best-effort \u2014 if TripJack is unreachable we

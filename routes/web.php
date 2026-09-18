@@ -9,6 +9,7 @@ Route::get('/', [FrontendController::class, 'index'])->name('home');
 Route::view('/about', 'pages.about')->name('about');
 Route::view('/flights', 'pages.flights')->name('flights');
 Route::get('/hotels', [FrontendController::class, 'hotels'])->name('hotels');
+Route::get('/hotels/search-suggestions', [FrontendController::class, 'hotelSearchSuggestions'])->name('hotels.search-suggestions')->middleware('throttle:60,1');
 Route::get('/wishlist', [FrontendController::class, 'wishlist'])->name('wishlist');
 Route::post('/wishlist/lookup', [FrontendController::class, 'wishlistLookup'])->name('wishlist.lookup')->middleware('throttle:30,1');
 Route::redirect('/hotels/wishlist', '/wishlist');

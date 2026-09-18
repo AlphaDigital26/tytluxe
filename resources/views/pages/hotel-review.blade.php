@@ -14,6 +14,18 @@
   }
   body { background: var(--dark); }
 
+  /* The site-wide stylesheet sets `overflow-x: hidden` on html/body (to stop
+     horizontal scroll elsewhere). Per the CSS overflow spec, setting overflow-x
+     without overflow-y forces overflow-y to `auto` too — so html/body silently
+     become their own scroll containers instead of the plain viewport, which is
+     exactly what breaks `position: sticky` on .br-summary below. Restoring the
+     default (visible) here — scoped to just this page's own <style> block, not
+     the shared stylesheet — fixes sticky without touching other pages. This
+     page's own layout (max-width, centered, self-contained tables) doesn't rely
+     on that clipping.
+  */
+  html, body { overflow-x: visible; overflow-y: visible; }
+
   .br-hero { padding: 105px 24px 0; max-width: 1100px; margin: 0 auto; }
   .br-back { display: inline-flex; align-items: center; gap: 6px; font-family: 'Jost', sans-serif; font-size: 12.5px; color: var(--white-60); text-decoration: none; margin-bottom: 28px; transition: color var(--transition); }
   .br-back:hover { color: var(--gold); }
@@ -88,7 +100,7 @@
   @keyframes brSpin { to { transform: rotate(360deg); } }
   .br-submit-note { font-family: 'Jost', sans-serif; font-size: 11px; color: var(--white-30); text-align: center; margin-top: 14px; line-height: 1.6; }
 
-  .br-summary { position: sticky; top: 100px; background: var(--dark-2); border: 1px solid rgba(201,168,76,0.25); border-radius: 22px; padding: 32px; max-height: calc(100vh - 130px); overflow-y: auto; }
+  .br-summary { position: sticky; top: 100px; background: var(--dark-2); border: 1px solid rgba(201,168,76,0.25); border-radius: 22px; padding: 32px; }
   .br-summary-img { width: 100%; height: 150px; object-fit: cover; border-radius: 14px; margin-bottom: 18px; display: block; }
   .br-summary-hotel { display: flex; align-items: center; gap: 6px; font-family: 'Jost', sans-serif; font-size: 11px; color: var(--gold); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
   .br-summary h3 { font-family: 'Cormorant Garamond', serif; font-size: 1.5rem; color: #fff; margin-bottom: 26px; line-height: 1.25; }
@@ -113,23 +125,36 @@
   }
 
   /* ===== Stay summary + room card ===== */
-  .br-stay-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 18px 14px; margin-bottom: 24px; }
-  @media (max-width: 700px) { .br-stay-grid { grid-template-columns: repeat(2, 1fr); } }
-  .br-stay-item { display: flex; flex-direction: column; gap: 4px; }
-  .br-stay-label { font-family: 'Jost', sans-serif; font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--white-30); }
-  .br-stay-value { font-family: 'Jost', sans-serif; font-size: 14px; font-weight: 600; color: #fff; }
-  .br-stay-sub { font-family: 'Jost', sans-serif; font-size: 11px; color: var(--white-30); }
+  .br-stay-dates { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .br-stay-stat { display: flex; flex-direction: column; gap: 2px; }
+  .br-stay-stat.right { align-items: flex-end; text-align: right; }
+  .br-stay-duration { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 56px; }
+  .br-stay-duration span { font-family: 'Jost', sans-serif; font-size: 10.5px; font-weight: 600; letter-spacing: 0.04em; color: var(--gold-light); white-space: nowrap; }
+  .br-stay-duration-line { position: relative; width: 100%; height: 1px; background: rgba(201,168,76,0.3); display: flex; align-items: center; justify-content: center; }
+  .br-stay-duration-line svg { position: relative; background: var(--dark-2); color: var(--gold); padding: 0 4px; flex-shrink: 0; width: 12px; height: 12px; }
+  @media (max-width: 480px) {
+    .br-stay-dates { flex-direction: column; align-items: stretch; gap: 8px; }
+    .br-stay-stat.right { align-items: flex-start; text-align: left; }
+    .br-stay-duration { flex-direction: row; justify-content: center; }
+    .br-stay-duration-line { display: none; }
+  }
 
-  .br-room-card { border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 20px; margin-top: 4px; }
-  .br-room-name { font-family: 'Cormorant Garamond', serif; font-size: 1.2rem; color: #fff; margin-bottom: 8px; }
-  .br-room-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
-  .br-room-tag { font-family: 'Jost', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; padding: 5px 12px; border-radius: 100px; }
+  .br-stay-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px 14px; padding-top: 12px; border-top: 1px dashed rgba(255,255,255,0.08); margin-bottom: 0; }
+  .br-stay-item { display: flex; flex-direction: column; gap: 2px; }
+  .br-stay-label { font-family: 'Jost', sans-serif; font-size: 9.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--white-30); }
+  .br-stay-value { font-family: 'Jost', sans-serif; font-size: 13px; font-weight: 600; color: #fff; }
+  .br-stay-sub { font-family: 'Jost', sans-serif; font-size: 10.5px; color: var(--white-30); }
+
+  .br-room-card { background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; padding: 14px 16px; margin-top: 14px; }
+  .br-room-name { font-family: 'Cormorant Garamond', serif; font-size: 1.1rem; color: #fff; margin-bottom: 6px; }
+  .br-room-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .br-room-tag { display: inline-flex; align-items: center; gap: 5px; font-family: 'Jost', sans-serif; font-size: 10.5px; font-weight: 600; letter-spacing: 0.04em; padding: 4px 10px; border-radius: 100px; }
   .br-room-tag.refundable { background: rgba(74,222,128,0.1); color: var(--green); border: 1px solid rgba(74,222,128,0.3); }
   .br-room-tag.non-refundable { background: rgba(220,80,80,0.1); color: #f3a3a3; border: 1px solid rgba(220,80,80,0.3); }
   .br-room-tag.meal { background: rgba(255,255,255,0.06); color: var(--white-80); border: 1px solid rgba(255,255,255,0.12); }
 
-  .br-confirm-check { display: flex; align-items: flex-start; gap: 10px; margin-top: 4px; font-family: 'Jost', sans-serif; font-size: 12.5px; color: var(--white-60); line-height: 1.5; }
-  .br-confirm-check input { margin-top: 3px; flex-shrink: 0; accent-color: var(--gold); width: 15px; height: 15px; }
+  .br-confirm-check { display: flex; align-items: flex-start; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px dashed rgba(255,255,255,0.08); font-family: 'Jost', sans-serif; font-size: 12px; color: var(--white-60); line-height: 1.45; }
+  .br-confirm-check input { margin-top: 3px; flex-shrink: 0; accent-color: var(--gold); width: 15px; height: 15px; cursor: pointer; }
   .br-save-guest-check { display: flex; align-items: flex-start; gap: 10px; margin-top: 14px; font-family: 'Jost', sans-serif; font-size: 12px; color: var(--white-60); line-height: 1.5; cursor: pointer; }
   .br-save-guest-check input { margin-top: 3px; flex-shrink: 0; accent-color: var(--gold); width: 14px; height: 14px; }
 
@@ -142,17 +167,19 @@
   .br-cancel-table-wrap { overflow-x: auto; margin-top: 4px; }
 
   /* ===== PAN Information ===== */
-  .br-pan-verify-row { display: flex; gap: 10px; align-items: flex-start; }
-  .br-pan-verify-row .br-field { flex: 1; }
+  .br-pan-verify-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: -6px; margin-bottom: 4px; }
   .br-pan-verify-btn {
-    margin-top: 26px; padding: 14px 20px; border-radius: 10px; border: 1px solid var(--gold);
-    background: transparent; color: var(--gold); font-family: 'Jost', sans-serif; font-size: 12px;
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 10px 18px; border-radius: 10px; border: 1px solid var(--gold);
+    background: transparent; color: var(--gold); font-family: 'Jost', sans-serif; font-size: 11.5px;
     font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; white-space: nowrap;
-    transition: all var(--transition);
+    transition: all var(--transition); flex-shrink: 0;
   }
   .br-pan-verify-btn:hover { background: rgba(201,168,76,0.1); }
   .br-pan-verify-btn.verified { border-color: var(--green); color: var(--green); cursor: default; }
-  .br-pan-verify-note { font-family: 'Jost', sans-serif; font-size: 11px; color: var(--white-30); margin-top: -12px; margin-bottom: 20px; }
+  .br-pan-verify-note { font-family: 'Jost', sans-serif; font-size: 11.5px; color: var(--white-30); margin: 0; line-height: 1.5; }
+  .br-pan-verify-note.valid { color: var(--green); }
+  .br-pan-verify-note.invalid { color: #f3a3a3; }
 
   /* ===== Important information ===== */
   .br-info-block { margin-bottom: 22px; }
@@ -250,21 +277,27 @@
 
       <div class="br-section">
         <h2>Stay &amp; Room</h2>
-        <div class="br-stay-grid">
-          <div class="br-stay-item">
+
+        <div class="br-stay-dates">
+          <div class="br-stay-stat">
             <span class="br-stay-label">Check In</span>
             <span class="br-stay-value">{{ $checkInDate->format('d M Y') }}</span>
             @if($hotel->check_in_time)<span class="br-stay-sub">from {{ $hotel->check_in_time }}</span>@endif
           </div>
-          <div class="br-stay-item">
+          <div class="br-stay-duration">
+            <span>{{ $nights }} {{ Str::plural('Night', $nights) }}</span>
+            <div class="br-stay-duration-line">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+            </div>
+          </div>
+          <div class="br-stay-stat right">
             <span class="br-stay-label">Check Out</span>
             <span class="br-stay-value">{{ $checkOutDate->format('d M Y') }}</span>
             @if($hotel->check_out_time)<span class="br-stay-sub">by {{ $hotel->check_out_time }}</span>@endif
           </div>
-          <div class="br-stay-item">
-            <span class="br-stay-label">Duration</span>
-            <span class="br-stay-value">{{ $nights }} {{ Str::plural('Night', $nights) }}</span>
-          </div>
+        </div>
+
+        <div class="br-stay-grid">
           <div class="br-stay-item">
             <span class="br-stay-label">Rooms</span>
             <span class="br-stay-value">{{ $totalRooms }} {{ Str::plural('Room', $totalRooms) }}</span>
@@ -278,7 +311,14 @@
         <div class="br-room-card">
           <p class="br-room-name">{{ $roomNames ?: 'Room' }}</p>
           <div class="br-room-tags">
-            <span class="br-room-tag {{ $isRefundable ? 'refundable' : 'non-refundable' }}">{{ $isRefundable ? 'Refundable' : 'Non-Refundable' }}</span>
+            <span class="br-room-tag {{ $isRefundable ? 'refundable' : 'non-refundable' }}">
+              @if($isRefundable)
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
+              @else
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              @endif
+              {{ $isRefundable ? 'Refundable' : 'Non-Refundable' }}
+            </span>
             <span class="br-room-tag meal">{{ $option['mealBasis'] ?? 'Room Only' }}</span>
           </div>
           <label class="br-confirm-check">
@@ -347,9 +387,12 @@
           </div>
         </div>
         <div class="br-pan-verify-row">
-          <button type="button" class="br-pan-verify-btn" id="brPanVerifyBtn">Verify Format</button>
+          <button type="button" class="br-pan-verify-btn" id="brPanVerifyBtn">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 12l2 2 4-4"/><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/></svg>
+            <span id="brPanVerifyBtnLabel">Verify Format</span>
+          </button>
+          <p class="br-pan-verify-note" id="brPanVerifyNote">We check the PAN format only — this is not a government verification.</p>
         </div>
-        <p class="br-pan-verify-note" id="brPanVerifyNote">We check the PAN format only — this is not a government verification.</p>
       </div>
       @endif
 
@@ -424,7 +467,7 @@
         @endforeach
       </div>
 
-      @if($hotel->check_in_time || $hotel->check_out_time || $hotel->know_before_you_go || $hotel->special_instructions || $hotel->mandatory_fees)
+      @if($hotel->check_in_time || $hotel->check_out_time || $hotel->know_before_you_go || $hotel->special_instructions || $hotel->mandatory_fees || !empty($hotel->house_rules))
       <div class="br-section">
         <h2>Important Information</h2>
 
@@ -463,6 +506,17 @@
         <div class="br-info-block">
           <h4>Fees</h4>
           {!! $hotel->mandatory_fees !!}
+        </div>
+        @endif
+
+        @if(!empty($hotel->house_rules))
+        <div class="br-info-block">
+          <h4>House Rules</h4>
+          <ul>
+            @foreach($hotel->house_rules as $rule => $value)
+              <li>{{ Str::title(str_replace('_', ' ', $rule)) }}: {{ is_bool($value) ? ($value ? 'Yes' : 'No') : $value }}</li>
+            @endforeach
+          </ul>
         </div>
         @endif
       </div>
@@ -551,6 +605,7 @@
 
     var panInput = document.getElementById('brPanInput');
     var panVerifyBtn = document.getElementById('brPanVerifyBtn');
+    var panVerifyBtnLabel = document.getElementById('brPanVerifyBtnLabel');
     var panVerifyNote = document.getElementById('brPanVerifyNote');
     if (panInput && panVerifyBtn) {
       var panRegex = /^[A-Za-z]{5}[0-9]{4}[A-Za-z]{1}$/;
@@ -558,19 +613,24 @@
         var value = panInput.value.trim().toUpperCase();
         panInput.value = value;
         if (panRegex.test(value)) {
-          panVerifyBtn.textContent = '✓ Valid Format';
+          panVerifyBtnLabel.textContent = 'Valid Format';
           panVerifyBtn.classList.add('verified');
           panVerifyNote.textContent = 'PAN format looks correct. This checks the format only, not a government registry.';
+          panVerifyNote.classList.remove('invalid');
+          panVerifyNote.classList.add('valid');
         } else {
-          panVerifyBtn.textContent = 'Verify';
+          panVerifyBtnLabel.textContent = 'Verify Format';
           panVerifyBtn.classList.remove('verified');
           panVerifyNote.textContent = 'That doesn\'t match a valid PAN format (e.g. ABCDE1234F). Please check and try again.';
+          panVerifyNote.classList.remove('valid');
+          panVerifyNote.classList.add('invalid');
         }
       });
       panInput.addEventListener('input', function () {
-        panVerifyBtn.textContent = 'Verify';
+        panVerifyBtnLabel.textContent = 'Verify Format';
         panVerifyBtn.classList.remove('verified');
         panVerifyNote.textContent = 'We check the PAN format only — this is not a government verification.';
+        panVerifyNote.classList.remove('valid', 'invalid');
       });
     }
 
