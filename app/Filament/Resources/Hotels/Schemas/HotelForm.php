@@ -59,9 +59,9 @@ class HotelForm
                                 $syncId = $record->tripjack_hotel_id ? ' • Property ID: '.e($record->tripjack_hotel_id) : '';
 
                                 return new HtmlString(
-                                    '<div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:14px 18px;">'
+                                    '<div style="background:rgba(128,128,128,0.06); border:1px solid rgba(128,128,128,0.25); border-radius:10px; padding:14px 18px;">'
                                     .'<div style="display:flex; align-items:center; gap:10px; margin-bottom:4px;">'
-                                    .'<span style="font-size:16px; font-weight:700; color:#fff;">'.e($record->title).'</span>'
+                                    .'<span style="font-size:16px; font-weight:700;">'.e($record->title).'</span>'
                                     .'<span style="background:rgba(201,168,76,0.12); border:1px solid rgba(201,168,76,0.3); color:#e8c96b; border-radius:999px; padding:2px 10px; font-size:11.5px; font-weight:600;">'.$sourceLabel.$syncId.'</span>'
                                     .'</div>'
                                     .'<p style="margin:0; font-size:12.5px; opacity:0.75;">Property details are in read-only display. You can manage photo visibility and upload new marketing photos in the Photos tab below.</p>'
@@ -468,7 +468,7 @@ class HotelForm
                 .'</ul>'
                 : '<div>'.$value.'</div>';
 
-            $html .= '<div style="border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:10px 14px;">'
+            $html .= '<div style="border:1px solid rgba(128,128,128,0.25); border-radius:8px; padding:10px 14px;">'
                 .'<div style="font-weight:600; font-size:13px; margin-bottom:4px;">'.e((string) $heading).'</div>'
                 .'<div style="font-size:13px; opacity:0.85;">'.$body.'</div>'
                 .'</div>';
@@ -501,7 +501,7 @@ class HotelForm
                 ? '<span style="color:#4ade80;">Published</span>'
                 : '<span style="color:#facc15;">Unpublished</span>';
 
-            $html .= '<div style="border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:10px 14px;">'
+            $html .= '<div style="border:1px solid rgba(128,128,128,0.25); border-radius:8px; padding:10px 14px;">'
                 .'<div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;">'
                 .'<strong>'.e($review->author_name).'</strong>'
                 .'<span>'.$stars.' &middot; '.$status.'</span>'

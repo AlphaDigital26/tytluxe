@@ -159,7 +159,7 @@ class RoomTypesRelationManager extends RelationManager
 
                                 $html = '<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:10px;">';
                                 foreach ($urls as $url) {
-                                    $html .= '<div style="border-radius:8px; overflow:hidden; border:1px solid rgba(255,255,255,0.1);">'
+                                    $html .= '<div style="border-radius:8px; overflow:hidden; border:1px solid rgba(128,128,128,0.28);">'
                                         .'<img src="'.e($url).'" loading="lazy" style="width:100%; height:90px; object-fit:cover; display:block;">'
                                         .'</div>';
                                 }
@@ -349,34 +349,17 @@ class RoomTypesRelationManager extends RelationManager
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('rate_plans')
-                    ->label('Rate Plans')
+                    ->label('Meal Plan')
                     ->visible(fn () => $this->getOwnerRecord()->source === 'tripjack')
                     ->badge()
                     ->separator(',')
                     ->state(fn ($record) => $liveInfo->get($record->tripjack_room_code, collect())->all())
                     ->placeholder('—')
-                    ->tooltip('Meal-basis rate plans currently on offer for this room in the sample search (e.g. Room Only, Breakfast, Dinner).')
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->tooltip('Meal-basis rate plans currently on offer for this room in the sample search (e.g. Room Only, Breakfast, Dinner).'),
 
                 TextColumn::make('occupancy')
                     ->label('Occupancy')
                     ->state(fn ($record): string => "👥 {$record->occupancy_adults} Adults" . ($record->occupancy_children ? ", {$record->occupancy_children} Children" : '')),
-
-                TextColumn::make('cancellation_policy')
-                    ->label('Refund Policy')
-                    ->badge()
-                    ->formatStateUsing(fn ($state) => match($state) {
-                        'free_cancellation' => 'Free Cancellation',
-                        'non_refundable'    => 'Non-Refundable',
-                        'partial'           => 'Partial Refund',
-                        default             => $state ?: '—',
-                    })
-                    ->color(fn ($state) => match($state) {
-                        'free_cancellation' => 'success',
-                        'non_refundable'    => 'danger',
-                        'partial'           => 'warning',
-                        default             => 'gray',
-                    }),
 
                 ToggleColumn::make('is_active')
                     ->label('Visible')
