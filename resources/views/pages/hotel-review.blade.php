@@ -88,7 +88,8 @@
   @keyframes brSpin { to { transform: rotate(360deg); } }
   .br-submit-note { font-family: 'Jost', sans-serif; font-size: 11px; color: var(--white-30); text-align: center; margin-top: 14px; line-height: 1.6; }
 
-  .br-summary { position: sticky; top: 100px; background: var(--dark-2); border: 1px solid rgba(201,168,76,0.25); border-radius: 22px; padding: 32px; }
+  .br-summary { position: sticky; top: 100px; background: var(--dark-2); border: 1px solid rgba(201,168,76,0.25); border-radius: 22px; padding: 32px; max-height: calc(100vh - 130px); overflow-y: auto; }
+  .br-summary-img { width: 100%; height: 150px; object-fit: cover; border-radius: 14px; margin-bottom: 18px; display: block; }
   .br-summary-hotel { display: flex; align-items: center; gap: 6px; font-family: 'Jost', sans-serif; font-size: 11px; color: var(--gold); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
   .br-summary h3 { font-family: 'Cormorant Garamond', serif; font-size: 1.5rem; color: #fff; margin-bottom: 26px; line-height: 1.25; }
   .br-line { display: flex; justify-content: space-between; gap: 10px; font-family: 'Jost', sans-serif; font-size: 13px; color: var(--white-80); padding: 10px 0; border-bottom: 1px dashed rgba(255,255,255,0.08); }
@@ -129,6 +130,8 @@
 
   .br-confirm-check { display: flex; align-items: flex-start; gap: 10px; margin-top: 4px; font-family: 'Jost', sans-serif; font-size: 12.5px; color: var(--white-60); line-height: 1.5; }
   .br-confirm-check input { margin-top: 3px; flex-shrink: 0; accent-color: var(--gold); width: 15px; height: 15px; }
+  .br-save-guest-check { display: flex; align-items: flex-start; gap: 10px; margin-top: 14px; font-family: 'Jost', sans-serif; font-size: 12px; color: var(--white-60); line-height: 1.5; cursor: pointer; }
+  .br-save-guest-check input { margin-top: 3px; flex-shrink: 0; accent-color: var(--gold); width: 14px; height: 14px; }
 
   /* ===== Inline cancellation policy (page equivalent of the modal) ===== */
   .br-cancel-toggle { display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
@@ -241,8 +244,8 @@
         // Prefill from the logged-in guest's own profile so returning
         // guests don't retype everything — old() (a resubmission after a
         // validation error) always wins over the profile default.
-        $profileName = trim(auth()->user()->name.' '.(auth()->user()->last_name ?? ''));
         $profilePan = collect(auth()->user()->govt_ids ?? [])->firstWhere('type', 'PAN Card')['number'] ?? null;
+        $profilePanName = collect(auth()->user()->govt_ids ?? [])->firstWhere('type', 'PAN Card')['name'] ?? null;
       @endphp
 
       <div class="br-section">
@@ -316,21 +319,16 @@
       </div>
 
       <div class="br-section">
-        <h2>Lead Guest</h2>
+        <h2>Contact Details</h2>
+        <p style="font-family:'Jost',sans-serif; font-size:12px; color:var(--white-60); margin:-14px 0 22px;">Where we'll send your booking confirmation and any updates.</p>
         <div class="br-row">
-          <div class="br-field {{ $errors->has('lead_name') ? 'error' : '' }}">
-            <label>Full Name</label>
-            <input type="text" name="lead_name" value="{{ old('lead_name', $profileName) }}" placeholder="e.g. Rahul Sharma" required>
-          </div>
-          <div class="br-field {{ $errors->has('lead_email') ? 'error' : '' }}">
+          <div class="br-field {{ $errors->has('contact_email') ? 'error' : '' }}">
             <label>Email</label>
-            <input type="email" name="lead_email" value="{{ old('lead_email', auth()->user()->email) }}" placeholder="you@email.com" required>
+            <input type="email" name="contact_email" value="{{ old('contact_email', auth()->user()->email) }}" placeholder="you@email.com" required>
           </div>
-        </div>
-        <div class="br-row">
-          <div class="br-field {{ $errors->has('lead_phone') ? 'error' : '' }}">
+          <div class="br-field {{ $errors->has('contact_phone') ? 'error' : '' }}">
             <label>Phone / WhatsApp</label>
-            <input type="tel" name="lead_phone" value="{{ old('lead_phone', auth()->user()->phone) }}" placeholder="98765 43210" required>
+            <input type="tel" name="contact_phone" value="{{ old('contact_phone', auth()->user()->phone) }}" placeholder="98765 43210" required>
           </div>
         </div>
       </div>
@@ -338,12 +336,18 @@
       @if($panRequired)
       <div class="br-section">
         <h2>PAN Information</h2>
-        <div class="br-pan-verify-row">
+        <div class="br-row">
+          <div class="br-field {{ $errors->has('pan_name') ? 'error' : '' }}">
+            <label>Name as per PAN</label>
+            <input type="text" name="pan_name" value="{{ old('pan_name', $profilePanName) }}" placeholder="e.g. Rahul Sharma" required>
+          </div>
           <div class="br-field {{ $errors->has('pan_number') ? 'error' : '' }}">
             <label>PAN Number (required for this rate)</label>
             <input type="text" name="pan_number" id="brPanInput" value="{{ old('pan_number', $profilePan) }}" placeholder="ABCDE1234F" maxlength="10" style="text-transform:uppercase;" required>
           </div>
-          <button type="button" class="br-pan-verify-btn" id="brPanVerifyBtn">Verify</button>
+        </div>
+        <div class="br-pan-verify-row">
+          <button type="button" class="br-pan-verify-btn" id="brPanVerifyBtn">Verify Format</button>
         </div>
         <p class="br-pan-verify-note" id="brPanVerifyNote">We check the PAN format only — this is not a government verification.</p>
       </div>
@@ -411,6 +415,10 @@
                 <input type="text" name="rooms[{{ $ri }}][travelers][{{ $ti }}][passport_number]" value="{{ old($passportField) }}" data-field="passport_number" required>
               </div>
               @endif
+              <label class="br-save-guest-check">
+                <input type="checkbox" name="rooms[{{ $ri }}][travelers][{{ $ti }}][save_to_list]" value="1" {{ old("rooms.{$ri}.travelers.{$ti}.save_to_list") ? 'checked' : '' }}>
+                <span>Add this guest to my guest list, for faster booking next time</span>
+              </label>
             </div>
           @endfor
         @endforeach
@@ -467,20 +475,16 @@
           <textarea name="special_requests" rows="4" maxlength="500" placeholder="e.g. High floor, early check-in, airport transfer...">{{ old('special_requests') }}</textarea>
         </div>
       </div>
-
-      <div class="br-submit-row">
-        <button type="submit" class="br-submit" id="brSubmitBtn">
-          <span class="br-spinner"></span>
-          <span class="br-submit-label">Proceed to Pay</span>
-        </button>
-        <p class="br-submit-note">You'll be redirected to our secure payment partner to complete your booking.</p>
-      </div>
     </form>
   </div>
 
   <div class="br-summary">
     <p class="br-summary-hotel">{{ $hotel->destination?->name }}</p>
     <h3>{{ $hotel->title }}</h3>
+
+    @if($roomImage)
+    <img src="{{ $roomImage }}" alt="{{ $roomNames ?: 'Room' }}" class="br-summary-img" loading="lazy">
+    @endif
 
     <div class="br-line"><span>Room</span><span>{{ $roomNames ?: 'Room' }}</span></div>
     <div class="br-line"><span>Meal Plan</span><span>{{ $option['mealBasis'] ?? 'Room Only' }}</span></div>
@@ -503,6 +507,14 @@
     @endif
 
     <p class="br-note">Your booking is confirmed instantly once payment is complete.</p>
+
+    <div class="br-submit-row">
+      <button type="submit" form="brBookForm" class="br-submit" id="brSubmitBtn">
+        <span class="br-spinner"></span>
+        <span class="br-submit-label">Proceed to Pay</span>
+      </button>
+      <p class="br-submit-note">You'll be redirected to our secure payment partner to complete your booking.</p>
+    </div>
   </div>
 </div>
 @endsection

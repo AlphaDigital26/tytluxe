@@ -291,7 +291,7 @@
       </div>
 
       <div class="bd-modal-section" id="bdModalGuestSection" hidden>
-        <div class="bd-modal-section-title">Lead Guest</div>
+        <div class="bd-modal-section-title">Booking Contact</div>
         <div class="bd-modal-value" id="bdModalGuestName">—</div>
         <div class="bd-modal-subvalue" id="bdModalGuestContact"></div>
       </div>

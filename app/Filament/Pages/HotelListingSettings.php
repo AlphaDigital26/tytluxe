@@ -15,11 +15,13 @@ class HotelListingSettings extends Page
 {
     protected string $view = 'filament.pages.hotel-listing-settings';
 
+    protected static string|\UnitEnum|null $navigationGroup = 'Hotels';
+
+    protected static ?string $navigationLabel = 'Listing Settings';
+
     protected static ?int $navigationSort = 41;
 
-    protected static ?string $navigationLabel = 'Hotel Listing Settings';
-
-    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-star';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-adjustments-horizontal';
 
     protected static ?string $title = 'Hotel Listing Settings';
 

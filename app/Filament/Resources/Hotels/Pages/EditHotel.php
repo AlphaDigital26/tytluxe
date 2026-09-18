@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Hotels\Pages;
 
 use App\Filament\Resources\Hotels\HotelResource;
+use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
@@ -28,6 +29,13 @@ class EditHotel extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('view_live')
+                ->label('View on Website')
+                ->icon('heroicon-o-arrow-top-right-on-square')
+                ->color('gray')
+                ->url(fn () => route('hotel.details', ['slug' => $this->record->slug]))
+                ->openUrlInNewTab()
+                ->visible(fn () => ! empty($this->record?->slug)),
             DeleteAction::make(),
         ];
     }
