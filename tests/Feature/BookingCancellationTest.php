@@ -81,7 +81,7 @@ class BookingCancellationTest extends TestCase
         ]]);
 
         $this->post("/hotels/{$slug}/book", [
-            'lead_name' => 'Cancel Guest', 'lead_email' => 'cancel@example.com', 'lead_phone' => '9876543210',
+            'contact_email' => 'cancel@example.com', 'contact_phone' => '9876543210',
             'rooms' => [0 => ['travelers' => [0 => ['title' => 'Ms', 'first_name' => 'Cancel', 'last_name' => 'Guest']]]],
         ]);
 

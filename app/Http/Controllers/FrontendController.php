@@ -133,7 +133,11 @@ class FrontendController extends Controller
             }
         }
         $nationalities = $this->tripjackNationalities($client);
-        $destinations = Destination::orderBy('name')->pluck('name')
+        // Only destinations that actually have synced, visible hotels — every
+        // suggestion the search bar offers should lead to real results, never
+        // a dead-end "no hotels found" page for a destination we haven't
+        // synced inventory for yet.
+        $destinations = Destination::whereHas('hotelsOnWebsite')->orderBy('name')->pluck('name')
             ->map(fn ($d) => trim($d))
             ->filter()
             ->unique(fn ($d) => strtolower($d))
@@ -144,6 +148,39 @@ class FrontendController extends Controller
             'destinationQuery', 'checkIn', 'checkOut', 'adults', 'children', 'roomCount', 'childAges',
             'nationality', 'nationalities', 'minRating', 'minRatings', 'destinations'
         ));
+    }
+
+    /**
+     * Powers the search bar's "city, area or property" autocomplete — matching
+     * hotel titles as the guest types, alongside the destinations list already
+     * rendered server-side. Kept separate from hotels() (and only queried via
+     * AJAX once the guest has typed 2+ characters) rather than shipping every
+     * hotel's title into the page up front, which would bloat every page load
+     * just to support an autocomplete that's rarely all scrolled through.
+     */
+    public function hotelSearchSuggestions(Request $request)
+    {
+        $query = trim((string) $request->query('q', ''));
+
+        if (mb_strlen($query) < 2) {
+            return response()->json(['hotels' => []]);
+        }
+
+        $hotels = Hotel::visibleOnWebsite()
+            ->with('destination')
+            ->where('title', 'LIKE', '%'.$query.'%')
+            ->orderBy('title')
+            ->limit(6)
+            ->get(['id', 'title', 'slug', 'destination_id'])
+            ->map(fn ($hotel) => [
+                'title' => $hotel->title,
+                'slug' => $hotel->slug,
+                'city' => $hotel->destination?->name,
+                'url' => route('hotel.details', $hotel->slug),
+            ])
+            ->values();
+
+        return response()->json(['hotels' => $hotels]);
     }
 
     /**
@@ -429,7 +466,9 @@ class FrontendController extends Controller
             }
         }
 
-        $destinations = Destination::orderBy('name')->pluck('name')
+        // Only destinations that actually have synced, visible hotels — see
+        // the same guard in hotels() for why.
+        $destinations = Destination::whereHas('hotelsOnWebsite')->orderBy('name')->pluck('name')
             ->map(fn ($d) => trim($d))
             ->filter()
             ->unique(fn ($d) => strtolower($d))

@@ -227,6 +227,44 @@
   opacity: 1;
   transform: scale(1.15);
 }
+.htl-dest-group-label {
+  font-family: 'Jost', sans-serif;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gold);
+  padding: 10px 14px 4px;
+}
+.htl-dest-group-label:first-child { padding-top: 4px; }
+.htl-dest-option-property {
+  align-items: flex-start;
+}
+.htl-dest-option-property svg {
+  margin-top: 2px;
+}
+.htl-dest-option-property-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.htl-dest-option-property-text .htl-dest-option-city {
+  font-size: 12px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.45);
+}
+.htl-dest-option-property span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.htl-dest-loading {
+  padding: 10px 14px;
+  font-family: 'Jost', sans-serif;
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.4);
+}
 .htl-dest-no-results {
   padding: 18px 14px;
   color: var(--white-30);
@@ -976,6 +1014,7 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
             <svg class="htl-dest-chevron" width="10" height="10" viewBox="0 0 12 12"><path fill="currentColor" d="M6 8L1 3h10z"/></svg>
           </div>
           <div class="htl-dest-popover" id="htlDestPopover" onclick="event.stopPropagation()">
+            <div class="htl-dest-group-label" id="htlDestGroupLabel">Destinations</div>
             <div class="htl-dest-list" id="htlDestList">
               @foreach($destinations ?? [] as $d)
                 <div class="htl-dest-option" data-value="{{ $d }}">
@@ -984,6 +1023,8 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
                 </div>
               @endforeach
             </div>
+            <div class="htl-dest-group-label" id="htlDestPropGroupLabel" hidden>Properties</div>
+            <div class="htl-dest-list" id="htlDestPropertyList"></div>
             <div class="htl-dest-no-results" id="htlDestNoResults" style="display:none;">
               No destinations found
             </div>
@@ -1649,16 +1690,30 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
     }
   });
 
-  /* ===== CUSTOM DESTINATION DROPDOWN ===== */
+  /* ===== CUSTOM DESTINATION DROPDOWN (destinations + live property search) ===== */
   (function () {
     const destField = document.getElementById('htlDestField');
     const destInput = document.getElementById('htlDestinationSearch');
     const destPopover = document.getElementById('htlDestPopover');
     const noResults = document.getElementById('htlDestNoResults');
+    const destGroupLabel = document.getElementById('htlDestGroupLabel');
+    const propGroupLabel = document.getElementById('htlDestPropGroupLabel');
+    const propertyList = document.getElementById('htlDestPropertyList');
     if (!destField || !destInput || !destPopover) return;
 
-    const options = Array.from(destPopover.querySelectorAll('.htl-dest-option'));
+    const destOptions = Array.from(destPopover.querySelectorAll('.htl-dest-option'));
     let activeIdx = -1;
+    let propertyFetchController = null;
+    let propertyFetchTimer = null;
+
+    // Everything currently selectable via keyboard — destinations plus
+    // whatever properties are loaded in from the last fetch.
+    function allVisibleOptions() {
+      return [
+        ...destOptions.filter(opt => opt.style.display !== 'none'),
+        ...Array.from(propertyList.querySelectorAll('.htl-dest-option')),
+      ];
+    }
 
     function openDropdown() {
       destPopover.classList.add('open');
@@ -1670,13 +1725,13 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
       destPopover.classList.remove('open');
       destField.classList.remove('open');
       activeIdx = -1;
-      options.forEach(opt => opt.classList.remove('highlighted'));
+      allVisibleOptions().forEach(opt => opt.classList.remove('highlighted'));
     }
 
     function filterOptions() {
       const q = destInput.value.trim().toLowerCase();
       let matchCount = 0;
-      options.forEach(opt => {
+      destOptions.forEach(opt => {
         const val = (opt.dataset.value || '').toLowerCase();
         if (!q || val.includes(q)) {
           opt.style.display = 'flex';
@@ -1686,7 +1741,65 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
           opt.classList.remove('highlighted');
         }
       });
-      if (noResults) noResults.style.display = matchCount === 0 ? 'block' : 'none';
+      if (destGroupLabel) destGroupLabel.hidden = matchCount === 0;
+      updateNoResults();
+      fetchPropertySuggestions(q);
+    }
+
+    function updateNoResults() {
+      const destVisible = destOptions.some(opt => opt.style.display !== 'none');
+      const propVisible = propertyList.children.length > 0;
+      if (noResults) noResults.style.display = (!destVisible && !propVisible) ? 'block' : 'none';
+    }
+
+    function renderPropertyResults(hotels) {
+      propertyList.innerHTML = '';
+      if (!hotels.length) {
+        propGroupLabel.hidden = true;
+        updateNoResults();
+        return;
+      }
+      propGroupLabel.hidden = false;
+      hotels.forEach(hotel => {
+        const row = document.createElement('div');
+        row.className = 'htl-dest-option htl-dest-option-property';
+        row.dataset.value = hotel.title;
+        row.dataset.url = hotel.url;
+        row.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h1m4 0h1m-6 4h1m4 0h1m-6 4h1m4 0h1"/></svg>'
+          + '<span class="htl-dest-option-property-text"><span>' + escapeHtml(hotel.title) + '</span>'
+          + (hotel.city ? '<span class="htl-dest-option-city">' + escapeHtml(hotel.city) + '</span>' : '')
+          + '</span>';
+        row.addEventListener('click', (e) => {
+          e.stopPropagation();
+          selectProperty(hotel);
+        });
+        propertyList.appendChild(row);
+      });
+      updateNoResults();
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function fetchPropertySuggestions(q) {
+      clearTimeout(propertyFetchTimer);
+      if (q.length < 2) {
+        propertyList.innerHTML = '';
+        propGroupLabel.hidden = true;
+        updateNoResults();
+        return;
+      }
+      propertyFetchTimer = setTimeout(() => {
+        if (propertyFetchController) propertyFetchController.abort();
+        propertyFetchController = new AbortController();
+        fetch('{{ route('hotels.search-suggestions') }}?q=' + encodeURIComponent(q), { signal: propertyFetchController.signal })
+          .then(res => res.ok ? res.json() : { hotels: [] })
+          .then(data => renderPropertyResults(data.hotels || []))
+          .catch(err => { if (err.name !== 'AbortError') propertyList.innerHTML = ''; });
+      }, 300);
     }
 
     function selectOption(val) {
@@ -1697,6 +1810,28 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
       if (checkInIso && !checkInIso.value && window.hotelSearchFp) {
         window.hotelSearchFp.open();
       }
+    }
+
+    // Selecting a specific property skips the destination-filtered listing
+    // entirely and takes the guest straight to that hotel, carrying over
+    // whatever dates/guests they've already picked in this same search bar.
+    function selectProperty(hotel) {
+      closeDropdown();
+      const params = new URLSearchParams();
+      const checkIn = document.getElementById('htlCheckInIso');
+      const checkOut = document.getElementById('htlCheckOutIso');
+      const adults = document.getElementById('htlAdults');
+      const children = document.getElementById('htlChildren');
+      const rooms = document.getElementById('htlRooms');
+      const childAges = document.getElementById('htlChildAges');
+      if (checkIn && checkIn.value) params.set('check_in', checkIn.value);
+      if (checkOut && checkOut.value) params.set('check_out', checkOut.value);
+      if (adults && adults.value) params.set('adults', adults.value);
+      if (children && children.value) params.set('children', children.value);
+      if (rooms && rooms.value) params.set('rooms', rooms.value);
+      if (childAges && childAges.value) params.set('child_ages', childAges.value);
+      const qs = params.toString();
+      window.location.href = hotel.url + (qs ? '?' + qs : '');
     }
 
     destInput.addEventListener('focus', openDropdown);
@@ -1719,7 +1854,7 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
     });
 
     destInput.addEventListener('keydown', (e) => {
-      const visibleOpts = options.filter(opt => opt.style.display !== 'none');
+      const visibleOpts = allVisibleOptions();
       if (!destPopover.classList.contains('open')) {
         if (e.key === 'ArrowDown' || e.key === 'Enter') {
           openDropdown();
@@ -1740,10 +1875,11 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
         if (visibleOpts[activeIdx]) visibleOpts[activeIdx].scrollIntoView({ block: 'nearest' });
       } else if (e.key === 'Enter') {
         e.preventDefault();
-        if (activeIdx >= 0 && visibleOpts[activeIdx]) {
-          selectOption(visibleOpts[activeIdx].dataset.value);
-        } else if (visibleOpts.length > 0) {
-          selectOption(visibleOpts[0].dataset.value);
+        const active = activeIdx >= 0 ? visibleOpts[activeIdx] : visibleOpts[0];
+        if (active && active.dataset.url) {
+          selectProperty({ title: active.dataset.value, url: active.dataset.url });
+        } else if (active) {
+          selectOption(active.dataset.value);
         } else {
           closeDropdown();
         }
@@ -1752,7 +1888,7 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
       }
     });
 
-    options.forEach(opt => {
+    destOptions.forEach(opt => {
       opt.addEventListener('click', (e) => {
         e.stopPropagation();
         selectOption(opt.dataset.value);
