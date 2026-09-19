@@ -58,6 +58,11 @@ class EnquiryResource extends Resource
                             ->label('Category')
                             ->badge()
                             ->color('info'),
+                        TextEntry::make('reference_id')
+                            ->label(fn ($record) => ucfirst($record->vertical ?: 'Reference'))
+                            ->icon('heroicon-m-map-pin')
+                            ->getStateUsing(fn ($record) => $record->verticalModel()?->first()?->name ?? '—')
+                            ->visible(fn ($record) => (bool) $record->verticalModel()),
                     ])->columns(2),
 
                 Section::make('Enquiry Details')
