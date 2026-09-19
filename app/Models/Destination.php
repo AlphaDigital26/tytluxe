@@ -26,4 +26,5 @@ class Destination extends Model
     public function scopeForHotels($query)   { return $query->whereJsonContains('for', 'hotel'); }
     public function scopeForCruises($query)  { return $query->whereJsonContains('for', 'cruise'); }
     public function scopeForPackages($query) { return $query->whereJsonContains('for', 'package'); }
+    public function scopeActive($query)      { return $query->where('is_active', true); }
 }

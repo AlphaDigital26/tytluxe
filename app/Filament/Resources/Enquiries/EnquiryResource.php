@@ -14,7 +14,6 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Filament\Infolists\Components\TextEntry;
-use Filament\Infolists\Components\KeyValueEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Grid;
 
@@ -58,6 +57,18 @@ class EnquiryResource extends Resource
                             ->label('Category')
                             ->badge()
                             ->color('info'),
+                        TextEntry::make('reference_id')
+                            ->label(fn ($record) => ucfirst($record->vertical ?: 'Reference'))
+                            ->icon('heroicon-m-map-pin')
+                            ->getStateUsing(function ($record) {
+                                $model = $record->verticalModel()?->first();
+                                if (!$model) return null;
+
+                                $city = $model->destination?->name;
+
+                                return $city ? "{$model->title} ({$city})" : $model->title;
+                            })
+                            ->visible(fn ($record) => (bool) $record->verticalModel()?->first()),
                     ])->columns(2),
 
                 Section::make('Enquiry Details')
@@ -93,37 +104,28 @@ class EnquiryResource extends Resource
                                 return "{$adults} Adults, {$children} Children";
                             })
                             ->visible(fn ($record) => in_array($record->vertical, ['hotel', 'package', 'staycation'])),
-                        KeyValueEntry::make('notes')
-                            ->label('Requirement Details')
+                        TextEntry::make('room_breakdown')
+                            ->label('Rooms & Guests')
+                            ->icon('heroicon-m-user-group')
                             ->columnSpanFull()
-                            ->keyLabel('Field')
-                            ->valueLabel('Detail')
-                            ->getStateUsing(function ($record) {
-                                $state = $record->notes;
-                                if (empty($state)) return [];
-                                if (str_contains($state, 'Guests: [')) {
-                                    $state = preg_replace('/Guests:\s*\[.*\]/s', '', $state);
-                                }
-                                $state = trim($state);
-                                
-                                if (str_contains($state, "\n")) {
-                                    $lines = explode("\n", $state);
-                                    $array = [];
-                                    foreach ($lines as $line) {
-                                        $line = trim($line);
-                                        if (empty($line)) continue;
-                                        if (str_contains($line, ':')) {
-                                            [$key, $value] = explode(':', $line, 2);
-                                            $array[trim($key)] = trim($value);
-                                        } else {
-                                            $array['Note'] = $line;
-                                        }
-                                    }
-                                    return $array;
-                                }
-                                
-                                return ['Details' => $state];
-                            }),
+                            ->listWithLineBreaks()
+                            ->bulleted()
+                            ->getStateUsing(fn ($record) => static::parseRoomLines($record->notes))
+                            ->visible(fn ($record) => !empty(static::parseRoomLines($record->notes))),
+                        TextEntry::make('additional_requirements')
+                            ->label('Additional Requirements')
+                            ->icon('heroicon-m-chat-bubble-left-right')
+                            ->columnSpanFull()
+                            ->formatStateUsing(fn ($state) => nl2br(e($state)))
+                            ->html()
+                            ->getStateUsing(fn ($record) => static::parseRemainingNotes($record->notes))
+                            ->visible(fn ($record) => filled(static::parseRemainingNotes($record->notes))),
+                        TextEntry::make('no_requirements')
+                            ->label('Additional Requirements')
+                            ->columnSpanFull()
+                            ->getStateUsing(fn () => 'No additional requirements provided.')
+                            ->color('gray')
+                            ->visible(fn ($record) => empty(static::parseRoomLines($record->notes)) && !filled(static::parseRemainingNotes($record->notes))),
                     ])->columns(2),
 
                 Section::make('Resolution Details')
@@ -146,6 +148,34 @@ class EnquiryResource extends Resource
                     ])->columns(2)
                     ->visible(fn ($record) => $record->status === 'closed'),
             ]);
+    }
+
+    /**
+     * Pull the "Rooms: ..." block out of the notes field as one line per room,
+     * e.g. ["Room 1: 2 Adults", "Room 2: 1 Adult, 1 Child (5 yrs)"].
+     */
+    protected static function parseRoomLines(?string $notes): array
+    {
+        if (empty($notes) || !preg_match('/Rooms:\s*(.+?)(?:\n\n|$)/s', $notes, $m)) {
+            return [];
+        }
+
+        return array_values(array_filter(array_map('trim', explode("\n", trim($m[1])))));
+    }
+
+    /**
+     * Everything in notes that isn't the "Rooms: ..." block — the guest's
+     * own free-text message, or a legacy note with no room breakdown.
+     */
+    protected static function parseRemainingNotes(?string $notes): ?string
+    {
+        if (empty($notes)) {
+            return null;
+        }
+
+        $remaining = trim(preg_replace('/Rooms:\s*.+?(?=\n\n|$)/s', '', $notes));
+
+        return $remaining !== '' ? $remaining : null;
     }
 
     public static function getRelations(): array
