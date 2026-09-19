@@ -1991,6 +1991,15 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
       positionElement: document.getElementById('htlCheckInField'),
       defaultDate: initialCheckIn && initialCheckOut ? [initialCheckIn, initialCheckOut] : null,
       onChange: function (selectedDates, dateStr, instance) {
+        // A hotel stay needs at least 1 night — clicking the same day twice
+        // (a same-day "range") would otherwise submit check-in === check-out.
+        // Nudge check-out to the next day instead of leaving a 0-night range.
+        if (selectedDates.length === 2 && selectedDates[0].getTime() === selectedDates[1].getTime()) {
+          const nextDay = new Date(selectedDates[0]);
+          nextDay.setDate(nextDay.getDate() + 1);
+          instance.setDate([selectedDates[0], nextDay], true);
+          return;
+        }
         if (selectedDates.length >= 1) {
           checkInDisplay.value = instance.formatDate(selectedDates[0], 'D, j M Y');
           checkInIso.value = instance.formatDate(selectedDates[0], 'Y-m-d');
