@@ -60,7 +60,14 @@ class EnquiryResource extends Resource
                         TextEntry::make('reference_id')
                             ->label(fn ($record) => ucfirst($record->vertical ?: 'Reference'))
                             ->icon('heroicon-m-map-pin')
-                            ->getStateUsing(fn ($record) => $record->verticalModel()?->first()?->title)
+                            ->getStateUsing(function ($record) {
+                                $model = $record->verticalModel()?->first();
+                                if (!$model) return null;
+
+                                $city = $model->destination?->name;
+
+                                return $city ? "{$model->title} ({$city})" : $model->title;
+                            })
                             ->visible(fn ($record) => (bool) $record->verticalModel()?->first()),
                     ])->columns(2),
 
