@@ -1984,6 +1984,7 @@ class FrontendController extends Controller
             'checkout'     => 'nullable|string',
             'guest_data'   => 'nullable|string',
             'message'      => 'nullable|string|max:1000',
+            'rooms_summary'=> 'nullable|string|max:1000',
         ]);
 
         $travelDateFrom = null;
@@ -2011,12 +2012,18 @@ class FrontendController extends Controller
             }
         }
 
-        // Build notes field
-        $notesStr = null;
-        if (!empty($request->message)) {
-            $notesStr = trim($request->message);
-            if (strlen($notesStr) > 500) $notesStr = substr($notesStr, 0, 497) . '...';
+        // Build notes field — lead with the per-room breakdown so admins see
+        // the same detail the WhatsApp message shows, even when the guest
+        // leaves "Additional Requirements" blank.
+        $notesParts = [];
+        if (!empty($request->rooms_summary)) {
+            $notesParts[] = 'Rooms: ' . trim($request->rooms_summary);
         }
+        if (!empty($request->message)) {
+            $notesParts[] = trim($request->message);
+        }
+        $notesStr = !empty($notesParts) ? implode("\n", $notesParts) : null;
+        if ($notesStr && strlen($notesStr) > 500) $notesStr = substr($notesStr, 0, 497) . '...';
 
         \App\Models\Enquiry::create([
             'user_id'          => auth()->id(),
