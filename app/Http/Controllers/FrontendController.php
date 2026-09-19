@@ -66,8 +66,11 @@ class FrontendController extends Controller
             $hotelsQuery = Hotel::with(['destination', 'amenities', 'images' => Hotel::visibleImagesConstraint()])->visibleOnWebsite();
 
             if ($destinationQuery !== '') {
-                $searchDestination = Destination::where('slug', Str::slug($destinationQuery))
-                    ->orWhere('name', 'LIKE', "%{$destinationQuery}%")
+                $searchDestination = Destination::active()
+                    ->where(function ($q) use ($destinationQuery) {
+                        $q->where('slug', Str::slug($destinationQuery))
+                            ->orWhere('name', 'LIKE', "%{$destinationQuery}%");
+                    })
                     ->first();
 
                 if ($searchDestination) {
@@ -137,7 +140,7 @@ class FrontendController extends Controller
         // suggestion the search bar offers should lead to real results, never
         // a dead-end "no hotels found" page for a destination we haven't
         // synced inventory for yet.
-        $destinations = Destination::whereHas('hotelsOnWebsite')->orderBy('name')->pluck('name')
+        $destinations = Destination::active()->whereHas('hotelsOnWebsite')->orderBy('name')->pluck('name')
             ->map(fn ($d) => trim($d))
             ->filter()
             ->unique(fn ($d) => strtolower($d))
@@ -362,10 +365,7 @@ class FrontendController extends Controller
                 ->get();
         }
 
-        $destinations = Destination::where('is_active', true)->orderBy('name')->take(8)->get();
-        if ($destinations->isEmpty()) {
-            $destinations = Destination::orderBy('name')->take(8)->get();
-        }
+        $destinations = Destination::active()->orderBy('name')->take(8)->get();
 
         return view('pages.wishlist', compact('featuredHotels', 'destinations'));
     }
@@ -468,7 +468,7 @@ class FrontendController extends Controller
 
         // Only destinations that actually have synced, visible hotels — see
         // the same guard in hotels() for why.
-        $destinations = Destination::whereHas('hotelsOnWebsite')->orderBy('name')->pluck('name')
+        $destinations = Destination::active()->whereHas('hotelsOnWebsite')->orderBy('name')->pluck('name')
             ->map(fn ($d) => trim($d))
             ->filter()
             ->unique(fn ($d) => strtolower($d))
