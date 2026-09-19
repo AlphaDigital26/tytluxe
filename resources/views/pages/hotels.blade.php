@@ -1702,6 +1702,15 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
       if (!applyGuestState()) return;
       guestPopover.classList.remove('open');
       guestField.classList.remove('open');
+
+      // Finishes a property selection made before dates/guests were picked
+      // (see selectProperty()'s guided flow) — now that both are confirmed,
+      // navigate to that hotel.
+      if (window.htlPendingPropertyNav && window.htlNavigateToProperty) {
+        const hotel = window.htlPendingPropertyNav;
+        window.htlPendingPropertyNav = null;
+        window.htlNavigateToProperty(hotel);
+      }
     });
   }
   if (guestField) {
@@ -1792,6 +1801,7 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
         row.className = 'htl-dest-option htl-dest-option-property';
         row.dataset.value = hotel.title;
         row.dataset.url = hotel.url;
+        row.dataset.slug = hotel.slug;
         row.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h1m4 0h1m-6 4h1m4 0h1m-6 4h1m4 0h1"/></svg>'
           + '<span class="htl-dest-option-property-text"><span>' + escapeHtml(hotel.title) + '</span>'
           + (hotel.city ? '<span class="htl-dest-option-city">' + escapeHtml(hotel.city) + '</span>' : '')
@@ -1832,6 +1842,9 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
     function selectOption(val) {
       destInput.value = val;
       closeDropdown();
+      // Picking a plain destination supersedes any earlier property pick —
+      // don't let a stale pending property selection hijack this search.
+      window.htlPendingPropertyNav = null;
       // Guided flow: if check-in date is not chosen, open datepicker
       const checkInIso = document.getElementById('htlCheckInIso');
       if (checkInIso && !checkInIso.value && window.hotelSearchFp) {
@@ -1842,9 +1855,12 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
     // Selecting a specific property skips the destination-filtered listing
     // entirely and takes the guest straight to that hotel, carrying over
     // whatever dates/guests they've already picked in this same search bar.
-    function selectProperty(hotel) {
-      closeDropdown();
+    function navigateToProperty(hotel) {
+      // Lands on the listing page filtered to just this one property (a
+      // real, clickable search result) rather than jumping straight to its
+      // detail page — the guest should still choose to open it.
       const params = new URLSearchParams();
+      params.set('hotel', hotel.slug);
       const checkIn = document.getElementById('htlCheckInIso');
       const checkOut = document.getElementById('htlCheckOutIso');
       const adults = document.getElementById('htlAdults');
@@ -1857,8 +1873,33 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
       if (children && children.value) params.set('children', children.value);
       if (rooms && rooms.value) params.set('rooms', rooms.value);
       if (childAges && childAges.value) params.set('child_ages', childAges.value);
-      const qs = params.toString();
-      window.location.href = hotel.url + (qs ? '?' + qs : '');
+      window.location.href = '{{ route('hotels') }}?' + params.toString();
+    }
+    // Shared with the guest-picker's Apply handler further down the page
+    // (a separate closure), which finishes the navigation once dates AND
+    // guests are both confirmed — see the guided flow below.
+    window.htlNavigateToProperty = navigateToProperty;
+
+    function selectProperty(hotel) {
+      const checkIn = document.getElementById('htlCheckInIso');
+      const checkOut = document.getElementById('htlCheckOutIso');
+
+      // Dates already chosen — nothing left to collect, go straight there.
+      if (checkIn && checkIn.value && checkOut && checkOut.value) {
+        closeDropdown();
+        navigateToProperty(hotel);
+        return;
+      }
+
+      // No dates yet: don't jump to the hotel with a blank search context
+      // (that's the bug this guards against). Show the property as picked,
+      // then reuse the same check-in -> guests guided flow the destination
+      // dropdown already uses, and finish navigating once the guest picker
+      // is confirmed (see the Apply button handler).
+      destInput.value = hotel.title;
+      closeDropdown();
+      window.htlPendingPropertyNav = hotel;
+      if (window.hotelSearchFp) window.hotelSearchFp.open();
     }
 
     destInput.addEventListener('focus', openDropdown);
@@ -1904,7 +1945,7 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
         e.preventDefault();
         const active = activeIdx >= 0 ? visibleOpts[activeIdx] : visibleOpts[0];
         if (active && active.dataset.url) {
-          selectProperty({ title: active.dataset.value, url: active.dataset.url });
+          selectProperty({ title: active.dataset.value, url: active.dataset.url, slug: active.dataset.slug });
         } else if (active) {
           selectOption(active.dataset.value);
         } else {
@@ -2014,6 +2055,19 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
     }
 
     form.addEventListener('submit', function (e) {
+      // A property was picked from the search dropdown before dates/guests
+      // were chosen (see selectProperty()'s guided flow) — whichever way the
+      // guest is finishing (Apply, then Search; or straight to Search), send
+      // them to that property instead of running a plain text search for its
+      // name as if it were a destination (which always finds nothing).
+      if (window.htlPendingPropertyNav && window.htlNavigateToProperty) {
+        e.preventDefault();
+        const hotel = window.htlPendingPropertyNav;
+        window.htlPendingPropertyNav = null;
+        window.htlNavigateToProperty(hotel);
+        return;
+      }
+
       const destInput = document.getElementById('htlDestinationSearch');
       const checkInIso = document.getElementById('htlCheckInIso');
       const checkOutIso = document.getElementById('htlCheckOutIso');
