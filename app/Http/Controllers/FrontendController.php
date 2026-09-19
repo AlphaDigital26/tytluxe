@@ -35,6 +35,11 @@ class FrontendController extends Controller
         $checkIn = $request->query('check_in');
         $checkOut = $request->query('check_out');
         $destinationQuery = trim((string) $request->query('destination', ''));
+        // A specific property picked from the search bar's autocomplete
+        // (see hotelSearchSuggestions()) — shows just that one hotel as a
+        // listing card rather than jumping straight to its detail page, so
+        // the guest still lands on a search result they can click into.
+        $hotelSlug = trim((string) $request->query('hotel', ''));
         $adults = max(1, (int) $request->query('adults', 2));
         $children = max(0, (int) $request->query('children', 0));
         $roomCount = max(1, (int) $request->query('rooms', 1));
@@ -54,8 +59,8 @@ class FrontendController extends Controller
         $minRating = $minRatings[0] ?? 0;
         $childAges = $this->parseChildAges($request->query('child_ages', ''));
 
-        $hasSearched = $request->has('destination') || $request->has('check_in') || $request->has('min_rating');
-        $searchActive = $destinationQuery !== '' && $checkIn && $checkOut;
+        $hasSearched = $request->has('destination') || $request->has('hotel') || $request->has('check_in') || $request->has('min_rating');
+        $searchActive = ($destinationQuery !== '' || $hotelSlug !== '') && $checkIn && $checkOut;
         $searchDestination = null;
         $liveOptions = collect();
         $searchError = null;
@@ -65,7 +70,20 @@ class FrontendController extends Controller
         } else {
             $hotelsQuery = Hotel::with(['destination', 'amenities', 'images' => Hotel::visibleImagesConstraint()])->visibleOnWebsite();
 
-            if ($destinationQuery !== '') {
+            if ($hotelSlug !== '') {
+                $singleHotel = Hotel::where('slug', $hotelSlug)->visibleOnWebsite()->first();
+
+                if ($singleHotel) {
+                    $searchDestination = $singleHotel->destination;
+                    $hotelsQuery->where('id', $singleHotel->id);
+                    // Drives the search bar's displayed text and the "no
+                    // results" message below, same as a destination search.
+                    $destinationQuery = $singleHotel->title;
+                } else {
+                    $searchError = 'We couldn\'t find that property anymore — it may have been removed.';
+                    $hotelsQuery->whereRaw('1 = 0');
+                }
+            } elseif ($destinationQuery !== '') {
                 $searchDestination = Destination::where('slug', Str::slug($destinationQuery))
                     ->orWhere('name', 'LIKE', "%{$destinationQuery}%")
                     ->first();
