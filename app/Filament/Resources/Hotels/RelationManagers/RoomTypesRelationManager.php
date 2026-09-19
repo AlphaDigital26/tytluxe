@@ -345,8 +345,7 @@ class RoomTypesRelationManager extends RelationManager
                     ->badge()
                     ->state(fn ($record) => $liveInfo->has($record->tripjack_room_code) ? 'Live' : 'Catalog only')
                     ->color(fn ($record) => $liveInfo->has($record->tripjack_room_code) ? 'success' : 'gray')
-                    ->tooltip('Checked against a sample 1-night search (tomorrow, 2 adults) — actual availability varies by the dates a guest searches.')
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->tooltip('Checked against a sample 1-night search (tomorrow, 2 adults) — actual availability varies by the dates a guest searches.'),
 
                 TextColumn::make('rate_plans')
                     ->label('Meal Plan')
