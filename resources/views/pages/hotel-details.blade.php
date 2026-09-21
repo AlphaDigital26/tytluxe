@@ -4816,6 +4816,15 @@ html { scroll-behavior: smooth; }
         showMonths: window.innerWidth > 768 ? 2 : 1,
         positionElement: checkinInput,
         onChange: function(selectedDates, dateStr, instance) {
+          // A hotel stay needs at least 1 night — clicking the same day
+          // twice (a same-day "range") would otherwise submit check-in ===
+          // check-out. Nudge check-out to the next day instead.
+          if (selectedDates.length === 2 && selectedDates[0].getTime() === selectedDates[1].getTime()) {
+            const nextDay = new Date(selectedDates[0]);
+            nextDay.setDate(nextDay.getDate() + 1);
+            instance.setDate([selectedDates[0], nextDay], true);
+            return;
+          }
           if(selectedDates.length > 0) {
             checkinInput.value = instance.formatDate(selectedDates[0], "d M Y");
           } else {
@@ -5459,6 +5468,17 @@ html { scroll-behavior: smooth; }
         positionElement: document.getElementById('hdModCheckInField'),
         defaultDate: initialCheckIn && initialCheckOut ? [initialCheckIn, initialCheckOut] : null,
         onChange: function (selectedDates, dateStr, instance) {
+          // A hotel stay needs at least 1 night — clicking the same day
+          // twice (a same-day "range") would otherwise submit check-in ===
+          // check-out. Nudge check-out to the next day instead of leaving a
+          // 0-night range (this is exactly the "1 Room, 2 Adults ... 0N"
+          // bug — same-day search must never be reachable).
+          if (selectedDates.length === 2 && selectedDates[0].getTime() === selectedDates[1].getTime()) {
+            const nextDay = new Date(selectedDates[0]);
+            nextDay.setDate(nextDay.getDate() + 1);
+            instance.setDate([selectedDates[0], nextDay], true);
+            return;
+          }
           if (selectedDates.length >= 1) {
             checkInDisplay.value = instance.formatDate(selectedDates[0], 'D, j M Y');
             checkInIso.value = instance.formatDate(selectedDates[0], 'Y-m-d');

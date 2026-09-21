@@ -32,8 +32,7 @@ class FrontendController extends Controller
 
     public function hotels(Request $request, TripJackListingSearch $listingSearch, TripJackClient $client)
     {
-        $checkIn = $request->query('check_in');
-        $checkOut = $request->query('check_out');
+        [$checkIn, $checkOut] = $this->normalizeStayDates($request->query('check_in'), $request->query('check_out'));
         $destinationQuery = trim((string) $request->query('destination', ''));
         // A specific property picked from the search bar's autocomplete
         // (see hotelSearchSuggestions()) — shows just that one hotel as a
@@ -231,6 +230,37 @@ class FrontendController extends Controller
      * int[] of real ages (0-17), dropping anything unparsable rather than
      * silently defaulting it.
      */
+    /**
+     * A hotel stay needs at least 1 night — the search bar's date pickers
+     * already prevent picking the same day twice client-side, but this is
+     * the server-side backstop for anyone hitting a search URL directly
+     * (bookmarked, hand-typed, or a stale link) with check_in === check_out
+     * or check_out before check_in. Nudges check-out to the day after
+     * check-in rather than sending TripJack (or our own per-night math) a
+     * 0-or-negative-night range.
+     *
+     * @return array{0: ?string, 1: ?string}
+     */
+    protected function normalizeStayDates(?string $checkIn, ?string $checkOut): array
+    {
+        if (! $checkIn || ! $checkOut) {
+            return [$checkIn, $checkOut];
+        }
+
+        try {
+            $in = \Illuminate\Support\Carbon::parse($checkIn);
+            $out = \Illuminate\Support\Carbon::parse($checkOut);
+        } catch (\Throwable) {
+            return [$checkIn, $checkOut];
+        }
+
+        if ($out->lessThanOrEqualTo($in)) {
+            $checkOut = $in->copy()->addDay()->format('Y-m-d');
+        }
+
+        return [$checkIn, $checkOut];
+    }
+
     protected function parseChildAges(string $raw): array
     {
         return collect(explode(',', $raw))
@@ -410,8 +440,10 @@ class FrontendController extends Controller
             ->firstOrFail();
 
         $sessionSearch = session('tripjack_search');
-        $checkIn = $request->query('check_in') ?? ($sessionSearch['check_in'] ?? null);
-        $checkOut = $request->query('check_out') ?? ($sessionSearch['check_out'] ?? null);
+        [$checkIn, $checkOut] = $this->normalizeStayDates(
+            $request->query('check_in') ?? ($sessionSearch['check_in'] ?? null),
+            $request->query('check_out') ?? ($sessionSearch['check_out'] ?? null),
+        );
         $adults = max(1, (int) $request->query('adults', $sessionSearch['adults'] ?? 2));
         $children = max(0, (int) $request->query('children', $sessionSearch['children'] ?? 0));
         $roomCount = max(1, (int) $request->query('rooms', $sessionSearch['rooms'] ?? 1));
