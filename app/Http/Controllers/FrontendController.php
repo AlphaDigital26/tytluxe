@@ -69,22 +69,12 @@ class FrontendController extends Controller
         } else {
             $hotelsQuery = Hotel::with(['destination', 'amenities', 'images' => Hotel::visibleImagesConstraint()])->visibleOnWebsite();
 
-            if ($hotelSlug !== '') {
-                $singleHotel = Hotel::where('slug', $hotelSlug)->visibleOnWebsite()->first();
-
-                if ($singleHotel) {
-                    $searchDestination = $singleHotel->destination;
-                    $hotelsQuery->where('id', $singleHotel->id);
-                    // Drives the search bar's displayed text and the "no
-                    // results" message below, same as a destination search.
-                    $destinationQuery = $singleHotel->title;
-                } else {
-                    $searchError = 'We couldn\'t find that property anymore — it may have been removed.';
-                    $hotelsQuery->whereRaw('1 = 0');
-                }
-            } elseif ($destinationQuery !== '') {
-                $searchDestination = Destination::where('slug', Str::slug($destinationQuery))
-                    ->orWhere('name', 'LIKE', "%{$destinationQuery}%")
+            if ($destinationQuery !== '') {
+                $searchDestination = Destination::active()
+                    ->where(function ($q) use ($destinationQuery) {
+                        $q->where('slug', Str::slug($destinationQuery))
+                            ->orWhere('name', 'LIKE', "%{$destinationQuery}%");
+                    })
                     ->first();
 
                 if ($searchDestination) {
@@ -154,7 +144,7 @@ class FrontendController extends Controller
         // suggestion the search bar offers should lead to real results, never
         // a dead-end "no hotels found" page for a destination we haven't
         // synced inventory for yet.
-        $destinations = Destination::whereHas('hotelsOnWebsite')->orderBy('name')->pluck('name')
+        $destinations = Destination::active()->whereHas('hotelsOnWebsite')->orderBy('name')->pluck('name')
             ->map(fn ($d) => trim($d))
             ->filter()
             ->unique(fn ($d) => strtolower($d))
@@ -410,10 +400,7 @@ class FrontendController extends Controller
                 ->get();
         }
 
-        $destinations = Destination::where('is_active', true)->orderBy('name')->take(8)->get();
-        if ($destinations->isEmpty()) {
-            $destinations = Destination::orderBy('name')->take(8)->get();
-        }
+        $destinations = Destination::active()->orderBy('name')->take(8)->get();
 
         return view('pages.wishlist', compact('featuredHotels', 'destinations'));
     }
@@ -518,7 +505,7 @@ class FrontendController extends Controller
 
         // Only destinations that actually have synced, visible hotels — see
         // the same guard in hotels() for why.
-        $destinations = Destination::whereHas('hotelsOnWebsite')->orderBy('name')->pluck('name')
+        $destinations = Destination::active()->whereHas('hotelsOnWebsite')->orderBy('name')->pluck('name')
             ->map(fn ($d) => trim($d))
             ->filter()
             ->unique(fn ($d) => strtolower($d))
@@ -2034,6 +2021,7 @@ class FrontendController extends Controller
             'checkout'     => 'nullable|string',
             'guest_data'   => 'nullable|string',
             'message'      => 'nullable|string|max:1000',
+            'rooms_summary'=> 'nullable|string|max:1000',
         ]);
 
         $travelDateFrom = null;
@@ -2061,12 +2049,18 @@ class FrontendController extends Controller
             }
         }
 
-        // Build notes field
-        $notesStr = null;
-        if (!empty($request->message)) {
-            $notesStr = trim($request->message);
-            if (strlen($notesStr) > 500) $notesStr = substr($notesStr, 0, 497) . '...';
+        // Build notes field — lead with the per-room breakdown so admins see
+        // the same detail the WhatsApp message shows, even when the guest
+        // leaves "Additional Requirements" blank.
+        $notesParts = [];
+        if (!empty($request->rooms_summary)) {
+            $notesParts[] = 'Rooms: ' . trim($request->rooms_summary);
         }
+        if (!empty($request->message)) {
+            $notesParts[] = trim($request->message);
+        }
+        $notesStr = !empty($notesParts) ? implode("\n", $notesParts) : null;
+        if ($notesStr && strlen($notesStr) > 500) $notesStr = substr($notesStr, 0, 497) . '...';
 
         \App\Models\Enquiry::create([
             'user_id'          => auth()->id(),

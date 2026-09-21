@@ -4639,13 +4639,17 @@ html { scroll-behavior: smooth; }
           formData.append('checkin', checkin);
           formData.append('checkout', checkout);
           formData.append('message', message);
+          formData.append('rooms_summary', roomsStr);
           if (window.hdRoomsData) formData.append('guest_data', JSON.stringify(window.hdRoomsData));
           else formData.append('guest_data', guestData);
-          
-          await fetch("{{ route('enquiries.store') }}", {
+
+          const res = await fetch("{{ route('enquiries.store') }}", {
               method: 'POST',
               body: formData
           });
+          if (!res.ok) {
+              console.error('Failed to save enquiry to db:', res.status, await res.text());
+          }
       } catch (err) {
           console.error('Failed to save enquiry to db:', err);
       }
