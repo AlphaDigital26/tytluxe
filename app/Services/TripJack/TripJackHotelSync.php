@@ -2,6 +2,7 @@
 
 namespace App\Services\TripJack;
 
+use App\Jobs\SyncHotelRoomTypes;
 use App\Models\Amenity;
 use App\Models\Destination;
 use App\Models\Hotel;
@@ -751,6 +752,16 @@ class TripJackHotelSync
 
         $this->syncAmenities($hotel, $detail['amenities'] ?? []);
         $this->syncRoomTypes($hotel, $detail['rooms'] ?? []);
+
+        // The bulk static-content payload's `rooms` map (just synced above)
+        // is frequently empty — see syncRoomImagesFromStaticDetail()'s
+        // docblock — so a hotel newly created/updated here often still has
+        // zero room types. Queue the reliable single-hotel lookup instead of
+        // leaving guests to see a room-less hotel until someone happens to
+        // open it in the admin panel.
+        if ($hotel->roomTypes()->count() === 0) {
+            SyncHotelRoomTypes::dispatchIfNeeded($hotel);
+        }
     }
 
     /**
@@ -906,6 +917,8 @@ class TripJackHotelSync
         }
 
         $roomsMap = $response['rooms'] ?? [];
+        $hotel->update(['rooms_synced_at' => now()]);
+
         if (empty($roomsMap)) {
             return ['synced' => 0, 'error' => 'TripJack has no static room content for this hotel either.'];
         }
@@ -954,6 +967,8 @@ class TripJackHotelSync
 
             return ['synced' => 0, 'error' => 'Live rates are temporarily unavailable for this hotel. Please try again shortly.'];
         }
+
+        $hotel->update(['rooms_synced_at' => now()]);
 
         $options = collect($response['options'] ?? []);
         if ($options->isEmpty()) {
