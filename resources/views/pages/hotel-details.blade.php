@@ -755,6 +755,16 @@ body { background: var(--dark); color: #fff; }
   opacity: 0.65;
   transition: all 0.16s ease;
 }
+.hd-detail-searchbar .htl-dest-option-property-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.hd-detail-searchbar .htl-dest-option-city {
+  font-size: 11.5px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.5);
+}
 .hd-detail-searchbar .htl-dest-option:hover,
 .hd-detail-searchbar .htl-dest-option.highlighted {
   background: rgba(201, 168, 76, 0.12);
@@ -2218,6 +2228,7 @@ html { scroll-behavior: smooth; }
   height: 260px; background: var(--dark-3);
 }
 .hd-amenities-modal-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.hd-amenities-modal-img .hd-room-card-gallery-btn { opacity: 1; pointer-events: auto; }
 .hd-amenities-modal-meta {
   display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 22px;
 }
@@ -2932,8 +2943,15 @@ html { scroll-behavior: smooth; }
     <button type="button" class="hd-modal-close" id="hdAmenitiesModalClose" aria-label="Close">&#10005;</button>
     <h2 class="hd-modal-title" id="hdAmenitiesModalTitle">Room Amenities</h2>
 
-    <div class="hd-amenities-modal-img" id="hdAmenitiesModalImgWrap" hidden>
+    <div class="hd-amenities-modal-img" id="hdAmenitiesModalImgWrap" hidden style="position: relative;">
       <img id="hdAmenitiesModalImg" src="" alt="">
+      <button type="button" class="hd-room-card-gallery-btn hd-room-card-gallery-prev" id="hdAmenitiesModalImgPrev" aria-label="Previous photo" hidden>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <button type="button" class="hd-room-card-gallery-btn hd-room-card-gallery-next" id="hdAmenitiesModalImgNext" aria-label="Next photo" hidden>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+      </button>
+      <span class="hd-room-card-gallery-count" id="hdAmenitiesModalImgCount" hidden></span>
     </div>
 
     <div class="hd-amenities-modal-meta" id="hdAmenitiesModalMeta"></div>
@@ -3239,9 +3257,14 @@ html { scroll-behavior: smooth; }
         <div class="htl-dest-popover" id="hdModDestPopover" onclick="event.stopPropagation()">
           <div class="htl-dest-list" id="hdModDestList">
             @foreach($destinations ?? [] as $d)
-              <div class="htl-dest-option" data-value="{{ $d }}">
+              <div class="htl-dest-option" data-value="{{ $d['name'] }}" data-search="{{ strtolower($d['name'].' '.($d['state'] ?? '').' '.($d['country'] ?? '')) }}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                <span>{{ $d }}</span>
+                <span class="htl-dest-option-property-text">
+                  <span>{{ $d['name'] }}</span>
+                  @if(!empty($d['state']))
+                    <span class="htl-dest-option-city">{{ $d['state'] }}</span>
+                  @endif
+                </span>
               </div>
             @endforeach
           </div>
@@ -3433,16 +3456,32 @@ html { scroll-behavior: smooth; }
                  Str::startsWith($room->image_path, ['http://', 'https://']) => $room->image_path,
                  default => Storage::disk('public')->url($room->image_path),
              };
+             $roomImagesForCard = collect([$room->image_path])
+                 ->merge($room->all_images)
+                 ->filter()
+                 ->unique()
+                 ->map(fn ($img) => Str::startsWith($img, ['http://', 'https://']) ? $img : Storage::disk('public')->url($img))
+                 ->values();
+             if ($roomImagesForCard->isEmpty()) $roomImagesForCard = collect([$roomImage]);
           @endphp
-          
-          <div class="hd-room-group-card" data-room-title="{{ $room->name }}" data-room-image="{{ $roomImage }}" data-room-bed="{{ $room->bed_type }}" data-room-size="{{ $room->room_size }}" data-room-guests="{{ ($room->occupancy_adults ?? 0) + ($room->occupancy_children ?? 0) }}" style="background: var(--dark-2); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; overflow: hidden; margin-bottom: 24px;">
+
+          <div class="hd-room-group-card" data-room-title="{{ $room->name }}" data-room-image="{{ $roomImage }}" data-room-images="{{ $roomImagesForCard->toJson() }}" data-room-bed="{{ $room->bed_type }}" data-room-size="{{ $room->room_size }}" data-room-guests="{{ ($room->occupancy_adults ?? 0) + ($room->occupancy_children ?? 0) }}" style="background: var(--dark-2); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; overflow: hidden; margin-bottom: 24px;">
             <div class="hd-room-group-row">
 
               <!-- Left Column: Room Info -->
               <div style="width: 100%; max-width: 320px; border-right: 1px solid rgba(255,255,255,0.08); padding: 20px;">
                 <h3 style="font-family: 'Cormorant Garamond', serif; font-size: 1.6rem; color: #fff; margin-bottom: 12px; line-height: 1.2;">{{ $room->name }}</h3>
-                <div style="border-radius: 12px; overflow: hidden; height: 180px; margin-bottom: 16px; position: relative;">
-                  <img src="{{ $roomImage }}" alt="{{ $room->name }}" style="width: 100%; height: 100%; object-fit: cover;">
+                <div class="hd-room-card-gallery" data-images="{{ $roomImagesForCard->toJson() }}" data-index="0" style="border-radius: 12px; overflow: hidden; height: 180px; margin-bottom: 16px; position: relative;">
+                  <img class="hd-room-card-gallery-img" src="{{ $roomImagesForCard->first() }}" alt="{{ $room->name }}" style="width: 100%; height: 100%; object-fit: cover;">
+                  @if($roomImagesForCard->count() > 1)
+                    <button type="button" class="hd-room-card-gallery-btn hd-room-card-gallery-prev" aria-label="Previous photo">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+                    </button>
+                    <button type="button" class="hd-room-card-gallery-btn hd-room-card-gallery-next" aria-label="Next photo">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+                    </button>
+                    <span class="hd-room-card-gallery-count">1 / {{ $roomImagesForCard->count() }}</span>
+                  @endif
                 </div>
                 <div class="hd-room-specs" style="display: flex; flex-wrap: wrap; gap: 10px;">
                   @if($room->room_size)
@@ -3519,9 +3558,8 @@ html { scroll-behavior: smooth; }
               @php
                 $roomImages = collect();
                 if ($room->image_path) $roomImages->push($room->image_path);
-                if (is_array($room->images)) {
-                  foreach ($room->images as $img) $roomImages->push($img);
-                }
+                foreach ($room->all_images as $img) $roomImages->push($img);
+                $roomImages = $roomImages->unique()->values();
               @endphp
 
               @if($roomImages->count() > 0)
@@ -3760,9 +3798,7 @@ html { scroll-behavior: smooth; }
           $roomGallery = collect();
           if ($localRoom) {
               if (! empty($localRoom->image_path)) $roomGallery->push($localRoom->image_path);
-              if (is_array($localRoom->images)) {
-                  foreach ($localRoom->images as $img) $roomGallery->push($img);
-              }
+              foreach ($localRoom->all_images as $img) $roomGallery->push($img);
           }
           $roomGallery = $roomGallery->unique()->values();
           $toAbsoluteUrl = fn($img) => Str::startsWith($img, ['http://', 'https://']) ? $img : Storage::disk('public')->url($img);
@@ -3785,7 +3821,7 @@ html { scroll-behavior: smooth; }
           $roomAdults = $localRoom->occupancy_adults ?? $adults;
           $roomChildren = $localRoom->occupancy_children ?? $children;
         @endphp
-        <div class="hd-room-group-card" data-room-title="{{ $roomName }}" data-room-image="{{ $roomImage }}" data-room-bed="{{ $localRoom->bed_type ?? '' }}" data-room-size="{{ $localRoom->room_size ?? '' }}" data-room-guests="{{ $roomAdults + $roomChildren }}" style="background: var(--dark-2); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; overflow: hidden; margin-bottom: 24px;">
+        <div class="hd-room-group-card" data-room-title="{{ $roomName }}" data-room-image="{{ $roomImage }}" data-room-images="{{ $roomGalleryUrls->toJson() }}" data-room-bed="{{ $localRoom->bed_type ?? '' }}" data-room-size="{{ $localRoom->room_size ?? '' }}" data-room-guests="{{ $roomAdults + $roomChildren }}" style="background: var(--dark-2); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; overflow: hidden; margin-bottom: 24px;">
           <div class="hd-room-group-row">
 
             <!-- Left Column: Room Info -->
@@ -4936,11 +4972,13 @@ html { scroll-behavior: smooth; }
       const lbNext = document.getElementById('hdLightboxNext');
 
       let lbIndex = 0;
-      function openLightbox(index) {
-        if (!lightbox || !lbImg || !photoUrls.length) return;
-        lbIndex = (index + photoUrls.length) % photoUrls.length;
-        lbImg.src = photoUrls[lbIndex];
-        if (lbCounter) lbCounter.textContent = (lbIndex + 1) + ' / ' + photoUrls.length;
+      let lbUrls = photoUrls;
+      function openLightbox(index, urls) {
+        if (urls) lbUrls = urls;
+        if (!lightbox || !lbImg || !lbUrls.length) return;
+        lbIndex = (index + lbUrls.length) % lbUrls.length;
+        lbImg.src = lbUrls[lbIndex];
+        if (lbCounter) lbCounter.textContent = (lbIndex + 1) + ' / ' + lbUrls.length;
         lightbox.classList.add('open');
         document.body.style.overflow = 'hidden';
       }
@@ -4948,9 +4986,13 @@ html { scroll-behavior: smooth; }
         if (!lightbox) return;
         lightbox.classList.remove('open');
         document.body.style.overflow = '';
+        lbUrls = photoUrls; // restore the hotel gallery as the default set
       }
 
       window.openLightboxFromMain = openLightbox;
+      // Opens the lightbox against an arbitrary photo list (e.g. a room's
+      // own gallery) instead of the hotel's main gallery.
+      window.openLightboxWithImages = (urls, index) => openLightbox(index || 0, urls);
 
       document.getElementById('hdViewAllPhotos')?.addEventListener('click', () => openLightbox(0));
       document.getElementById('hdSideTileTop')?.addEventListener('click', () => openLightbox(1));
@@ -5128,6 +5170,9 @@ html { scroll-behavior: smooth; }
       const closeBtn = document.getElementById('hdAmenitiesModalClose');
       const imgWrap = document.getElementById('hdAmenitiesModalImgWrap');
       const imgEl = document.getElementById('hdAmenitiesModalImg');
+      const imgPrevBtn = document.getElementById('hdAmenitiesModalImgPrev');
+      const imgNextBtn = document.getElementById('hdAmenitiesModalImgNext');
+      const imgCountEl = document.getElementById('hdAmenitiesModalImgCount');
       const metaEl = document.getElementById('hdAmenitiesModalMeta');
       if (!modal || !listEl || !titleEl) return;
 
@@ -5135,13 +5180,40 @@ html { scroll-behavior: smooth; }
       const sizeIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z M4 9h16 M9 4v16"/></svg>';
       const guestIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/></svg>';
 
-      function openAmenitiesModal({ items, title, image, bed, size, guests }) {
+      let modalImages = [];
+      let modalImageIndex = 0;
+
+      function renderModalImage() {
+        if (!modalImages.length) return;
+        imgEl.src = modalImages[modalImageIndex];
+        const multiple = modalImages.length > 1;
+        imgPrevBtn.hidden = !multiple;
+        imgNextBtn.hidden = !multiple;
+        imgCountEl.hidden = !multiple;
+        if (multiple) imgCountEl.textContent = (modalImageIndex + 1) + ' / ' + modalImages.length;
+      }
+
+      imgPrevBtn?.addEventListener('click', () => {
+        if (!modalImages.length) return;
+        modalImageIndex = (modalImageIndex - 1 + modalImages.length) % modalImages.length;
+        renderModalImage();
+      });
+      imgNextBtn?.addEventListener('click', () => {
+        if (!modalImages.length) return;
+        modalImageIndex = (modalImageIndex + 1) % modalImages.length;
+        renderModalImage();
+      });
+
+      function openAmenitiesModal({ items, title, image, images, bed, size, guests }) {
         titleEl.textContent = title || 'Room Amenities';
 
-        if (image) {
-          imgEl.src = image;
+        modalImages = Array.isArray(images) && images.length ? images : (image ? [image] : []);
+        modalImageIndex = 0;
+
+        if (modalImages.length) {
           imgEl.alt = title || '';
           imgWrap.hidden = false;
+          renderModalImage();
         } else {
           imgWrap.hidden = true;
         }
@@ -5167,19 +5239,29 @@ html { scroll-behavior: smooth; }
       modal.addEventListener('click', (e) => { if (e.target === modal) closeAmenitiesModal(); });
       document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modal.classList.contains('open')) closeAmenitiesModal(); });
 
-      document.querySelectorAll('.hd-inc-readmore-btn').forEach(btn => {
-        const list = btn.previousElementSibling;
-        if (!list || !list.classList.contains('hd-room-inc')) return;
-        const items = Array.from(list.querySelectorAll('span')).map(s => s.textContent.trim()).filter(Boolean);
-        const roomCard = btn.closest('[data-room-title]');
-        btn.addEventListener('click', () => openAmenitiesModal({
+      // Shared by the "Read more" button and the room-card thumbnail click —
+      // both open the same modal for a given room card, gathering whatever
+      // inclusions list happens to be on it (may be none).
+      window.hdOpenRoomModalFor = function (roomCard) {
+        if (!roomCard) return;
+        const list = roomCard.querySelector('.hd-room-inc');
+        const items = list ? Array.from(list.querySelectorAll('span')).map(s => s.textContent.trim()).filter(Boolean) : [];
+        let roomImages = [];
+        try { roomImages = JSON.parse(roomCard.dataset.roomImages || '[]'); } catch (e) { roomImages = []; }
+        openAmenitiesModal({
           items,
-          title: roomCard?.dataset.roomTitle,
-          image: roomCard?.dataset.roomImage,
-          bed: roomCard?.dataset.roomBed,
-          size: roomCard?.dataset.roomSize,
-          guests: roomCard?.dataset.roomGuests,
-        }));
+          title: roomCard.dataset.roomTitle,
+          image: roomCard.dataset.roomImage,
+          images: roomImages,
+          bed: roomCard.dataset.roomBed,
+          size: roomCard.dataset.roomSize,
+          guests: roomCard.dataset.roomGuests,
+        });
+      };
+
+      document.querySelectorAll('.hd-inc-readmore-btn').forEach(btn => {
+        const roomCard = btn.closest('[data-room-title]');
+        btn.addEventListener('click', () => window.hdOpenRoomModalFor(roomCard));
       });
     })();
 
@@ -5302,11 +5384,21 @@ html { scroll-behavior: smooth; }
     document.querySelectorAll('.hd-room-card-gallery').forEach(gallery => {
       let images = [];
       try { images = JSON.parse(gallery.dataset.images || '[]'); } catch (e) { images = []; }
-      if (images.length < 2) return;
 
       const img = gallery.querySelector('.hd-room-card-gallery-img');
       const countLabel = gallery.querySelector('.hd-room-card-gallery-count');
       let index = 0;
+
+      // Clicking the thumbnail opens just the photo in the full-screen
+      // lightbox — room/booking details are a separate "View more details"
+      // action, not this click.
+      gallery.style.cursor = 'pointer';
+      gallery.addEventListener('click', (e) => {
+        if (e.target.closest('.hd-room-card-gallery-btn')) return;
+        window.openLightboxWithImages?.(images.length ? images : [img.src], index);
+      });
+
+      if (images.length < 2) return;
 
       function render() {
         img.src = images[index];
@@ -5350,6 +5442,11 @@ html { scroll-behavior: smooth; }
       const destField = document.getElementById('hdModDestField');
       const destPopover = document.getElementById('hdModDestPopover');
       const noResults = document.getElementById('hdModDestNoResults');
+      // Like MakeMyTrip: typing alone shouldn't be enough to re-search —
+      // the guest must actually pick from the list. The pre-filled value
+      // (this hotel's own destination) counts as already confirmed; any
+      // typing invalidates it until a real selection is made again.
+      let destConfirmed = true;
       if (destField && destInput && destPopover) {
         const destOptions = Array.from(destPopover.querySelectorAll('.htl-dest-option'));
         let destActiveIdx = -1;
@@ -5371,7 +5468,9 @@ html { scroll-behavior: smooth; }
           const q = destInput.value.trim().toLowerCase();
           let matchCount = 0;
           destOptions.forEach(opt => {
-            const val = (opt.dataset.value || '').toLowerCase();
+            // data-search includes state/country too, so typing "Rajasthan"
+            // matches Jaipur/Udaipur even though neither name contains it.
+            const val = (opt.dataset.search || opt.dataset.value || '').toLowerCase();
             if (!q || val.includes(q)) {
               opt.style.display = 'flex';
               matchCount++;
@@ -5385,6 +5484,7 @@ html { scroll-behavior: smooth; }
 
         function selectDestOption(val) {
           destInput.value = val;
+          destConfirmed = true;
           closeDestDropdown();
           if (checkInIso && !checkInIso.value && typeof fp !== 'undefined') fp.open();
         }
@@ -5401,6 +5501,7 @@ html { scroll-behavior: smooth; }
         });
 
         destInput.addEventListener('input', () => {
+          destConfirmed = false;
           if (!destPopover.classList.contains('open')) {
             openDestDropdown();
           } else {
@@ -5696,6 +5797,19 @@ html { scroll-behavior: smooth; }
         if (!currDest) {
           destInput?.focus();
           alert('Please enter a destination or place.');
+          return;
+        }
+
+        // Text was typed/edited but never actually picked from the dropdown
+        // (and isn't just the untouched original value) — require a real
+        // selection instead of searching raw typed text.
+        if (currDest !== origDest && !destConfirmed) {
+          destInput?.focus();
+          if (typeof showToast === 'function') {
+            showToast('Almost there', 'Please pick a destination from the suggestions list.', 'error');
+          } else {
+            alert('Please select a destination from the suggestions list.');
+          }
           return;
         }
 

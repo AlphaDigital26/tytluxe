@@ -26,6 +26,13 @@ class DestinationsTable
                     ->sortable()
                     ->weight('bold'),
 
+                TextColumn::make('state')
+                    ->label('State')
+                    ->searchable()
+                    ->sortable()
+                    ->placeholder('—')
+                    ->toggleable(),
+
                 TextColumn::make('country')
                     ->label('Country')
                     ->searchable()

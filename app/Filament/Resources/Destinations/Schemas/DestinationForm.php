@@ -42,6 +42,10 @@ class DestinationForm
                                 ->helperText('E.g. India, Maldives, Thailand')
                                 ->required(),
 
+                            TextInput::make('state')
+                                ->label('State / Province (optional)')
+                                ->helperText('E.g. Rajasthan, Goa, Himachal Pradesh — lets guests find this destination by typing the state name in search.'),
+
                             Select::make('type')
                                 ->label('Location Type')
                                 ->helperText('What kind of location is this?')
