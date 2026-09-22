@@ -144,28 +144,41 @@ class RoomTypesRelationManager extends RelationManager
                 Section::make('📸 Room Photos')
                     ->description('Upload and manage photos for this room type. Photos uploaded here will be displayed on the customer room selection card.')
                     ->schema([
-                        Placeholder::make('tripjack_images_preview')
-                            ->label('Synced Photos from TripJack')
-                            ->visible(fn ($record) => $record && (
-                                str_starts_with((string) $record->image_path, 'http')
-                                || collect($record->images ?? [])->contains(fn ($url) => str_starts_with((string) $url, 'http'))
-                            ))
-                            ->content(function ($record) {
-                                $urls = collect([$record->image_path])
-                                    ->merge($record->images ?? [])
+                        Placeholder::make('tripjack_images_hint')
+                            ->hiddenLabel()
+                            ->visible(fn ($record) => $record && collect($record->images ?? [])->contains(fn ($url) => str_starts_with((string) $url, 'http')))
+                            ->content('Synced Photos from TripJack — turn a photo off to hide it from visitors without losing it. This survives future TripJack resyncs.')
+                            ->columnSpanFull(),
+
+                        // Virtual fields (not real columns) keyed by md5(url) so
+                        // they survive a resync reordering `images` — mapped
+                        // back to URLs and written to `hidden_images` in
+                        // RoomTypesRelationManager::table()'s EditAction.
+                        Grid::make(4)
+                            ->schema(function (?RoomType $record) {
+                                if (! $record) {
+                                    return [];
+                                }
+
+                                $hidden = collect($record->hidden_images ?? []);
+
+                                return collect($record->images ?? [])
                                     ->filter(fn ($url) => str_starts_with((string) $url, 'http'))
                                     ->unique()
-                                    ->values();
+                                    ->values()
+                                    ->map(function ($url) use ($hidden) {
+                                        $key = md5($url);
 
-                                $html = '<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:10px;">';
-                                foreach ($urls as $url) {
-                                    $html .= '<div style="border-radius:8px; overflow:hidden; border:1px solid rgba(128,128,128,0.28);">'
-                                        .'<img src="'.e($url).'" loading="lazy" style="width:100%; height:90px; object-fit:cover; display:block;">'
-                                        .'</div>';
-                                }
-                                $html .= '</div>';
-
-                                return new HtmlString($html);
+                                        return Grid::make(1)->schema([
+                                            Placeholder::make("tj_img_preview_{$key}")
+                                                ->hiddenLabel()
+                                                ->content(new HtmlString('<img src="'.e($url).'" loading="lazy" style="width:100%; height:100px; object-fit:cover; border-radius:8px; display:block;">')),
+                                            Toggle::make("tj_hidden_images.{$key}")
+                                                ->label('Hide from visitors')
+                                                ->default($hidden->contains($url)),
+                                        ]);
+                                    })
+                                    ->all();
                             })
                             ->columnSpanFull(),
 
@@ -176,10 +189,10 @@ class RoomTypesRelationManager extends RelationManager
                             ->image()
                             ->saveUploadedFileUsing(fn ($file) => app(\App\Services\ImageOptimizer::class)->optimizeAndSave($file, 'thumbnail', 'room-images')),
 
-                        FileUpload::make('images')
+                        FileUpload::make('manual_images')
                             ->disk('public')
                             ->label('Room Gallery Images (Multiple)')
-                            ->helperText('Upload additional room photos (bedroom, bathroom, view). Drag to reorder.')
+                            ->helperText('Upload additional room photos (bedroom, bathroom, view). These are shown alongside any photos synced from TripJack — they never replace them. Drag to reorder.')
                             ->multiple()
                             ->image()
                             ->reorderable()
@@ -325,7 +338,7 @@ class RoomTypesRelationManager extends RelationManager
                 ImageColumn::make('image_path')
                     ->label('Photo')
                     ->state(function ($record): ?string {
-                        $url = $record->image_path ?: ($record->images[0] ?? null);
+                        $url = $record->image_path ?: ($record->all_images[0] ?? null);
                         if (! $url) {
                             return null;
                         }
@@ -404,7 +417,23 @@ class RoomTypesRelationManager extends RelationManager
                 CreateAction::make(),
             ])
             ->recordActions([
-                EditAction::make(),
+                EditAction::make()
+                    ->mutateFormDataUsing(function (array $data, RoomType $record): array {
+                        if (array_key_exists('tj_hidden_images', $data)) {
+                            $toggles = $data['tj_hidden_images'] ?? [];
+
+                            $data['hidden_images'] = collect($record->images ?? [])
+                                ->filter(fn ($url) => str_starts_with((string) $url, 'http'))
+                                ->unique()
+                                ->filter(fn ($url) => ($toggles[md5($url)] ?? false) === true)
+                                ->values()
+                                ->all();
+
+                            unset($data['tj_hidden_images']);
+                        }
+
+                        return $data;
+                    }),
                 DeleteAction::make(),
             ])
             ->toolbarActions([
