@@ -11,6 +11,7 @@ use App\Models\Setting;
 use App\Models\Offer;
 use App\Models\Package;
 use App\Models\Payment;
+use App\Jobs\SyncHotelRoomTypes;
 use App\Services\HotelPricingService;
 use App\Services\Payment\RazorpayService;
 use App\Services\TripJack\Exceptions\TripJackApiException;
@@ -141,15 +142,7 @@ class FrontendController extends Controller
             }
         }
         $nationalities = $this->tripjackNationalities($client);
-        // Only destinations that actually have synced, visible hotels — every
-        // suggestion the search bar offers should lead to real results, never
-        // a dead-end "no hotels found" page for a destination we haven't
-        // synced inventory for yet.
-        $destinations = Destination::active()->whereHas('hotelsOnWebsite')->orderBy('name')->pluck('name')
-            ->map(fn ($d) => trim($d))
-            ->filter()
-            ->unique(fn ($d) => strtolower($d))
-            ->values();
+        $destinations = $this->hotelSearchDestinations();
 
         return view('pages.hotels', compact(
             'hotels', 'liveOptions', 'searchActive', 'hasSearched', 'searchError',
@@ -174,9 +167,22 @@ class FrontendController extends Controller
             return response()->json(['hotels' => []]);
         }
 
+        // Matches on the hotel's own name, its full address (covers a
+        // locality/area the guest types, e.g. "Business Bay"), or its
+        // destination's city/state/country — so typing "Maharashtra" or
+        // "Rajasthan" surfaces properties in that state, not just an exact
+        // city/hotel name match.
         $hotels = Hotel::visibleOnWebsite()
             ->with('destination')
-            ->where('title', 'LIKE', '%'.$query.'%')
+            ->where(function ($q) use ($query) {
+                $q->where('title', 'LIKE', '%'.$query.'%')
+                    ->orWhere('address', 'LIKE', '%'.$query.'%')
+                    ->orWhereHas('destination', function ($dq) use ($query) {
+                        $dq->where('name', 'LIKE', '%'.$query.'%')
+                            ->orWhere('state', 'LIKE', '%'.$query.'%')
+                            ->orWhere('country', 'LIKE', '%'.$query.'%');
+                    });
+            })
             ->orderBy('title')
             ->limit(6)
             ->get(['id', 'title', 'slug', 'destination_id'])
@@ -189,6 +195,30 @@ class FrontendController extends Controller
             ->values();
 
         return response()->json(['hotels' => $hotels]);
+    }
+
+    /**
+     * Destinations for the search bar's dropdown — only ones with synced,
+     * visible hotels, so every suggestion leads to real results rather than
+     * a dead-end "no hotels found" page. Carries `state`/`country` alongside
+     * `name` so the dropdown can match "Maharashtra" against Mumbai/Pune/etc,
+     * not just an exact city name (see hotelSearchSuggestions() for the same
+     * on the live property-search side).
+     *
+     * @return \Illuminate\Support\Collection<int, array{name:string, state:?string, country:?string}>
+     */
+    protected function hotelSearchDestinations(): \Illuminate\Support\Collection
+    {
+        return Destination::active()->whereHas('hotelsOnWebsite')->orderBy('name')
+            ->get(['name', 'state', 'country'])
+            ->map(fn ($d) => [
+                'name' => trim($d->name),
+                'state' => $d->state ? trim($d->state) : null,
+                'country' => $d->country ? trim($d->country) : null,
+            ])
+            ->filter(fn ($d) => $d['name'] !== '')
+            ->unique(fn ($d) => strtolower($d['name']))
+            ->values();
     }
 
     /**
@@ -409,6 +439,16 @@ class FrontendController extends Controller
             ->where('slug', $slug)
             ->firstOrFail();
 
+        // Room-type data now gets queued automatically as soon as a hotel is
+        // created/updated (see TripJackHotelSync::upsertHotel()) and kept
+        // fresh by a rolling resync command — this is just a safety net for
+        // any hotel that slipped through both. Dispatches a background job
+        // instead of fetching inline, so this guest's own page load never
+        // waits on a TripJack call; they'll just see it on their next visit.
+        if ($hotel->roomTypes->isEmpty()) {
+            SyncHotelRoomTypes::dispatchIfNeeded($hotel);
+        }
+
         $sessionSearch = session('tripjack_search');
         $checkIn = $request->query('check_in') ?? ($sessionSearch['check_in'] ?? null);
         $checkOut = $request->query('check_out') ?? ($sessionSearch['check_out'] ?? null);
@@ -471,13 +511,7 @@ class FrontendController extends Controller
             }
         }
 
-        // Only destinations that actually have synced, visible hotels — see
-        // the same guard in hotels() for why.
-        $destinations = Destination::active()->whereHas('hotelsOnWebsite')->orderBy('name')->pluck('name')
-            ->map(fn ($d) => trim($d))
-            ->filter()
-            ->unique(fn ($d) => strtolower($d))
-            ->values();
+        $destinations = $this->hotelSearchDestinations();
 
         return view('pages.hotel-details', compact(
             'hotel', 'liveOptions', 'pricingError', 'checkIn', 'checkOut', 'adults', 'children', 'roomCount', 'childAges', 'destinations'

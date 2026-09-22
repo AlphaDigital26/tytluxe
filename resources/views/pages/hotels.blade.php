@@ -164,7 +164,7 @@
   left: 0;
   width: 100%;
   min-width: 250px;
-  z-index: 70;
+  z-index: 90;
   background: #1c1c1c;
   border: 1px solid rgba(201, 168, 76, 0.35);
   border-radius: 14px;
@@ -350,6 +350,12 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
   margin-top: 4px;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
   font-family: 'Jost', sans-serif;
+  /* Explicitly below the destination dropdown (z-index 70) — without this,
+     the Rating pill was rendering on top of the destination popover when
+     it opened, instead of being covered by it like every other element
+     below the search bar. */
+  position: relative;
+  z-index: 1;
 }
 .htl-more-options .htl-mo-label {
   display: inline-flex;
@@ -1027,9 +1033,14 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
             <div class="htl-dest-group-label" id="htlDestGroupLabel">Destinations</div>
             <div class="htl-dest-list" id="htlDestList">
               @foreach($destinations ?? [] as $d)
-                <div class="htl-dest-option" data-value="{{ $d }}">
+                <div class="htl-dest-option" data-value="{{ $d['name'] }}" data-search="{{ strtolower($d['name'].' '.($d['state'] ?? '').' '.($d['country'] ?? '')) }}">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                  <span>{{ $d }}</span>
+                  <span class="htl-dest-option-property-text">
+                    <span>{{ $d['name'] }}</span>
+                    @if(!empty($d['state']))
+                      <span class="htl-dest-option-city">{{ $d['state'] }}</span>
+                    @endif
+                  </span>
                 </div>
               @endforeach
             </div>
@@ -1742,6 +1753,14 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
     let propertyFetchController = null;
     let propertyFetchTimer = null;
 
+    // Like MakeMyTrip: typing alone should never be enough to search — the
+    // guest must actually pick a destination (or property) from the list.
+    // True only right after a real selection; any further typing re-arms
+    // it so a stale pick can't silently ride along with edited text. A
+    // value already in the box on page load (e.g. from a URL param) counts
+    // as confirmed, so re-searching with the same destination still works.
+    window.htlDestinationConfirmed = destInput.value.trim().length > 0;
+
     // Everything currently selectable via keyboard — destinations plus
     // whatever properties are loaded in from the last fetch.
     function allVisibleOptions() {
@@ -1768,7 +1787,10 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
       const q = destInput.value.trim().toLowerCase();
       let matchCount = 0;
       destOptions.forEach(opt => {
-        const val = (opt.dataset.value || '').toLowerCase();
+        // data-search includes state/country too (e.g. "jaipur rajasthan
+        // india"), so typing "Rajasthan" matches Jaipur/Udaipur even though
+        // neither name contains that word.
+        const val = (opt.dataset.search || opt.dataset.value || '').toLowerCase();
         if (!q || val.includes(q)) {
           opt.style.display = 'flex';
           matchCount++;
@@ -1841,6 +1863,7 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
 
     function selectOption(val) {
       destInput.value = val;
+      window.htlDestinationConfirmed = true;
       closeDropdown();
       // Picking a plain destination supersedes any earlier property pick —
       // don't let a stale pending property selection hijack this search.
@@ -1884,6 +1907,8 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
       const checkIn = document.getElementById('htlCheckInIso');
       const checkOut = document.getElementById('htlCheckOutIso');
 
+      window.htlDestinationConfirmed = true;
+
       // Dates already chosen — nothing left to collect, go straight there.
       if (checkIn && checkIn.value && checkOut && checkOut.value) {
         closeDropdown();
@@ -1914,6 +1939,10 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
     });
 
     destInput.addEventListener('input', () => {
+      // Any manual edit invalidates a prior selection — including editing
+      // text that still happens to spell a valid destination, since that's
+      // no longer the option the guest actually clicked.
+      window.htlDestinationConfirmed = false;
       if (!destPopover.classList.contains('open')) {
         openDropdown();
       } else {
@@ -2079,6 +2108,13 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
         flagError(destInput ? destInput.closest('.htl-sb-field') : null);
         firstInvalid = firstInvalid || destInput;
         missing.push('where you\'d like to go');
+      } else if (!window.htlDestinationConfirmed) {
+        // Text is present but was never actually picked from the dropdown
+        // (typed freely, or edited after a pick) — same as MakeMyTrip,
+        // require a real selection rather than searching raw typed text.
+        flagError(destInput.closest('.htl-sb-field'));
+        firstInvalid = firstInvalid || destInput;
+        missing.push('a destination from the suggestions list');
       }
       if (!checkInIso || !checkInIso.value) {
         flagError(document.getElementById('htlCheckInField'));
