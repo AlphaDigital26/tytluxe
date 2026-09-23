@@ -282,6 +282,9 @@
         @elseif($booking->room_name)
         <div class="bd-room-name">{{ $booking->room_name }}</div>
         @endif
+        @if($booking->meal_basis)
+        <div class="bd-chip-row" style="margin-top:8px;"><span class="bd-chip">{{ $booking->meal_basis }}</span></div>
+        @endif
       </div>
 
       <div class="bd-panel">
