@@ -30,3 +30,8 @@ Schedule::command('tripjack:health-check')->everyFifteenMinutes()->withoutOverla
 // ~1000-hotel catalogue cycles fully every few days without bursting
 // TripJack's rate limits. See ResyncStaleRoomTypes for the ordering logic.
 Schedule::command('app:resync-stale-room-types')->everyFifteenMinutes()->withoutOverlapping();
+
+// Watches tripjack.log for 429 spikes and alerts admins (email + in-panel
+// notification) instead of a rate-limit spike going unnoticed until a
+// guest complains. Self-throttles its own alerts (see command class).
+Schedule::command('tripjack:monitor-rate-limits')->everyFifteenMinutes()->withoutOverlapping();
