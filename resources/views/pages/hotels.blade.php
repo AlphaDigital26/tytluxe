@@ -491,7 +491,7 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
   display: grid; grid-template-columns: 280px 1fr; gap: 40px; margin-top: 40px;
 }
 @media (max-width: 992px) {
-  .htl-results-layout { grid-template-columns: 1fr; gap: 32px; }
+  .htl-results-layout { grid-template-columns: minmax(0, 1fr); gap: 32px; }
 }
 
 /* Results render as a vertical list of horizontal rows (OTA-style), not a card grid */
@@ -530,6 +530,7 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
   overflow: hidden; word-break: break-word;
 }
+.htl-list-title-row { display: block; }
 .htl-list-amenities {
   display: flex; flex-wrap: nowrap; gap: 6px; margin-top: auto;
   overflow: hidden; white-space: nowrap;
@@ -539,11 +540,53 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
   width: 210px; height: 100%; flex-shrink: 0; padding: 18px 20px; overflow: hidden;
   display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; text-align: right;
 }
+.htl-list-price-row { display: flex; flex-direction: column; align-items: flex-end; }
 @media (max-width: 900px) {
   .htl-results-layout .htl-card { flex-direction: column; height: auto; }
-  .htl-list-thumb { width: 100%; height: 220px; border-radius: 22px 22px 0 0; }
-  .htl-list-mid { height: auto; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.07); }
-  .htl-list-side { width: 100%; height: auto; flex-direction: row-reverse; align-items: center; }
+  .htl-list-thumb { width: 100%; height: 200px; border-radius: 22px 22px 0 0; }
+  .htl-list-mid { height: auto; padding: 14px 16px; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.07); }
+  /* Grid instead of a flex stack: the star badge used to sit alone on its
+     own row with nothing beside it (all the visual weight on the left,
+     empty space on the right) — the badge and "View Deal" button now
+     share the right column, stacked, next to the price on the left, so
+     both sides of the card carry content instead of one side being bare. */
+  .htl-list-side {
+    width: 100%; height: auto; padding: 12px 16px;
+    display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto auto;
+    column-gap: 14px; row-gap: 8px; align-items: center;
+  }
+  .htl-list-price-row { display: contents; }
+  .htl-list-price-text { grid-column: 1; grid-row: 1 / 3; text-align: left; align-self: center; }
+  .htl-list-side .htl-card-rating-badge { grid-column: 2; grid-row: 1; justify-self: end; }
+  .htl-list-side .htl-req-btn { grid-column: 2; grid-row: 2; justify-self: end; margin-top: 0 !important; }
+
+  /* Tighter vertical rhythm — the desktop card's spacing (20px title,
+     14px dividers, roomy chip padding) reads as excessive white space
+     stacked on a narrow phone screen. Inline styles on these elements
+     need !important to win over them. */
+  .htl-list-title {
+    font-size: 17px !important; line-height: 1.2 !important;
+    display: block !important; -webkit-line-clamp: unset !important; overflow: visible !important;
+  }
+
+  /* Full title on its own row (never clipped), location on the row below
+     but pinned to the extreme right of the card. */
+  .htl-list-title-row { display: flex; flex-direction: column; gap: 2px; }
+  .htl-list-location { margin-top: 0 !important; font-size: 12.5px !important; align-self: flex-end; }
+
+  .htl-list-mid > div[style*="height:1px"] { margin: 10px 0 !important; }
+
+  /* Meal basis / cancellation tags as two columns instead of one long
+     bulleted list, so the row reads as a compact grid on a phone screen. */
+  .htl-list-tags {
+    display: grid !important; grid-template-columns: 1fr 1fr; column-gap: 10px; row-gap: 4px;
+    margin-bottom: 6px !important; font-size: 12px !important; list-style: none !important; margin-left: 0 !important; padding-left: 0 !important;
+  }
+  .htl-list-tags li { display: flex; align-items: center; gap: 5px; }
+  .htl-list-tags li::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: currentColor; flex-shrink: 0; opacity: 0.7; }
+  .htl-amenity-chip { padding: 3px 9px !important; font-size: 10.5px !important; }
+  .htl-list-amenities { gap: 5px !important; }
+  .htl-list-side .htl-req-btn { margin-top: 8px !important; padding: 9px 16px !important; }
 }
 
 /* Highlighted Hotel Card Rating Badge */
@@ -571,14 +614,66 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
   box-shadow: 0 3px 12px rgba(201, 168, 76, 0.24);
 }
 
+/* Results summary — always visible above the (possibly collapsed) filters */
+.htl-results-summary {
+  font-family: 'Jost', sans-serif; font-size: 13.5px; color: var(--white-60);
+  margin-top: 40px; margin-bottom: -8px;
+}
+.htl-results-summary strong { color: #fff; font-weight: 700; }
+
 /* Sidebar */
 .htl-sidebar {
   background: var(--dark-2); border: 1px solid var(--white-10); border-radius: 16px;
   padding: 24px; height: max-content; position: sticky; top: 24px;
 }
 .htl-sidebar-title {
+  width: 100%; background: none; border: none; padding: 0 0 14px; margin-bottom: 24px;
+  border-bottom: 1px solid var(--white-10); cursor: default;
   font-family: 'Jost', sans-serif; font-size: 16px; font-weight: 600; color: #fff;
-  margin-bottom: 24px; padding-bottom: 14px; border-bottom: 1px solid var(--white-10);
+  display: flex; align-items: center; justify-content: space-between; text-align: left;
+}
+.htl-filter-count-badge {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px;
+  padding: 0 5px; border-radius: 100px; background: var(--gold); color: var(--dark);
+  font-size: 10.5px; font-weight: 800;
+}
+
+/* Mobile filter pills (MakeMyTrip pattern): a horizontally-scrollable row
+   of quick-filter chips replaces the desktop title bar; tapping one shows
+   just that filter group inline below the row. Hidden on desktop, where
+   the plain sticky sidebar (every group always visible) is unchanged. */
+.htl-filter-pill-row { display: none; }
+@media (max-width: 992px) {
+  .htl-sidebar {
+    position: static; top: auto; min-width: 0; max-width: 100%;
+    background: none; border: none; padding: 0;
+  }
+  .htl-sidebar-title-desktop { display: none; }
+  .htl-filter-pill-row {
+    display: flex; gap: 8px; overflow-x: auto; overflow-y: hidden; min-width: 0; max-width: 100%;
+    padding-bottom: 4px; margin-bottom: 4px; -webkit-overflow-scrolling: touch; touch-action: pan-x;
+    scrollbar-width: none;
+  }
+  .htl-filter-pill-row::-webkit-scrollbar { display: none; }
+  .htl-filter-pill {
+    display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;
+    padding: 9px 14px; border-radius: 100px; border: 1px solid var(--white-10);
+    background: var(--dark-3); color: var(--white-60); cursor: pointer;
+    font-family: 'Jost', sans-serif; font-size: 12.5px; font-weight: 600; white-space: nowrap;
+    transition: all 0.2s ease;
+  }
+  .htl-filter-pill svg { flex-shrink: 0; transition: transform 0.2s ease; }
+  .htl-filter-pill.active { border-color: var(--gold); background: rgba(201,168,76,0.12); color: var(--gold-light, var(--gold)); }
+  .htl-filter-pill.active svg:first-of-type { transform: rotate(180deg); }
+  .htl-filter-pill.has-selection:not(.active) { border-color: rgba(201,168,76,0.4); color: #fff; }
+
+  .htl-sidebar-body { padding-top: 4px; }
+  /* Every group is hidden by default on mobile — a pill's own click
+     handler reveals just its matching group(s). */
+  .htl-sidebar .htl-filter-group { display: none; margin-bottom: 0; }
+  .htl-sidebar .htl-filter-group.htl-filter-group-active {
+    display: block; padding: 16px 0 4px; border-top: 1px solid rgba(255,255,255,0.07); margin-top: 12px;
+  }
 }
 .htl-filter-group { margin-bottom: 28px; }
 .htl-filter-group:last-child { margin-bottom: 0; }
@@ -586,6 +681,24 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
   font-family: 'Jost', sans-serif; font-size: 12px; font-weight: 700; color: var(--gold);
   text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 14px;
 }
+
+/* MakeMyTrip-style collapsible filter sections — each category (Star
+   Rating, Price, ...) expands/collapses independently via its own chevron,
+   instead of the whole panel being one long flat list. */
+.htl-filter-group.htl-accordion {
+  margin-bottom: 0; padding-top: 18px; border-top: 1px solid rgba(255,255,255,0.07);
+}
+.htl-filter-group.htl-accordion + .htl-filter-group.htl-accordion { margin-top: 18px; }
+.htl-accordion-btn {
+  width: 100%; background: none; border: none; padding: 0; margin-bottom: 14px;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  cursor: pointer; text-align: left;
+}
+.htl-accordion-btn:hover { color: var(--gold-light); }
+.htl-accordion-chevron { flex-shrink: 0; color: var(--white-30); transition: transform 0.2s ease; }
+.htl-accordion-btn[aria-expanded="false"] { margin-bottom: 0; }
+.htl-accordion-btn[aria-expanded="false"] .htl-accordion-chevron { transform: rotate(-90deg); }
+.htl-accordion-btn[aria-expanded="false"] + .htl-accordion-body { display: none; }
 .htl-filter-list { display: flex; flex-direction: column; gap: 12px; }
 .htl-filter-label {
   display: flex; align-items: center; gap: 10px;
@@ -947,7 +1060,15 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
   .htl-searchbar-row { gap: 10px; }
   .htl-sb-field { flex: 1 1 100%; padding: 12px 16px; }
   .htl-sb-submit { flex: 1 1 100%; padding: 14px; min-height: 50px; }
-  .htl-trust-inner { gap: 24px; }
+  /* One line, side-scrollable — the wrapped 2/3-column grid looked
+     cramped and uneven on a phone screen. */
+  .htl-trust-inner {
+    flex-wrap: nowrap; justify-content: flex-start; gap: 24px;
+    overflow-x: auto; -webkit-overflow-scrolling: touch; touch-action: pan-x;
+    scrollbar-width: none; padding-bottom: 2px;
+  }
+  .htl-trust-inner::-webkit-scrollbar { display: none; }
+  .htl-trust-item { flex-shrink: 0; white-space: nowrap; }
   .htl-banner-inner { padding: 48px 20px; }
   .htl-cta { padding: 56px 20px; }
   .htl-enquiry { padding: 64px 20px; }
@@ -1143,18 +1264,60 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
 
     <!-- Hotel Grid or Results Layout -->
     @if(!empty($hasSearched))
+    {{-- Always visible, above any (possibly collapsed-on-mobile) filters —
+         the guest should immediately know how many hotels matched and
+         where, without having to scroll past a filter panel first. --}}
+    <div class="htl-results-summary">
+      @if(!empty($searchError))
+        <span>{{ $hotels->count() }} {{ Str::plural('hotel', $hotels->count()) }} shown</span>
+      @else
+        <span><strong>{{ $hotels->count() }}</strong> {{ Str::plural('hotel', $hotels->count()) }} found{{ !empty($destinationQuery) ? ' in '.$destinationQuery : '' }}</span>
+      @endif
+    </div>
     <div class="htl-results-layout">
       <!-- Sidebar Filters -->
-      <aside class="htl-sidebar">
-        <div class="htl-sidebar-title">Filters</div>
-        
-        <div class="htl-filter-group">
+      <aside class="htl-sidebar" id="htlSidebar">
+        <div class="htl-sidebar-title htl-sidebar-title-desktop">Filters</div>
+
+        {{-- Mobile-only: a horizontal row of quick-filter pills (MakeMyTrip
+             pattern) — each opens just its own filter group inline below the
+             row, instead of the old single "Filters" button that expanded
+             the entire panel at once. Reuses the exact same underlying
+             groups/inputs desktop already renders, so there's no duplicated
+             filter state to keep in sync — CSS just hides/shows them. --}}
+        <div class="htl-filter-pill-row" id="htlFilterPillRow">
+          <button type="button" class="htl-filter-pill" data-target="htlFilterGroupStars">
+            Star Rating
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </button>
+          <button type="button" class="htl-filter-pill" data-target="htlFilterGroupPrice">
+            Price
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </button>
+          <button type="button" class="htl-filter-pill" data-target="htlFilterGroupMeal">
+            Meal Plan
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </button>
+          <button type="button" class="htl-filter-pill" data-target="htlFilterGroupMore">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
+            More Filters
+            <span class="htl-filter-count-badge" id="htlFilterCountBadge" hidden>0</span>
+          </button>
+        </div>
+
+        <div class="htl-sidebar-body" id="htlSidebarBody">
+
+        <div class="htl-filter-group" id="htlFilterGroupSearch">
           <div class="htl-filter-title">Search by Name</div>
           <input type="text" id="htlSidebarNameSearch" placeholder="E.g. Taj Dubai..." style="width:100%; padding: 12px 14px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius: 8px; color:#fff; font-family:'Jost', sans-serif; outline:none;" autocomplete="off">
         </div>
 
-        <div class="htl-filter-group">
-          <div class="htl-filter-title">Star Rating</div>
+        <div class="htl-filter-group htl-accordion" id="htlFilterGroupStars">
+          <button type="button" class="htl-filter-title htl-accordion-btn" aria-expanded="true">
+            Star Rating
+            <svg class="htl-accordion-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </button>
+          <div class="htl-accordion-body">
           <div class="htl-filter-list" id="htlRatingFilterGroup">
             <label class="htl-filter-label">
               <input type="checkbox" name="sidebar_rating_any" id="sidebarRatingAny" value="0" {{ empty($minRatings ?? []) ? 'checked' : '' }}>
@@ -1173,20 +1336,30 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
               3 Stars
             </label>
           </div>
+          </div>
         </div>
 
-        <div class="htl-filter-group">
-          <div class="htl-filter-title">Cancellation Policy</div>
+        <div class="htl-filter-group htl-accordion" id="htlFilterGroupCancel">
+          <button type="button" class="htl-filter-title htl-accordion-btn" aria-expanded="true">
+            Cancellation Policy
+            <svg class="htl-accordion-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </button>
+          <div class="htl-accordion-body">
           <div class="htl-filter-list">
             <label class="htl-filter-label">
               <input type="checkbox" id="sidebar_free_cancellation" value="true">
               Free Cancellation Available
             </label>
           </div>
+          </div>
         </div>
 
-        <div class="htl-filter-group">
-          <div class="htl-filter-title">Price Range</div>
+        <div class="htl-filter-group htl-accordion" id="htlFilterGroupPrice">
+          <button type="button" class="htl-filter-title htl-accordion-btn" aria-expanded="true">
+            Price Range
+            <svg class="htl-accordion-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </button>
+          <div class="htl-accordion-body">
           <div class="htl-filter-list">
              <!-- Visual Slider -->
              <div style="margin-bottom: 12px; padding:0 2px;">
@@ -1218,10 +1391,15 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
               Up to ₹100,000
             </label>
           </div>
+          </div>
         </div>
 
-        <div class="htl-filter-group">
-          <div class="htl-filter-title">Meal Basis</div>
+        <div class="htl-filter-group htl-accordion" id="htlFilterGroupMeal">
+          <button type="button" class="htl-filter-title htl-accordion-btn" aria-expanded="true">
+            Meal Basis
+            <svg class="htl-accordion-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </button>
+          <div class="htl-accordion-body">
           <div class="htl-filter-list" id="htlMealFilterGroup">
             <label class="htl-filter-label">
               <input type="checkbox" name="sidebar_meal" value="room">
@@ -1240,6 +1418,9 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
               Full Board
             </label>
           </div>
+          </div>
+        </div>
+
         </div>
       </aside>
 
@@ -1355,17 +1536,19 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
 
         <!-- Middle: name, location, rating, meal/cancellation, amenities -->
         <div class="htl-list-mid">
-          <div class="htl-list-title" style="font-family:'Cormorant Garamond', serif; font-size:20px; font-weight:600; color:#fff; line-height:1.25;">{{ $hotel->title }}</div>
+          <div class="htl-list-title-row">
+            <div class="htl-list-title" style="font-family:'Cormorant Garamond', serif; font-size:20px; font-weight:600; color:#fff; line-height:1.25;">{{ $hotel->title }}</div>
 
-          <div style="color:var(--white-60); font-family:'Jost',sans-serif; font-size:13.5px; display:flex; align-items:center; gap:5px; margin-top:4px;">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-            {{ $destination }}
+            <div class="htl-list-location" style="color:var(--white-60); font-family:'Jost',sans-serif; font-size:13.5px; display:flex; align-items:center; gap:5px; margin-top:4px;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              {{ $destination }}
+            </div>
           </div>
 
           <div style="height:1px; background:rgba(255,255,255,0.08); margin:14px 0;"></div>
 
           {{-- Meal & cancellation --}}
-          <ul style="list-style:disc; margin-left:16px; padding-left:4px; font-family:'Jost',sans-serif; font-size:12.5px; color:var(--white-60); margin-bottom:10px;">
+          <ul class="htl-list-tags" style="list-style:disc; margin-left:16px; padding-left:4px; font-family:'Jost',sans-serif; font-size:12.5px; color:var(--white-60); margin-bottom:10px;">
             @if($liveOption && !empty($liveOption['mealBasis']))
               <li>{{ $liveOption['mealBasis'] }}</li>
             @else
@@ -1427,7 +1610,7 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
           </div>
           @endif
 
-          <div style="font-family:'Jost',sans-serif;">
+          <div class="htl-list-price-row" style="font-family:'Jost',sans-serif;">
             @if($liveOption && $liveOption['customerPrice'])
               @php
                  // Carbon v3's diffInDays() is signed (unlike v2's always-absolute
@@ -1437,17 +1620,21 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
                  $nights = max(1, abs(Carbon\Carbon::parse($checkIn ?? now())->diffInDays(Carbon\Carbon::parse($checkOut ?? now()->addDay()))));
                  $pricePerNight = round($liveOption['customerPrice'] / $nights);
               @endphp
-              <div style="font-size:12px; color:var(--white-60); margin-bottom:2px;">
-                ₹ {{ number_format($pricePerNight) }} <span style="font-size:10px;">/night</span>
+              <div class="htl-list-price-text">
+                <div style="font-size:12px; color:var(--white-60); margin-bottom:2px;">
+                  ₹ {{ number_format($pricePerNight) }} <span style="font-size:10px;">/night</span>
+                </div>
+                <div style="font-size:22px; font-weight:700; color:#fff; line-height:1.1;">
+                  ₹ {{ number_format($liveOption['customerPrice']) }}
+                </div>
+                <div style="font-size:11px; color:var(--white-60); margin-top:2px;">Total (incl. taxes)</div>
               </div>
-              <div style="font-size:22px; font-weight:700; color:#fff; line-height:1.1;">
-                ₹ {{ number_format($liveOption['customerPrice']) }}
-              </div>
-              <div style="font-size:11px; color:var(--white-60); margin-top:2px;">Total (incl. taxes)</div>
               <div class="htl-req-btn" style="margin-top:12px; display:inline-flex;">View Deal</div>
             @else
-              <div style="font-size:16px; font-weight:600; color:var(--gold); line-height:1.1;">Price on Request</div>
-              <div style="font-size:11px; color:var(--white-60); margin-top:4px;">Contact us for details</div>
+              <div class="htl-list-price-text">
+                <div style="font-size:16px; font-weight:600; color:var(--gold); line-height:1.1;">Price on Request</div>
+                <div style="font-size:11px; color:var(--white-60); margin-top:4px;">Contact us for details</div>
+              </div>
               <div class="htl-req-btn" style="margin-top:12px; display:inline-flex;">Enquire Now</div>
             @endif
           </div>
@@ -2180,6 +2367,26 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
     const maxPrice = priceSlider ? parseInt(priceSlider.value, 10) : 250000;
     const selectedMeals = Array.from(mealCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
 
+    // Lets a mobile guest see at a glance which filter categories are
+    // active without opening each pill — badge on "More Filters" (Search +
+    // Cancellation, which don't get their own pill), gold outline on the
+    // Star Rating / Price / Meal pills that have a non-default selection.
+    const filterCountBadge = document.getElementById('htlFilterCountBadge');
+    if (filterCountBadge) {
+      const moreCount = (search ? 1 : 0) + (requireFreeCancel ? 1 : 0);
+      filterCountBadge.textContent = moreCount;
+      filterCountBadge.hidden = moreCount === 0;
+    }
+    const pillSelection = {
+      htlFilterGroupStars: selectedRatings.length > 0,
+      htlFilterGroupPrice: maxPrice < 250000,
+      htlFilterGroupMeal: selectedMeals.length > 0,
+    };
+    Object.entries(pillSelection).forEach(([target, hasSelection]) => {
+      const pill = document.querySelector('.htl-filter-pill[data-target="' + target + '"]');
+      if (pill) pill.classList.toggle('has-selection', hasSelection);
+    });
+
     let delay = 0;
     let visibleCount = 0;
 
@@ -2266,6 +2473,50 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
   // previous search, or a shared/bookmarked filtered URL) immediately,
   // since star rating is no longer pre-filtered server-side.
   applyHotelFilters();
+
+  /* ===== MOBILE FILTER PILLS (MakeMyTrip pattern) ===== */
+  // Tapping a pill shows just its filter group(s) inline below the pill
+  // row; tapping the same pill again (or another one) hides it. Reuses the
+  // exact same inputs desktop renders — no duplicated filter state.
+  (function () {
+    const pillRow = document.getElementById('htlFilterPillRow');
+    if (!pillRow) return;
+
+    const groupMap = {
+      htlFilterGroupStars: ['htlFilterGroupStars'],
+      htlFilterGroupPrice: ['htlFilterGroupPrice'],
+      htlFilterGroupMeal: ['htlFilterGroupMeal'],
+      htlFilterGroupMore: ['htlFilterGroupSearch', 'htlFilterGroupCancel'],
+    };
+    const pills = Array.from(pillRow.querySelectorAll('.htl-filter-pill'));
+
+    pills.forEach(pill => {
+      pill.addEventListener('click', () => {
+        const wasActive = pill.classList.contains('active');
+
+        pills.forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.htl-sidebar .htl-filter-group').forEach(g => g.classList.remove('htl-filter-group-active'));
+
+        if (!wasActive) {
+          pill.classList.add('active');
+          (groupMap[pill.dataset.target] || []).forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.add('htl-filter-group-active');
+          });
+        }
+      });
+    });
+  })();
+
+  /* ===== FILTER ACCORDION SECTIONS (MakeMyTrip-style) ===== */
+  // Each filter category expands/collapses independently, rather than the
+  // whole panel being one long always-open list.
+  document.querySelectorAll('.htl-accordion-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const isOpen = btn.getAttribute('aria-expanded') === 'true';
+      btn.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+    });
+  });
 
   /* ===== CUSTOM RATING DROPDOWN ===== */
   const ratingWrap = document.getElementById('htlRatingDropdownWrap');

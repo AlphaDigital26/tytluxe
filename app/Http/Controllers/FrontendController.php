@@ -496,6 +496,11 @@ class FrontendController extends Controller
                     'adults' => $adults,
                     'children' => $children,
                     'rooms' => $roomCount,
+                    // TripJack's own docs: a search/pricing session is valid
+                    // for ~15 minutes. Drives the on-page countdown so a
+                    // guest never books off a price TripJack would silently
+                    // reject as stale at Review time.
+                    'fetched_at' => now()->timestamp,
                 ]]);
             } catch (TripJackException $e) {
                 Log::channel('tripjack')->warning('pricing_failed', ['hid' => $hotel->tripjack_hotel_id, 'message' => $e->getMessage()]);
@@ -511,8 +516,14 @@ class FrontendController extends Controller
             ->unique(fn ($d) => strtolower($d))
             ->values();
 
+        // Drives the on-page price-freshness countdown — null when there's
+        // no live pricing session to time out in the first place.
+        $pricingExpiresAt = $liveOptions->isNotEmpty()
+            ? session("tripjack_pricing.{$hotel->tripjack_hotel_id}.fetched_at", now()->timestamp) + 900
+            : null;
+
         return view('pages.hotel-details', compact(
-            'hotel', 'liveOptions', 'pricingError', 'checkIn', 'checkOut', 'adults', 'children', 'roomCount', 'childAges', 'destinations'
+            'hotel', 'liveOptions', 'pricingError', 'checkIn', 'checkOut', 'adults', 'children', 'roomCount', 'childAges', 'destinations', 'pricingExpiresAt'
         ));
     }
 

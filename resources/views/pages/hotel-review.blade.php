@@ -104,6 +104,12 @@
   .br-submit-note { font-family: 'Jost', sans-serif; font-size: 11px; color: var(--white-30); text-align: center; margin-top: 14px; line-height: 1.6; }
 
   .br-summary { position: sticky; top: 100px; background: var(--dark-2); border: 1px solid rgba(201,168,76,0.25); border-radius: 22px; padding: 32px; }
+  /* Re-declared here (not just at line ~38) because CSS cascades by source
+     order for equal-specificity rules regardless of media query placement —
+     the earlier override before this base rule was always losing to it,
+     leaving the card `position: sticky` on mobile and pinning it over the
+     form fields as the page scrolled. */
+  @media (max-width: 900px) { .br-summary { position: static; } }
   .br-summary-img { width: 100%; height: 150px; object-fit: cover; border-radius: 14px; margin-bottom: 18px; display: block; }
   .br-summary-hotel { display: flex; align-items: center; gap: 6px; font-family: 'Jost', sans-serif; font-size: 11px; color: var(--gold); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
   .br-summary h3 { font-family: 'Cormorant Garamond', serif; font-size: 1.5rem; color: #fff; margin-bottom: 26px; line-height: 1.25; }
@@ -195,6 +201,37 @@
 
   @media (max-width: 700px) {
     .br-section { padding: 26px 20px; }
+  }
+
+  /* ===== Phone-width compacting pass ===== */
+  @media (max-width: 480px) {
+    .br-hero { padding: 90px 18px 0; }
+    .br-title { font-size: 1.7rem; margin-bottom: 6px; }
+    .br-sub { font-size: 12.5px; margin-bottom: 28px; line-height: 1.5; }
+
+    .br-wrap { padding: 0 18px 70px; gap: 20px; }
+    .br-section { padding: 20px 16px; margin-bottom: 16px; border-radius: 16px; }
+    .br-section h2 { font-size: 1.2rem; margin-bottom: 18px; }
+
+    .br-field { margin-bottom: 14px; gap: 6px; }
+    .br-field input, .br-field select, .br-field textarea { padding: 12px 14px; font-size: 13px; }
+    .br-row { gap: 12px; }
+    .br-row-3 { gap: 10px; }
+
+    .br-summary { padding: 20px; border-radius: 16px; }
+    .br-summary-img { height: 120px; margin-bottom: 14px; }
+    .br-summary h3 { font-size: 1.25rem; margin-bottom: 16px; }
+    .br-line { font-size: 12.5px; padding: 8px 0; }
+    .br-line.total { font-size: 15px; padding-top: 12px; }
+    .br-refund { font-size: 11.5px; padding: 9px 12px; margin: 12px 0 4px; }
+    .br-note { font-size: 11px; margin-top: 12px; }
+    .br-submit-note { font-size: 10px; }
+
+    .br-room-card { padding: 12px 14px; margin-top: 12px; }
+    .br-room-name { font-size: 1rem; }
+
+    .br-info-block { margin-bottom: 16px; }
+    .br-info-times { gap: 18px; margin-bottom: 16px; }
   }
 </style>
 @endpush

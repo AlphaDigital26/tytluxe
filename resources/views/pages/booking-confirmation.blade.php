@@ -92,6 +92,7 @@
   @media (max-width: 860px) { .bd-grid { grid-template-columns: 1fr; } }
 
   .bd-panel { background: var(--dark-2); border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 26px 28px; margin-bottom: 22px; }
+  @media (max-width: 480px) { .bd-panel { padding: 18px 16px; border-radius: 14px; margin-bottom: 16px; } }
   .bd-panel-title { font-family: 'Jost', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold); margin-bottom: 18px; display: flex; align-items: center; gap: 8px; }
   .bd-panel-title svg { width: 15px; height: 15px; }
 
@@ -107,7 +108,18 @@
   .bd-stay-duration span { font-family: 'Jost', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; color: var(--gold-light); white-space: nowrap; }
   .bd-stay-duration-line { position: relative; width: 100%; height: 1px; background: rgba(201,168,76,0.3); display: flex; align-items: center; justify-content: center; }
   .bd-stay-duration-line svg { position: relative; background: var(--dark-2); color: var(--gold); padding: 0 4px; flex-shrink: 0; }
-  @media (max-width: 480px) { .bd-stay-dates { flex-direction: column; align-items: stretch; gap: 10px; } .bd-stay-duration { flex-direction: row; justify-content: center; } .bd-stay-duration-line { display: none; } }
+  /* Kept as one row even on narrow phones — check-in left, check-out
+     right, night count riding the connecting line between them — rather
+     than stacking into a lopsided column (check-in flush left, "1 Night"
+     floating centered, check-out flush right on its own line below). */
+  @media (max-width: 480px) {
+    .bd-stay-dates { gap: 6px; }
+    .bd-stat-label { font-size: 9px; margin-bottom: 4px; }
+    .bd-stat-value { font-size: 12.5px; }
+    .bd-stay-duration { min-width: 46px; gap: 4px; }
+    .bd-stay-duration span { font-size: 9.5px; }
+    .bd-stay-duration-line svg { width: 12px; height: 12px; }
+  }
 
   .bd-room-name { font-family: 'Cormorant Garamond', serif; font-size: 20px; color: #fff; margin-top: 18px; margin-bottom: 8px; }
   .bd-chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
@@ -124,7 +136,7 @@
 
   .bd-addr { font-family: 'Jost', sans-serif; font-size: 13px; color: var(--white-60); line-height: 1.7; display: flex; gap: 8px; align-items: flex-start; }
   .bd-addr svg { width: 15px; height: 15px; flex-shrink: 0; margin-top: 2px; color: var(--gold); }
-  .bd-map-link { display: inline-flex; align-items: center; gap: 6px; margin-top: 12px; font-family: 'Jost', sans-serif; font-size: 12px; color: var(--gold); text-decoration: none; }
+  .bd-map-link { display: inline-flex; align-items: center; gap: 4px; margin-left: 8px; font-family: 'Jost', sans-serif; font-size: 12px; font-weight: 600; color: var(--gold); text-decoration: none; white-space: nowrap; }
   .bd-map-link:hover { text-decoration: underline; }
   .bd-times-row { display: flex; gap: 28px; margin-top: 16px; padding-top: 16px; border-top: 1px dashed rgba(255,255,255,0.08); }
 
@@ -307,27 +319,30 @@
         @if($booking->hotel->address)
         <div class="bd-addr">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
-          <span>{{ $booking->hotel->address }}</span>
+          <span>
+            {{ $booking->hotel->address }}
+            @if($booking->hotel->lat && $booking->hotel->lng)
+            <a class="bd-map-link" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query={{ $booking->hotel->lat }},{{ $booking->hotel->lng }}">
+              View on map →
+            </a>
+            @endif
+          </span>
         </div>
-        @if($booking->hotel->lat && $booking->hotel->lng)
-        <a class="bd-map-link" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query={{ $booking->hotel->lat }},{{ $booking->hotel->lng }}">
-          View on map →
-        </a>
-        @endif
         @endif
 
         @if($booking->hotel->amenities && $booking->hotel->amenities->count())
-        @php $visibleAmenities = 10; @endphp
-        <div class="bd-chip-row" style="margin-top:16px;">
-          @foreach($booking->hotel->amenities as $i => $amenity)
-          <span class="bd-chip" @if($i >= $visibleAmenities) hidden data-bd-amenity-extra @endif>{{ $amenity->name }}</span>
+        {{-- How many chips actually fit per row depends on each chip's text
+             width and the viewport, so a fixed PHP cutoff (used to be a flat
+             10) can't reliably land "+N more" at the end of row 3 — some
+             combinations spilled it onto its own 4th row. JS below measures
+             the real rendered rows and hides/reveals chips accordingly. --}}
+        <div class="bd-chip-row" style="margin-top:16px;" data-bd-amenity-row>
+          @foreach($booking->hotel->amenities as $amenity)
+          <span class="bd-chip">{{ $amenity->name }}</span>
           @endforeach
-          @if($booking->hotel->amenities->count() > $visibleAmenities)
-          <button type="button" class="bd-chip bd-chip-more" data-bd-amenity-toggle
+          <button type="button" class="bd-chip bd-chip-more" data-bd-amenity-toggle hidden
                   style="cursor:pointer; border:1px solid rgba(201,168,76,0.35); color:var(--gold); background:rgba(201,168,76,0.08); font-family:'Jost',sans-serif;">
-            +{{ $booking->hotel->amenities->count() - $visibleAmenities }} more
           </button>
-          @endif
         </div>
         @endif
 
@@ -455,11 +470,60 @@
 
 @push('scripts')
 <script>
+  // Caps each amenities row to its first 3 visually-rendered rows and puts
+  // a "+N more" chip at the end of row 3 — measured from actual offsetTop
+  // per chip (not a fixed count), since how many chips fit per row depends
+  // on their text width and the viewport, and a fixed PHP cutoff kept
+  // spilling the "+more" chip onto its own 4th row.
+  function fitAmenityRowToThreeLines(row) {
+    const moreBtn = row.querySelector('[data-bd-amenity-toggle]');
+    const chips = Array.from(row.querySelectorAll('.bd-chip')).filter(function (c) { return c !== moreBtn; });
+    if (!chips.length) return;
+
+    chips.forEach(function (c) { c.hidden = false; });
+    if (moreBtn) moreBtn.hidden = true;
+
+    const tops = chips.map(function (c) { return c.offsetTop; });
+    const rowTops = tops.filter(function (t, i) { return tops.indexOf(t) === i; });
+    if (rowTops.length <= 3) return; // already fits in 3 rows or fewer — nothing to hide
+
+    const thirdRowTop = rowTops[2];
+    let hiddenCount = 0;
+    chips.forEach(function (c, i) {
+      if (tops[i] > thirdRowTop) { c.hidden = true; hiddenCount++; }
+    });
+    if (!hiddenCount || !moreBtn) return;
+
+    moreBtn.textContent = '+' + hiddenCount + ' more';
+    moreBtn.hidden = false;
+
+    // If the "+more" chip itself doesn't fit on row 3, free up room by
+    // hiding trailing visible chips one at a time until it does.
+    let guard = 0;
+    while (moreBtn.offsetTop > thirdRowTop && guard < chips.length) {
+      for (let i = chips.length - 1; i >= 0; i--) {
+        if (!chips[i].hidden) { chips[i].hidden = true; hiddenCount++; break; }
+      }
+      moreBtn.textContent = '+' + hiddenCount + ' more';
+      guard++;
+    }
+  }
+
+  function fitAllAmenityRows() {
+    document.querySelectorAll('[data-bd-amenity-row]').forEach(fitAmenityRowToThreeLines);
+  }
+
+  fitAllAmenityRows();
+  window.addEventListener('resize', (function () {
+    let t;
+    return function () { clearTimeout(t); t = setTimeout(fitAllAmenityRows, 150); };
+  })());
+
   document.querySelectorAll('[data-bd-amenity-toggle]').forEach(function (btn) {
     btn.addEventListener('click', function () {
       const row = btn.closest('.bd-chip-row');
-      row.querySelectorAll('[data-bd-amenity-extra]').forEach(function (chip) {
-        chip.hidden = false;
+      row.querySelectorAll('.bd-chip').forEach(function (chip) {
+        if (chip !== btn) chip.hidden = false;
       });
       btn.hidden = true;
     });

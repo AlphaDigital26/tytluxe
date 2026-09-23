@@ -195,18 +195,22 @@ body { background: var(--dark); color: #fff; }
 }
 .hd-hotel-location {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 7px;
   color: rgba(255,255,255,0.65);
   font-family: 'Jost', sans-serif;
   font-size: 13.5px;
   font-weight: 300;
-  line-height: 1.4;
-  flex-wrap: wrap;
+  line-height: 1.5;
 }
 .hd-hotel-location svg {
   color: var(--gold);
   flex-shrink: 0;
+  margin-top: 3px;
+}
+.hd-hotel-address-wrap {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 .hd-show-map-btn {
   color: var(--gold);
@@ -220,6 +224,7 @@ body { background: var(--dark); color: #fff; }
   font-family: inherit;
   font-size: inherit;
   transition: color 0.2s ease;
+  white-space: nowrap;
 }
 .hd-show-map-btn:hover {
   color: var(--gold-light);
@@ -1797,6 +1802,7 @@ html { scroll-behavior: smooth; }
   text-underline-offset: 3px;
 }
 .hd-rate-cancel svg { width: 14px; height: 14px; flex-shrink: 0; }
+.hd-rate-cancel.non-refundable { color: #f87171; }
 .hd-rate-more {
   display: inline-block; margin-top: 8px; font-family: 'Jost', sans-serif; font-size: 12.5px;
   color: var(--gold); text-decoration: none; border-bottom: 1px dashed var(--gold); cursor: pointer;
@@ -1813,6 +1819,57 @@ html { scroll-behavior: smooth; }
 }
 .hd-rate-price-caption {
   font-family: 'Jost', sans-serif; font-size: 11.5px; color: var(--white-60); margin: 4px 0 12px;
+}
+.hd-room-btn-label-short { display: none; }
+
+/* Mobile room card: everything (name, tags, cancellation line, "View
+   more") stacks full-width in one column; only the very last line —
+   price beside the Book button — is a row. */
+@media (max-width: 640px) {
+  .hd-rate-row { flex-direction: column; align-items: stretch; flex-wrap: nowrap; gap: 8px; padding: 14px 16px; }
+  .hd-rate-row > div[style*="min-width: 220px"] { min-width: 0 !important; width: 100% !important; padding-right: 0 !important; }
+  .hd-room-group-row > div[style*="max-width: 320px"] {
+    max-width: none !important; border-right: none !important;
+    border-bottom: 1px solid rgba(255,255,255,0.08) !important; padding: 16px !important;
+  }
+  .hd-room-group-row > div[style*="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 14px; padding: 20px"] {
+    padding: 14px 16px !important; gap: 10px !important;
+  }
+  .hd-rate-room-name {
+    font-size: 1.05rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .hd-rate-title { font-size: 12.5px; }
+  .hd-rate-cancel { font-size: 11.5px; margin-top: 4px; }
+  .hd-room-inc span { font-size: 10.5px; padding: 3px 8px; }
+  .hd-rate-more { margin-top: 6px; }
+
+  /* Price beside Book, as a two-column grid: total (row 1) + caption
+     (row 2) on the left, Book spanning both rows on the right — the
+     reference has no separate "/night" line, just the total. */
+  .hd-rate-price > div[style*="text-decoration:line-through"],
+  .hd-rate-price-per-night { display: none !important; }
+  .hd-rate-price {
+    display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto auto;
+    align-items: center; column-gap: 14px; width: 100%; min-width: 0; margin-top: 4px;
+    text-align: left;
+  }
+  .hd-rate-price-total { grid-column: 1; grid-row: 1; font-size: 1.1rem; text-align: left; white-space: nowrap; }
+  .hd-rate-price-caption { grid-column: 1; grid-row: 2; font-size: 11px; margin: 2px 0 0; text-align: left; white-space: nowrap; }
+  .hd-rate-price > form, .hd-rate-price > a.hd-room-btn {
+    grid-column: 2; grid-row: 1 / 3;
+  }
+  /* Short "Book" label (see .hd-room-btn-label-short) keeps the button
+     narrow enough that it and the price never fight for the same line. */
+  .hd-room-btn { width: auto; padding: 10px 22px; font-size: 11px; letter-spacing: 0.06em; }
+  .hd-room-btn-label-full { display: none; }
+  .hd-room-btn-label-short { display: inline; }
+
+  /* Plain icon + text (no pill outline) for the bed/size/guests row —
+     matches the reference layout's lighter-weight spec row. */
+  .hd-room-specs { gap: 16px !important; }
+  .hd-room-badge {
+    border: none; background: none; padding: 0; gap: 5px; font-size: 12px;
+  }
 }
 .hd-room-desc-text {
   font-size: 13px; margin-bottom: 10px; color: var(--white-60); line-height: 1.5;
@@ -2361,8 +2418,27 @@ html { scroll-behavior: smooth; }
   .hd-gallery-grid { grid-template-columns: 1fr; height: auto; gap: 14px; }
   .hd-main-carousel { height: 350px; }
   .hd-side-tiles { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr; height: 160px; gap: 14px; }
+  /* Keep Favourite/Share pinned to the right even when they wrap onto
+     their own line below the badges, instead of stacking under the
+     badges on the same left edge (looked lopsided — everything piled
+     on the left, nothing balancing it on the right). */
+  /* Icon-only on mobile — the text label just crowds the row here. */
+  .hd-action-pill { padding: 9px; width: 34px; height: 34px; justify-content: center; }
+  .hd-action-pill span { display: none; }
+  /* On mobile, Favourite/Share are moved by JS (see below) out of the
+     top badges row and into the stars row, pinned to the right extreme. */
+  .hd-title-stars-wrap .hd-header-actions { margin-left: auto; }
+  /* Title always forces its own line (regardless of how short it is) so
+     the stars land below it at the left edge, not squeezed beside it. */
+  .hd-title-stars-wrap { row-gap: 8px; }
+  .hd-title-stars-wrap .hd-hotel-title { flex-basis: 100%; }
+
   .hd-header-row-2 { flex-direction: column; align-items: flex-start; gap: 14px; }
-  .hd-header-rating-card { align-self: flex-start; }
+  /* Full-width, left-aligned text so the rating card reads as part of
+     the page column (matching the title/address width) instead of a
+     small floating box hugging the left with empty space beside it. */
+  .hd-header-rating-card { align-self: stretch; width: 100%; justify-content: space-between; }
+  .hd-rating-text-group { align-items: flex-start; text-align: left; }
   .hd-explore-icon-circle { width: 44px; height: 44px; margin-bottom: 0; }
   .hd-explore-title { font-size: 14px; }
   .hd-explore-sub { font-size: 11px; }
@@ -2382,7 +2458,7 @@ html { scroll-behavior: smooth; }
   .hd-main-carousel { height: 260px; }
   .hd-side-tiles { display: none; }
   .hd-hotel-title { font-size: 1.85rem; }
-  .hd-action-pill { padding: 6px 14px; font-size: 12px; }
+  .hd-action-pill { padding: 9px; font-size: 12px; }
   .hd-carousel-tags { bottom: 14px; left: 14px; gap: 6px; }
   .hd-tag-highlight, .hd-tag-feature { padding: 5px 10px; font-size: 10px; }
 }
@@ -2453,12 +2529,13 @@ html { scroll-behavior: smooth; }
   font-size: 11px; color: var(--gold); font-weight: 400; margin-top: 1px;
 }
 .hd-sticky-cta-btn {
-  display: inline-flex; align-items: center; gap: 7px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px; flex-shrink: 0;
   padding: 12px 22px; border-radius: 100px;
   background: var(--gold); color: var(--dark);
   font-family: 'Jost', sans-serif; font-size: 12px; font-weight: 700;
   letter-spacing: 0.1em; text-transform: uppercase;
   border: none; cursor: pointer; transition: all var(--tr);
+  text-decoration: none;
 }
 .hd-sticky-cta-btn:hover { background: var(--gold-light); }
 .hd-sticky-cta-wa {
@@ -2824,15 +2901,21 @@ html { scroll-behavior: smooth; }
           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
           </svg>
-          <span>{{ $hotel->address ?? $destination }}</span>
-          @if($hotel->lat && $hotel->lng)
-            <a
-              href="https://www.google.com/maps/search/?api=1&query={{ $hotel->lat }},{{ $hotel->lng }}"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="hd-show-map-btn"
-            >Show on map</a>
-          @endif
+          {{-- Plain inline flow (not a flex row) so the address text wraps
+               like a normal paragraph, never truncated, with "Show on map"
+               following right after it — wrapping onto the next line
+               together with it only if there isn't room. --}}
+          <span class="hd-hotel-address-wrap">
+            <span class="hd-hotel-address-text">{{ $hotel->address ?? $destination }}</span>
+            @if($hotel->lat && $hotel->lng)
+              <a
+                href="https://www.google.com/maps/search/?api=1&query={{ $hotel->lat }},{{ $hotel->lng }}"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="hd-show-map-btn"
+              >Show on map</a>
+            @endif
+          </span>
         </div>
       </div>
 
@@ -3882,6 +3965,19 @@ html { scroll-behavior: smooth; }
                       <span>Free Cancellation @if($freeUntil) before {{ \Illuminate\Support\Carbon::parse($freeUntil['to'])->format('jS F Y') }} @endif</span>
                       <span style="font-size: 11px; opacity: 0.8; text-decoration: underline; text-underline-offset: 2px; margin-left: 2px;">View Policy</span>
                     </div>
+                    @else
+                    <div class="hd-rate-cancel non-refundable htl-cancel-policy-trigger"
+                         data-cancellation='@json($cancellation)'
+                         data-refundable="false"
+                         data-room-name="{{ $roomName }}"
+                         data-hotel-title="{{ $hotel->title }}"
+                         data-checkin="{{ $checkIn ?? '' }}"
+                         data-checkout="{{ $checkOut ?? '' }}"
+                         data-price="{{ $customerPrice ?? 0 }}"
+                         title="Click to view cancellation policy">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+                      <span>Non-Refundable</span>
+                    </div>
                     @endif
 
                     @if(!empty($option['inclusions']))
@@ -3927,7 +4023,10 @@ html { scroll-behavior: smooth; }
                       <input type="hidden" name="rooms" value="{{ $roomCount }}">
                       <button type="submit" class="hd-room-btn" style="width: 100%; border-radius: 100px; padding: 12px 16px;">
                         <span class="hd-room-btn-spinner"></span>
-                        <span class="hd-room-btn-label">Select Room</span>
+                        <span class="hd-room-btn-label">
+                          <span class="hd-room-btn-label-full">Select Room</span>
+                          <span class="hd-room-btn-label-short">Book</span>
+                        </span>
                       </button>
                     </form>
                     @else
@@ -4381,16 +4480,18 @@ html { scroll-behavior: smooth; }
      STICKY MOBILE CTA BAR (shown only on ≤1024px)
 =================================================== -->
 <div class="hd-sticky-cta" id="hdStickyCta">
+  @php
+    $stickyStartingPrice = !empty($cheapestLive['pricing']['customerPrice'] ?? null)
+      ? '₹'.number_format($cheapestLive['pricing']['customerPrice'])
+      : (!empty($lowestPrice) ? '₹'.number_format($lowestPrice) : (!empty($hotel->price_from) ? '₹'.number_format($hotel->price_from) : null));
+    $stickyRoomsAnchor = $hotel->source === 'tripjack' ? '#htl-room-section' : '#hd-anchor-rooms';
+  @endphp
   <div class="hd-sticky-cta-info">
     <div class="hd-sticky-cta-name">{{ $hotel->title }}</div>
-    <div class="hd-sticky-cta-price">Price on Request · {{ $destination }}</div>
+    <div class="hd-sticky-cta-price">{{ $stickyStartingPrice ? 'Starting from '.$stickyStartingPrice : 'Price on Request' }} · {{ $destination }}</div>
   </div>
-  <button class="hd-sticky-cta-btn" id="hdStickyEnquireBtn">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-    Enquire
-  </button>
-  <a href="https://wa.me/919875073788?text={{ $waText }}" class="hd-sticky-cta-wa" target="_blank" aria-label="Chat on WhatsApp">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+  <a href="{{ $stickyRoomsAnchor }}" class="hd-sticky-cta-btn" id="hdStickyBookBtn">
+    Book Now
   </a>
 </div>
 
@@ -4527,9 +4628,6 @@ html { scroll-behavior: smooth; }
 
   if (openBtn)  openBtn.addEventListener('click', openModal);
   if (closeBtn) closeBtn.addEventListener('click', closeModal);
-  // Also wire the sticky mobile CTA button
-  const stickyEnquireBtn = document.getElementById('hdStickyEnquireBtn');
-  if (stickyEnquireBtn) stickyEnquireBtn.addEventListener('click', openModal);
   modal?.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
   
   /* ===== ROOM DETAILS MODALS ===== */
@@ -4968,6 +5066,20 @@ html { scroll-behavior: smooth; }
       });
     })();
 
+    // Move Favourite/Share into the stars row (right extreme) on mobile;
+    // back into the top badges row on desktop. Same nodes are relocated
+    // rather than duplicated, so ids/listeners stay intact either way.
+    (function () {
+      const actions = document.querySelector('.hd-header-actions');
+      const row1 = document.querySelector('.hd-header-row-1');
+      const starsWrap = document.querySelector('.hd-title-stars-wrap');
+      if (!actions || !row1 || !starsWrap) return;
+      const mq = window.matchMedia('(max-width: 900px)');
+      const place = (m) => (m.matches ? starsWrap : row1).appendChild(actions);
+      place(mq);
+      mq.addEventListener('change', place);
+    })();
+
     /* ===== FAVOURITE, SHARE & MAP ACTIONS ===== */
     (function () {
       // Favourite button — integrated with global tytWishlist
@@ -5297,6 +5409,23 @@ html { scroll-behavior: smooth; }
         slider.scrollBy({ left: scrollAmount, behavior: 'smooth' });
       });
     });
+
+    /* ===== PRICE FRESHNESS AUTO-RELOAD (silent — no visible countdown) ===== */
+    // TripJack's search/pricing session is valid for ~15 minutes (per their
+    // own API docs). Reload once past that expiry to pull fresh prices
+    // rather than let a guest book off a price TripJack would reject as
+    // stale at Review time anyway. No on-page timer — just fires once.
+    @if(! empty($pricingExpiresAt))
+    (function () {
+      const remainingMs = ({{ (int) $pricingExpiresAt }} * 1000) - Date.now();
+      setTimeout(function () {
+        if (typeof showToast === 'function') {
+          showToast('Price is outdated', 'Reloading to get the latest prices...', 'error');
+        }
+        setTimeout(() => window.location.reload(), 1500);
+      }, Math.max(0, remainingMs));
+    })();
+    @endif
 
     /* ===== ROOM CARD PHOTO GALLERY (Available Rooms list) ===== */
     document.querySelectorAll('.hd-room-card-gallery').forEach(gallery => {
