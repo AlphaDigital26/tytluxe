@@ -248,10 +248,11 @@ class TripJackClient
      * for terminal status.
      *
      * @param  array<int, array{travellerInfo: array<int, array{ti:string, pt:string, fN:string, lN:string, pan?:string, pNum?:string}>}>  $roomTravellerInfo
-     * @param  array{gstNumber:string, registeredName:string}|null  $gstInfo  Only send when
-     *         the reviewed option's compliance.gstType is PASSTHROUGH/RESELLER — not wired
-     *         up to any caller yet, since which GSTIN to send (guest's vs. TYTLUXE's own) is
-     *         a business decision, not something to infer from TripJack's response alone.
+     * @param  array{gstNumber:string, registeredName:string}|null  $gstInfo  Echoed back
+     *         verbatim from the Review response's option.gstInfo when
+     *         compliance.gstType is PASSTHROUGH/RESELLER — see
+     *         FrontendController::submitBooking(), which captures it onto the
+     *         Booking row for confirmBookingAfterPayment() to pass here.
      */
     public function book(
         string $bookingId,

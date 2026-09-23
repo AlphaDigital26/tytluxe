@@ -3962,13 +3962,29 @@ html { scroll-behavior: smooth; }
                   $customerPrice = $pricing['customerPrice'] ?? 0;
                   $perNight = $customerPrice / $nights / max(1, $roomCount);
                   $rateId = 'hdRate_'.Str::slug($roomName).'_'.$loop->index;
+                  // TripJack's optionType tells us whether a multi-room
+                  // booking has the same room+meal across every room (SRSM)
+                  // or some combination differs (SRCM/CRSM/CRCM) — surfaced
+                  // as a small badge so guests aren't confused when their
+                  // rooms/meals don't match each other line-by-line.
+                  $mixedLabel = match ($option['optionType'] ?? 'SRSM') {
+                      'SRCM' => 'Mixed Meal Plans',
+                      'CRSM' => 'Mixed Room Types',
+                      'CRCM' => 'Mixed Rooms & Meals',
+                      default => null,
+                  };
                 @endphp
 
                 <div class="hd-rate-row">
 
                   <!-- Option Details (Middle Column) -->
                   <div style="flex: 1; min-width: 220px; padding-right: 20px;">
-                    <h3 class="hd-rate-room-name">{{ $roomName }}</h3>
+                    <h3 class="hd-rate-room-name">
+                      {{ $roomName }}
+                      @if($mixedLabel)
+                        <span style="display:inline-block; margin-left:8px; vertical-align:middle; font-family:'Jost',sans-serif; font-size:10px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:var(--gold); border:1px solid rgba(201,168,76,0.4); background:rgba(201,168,76,0.08); border-radius:100px; padding:3px 9px;">{{ $mixedLabel }}</span>
+                      @endif
+                    </h3>
                     <div class="hd-rate-title">
                       {{ $mealBasis }}
                       <span class="sep">|</span>

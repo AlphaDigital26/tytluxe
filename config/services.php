@@ -43,10 +43,24 @@ return [
 
     'tripjack' => [
         'api_key' => env('TRIPJACK_API_KEY'),
-        'hms_base_url' => env('TRIPJACK_HMS_BASE_URL', 'https://apitest-hms.tripjack.com/hms/v3'),
-        'booker_base_url' => env('TRIPJACK_BOOKER_BASE_URL', 'https://apitest-hotel-booker.tripjack.com/oms/v3'),
-        'booker_v1_base_url' => env('TRIPJACK_BOOKER_V1_BASE_URL', 'https://apitest-hotel-booker.tripjack.com/oms/v1'),
-        'nationality_base_url' => env('TRIPJACK_NATIONALITY_BASE_URL', 'https://apitest-hms.tripjack.com/hms/v3'),
+        // Must be explicitly set to "production" in .env to hit TripJack's live
+        // hosts — defaults to "test" so a forgotten/unset env var can never
+        // accidentally start charging against production inventory. Per-URL
+        // env vars (TRIPJACK_HMS_BASE_URL etc.) still override this if set,
+        // for local overrides that don't fit the test/production split.
+        'env' => env('TRIPJACK_ENV', 'test'),
+        'hms_base_url' => env('TRIPJACK_HMS_BASE_URL', env('TRIPJACK_ENV', 'test') === 'production'
+            ? 'https://hmssearch.tripjack.com/hms/v3'
+            : 'https://apitest-hms.tripjack.com/hms/v3'),
+        'booker_base_url' => env('TRIPJACK_BOOKER_BASE_URL', env('TRIPJACK_ENV', 'test') === 'production'
+            ? 'https://hmsbooker.tripjack.com/oms/v3'
+            : 'https://apitest-hotel-booker.tripjack.com/oms/v3'),
+        'booker_v1_base_url' => env('TRIPJACK_BOOKER_V1_BASE_URL', env('TRIPJACK_ENV', 'test') === 'production'
+            ? 'https://hmsbooker.tripjack.com/oms/v1'
+            : 'https://apitest-hotel-booker.tripjack.com/oms/v1'),
+        'nationality_base_url' => env('TRIPJACK_NATIONALITY_BASE_URL', env('TRIPJACK_ENV', 'test') === 'production'
+            ? 'https://hmssearch.tripjack.com/hms/v3'
+            : 'https://apitest-hms.tripjack.com/hms/v3'),
         'timeout' => env('TRIPJACK_TIMEOUT', 30),
         'connect_timeout' => env('TRIPJACK_CONNECT_TIMEOUT', 5),
         'retry_times' => env('TRIPJACK_RETRY_TIMES', 3),

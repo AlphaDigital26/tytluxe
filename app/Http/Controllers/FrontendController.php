@@ -732,6 +732,16 @@ class FrontendController extends Controller
         // Booking Details) — accept either so we're not blindsided again.
         $panRequired = $option['compliance']['panRequired'] ?? $option['ipr'] ?? false;
         $passportRequired = $option['compliance']['passportRequired'] ?? $option['ipm'] ?? false;
+        // Per TripJack's docs: "When reseller/GST passthrough details are
+        // received in the detail response, the same GST details must be
+        // passed in the booking request under the gstInfo object." The docs
+        // don't formally list a gstInfo field on the Review option (only the
+        // compliance.gstType flag), so this is defensive — captured now and
+        // only actually sent to Book if TripJack did include it.
+        $gstType = $option['compliance']['gstType'] ?? null;
+        $gstInfo = ($gstType && in_array($gstType, ['PASSTHROUGH', 'RESELLER'], true))
+            ? ($option['gstInfo'] ?? null)
+            : null;
         $roomSlots = $this->roomSlotsFromDraft($draft);
 
         // Matches the same format ProfileUpdateRequest already enforces for
@@ -838,6 +848,8 @@ class FrontendController extends Controller
                 'hotel_id' => $hotel->id,
                 'room_name' => $roomName,
                 'meal_basis' => $option['mealBasis'] ?? null,
+                'tripjack_gst_type' => $gstType,
+                'tripjack_gst_info' => $gstInfo,
                 // tripjack_booking_id stays null until Book is actually called,
                 // post-payment. tripjack_hold_id is Review's bookingId — the
                 // identifier Book() itself needs, kept regardless of payment.
@@ -868,6 +880,8 @@ class FrontendController extends Controller
                 'margin_amount' => $breakdown['margin_amount'] ?? null,
                 'gst_on_margin' => $breakdown['gst_on_margin'] ?? null,
                 'razorpay_recovery' => $breakdown['razorpay_recovery'] ?? null,
+                'tripjack_mf' => $breakdown['tripjack_mf'] ?? null,
+                'tripjack_mft' => $breakdown['tripjack_mft'] ?? null,
                 'currency' => $pricing['currency'] ?? 'INR',
                 'status' => 'pending_payment', // awaiting Razorpay payment — Book hasn't been called yet
             ]);
@@ -1224,6 +1238,7 @@ class FrontendController extends Controller
                     [$phoneDigits],
                     [$dialCode],
                     amount: (float) $booking->tripjack_total_price, // TripJack's raw price, not the marked-up customer price
+                    gstInfo: $booking->tripjack_gst_info,
                 );
             } catch (TripJackException $e) {
                 $errorCode = $e instanceof TripJackApiException ? $e->errorCode : null;

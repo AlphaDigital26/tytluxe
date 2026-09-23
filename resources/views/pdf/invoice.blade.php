@@ -217,6 +217,22 @@
         <td class="right">&minus; {{ $booking->currency }} {{ number_format($booking->discount_amount, 2) }}</td>
       </tr>
       @endif
+      {{-- TripJack's docs require Management Fee and Management Fee Tax to
+           be shown as their own line items, not folded silently into Taxes
+           & Fees above — both are already included in the totals, so these
+           two rows are informational only and don't add to the total. --}}
+      @if($booking->tripjack_mf > 0)
+      <tr>
+        <td>Management Fee <span style="color:#999; font-weight:normal;">(incl. above)</span></td>
+        <td class="right">{{ $booking->currency }} {{ number_format($booking->tripjack_mf, 2) }}</td>
+      </tr>
+      @endif
+      @if($booking->tripjack_mft > 0)
+      <tr>
+        <td>Management Fee Tax <span style="color:#999; font-weight:normal;">(incl. above)</span></td>
+        <td class="right">{{ $booking->currency }} {{ number_format($booking->tripjack_mft, 2) }}</td>
+      </tr>
+      @endif
       <tr class="gross">
         <td>Gross Amount</td>
         <td class="right">{{ $booking->currency }} {{ number_format($booking->total_amount, 2) }}</td>

@@ -583,6 +583,19 @@
     <div class="br-line"><span>Room</span><span>{{ $roomNames ?: 'Room' }}</span></div>
     <div class="br-line"><span>Meal Plan</span><span>{{ $option['mealBasis'] ?? 'Room Only' }}</span></div>
     <div class="br-line total"><span>Total</span><span>{{ $pricing['currency'] ?? 'INR' }} {{ number_format($customerPrice) }}</span></div>
+    @php
+      $tjMf = $breakdown['tripjack_mf'] ?? 0;
+      $tjMft = $breakdown['tripjack_mft'] ?? 0;
+    @endphp
+    @if($tjMf > 0 || $tjMft > 0)
+    {{-- Total above already includes these — shown per TripJack's
+         requirement to surface Management Fee / Tax as their own line
+         items, without reintroducing the full base/tax breakdown this
+         page deliberately keeps hidden otherwise. --}}
+    <p class="br-note" style="margin-top:4px;">
+      Includes Management Fee {{ $pricing['currency'] ?? 'INR' }} {{ number_format($tjMf, 2) }}@if($tjMft > 0) + Tax {{ $pricing['currency'] ?? 'INR' }} {{ number_format($tjMft, 2) }}@endif
+    </p>
+    @endif
 
     @if($isRefundable)
     <div class="br-refund htl-cancel-policy-trigger"
