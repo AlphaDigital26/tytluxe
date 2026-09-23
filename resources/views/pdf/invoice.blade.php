@@ -123,6 +123,9 @@
       <div class="inv-party-line" style="margin-top:6px;">
         takeyourtrip7@gmail.com &bull; +91 98750 73788
       </div>
+      <div class="inv-party-line" style="margin-top:6px;">
+        GSTIN: <strong style="color:#1a1a1a;">24ABAFT6627K1ZZ</strong>
+      </div>
     </td>
     <td class="inv-party">
       <div class="inv-party-title">Billed To</div>
@@ -156,7 +159,10 @@
           <strong>{{ $booking->hotel->title }}</strong><br>
           <span style="color:#999;">{{ $booking->hotel->address }}</span>
         </td>
-        <td>{{ $booking->room_name ?? $booking->roomType->name ?? '—' }}</td>
+        <td>
+          {{ $booking->room_name ?? $booking->roomType->name ?? '—' }}
+          @if($booking->meal_basis)<br><span style="color:#999;">{{ $booking->meal_basis }}</span>@endif
+        </td>
         <td>
           {{ $booking->lead_guest_name }}
           @if($booking->travelers->count() > 1)

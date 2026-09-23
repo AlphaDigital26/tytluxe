@@ -803,6 +803,7 @@ class FrontendController extends Controller
                 'vertical' => 'hotel',
                 'hotel_id' => $hotel->id,
                 'room_name' => $roomName,
+                'meal_basis' => $option['mealBasis'] ?? null,
                 // tripjack_booking_id stays null until Book is actually called,
                 // post-payment. tripjack_hold_id is Review's bookingId — the
                 // identifier Book() itself needs, kept regardless of payment.
