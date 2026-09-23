@@ -360,14 +360,20 @@
     return `${day}${suffix} ${month} ${hours}:${minutes} ${ampm}`;
   }
 
-  function formatTableDate(dateInput) {
+  function formatTableDate(dateInput, opts) {
     if (!dateInput) return '—';
     const d = new Date(dateInput);
     if (isNaN(d.getTime())) return String(dateInput);
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     const day = d.getDate().toString().padStart(2, '0');
-    const month = (d.getMonth() + 1).toString().padStart(2, '0');
-    const year = d.getFullYear();
-    return `${day}-${month}-${year}`;
+    const dateStr = `${day}-${months[d.getMonth()]}`;
+    if (opts && opts.now) return `${dateStr}, Now`;
+    let hours = d.getHours();
+    const minutes = d.getMinutes().toString().padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    return `${dateStr}, ${hours}:${minutes} ${ampm}`;
   }
 
   function formatCurrency(amount) {
@@ -431,7 +437,7 @@
 
       tableBody.innerHTML = `
         <tr>
-          <td>Booking Date</td>
+          <td>${formatTableDate(new Date(), { now: true })}</td>
           <td>${checkIn ? formatTableDate(checkIn) : 'Check-In Date'}</td>
           <td style="text-align:right; font-weight:600; color:#f87171;">${customerPrice ? formatCurrency(customerPrice) : '100% Charge'}</td>
         </tr>
@@ -520,9 +526,9 @@
 
       // Table rows
       if (penalties.length > 0) {
-        tableBody.innerHTML = penalties.map(p => `
+        tableBody.innerHTML = penalties.map((p, i) => `
           <tr>
-            <td>${formatTableDate(p.from)}</td>
+            <td>${formatTableDate(p.from, { now: i === 0 })}</td>
             <td>${formatTableDate(p.to)}</td>
             <td style="text-align: right; font-weight: 600; color: ${Number(p.amount) === 0 ? '#4ade80' : '#ffffff'};">
               ${formatCurrency(p.amount)}

@@ -4,6 +4,12 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 
+{{-- Inlined so the skip-link is off-screen from the very first paint —
+     it must not depend on style.css (loaded further down) finishing first,
+     or it flashes visible/unstyled over the header for a moment on every
+     load (worse on this dev server, which serves one request at a time). --}}
+<style>.skip-link{position:absolute;top:-1000px;left:8px;z-index:9999;}</style>
+
 {{-- ══════════════════════════════════════════
      PER-PAGE SEO META (overrideable per page)
 ══════════════════════════════════════════ --}}

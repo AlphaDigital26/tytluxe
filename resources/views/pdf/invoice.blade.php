@@ -8,17 +8,24 @@
   body { font-family: 'DejaVu Sans', sans-serif; font-size: 11.5px; color: #262626; padding: 34px 40px; }
 
   /* ===== Header ===== */
-  .inv-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 20px; border-bottom: 2px solid #c9a84c; margin-bottom: 24px; }
+  /* dompdf has no flexbox support at all, so every `display: flex` in this
+     file was silently ignored — the logo/address and the invoice meta
+     block, meant to sit at opposite ends of one row, instead stacked one
+     above the other as plain blocks. Real HTML <table>s are what dompdf
+     actually lays out reliably side-by-side. */
+  table.inv-header { width: 100%; border-collapse: collapse; padding-bottom: 20px; border-bottom: 2px solid #c9a84c; margin-bottom: 24px; }
+  table.inv-header td { vertical-align: middle; padding: 0; }
   .inv-logo { height: 58px; display: block; }
   .inv-meta { text-align: right; }
   .inv-title { font-size: 21px; font-weight: bold; color: #171717; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 10px; }
-  .inv-title span { color: #c9a84c; }
   .inv-meta-line { display: flex; justify-content: flex-end; gap: 8px; font-size: 10.5px; color: #999; margin-top: 5px; text-transform: uppercase; letter-spacing: 0.4px; }
   .inv-meta-line strong { color: #1a1a1a; font-size: 11px; text-transform: none; letter-spacing: normal; min-width: 110px; text-align: right; }
 
   /* ===== Party blocks (plain bordered boxes, like a wholesale-style invoice) ===== */
-  .inv-parties { display: flex; border: 1px solid #ccc; margin-bottom: 22px; }
-  .inv-party { flex: 1; padding: 12px 16px; }
+  /* Same dompdf flexbox gap as the header above — these were meant to sit
+     side by side as two columns but silently stacked instead. A table. */
+  table.inv-parties { width: 100%; border-collapse: collapse; border: 1px solid #ccc; margin-bottom: 22px; }
+  .inv-party { width: 50%; padding: 12px 16px; vertical-align: top; }
   .inv-party + .inv-party { border-left: 1px solid #ccc; }
   .inv-party-title { font-size: 9.5px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; color: #b8944a; margin-bottom: 7px; }
   .inv-party-name { font-size: 13.5px; font-weight: bold; color: #1a1a1a; margin-bottom: 3px; }
@@ -39,12 +46,22 @@
   table.inv-table thead th.right { text-align: right; }
   table.inv-table tbody td { padding: 9px 10px; border: 1px solid #ddd; font-size: 11px; vertical-align: top; }
   table.inv-table tbody td.right { text-align: right; }
-  .inv-stay-strip { display: flex; gap: 26px; padding: 9px 10px; border: 1px solid #ccc; border-top: none; font-size: 10.5px; color: #555; margin-bottom: 22px; }
-  .inv-stay-strip strong { color: #1a1a1a; }
+  /* Table, not flex + gap — dompdf doesn't support either, so the old
+     flex row rendered with no real spacing between items (everything
+     ran together). A table's cells give dompdf real, reliable columns. */
+  table.inv-stay-strip { width: 100%; border-collapse: collapse; border: 1px solid #ccc; border-top: none; margin-bottom: 22px; }
+  table.inv-stay-strip td { padding: 10px 14px; border-right: 1px solid #eee; }
+  table.inv-stay-strip td:last-child { border-right: none; }
+  .inv-stay-label { display: block; font-size: 8.5px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.6px; color: #b8944a; margin-bottom: 3px; }
+  .inv-stay-value { font-size: 11px; color: #1a1a1a; font-weight: bold; }
 
   /* ===== Charges summary ===== */
-  .inv-summary-wrap { display: flex; justify-content: flex-end; margin-bottom: 22px; }
-  table.inv-price-table { width: 290px; }
+  /* Same dompdf flexbox gap — `justify-content: flex-end` never applied,
+     so this table rendered flush left instead of pushed to the right.
+     A fixed-width table with `margin-left: auto` is the dompdf-safe way
+     to right-align a block-level element. */
+  .inv-summary-wrap { margin-bottom: 22px; }
+  table.inv-price-table { width: 290px; margin-left: auto; }
   .inv-price-table td { padding: 6px 0; font-size: 11.5px; color: #555; }
   .inv-price-table td.right { text-align: right; color: #1a1a1a; }
   .inv-price-table tr.discount td.right { color: #2e8b57; }
@@ -76,24 +93,27 @@
     $guestsCount = $booking->pax_adults + ($booking->pax_children ?? 0);
   @endphp
 
-  <div class="inv-header">
-    <div>
-      @if($logoSrc)
-        <img src="{{ $logoSrc }}" alt="TYT Luxe" class="inv-logo">
-      @else
-        <div style="font-size:22px;font-weight:bold;color:#0d0d0d;letter-spacing:1px;">TYTLUXE</div>
-      @endif
-    </div>
-    <div class="inv-meta">
-      <div class="inv-title">In<span>voice</span></div>
-      <div class="inv-meta-line">Invoice No <strong>{{ $booking->reference }}</strong></div>
-      <div class="inv-meta-line">Invoice Date <strong>{{ now()->format('d M Y') }}</strong></div>
-      <div class="inv-meta-line">Booking Reference <strong>{{ $booking->reference }}</strong></div>
-    </div>
-  </div>
+  <table class="inv-header">
+    <tr>
+      <td>
+        @if($logoSrc)
+          <img src="{{ $logoSrc }}" alt="TYT Luxe" class="inv-logo">
+        @else
+          <div style="font-size:22px;font-weight:bold;color:#0d0d0d;letter-spacing:1px;">TYTLUXE</div>
+        @endif
+      </td>
+      <td class="inv-meta">
+        <div class="inv-title">Invoice</div>
+        <div class="inv-meta-line">Invoice No <strong>{{ $booking->reference }}</strong></div>
+        <div class="inv-meta-line">Invoice Date <strong>{{ now()->format('d M Y') }}</strong></div>
+        <div class="inv-meta-line">Booking Reference <strong>{{ $booking->reference }}</strong></div>
+      </td>
+    </tr>
+  </table>
 
-  <div class="inv-parties">
-    <div class="inv-party">
+  <table class="inv-parties">
+    <tr>
+    <td class="inv-party">
       <div class="inv-party-title">Issued By</div>
       <div class="inv-party-name">TYT Luxe (Take Your Trip)</div>
       <div class="inv-party-line">
@@ -103,8 +123,8 @@
       <div class="inv-party-line" style="margin-top:6px;">
         takeyourtrip7@gmail.com &bull; +91 98750 73788
       </div>
-    </div>
-    <div class="inv-party">
+    </td>
+    <td class="inv-party">
       <div class="inv-party-title">Billed To</div>
       <div class="inv-party-name">{{ $booking->lead_guest_name }}</div>
       @if($booking->guest_email)
@@ -114,8 +134,9 @@
         <div class="inv-party-line">{{ $booking->guest_phone }}</div>
       @endif
       <span class="inv-status-badge {{ $statusClass }}">{{ ucfirst(str_replace('_', ' ', $booking->status)) }}</span>
-    </div>
-  </div>
+    </td>
+    </tr>
+  </table>
 
   @if($booking->hotel)
   <div class="inv-section-title">Booking Details</div>
@@ -147,12 +168,14 @@
       </tr>
     </tbody>
   </table>
-  <div class="inv-stay-strip">
-    <span>City <strong>{{ $booking->hotel->destination->name ?? '—' }}</strong></span>
-    <span>Check-in <strong>{{ \Illuminate\Support\Carbon::parse($booking->check_in)->format('d M Y') }}</strong></span>
-    <span>Check-out <strong>{{ \Illuminate\Support\Carbon::parse($booking->check_out)->format('d M Y') }}</strong></span>
-    <span>Booked On <strong>{{ $booking->created_at->format('d M Y') }}</strong></span>
-  </div>
+  <table class="inv-stay-strip">
+    <tr>
+      <td><span class="inv-stay-label">City</span><span class="inv-stay-value">{{ $booking->hotel->destination->name ?? '—' }}</span></td>
+      <td><span class="inv-stay-label">Check-in</span><span class="inv-stay-value">{{ \Illuminate\Support\Carbon::parse($booking->check_in)->format('d M Y') }}</span></td>
+      <td><span class="inv-stay-label">Check-out</span><span class="inv-stay-value">{{ \Illuminate\Support\Carbon::parse($booking->check_out)->format('d M Y') }}</span></td>
+      <td><span class="inv-stay-label">Booked On</span><span class="inv-stay-value">{{ $booking->created_at->format('d M Y') }}</span></td>
+    </tr>
+  </table>
   @endif
 
   <div class="inv-section-title">Guests</div>

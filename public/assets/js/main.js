@@ -40,6 +40,20 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     /* ===== SHARED HERO SLIDER ===== */
+    // These slides hotlink to images.unsplash.com; if that host is
+    // unreachable (network hiccup, blocked, timed out) the slide is left
+    // showing nothing. Detect the failure and fall back to a local image
+    // instead of a blank/broken background.
+    document.querySelectorAll('.shared-slide').forEach(function (slide) {
+        const match = slide.style.backgroundImage.match(/url\(["']?(.*?)["']?\)/);
+        if (!match || !match[1]) return;
+        const probe = new Image();
+        probe.onerror = function () {
+            slide.style.backgroundImage = "url('/assets/images/hero-bg.png')";
+        };
+        probe.src = match[1];
+    });
+
     const sharedSlides = document.querySelectorAll('.shared-slide');
     if (sharedSlides.length > 1) {
         const sharedDots   = document.querySelectorAll('.shared-dot');
