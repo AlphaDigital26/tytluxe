@@ -108,6 +108,7 @@ class PackageForm
                                     : 'The lowest per-person price shown on the PDF.')
                                 ->required(fn ($get) => $get('tour_type') !== 'custom')
                                 ->numeric()
+                                ->minValue(0)
                                 ->prefix('₹'),
 
                             TextInput::make('duration_nights')
@@ -118,6 +119,8 @@ class PackageForm
                                     : 'A "2 Night 3 Day" trip = 2 nights.')
                                 ->required(fn ($get) => $get('tour_type') !== 'custom')
                                 ->numeric()
+                                ->minValue(0)
+                                ->maxValue(65535)
                                 ->suffix('nights'),
 
                             TextInput::make('booking_amount')
@@ -125,6 +128,7 @@ class PackageForm
                                 ->placeholder('e.g.  2000')
                                 ->helperText('The partial amount a customer pays to confirm their spot.')
                                 ->numeric()
+                                ->minValue(0)
                                 ->prefix('₹')
                                 ->nullable(),
 
