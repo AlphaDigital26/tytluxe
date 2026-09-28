@@ -113,17 +113,25 @@
     var retryBtn = document.getElementById('payRetryBtn');
     var failedNote = document.getElementById('payFailedNote');
 
-    // The hotel's rate hold is only good until TripJack's deadlineDateTime —
-    // pay after that and Book can still fail, triggering the automatic
-    // refund. Surfacing the countdown here means the guest sees "hurry" up
-    // front instead of "paid, then refunded" with no explanation after.
+    // The rate is only guaranteed by TripJack until deadlineDateTime — pay
+    // after that and Book can still fail/reprice, triggering the automatic
+    // refund. That real deadline can be many hours out, which isn't how
+    // B2C sites present urgency, so we display a short 15-minute countdown
+    // (like any OTA checkout) capped to whichever comes first — the actual
+    // enforcement on the server still uses TripJack's real deadline, this
+    // is purely what's shown on screen.
     var deadlineNote = document.getElementById('payDeadlineNote');
     if (deadlineNote && deadlineNote.dataset.deadline) {
-      var deadline = new Date(deadlineNote.dataset.deadline).getTime();
+      var DISPLAY_CAP_MS = 15 * 60000;
+      var realDeadline = new Date(deadlineNote.dataset.deadline).getTime();
+      var deadline = Math.min(realDeadline, Date.now() + DISPLAY_CAP_MS);
       var tick = function () {
         var remainingMs = deadline - Date.now();
         if (remainingMs <= 0) {
-          deadlineNote.textContent = 'This rate hold has expired — please complete payment now or you may need to select the room again.';
+          var reallyExpired = Date.now() >= realDeadline;
+          deadlineNote.textContent = reallyExpired
+            ? 'This rate hold has expired — please complete payment now or you may need to select the room again.'
+            : 'Please complete payment as soon as possible to keep this rate held.';
           deadlineNote.classList.add('pay-deadline-urgent');
           return;
         }

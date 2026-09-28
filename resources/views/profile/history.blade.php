@@ -74,6 +74,13 @@
                             'cancellationReason' => $booking->cancellation_reason,
                             'invoiceUrl' => ! in_array($booking->status, ['pending_payment', 'payment_failed'], true) ? route('hotel.booking.invoice', $booking->reference) : null,
                         ];
+
+                        // Same eligibility rule FrontendController@showCancellation enforces
+                        // server-side — kept in sync so the button only appears when the
+                        // cancel page would actually let the guest through.
+                        $canCancel = $booking->status === 'confirmed'
+                            && filled($booking->tripjack_booking_id)
+                            && $booking->cancellation_requested_at === null;
                     @endphp
                     <img src="{{ $imageUrl }}" alt="{{ $title }}" class="journey-img">
                     <div class="journey-content">
@@ -94,7 +101,12 @@
                                 {{ $location }}
                             @endif
                         </div>
-                        <button type="button" class="btn btn-primary journey-btn booking-details-trigger" data-booking='{{ json_encode($modalData, JSON_HEX_APOS | JSON_HEX_QUOT) }}'>View Details</button>
+                        <div class="journey-actions">
+                            <button type="button" class="btn btn-primary journey-btn booking-details-trigger" data-booking='{{ json_encode($modalData, JSON_HEX_APOS | JSON_HEX_QUOT) }}'>View Details</button>
+                            @if($canCancel)
+                                <a href="{{ route('hotel.booking.cancel.show', $booking->reference) }}" class="journey-btn-cancel">Cancel Booking</a>
+                            @endif
+                        </div>
                     </div>
                 </div>
                 @empty
@@ -206,27 +218,6 @@
                         <p style="padding: 10px; color: #666; grid-column: 1 / -1;">You have no past journeys.</p>
                     @endforelse
                 </div>
-
-            </div>
-            
-            <!-- RIGHT COLUMN -->
-            <div class="history-sidebar">
-                
-                <!-- Saved Inspiration -->
-                <div class="history-section-title">
-                    <h2>Saved Inspiration</h2>
-                </div>
-                <div class="inspiration-grid">
-                    <img src="https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?ixlib=rb-4.0.3&w=300&q=80" alt="Insp" class="insp-img">
-                    <img src="https://images.unsplash.com/photo-1540541338287-41700207dee6?ixlib=rb-4.0.3&w=300&q=80" alt="Insp" class="insp-img">
-                    <div class="insp-img large">
-                        <img src="https://images.unsplash.com/photo-1439066615861-d1af74d74000?ixlib=rb-4.0.3&w=600&q=80" alt="Villas" style="width:100%; height:100%; object-fit:cover; border-radius:inherit;">
-                        <div class="insp-overlay">
-                            <span>Overwater Villas</span>
-                        </div>
-                    </div>
-                </div>
-
 
             </div>
         </div>
