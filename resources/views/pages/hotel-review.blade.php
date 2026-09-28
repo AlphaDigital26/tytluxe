@@ -176,19 +176,7 @@
   .br-cancel-table-wrap { overflow-x: auto; margin-top: 4px; }
 
   /* ===== PAN Information ===== */
-  .br-pan-verify-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: -6px; margin-bottom: 4px; }
-  .br-pan-verify-btn {
-    display: inline-flex; align-items: center; gap: 7px;
-    padding: 10px 18px; border-radius: 10px; border: 1px solid var(--gold);
-    background: transparent; color: var(--gold); font-family: 'Jost', sans-serif; font-size: 11.5px;
-    font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; white-space: nowrap;
-    transition: all var(--transition); flex-shrink: 0;
-  }
-  .br-pan-verify-btn:hover { background: rgba(201,168,76,0.1); }
-  .br-pan-verify-btn.verified { border-color: var(--green); color: var(--green); cursor: default; }
-  .br-pan-verify-note { font-family: 'Jost', sans-serif; font-size: 11.5px; color: var(--white-30); margin: 0; line-height: 1.5; }
-  .br-pan-verify-note.valid { color: var(--green); }
-  .br-pan-verify-note.invalid { color: #f3a3a3; }
+  .br-pan-verify-note { font-family: 'Jost', sans-serif; font-size: 11.5px; color: var(--white-30); margin: -6px 0 4px; line-height: 1.5; }
 
   /* ===== Important information ===== */
   .br-info-block { margin-bottom: 22px; }
@@ -418,21 +406,15 @@
         <h2>PAN Information</h2>
         <div class="br-row">
           <div class="br-field {{ $errors->has('pan_name') ? 'error' : '' }}">
-            <label>Name as per PAN</label>
+            <label>Name as per PAN <span style="color:var(--gold); font-weight:600;">(Lead Guest)</span></label>
             <input type="text" name="pan_name" value="{{ old('pan_name', $profilePanName) }}" placeholder="e.g. Rahul Sharma" required>
           </div>
           <div class="br-field {{ $errors->has('pan_number') ? 'error' : '' }}">
             <label>PAN Number (required for this rate)</label>
-            <input type="text" name="pan_number" id="brPanInput" value="{{ old('pan_number', $profilePan) }}" placeholder="ABCDE1234F" maxlength="10" style="text-transform:uppercase;" required>
+            <input type="text" name="pan_number" id="brPanInput" value="{{ old('pan_number', $profilePan) }}" placeholder="ABCDE1234F" maxlength="10" pattern="[A-Za-z]{5}[0-9]{4}[A-Za-z]{1}" title="Enter a valid PAN, e.g. ABCDE1234F" style="text-transform:uppercase;" required>
           </div>
         </div>
-        <div class="br-pan-verify-row">
-          <button type="button" class="br-pan-verify-btn" id="brPanVerifyBtn">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 12l2 2 4-4"/><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/></svg>
-            <span id="brPanVerifyBtnLabel">Verify Format</span>
-          </button>
-          <p class="br-pan-verify-note" id="brPanVerifyNote">We check the PAN format only — this is not a government verification.</p>
-        </div>
+        <p class="br-pan-verify-note">Format checked automatically — this is not a government verification.</p>
       </div>
       @endif
 
@@ -444,7 +426,7 @@
           @for($ti = 0; $ti < $count; $ti++)
             @php $isChild = $ti >= $slot['adults']; @endphp
             <div class="br-traveler">
-              <p class="br-traveler-label">{{ $isChild ? 'Child' : 'Adult' }} {{ $ti + 1 }}</p>
+              <p class="br-traveler-label">{{ $isChild ? 'Child' : 'Adult' }} {{ $ti + 1 }}@if($ri === 0 && $ti === 0) <span style="color:var(--gold); font-weight:600;">(Lead Guest)</span>@endif</p>
               @php
                 $titleField = "rooms.{$ri}.travelers.{$ti}.title";
                 $firstNameField = "rooms.{$ri}.travelers.{$ti}.first_name";
@@ -657,33 +639,9 @@
     }
 
     var panInput = document.getElementById('brPanInput');
-    var panVerifyBtn = document.getElementById('brPanVerifyBtn');
-    var panVerifyBtnLabel = document.getElementById('brPanVerifyBtnLabel');
-    var panVerifyNote = document.getElementById('brPanVerifyNote');
-    if (panInput && panVerifyBtn) {
-      var panRegex = /^[A-Za-z]{5}[0-9]{4}[A-Za-z]{1}$/;
-      panVerifyBtn.addEventListener('click', function () {
-        var value = panInput.value.trim().toUpperCase();
-        panInput.value = value;
-        if (panRegex.test(value)) {
-          panVerifyBtnLabel.textContent = 'Valid Format';
-          panVerifyBtn.classList.add('verified');
-          panVerifyNote.textContent = 'PAN format looks correct. This checks the format only, not a government registry.';
-          panVerifyNote.classList.remove('invalid');
-          panVerifyNote.classList.add('valid');
-        } else {
-          panVerifyBtnLabel.textContent = 'Verify Format';
-          panVerifyBtn.classList.remove('verified');
-          panVerifyNote.textContent = 'That doesn\'t match a valid PAN format (e.g. ABCDE1234F). Please check and try again.';
-          panVerifyNote.classList.remove('valid');
-          panVerifyNote.classList.add('invalid');
-        }
-      });
+    if (panInput) {
       panInput.addEventListener('input', function () {
-        panVerifyBtnLabel.textContent = 'Verify Format';
-        panVerifyBtn.classList.remove('verified');
-        panVerifyNote.textContent = 'We check the PAN format only — this is not a government verification.';
-        panVerifyNote.classList.remove('valid', 'invalid');
+        panInput.value = panInput.value.toUpperCase();
       });
     }
 
