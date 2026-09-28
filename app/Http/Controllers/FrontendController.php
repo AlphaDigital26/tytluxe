@@ -1900,7 +1900,12 @@ class FrontendController extends Controller
         $pxPerMm = 96 / 25.4;
         $widthMm = round($widthPx / $pxPerMm, 2);
 
-        $newBrowsershot = function () use ($html) {
+        // Per-render profile dir: a shared one gets locked by concurrent renders and
+        // becomes unwritable for www-data once a root-run artisan command creates it.
+        $userDataDir = rtrim(config('browsershot.user_data_dir', '/tmp/chrome-userdata'), '/')
+            . '-' . \Illuminate\Support\Str::random(12);
+
+        $newBrowsershot = function () use ($html, $userDataDir) {
             $b = \Spatie\Browsershot\Browsershot::html($html);
 
             // Use config() — NOT env() — so values work even when config is cached
@@ -1913,6 +1918,8 @@ class FrontendController extends Controller
             }
 
             return $b
+                ->timeout(120)
+                ->setOption('protocolTimeout', 90000)
                 ->noSandbox()
                 ->showBackground()
                 ->newHeadless()
@@ -1924,26 +1931,30 @@ class FrontendController extends Controller
                     'disable-crash-reporter',           // stops crashpad trying to write files
                     'no-first-run',                     // skips first-run setup dialogs
                     'no-zygote',                        // needed in some containerised envs
-                    'user-data-dir' => config('browsershot.user_data_dir', '/tmp/chrome-userdata'),
+                    'user-data-dir' => $userDataDir,
                 ]);
         };
 
-        // ── Pass 1: measure the exact bottom of the .footer element ──────────
-        // Using getBoundingClientRect().bottom instead of scrollHeight ensures
-        // the PDF is trimmed precisely at the footer's last pixel — no trailing
-        // whitespace, no matter how long or short the content is.
-        $heightPx = (int) $newBrowsershot()
-            ->windowSize($widthPx, 200)
-            ->evaluate('Math.ceil(document.querySelector(".footer").getBoundingClientRect().bottom)');
+        try {
+            // ── Pass 1: measure the exact bottom of the .footer element ──────────
+            // Using getBoundingClientRect().bottom instead of scrollHeight ensures
+            // the PDF is trimmed precisely at the footer's last pixel — no trailing
+            // whitespace, no matter how long or short the content is.
+            $heightPx = (int) $newBrowsershot()
+                ->windowSize($widthPx, 200)
+                ->evaluate('Math.ceil(document.querySelector(".footer").getBoundingClientRect().bottom)');
 
-        $heightMm = round(max($heightPx, 200) / $pxPerMm, 2);
+            $heightMm = round(max($heightPx, 200) / $pxPerMm, 2);
 
-        // ── Pass 2: render the final PDF at the exact height ─────────────────
-        return $newBrowsershot()
-            ->windowSize($widthPx, $heightPx)
-            ->paperSize($widthMm, $heightMm, 'mm')
-            ->margins(0, 0, 0, 0)
-            ->pdf();
+            // ── Pass 2: render the final PDF at the exact height ─────────────────
+            return $newBrowsershot()
+                ->windowSize($widthPx, $heightPx)
+                ->paperSize($widthMm, $heightMm, 'mm')
+                ->margins(0, 0, 0, 0)
+                ->pdf();
+        } finally {
+            \Illuminate\Support\Facades\File::deleteDirectory($userDataDir);
+        }
     }
 
     public function guestDownloadItinerary(Request $request, $slug)
