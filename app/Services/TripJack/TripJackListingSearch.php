@@ -9,6 +9,9 @@ use Illuminate\Support\Collection;
 
 class TripJackListingSearch
 {
+    /** TripJack's hard cap on hotel IDs per listing request. */
+    public const MAX_HIDS = 100;
+
     public function __construct(protected TripJackClient $client)
     {
     }
@@ -26,7 +29,7 @@ class TripJackListingSearch
             ->where('is_active', true)
             ->whereNotNull('tripjack_hotel_id')
             ->orderBy('id') // deterministic — otherwise which 100/189 hotels get priced is undefined
-            ->limit(100) // TripJack hard cap per listing request
+            ->limit(self::MAX_HIDS)
             ->pluck('tripjack_hotel_id')
             ->map(fn ($id) => (int) $id)
             ->values()
@@ -50,11 +53,55 @@ class TripJackListingSearch
             return ['correlationId' => $correlationId, 'options' => collect()];
         }
 
-        $hidsToPrice = collect($hids)->take(100)->values()->all();
+        $hidsToPrice = collect($hids)->take(self::MAX_HIDS)->values()->all();
 
         $response = $this->client->listing($checkIn, $checkOut, $rooms, $hidsToPrice, $correlationId, $currency, $nationality);
 
-        $options = collect($response['hotels'] ?? [])
+        return ['correlationId' => $correlationId, 'options' => $this->mapOptions($response['hotels'] ?? [], $currency)];
+    }
+
+    /**
+     * Live-price every hid for a whole city, split into TripJack-sized batches
+     * sent concurrently under one correlationId (the same id must carry through
+     * to Detail/Review/Book for whichever hotel the guest picks).
+     *
+     * @param  array<int>  $hids
+     * @param  array<int, array{adults:int, children?:int, childAge?:int[]}>  $rooms
+     * @return array{correlationId: string, options: Collection<string, array>, batches: int, failedBatches: int}
+     */
+    public function searchCity(array $hids, string $checkIn, string $checkOut, array $rooms, string $currency = 'INR', string $nationality = '106'): array
+    {
+        $correlationId = TripJackClient::newCorrelationId();
+        $batches = array_chunk(array_values(array_unique($hids)), self::MAX_HIDS);
+
+        if (empty($batches)) {
+            return ['correlationId' => $correlationId, 'options' => collect(), 'batches' => 0, 'failedBatches' => 0];
+        }
+
+        $responses = $this->client->listingBatches($batches, $checkIn, $checkOut, $rooms, $correlationId, $currency, $nationality);
+
+        $options = collect();
+        $failed = 0;
+        foreach ($responses as $response) {
+            if ($response === null) {
+                $failed++;
+
+                continue;
+            }
+            $options = $options->union($this->mapOptions($response['hotels'] ?? [], $currency));
+        }
+
+        return ['correlationId' => $correlationId, 'options' => $options, 'batches' => count($batches), 'failedBatches' => $failed];
+    }
+
+    /**
+     * Reduces each TripJack listing hotel to its cheapest option, keyed by hid.
+     *
+     * @return Collection<string, array>
+     */
+    private function mapOptions(array $hotels, string $currency): Collection
+    {
+        return collect($hotels)
             ->mapWithKeys(function ($hotel) use ($currency) {
                 $tjHotelId = (string) ($hotel['hotelId'] ?? $hotel['tjHotelId'] ?? '');
                 if ($tjHotelId === '' || empty($hotel['options'])) {
@@ -78,7 +125,5 @@ class TripJackListingSearch
                     'cancellation' => $cheapest['cancellation'] ?? null,
                 ]];
             });
-
-        return ['correlationId' => $correlationId, 'options' => $options];
     }
 }

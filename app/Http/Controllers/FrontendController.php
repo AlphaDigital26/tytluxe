@@ -20,6 +20,7 @@ use App\Services\TripJack\TripJackClient;
 use App\Services\TripJack\TripJackErrorCatalog;
 use App\Services\TripJack\TripJackListingSearch;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -66,6 +67,7 @@ class FrontendController extends Controller
         $searchError = null;
 
         $hotels = collect();
+        $hotelsPage = null;
 
         if ($hasSearched) {
             if ($destinationQuery !== '') {
@@ -84,43 +86,41 @@ class FrontendController extends Controller
             }
         }
 
-        // Only ever load one destination's hotels: without that filter this pulls
-        // every hotel plus all their images and exhausts PHP's memory limit.
-        if ($searchDestination) {
-            // Star rating is filtered client-side (multi-select), not here —
-            // fetching every rating up front is what lets the sidebar
-            // checkboxes reveal/hide hotels instantly without a reload.
-            $hotels = Hotel::with(['destination', 'amenities', 'images' => Hotel::visibleImagesConstraint()])
-                ->visibleOnWebsite()
-                ->where('destination_id', $searchDestination->id)
-                ->latest()
-                ->get();
+        // TripJack-style search: price the whole city once, keep only hotels with
+        // live availability, then filter/sort/paginate that full result server-side
+        // so every filter spans all pages. Only one page of models is ever loaded —
+        // big cities have thousands of hotels, and loading them all with their
+        // images exhausts PHP's 512MB memory limit.
+        $filters = [
+            'name' => trim((string) $request->query('name', '')),
+            'free_cancel' => $request->boolean('free_cancel'),
+            'max_price' => (int) $request->query('max_price', 0),
+            'meals' => collect(explode(',', (string) $request->query('meal', '')))
+                ->map(fn ($v) => trim($v))
+                ->intersect(['room', 'breakfast', 'half', 'full'])
+                ->values()
+                ->all(),
+        ];
+        $starCounts = collect();
+        $livePriced = false;
 
-            if ($searchActive && $searchDestination) {
+        if ($searchDestination) {
+            if ($searchActive) {
                 try {
                     $rooms = $this->distributeGuestsAcrossRooms($adults, $children, $roomCount, $childAges);
-                    $hidsToPrice = $hotels->pluck('tripjack_hotel_id')->filter()->map(fn($id) => (int)$id)->values()->all();
-
-                    $result = $listingSearch->searchByHids($hidsToPrice, $checkIn, $checkOut, $rooms, nationality: $nationality);
+                    $result = $this->cityListingSearch($listingSearch, $searchDestination, $checkIn, $checkOut, $rooms, $nationality);
                     $liveOptions = $result['options'];
+                    $livePriced = $liveOptions->isNotEmpty();
 
-                    if ($liveOptions->isNotEmpty()) {
-                        $hotels = $hotels->sortByDesc(function ($hotel) use ($liveOptions) {
-                            return $liveOptions->has((string) $hotel->tripjack_hotel_id) ? 1 : 0;
-                        })->values();
-                    } elseif (! empty($hidsToPrice)) {
+                    if (! $livePriced) {
                         // TripJack returned a normal 200 with zero priced
-                        // options across the whole batch — not a request
+                        // options across the whole city — not a request
                         // failure (that's caught below), just no live
-                        // inventory for this exact search right now. Log it
-                        // distinctly from a real error so a full-batch outage
-                        // is visible in monitoring instead of only showing up
-                        // as a wall of silent "Price on Request" cards, and
-                        // tell the visitor plainly instead of leaving them to
-                        // wonder whether the site is broken.
+                        // inventory for this exact search right now. Logged
+                        // distinctly so a full outage is visible in monitoring,
+                        // and the visitor is told plainly.
                         Log::channel('tripjack')->info('listing_search_zero_priced', [
                             'destination_id' => $searchDestination->id,
-                            'hotel_count' => count($hidsToPrice),
                             'check_in' => $checkIn,
                             'check_out' => $checkOut,
                             'correlationId' => $result['correlationId'],
@@ -144,15 +144,103 @@ class FrontendController extends Controller
                     $searchError = 'Live pricing is temporarily unavailable for this search. Showing our curated listing instead — enquire for the latest rates.';
                 }
             }
+
+            $query = Hotel::query()
+                ->visibleOnWebsite()
+                ->where('destination_id', $searchDestination->id)
+                ->when($filters['name'] !== '', fn ($q) => $q->where('title', 'LIKE', '%'.$filters['name'].'%'));
+
+            // Price/meal/cancellation only exist on live options, so they narrow
+            // the hid set; without live prices the whole catalogue is listed.
+            if ($livePriced) {
+                $matchingHids = $liveOptions->filter(function (array $option) use ($filters) {
+                    $price = (float) ($option['customerPrice'] ?? 0);
+                    $meal = Str::slug($option['mealBasis'] ?? 'none');
+
+                    return ($filters['max_price'] <= 0 || ($price > 0 && $price <= $filters['max_price']))
+                        && (! $filters['free_cancel'] || ($option['isRefundable'] ?? false))
+                        && (empty($filters['meals']) || collect($filters['meals'])->contains(fn ($m) => str_contains($meal, $m)));
+                })->keys()->all();
+
+                $query->whereIn('tripjack_hotel_id', $matchingHids);
+            }
+
+            $starCounts = (clone $query)
+                ->selectRaw('star_rating, COUNT(*) AS total')
+                ->groupBy('star_rating')
+                ->pluck('total', 'star_rating');
+
+            $hotelsPage = $query
+                ->with(['destination', 'amenities', 'images' => Hotel::visibleImagesConstraint()])
+                ->when($minRatings, fn ($q) => $q->whereIn('star_rating', $minRatings))
+                ->orderByDesc('star_rating')
+                ->orderByDesc('rating_score')
+                ->orderByDesc('review_count')
+                ->orderBy('id')
+                ->paginate(30)
+                ->withQueryString();
+
+            if ($hotelsPage->currentPage() > $hotelsPage->lastPage()) {
+                return redirect($hotelsPage->url($hotelsPage->lastPage()));
+            }
+
+            $hotels = $hotelsPage->getCollection();
         }
         $nationalities = $this->tripjackNationalities($client);
         $destinations = $this->hotelSearchDestinations();
 
         return view('pages.hotels', compact(
-            'hotels', 'liveOptions', 'searchActive', 'hasSearched', 'searchError',
+            'hotels', 'hotelsPage', 'liveOptions', 'searchActive', 'hasSearched', 'searchError',
             'destinationQuery', 'checkIn', 'checkOut', 'adults', 'children', 'roomCount', 'childAges',
-            'nationality', 'nationalities', 'minRating', 'minRatings', 'destinations'
+            'nationality', 'nationalities', 'minRating', 'minRatings', 'destinations',
+            'filters', 'starCounts', 'livePriced'
         ));
+    }
+
+    /**
+     * Whole-city live pricing, cached per visitor so filtering, paging and
+     * infinite scroll reuse one TripJack search. Per visitor, not shared: the
+     * cached correlationId carries through that guest's Detail/Review/Book calls.
+     *
+     * @return array{correlationId: string, options: \Illuminate\Support\Collection<string, array>}
+     */
+    private function cityListingSearch(TripJackListingSearch $listingSearch, Destination $destination, string $checkIn, string $checkOut, array $rooms, string $nationality): array
+    {
+        $cacheKey = 'hotel_city_search:'.session()->getId().':'.md5(json_encode([$destination->id, $checkIn, $checkOut, $rooms, $nationality]));
+
+        if ($cached = Cache::get($cacheKey)) {
+            return ['correlationId' => $cached['correlationId'], 'options' => collect($cached['options'])];
+        }
+
+        $hids = Hotel::visibleOnWebsite()
+            ->where('destination_id', $destination->id)
+            ->whereNotNull('tripjack_hotel_id')
+            ->pluck('tripjack_hotel_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        $result = $listingSearch->searchCity($hids, $checkIn, $checkOut, $rooms, nationality: $nationality);
+
+        if ($result['batches'] > 0 && $result['failedBatches'] === $result['batches']) {
+            throw new TripJackException('Every listing batch failed for destination '.$destination->id);
+        }
+
+        if ($result['failedBatches'] > 0) {
+            Log::channel('tripjack')->warning('city_listing_partial_failure', [
+                'destination_id' => $destination->id,
+                'batches' => $result['batches'],
+                'failed' => $result['failedBatches'],
+                'correlationId' => $result['correlationId'],
+            ]);
+        }
+
+        // A partial result is cached only briefly so missing batches get retried soon.
+        Cache::put($cacheKey, [
+            'correlationId' => $result['correlationId'],
+            'options' => $result['options']->all(),
+        ], $result['failedBatches'] > 0 ? now()->addMinutes(2) : now()->addMinutes(15));
+
+        return ['correlationId' => $result['correlationId'], 'options' => $result['options']];
     }
 
     /**
