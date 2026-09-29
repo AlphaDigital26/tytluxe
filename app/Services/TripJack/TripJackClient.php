@@ -68,6 +68,67 @@ class TripJackClient
     }
 
     /**
+     * Listing API for many hid batches at once, sent concurrently. A failed batch
+     * comes back as null instead of throwing, so one bad batch can't sink a
+     * whole-city search.
+     *
+     * @param  array<int, int[]>  $hidBatches  each at most 100 hids
+     * @param  array<int, array{adults:int, children?:int, childAge?:int[]}>  $rooms
+     * @return array<int, array|null>
+     */
+    public function listingBatches(
+        array $hidBatches,
+        string $checkIn,
+        string $checkOut,
+        array $rooms,
+        string $correlationId,
+        string $currency = 'INR',
+        string $nationality = '106',
+        int $concurrency = 10,
+    ): array {
+        $url = $this->hmsBaseUrl.'/hotel/listing';
+        $payloads = array_map(fn (array $hids) => [
+            'checkIn' => $checkIn,
+            'checkOut' => $checkOut,
+            'rooms' => $rooms,
+            'currency' => $currency,
+            'correlationId' => $correlationId,
+            'nationality' => $nationality,
+            'timeoutMs' => $this->timeout * 1000,
+            'hids' => array_values($hids),
+        ], array_values($hidBatches));
+
+        $startedAt = microtime(true);
+        $responses = Http::pool(fn (\Illuminate\Http\Client\Pool $pool) => array_map(
+            fn (array $payload) => $pool->withHeaders([
+                'Content-Type' => 'application/json',
+                'Accept' => 'application/json',
+                'apikey' => $this->apiKey,
+            ])->timeout($this->timeout)->connectTimeout($this->connectTimeout)->post($url, $payload),
+            $payloads,
+        ), concurrency: $concurrency);
+
+        $results = [];
+        foreach ($payloads as $i => $payload) {
+            $response = $responses[$i] ?? null;
+
+            if (! $response instanceof \Illuminate\Http\Client\Response) {
+                $this->log('POST', $url, null, $startedAt, $payload, ['exception' => $response instanceof \Throwable ? $response->getMessage() : 'no response'], true);
+                $results[$i] = null;
+
+                continue;
+            }
+
+            $body = $response->json() ?? [];
+            $failed = $response->failed() || (array_key_exists('status', $body) && ! ($body['status']['success'] ?? true));
+            $this->log('POST', $url, $response->status(), $startedAt, $payload, $body, $failed);
+            $results[$i] = $failed ? null : $body;
+        }
+
+        return $results;
+    }
+
+    /**
      * Nationalities — GET /nationality-info (separate "nationality" host per docs).
      *
      * Uses a short dedicated timeout (4 s, no retries) because this is a

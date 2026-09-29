@@ -542,6 +542,41 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
   overflow: hidden; white-space: nowrap;
 }
 .htl-list-amenities > span { flex-shrink: 0; }
+.htl-page-range { margin-left: 12px; color: var(--white-60); }
+.htl-filter-count { margin-left: auto; color: var(--white-60); font-size: 12px; }
+.htl-grid-loading { opacity: 0.45; pointer-events: none; transition: opacity 0.2s ease; }
+.htl-load-more {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 28px 0 8px; font-family: 'Jost', sans-serif; font-size: 13px; color: var(--white-60);
+}
+.htl-load-more[hidden] { display: none; }
+.htl-load-more-spinner {
+  width: 18px; height: 18px; border-radius: 50%;
+  border: 2px solid var(--gold-dim); border-top-color: var(--gold);
+  animation: htlSpin 0.8s linear infinite;
+}
+@keyframes htlSpin { to { transform: rotate(360deg); } }
+.htl-pagination {
+  display: flex; align-items: center; justify-content: center; flex-wrap: wrap;
+  gap: 10px; margin: 36px 0 12px; font-family: 'Jost', sans-serif; font-size: 13px;
+}
+.htl-page-numbers { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.htl-page-btn, .htl-page-num {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 38px; height: 38px; padding: 0 14px; border-radius: 8px;
+  border: 1px solid var(--gold-dim); color: var(--white); text-decoration: none;
+  transition: border-color var(--transition), color var(--transition);
+}
+.htl-page-num { padding: 0 8px; }
+a.htl-page-btn:hover, a.htl-page-num:hover { border-color: var(--gold); color: var(--gold); }
+.htl-page-num.current { background: var(--gold); border-color: var(--gold); color: var(--dark); font-weight: 600; }
+.htl-page-btn.disabled { opacity: 0.35; cursor: default; }
+.htl-page-gap { color: var(--white-60); padding: 0 2px; }
+@media (max-width: 600px) {
+  .htl-pagination { gap: 8px; }
+  .htl-page-btn { padding: 0 10px; }
+  .htl-page-numbers { order: -1; width: 100%; }
+}
 .htl-list-side {
   width: 210px; height: 100%; flex-shrink: 0; padding: 18px 20px; overflow: hidden;
   display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; text-align: right;
@@ -1278,11 +1313,15 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
     {{-- Always visible, above any (possibly collapsed-on-mobile) filters —
          the guest should immediately know how many hotels matched and
          where, without having to scroll past a filter panel first. --}}
+    @php $hotelTotal = $hotelsPage ? $hotelsPage->total() : $hotels->count(); @endphp
     <div class="htl-results-summary">
       @if(!empty($searchError))
-        <span>{{ $hotels->count() }} {{ Str::plural('hotel', $hotels->count()) }} shown</span>
+        <span>{{ $hotelTotal }} {{ Str::plural('hotel', $hotelTotal) }} shown</span>
       @else
-        <span><strong>{{ $hotels->count() }}</strong> {{ Str::plural('hotel', $hotels->count()) }} found{{ !empty($destinationQuery) ? ' in '.$destinationQuery : '' }}</span>
+        <span><strong>{{ number_format($hotelTotal) }}</strong> {{ Str::plural('hotel', $hotelTotal) }} found{{ !empty($destinationQuery) ? ' in '.$destinationQuery : '' }}</span>
+      @endif
+      @if($hotelsPage && $hotelsPage->lastPage() > 1)
+        <span class="htl-page-range">Showing {{ $hotelsPage->firstItem() }}–{{ $hotelsPage->lastItem() }}</span>
       @endif
     </div>
     <div class="htl-results-layout">
@@ -1301,6 +1340,7 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
             Star Rating
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
           </button>
+          @if(!empty($livePriced))
           <button type="button" class="htl-filter-pill" data-target="htlFilterGroupPrice">
             Price
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
@@ -1309,6 +1349,7 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
             Meal Plan
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
           </button>
+          @endif
           <button type="button" class="htl-filter-pill" data-target="htlFilterGroupMore">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
             More Filters
@@ -1320,7 +1361,7 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
 
         <div class="htl-filter-group" id="htlFilterGroupSearch">
           <div class="htl-filter-title">Search by Name</div>
-          <input type="text" id="htlSidebarNameSearch" placeholder="E.g. Taj Dubai..." style="width:100%; padding: 12px 14px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius: 8px; color:#fff; font-family:'Jost', sans-serif; outline:none;" autocomplete="off">
+          <input type="text" id="htlSidebarNameSearch" value="{{ $filters['name'] ?? '' }}" placeholder="E.g. Taj Dubai..." style="width:100%; padding: 12px 14px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius: 8px; color:#fff; font-family:'Jost', sans-serif; outline:none;" autocomplete="off">
         </div>
 
         <div class="htl-filter-group htl-accordion" id="htlFilterGroupStars">
@@ -1334,22 +1375,21 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
               <input type="checkbox" name="sidebar_rating_any" id="sidebarRatingAny" value="0" {{ empty($minRatings ?? []) ? 'checked' : '' }}>
               Any Rating
             </label>
-            <label class="htl-filter-label">
-              <input type="checkbox" name="sidebar_rating" value="5" {{ in_array(5, $minRatings ?? []) ? 'checked' : '' }}>
-              5 Stars
-            </label>
-            <label class="htl-filter-label">
-              <input type="checkbox" name="sidebar_rating" value="4" {{ in_array(4, $minRatings ?? []) ? 'checked' : '' }}>
-              4 Stars
-            </label>
-            <label class="htl-filter-label">
-              <input type="checkbox" name="sidebar_rating" value="3" {{ in_array(3, $minRatings ?? []) ? 'checked' : '' }}>
-              3 Stars
-            </label>
+            @foreach([5, 4, 3, 2, 1] as $r)
+              @php $rCount = (int) (($starCounts ?? collect())->get($r) ?? 0); @endphp
+              @if($r >= 3 || $rCount > 0 || in_array($r, $minRatings ?? []))
+              <label class="htl-filter-label">
+                <input type="checkbox" name="sidebar_rating" value="{{ $r }}" {{ in_array($r, $minRatings ?? []) ? 'checked' : '' }}>
+                {{ $r }} {{ Str::plural('Star', $r) }}
+                <span class="htl-filter-count">({{ number_format($rCount) }})</span>
+              </label>
+              @endif
+            @endforeach
           </div>
           </div>
         </div>
 
+        @if(!empty($livePriced))
         <div class="htl-filter-group htl-accordion" id="htlFilterGroupCancel">
           <button type="button" class="htl-filter-title htl-accordion-btn" aria-expanded="true">
             Cancellation Policy
@@ -1358,7 +1398,7 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
           <div class="htl-accordion-body">
           <div class="htl-filter-list">
             <label class="htl-filter-label">
-              <input type="checkbox" id="sidebar_free_cancellation" value="true">
+              <input type="checkbox" id="sidebar_free_cancellation" value="true" {{ !empty($filters['free_cancel']) ? 'checked' : '' }}>
               Free Cancellation Available
             </label>
           </div>
@@ -1372,35 +1412,22 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
           </button>
           <div class="htl-accordion-body">
           <div class="htl-filter-list">
+             @php $maxPrice = ($filters['max_price'] ?? 0) > 0 ? min((int) $filters['max_price'], 250000) : 250000; @endphp
              <!-- Visual Slider -->
              <div style="margin-bottom: 12px; padding:0 2px;">
-               <input type="range" id="filterPriceSlider" min="0" max="250000" step="5000" value="250000" style="width:100%; accent-color:var(--gold); cursor:pointer;">
+               <input type="range" id="filterPriceSlider" min="0" max="250000" step="5000" value="{{ $maxPrice }}" style="width:100%; accent-color:var(--gold); cursor:pointer;">
                <div style="display:flex; justify-content:space-between; font-family:'Jost',sans-serif; font-size:12px; color:var(--white-60); margin-top:6px;">
                  <span>₹0</span>
-                 <span id="filterPriceLabel">₹250,000+</span>
+                 <span id="filterPriceLabel">{{ $maxPrice >= 250000 ? '₹250,000+' : 'Up to ₹'.number_format($maxPrice) }}</span>
                </div>
              </div>
              <!-- Radio buckets (shortcuts) -->
+             @foreach([250000 => 'Any Price', 10000 => 'Up to ₹10,000', 25000 => 'Up to ₹25,000', 50000 => 'Up to ₹50,000', 100000 => 'Up to ₹100,000'] as $pv => $pl)
              <label class="htl-filter-label">
-              <input type="radio" name="sidebar_price" value="250000" checked>
-              Any Price
+              <input type="radio" name="sidebar_price" value="{{ $pv }}" {{ $maxPrice === $pv ? 'checked' : '' }}>
+              {{ $pl }}
             </label>
-            <label class="htl-filter-label">
-              <input type="radio" name="sidebar_price" value="10000">
-              Up to ₹10,000
-            </label>
-            <label class="htl-filter-label">
-              <input type="radio" name="sidebar_price" value="25000">
-              Up to ₹25,000
-            </label>
-            <label class="htl-filter-label">
-              <input type="radio" name="sidebar_price" value="50000">
-              Up to ₹50,000
-            </label>
-            <label class="htl-filter-label">
-              <input type="radio" name="sidebar_price" value="100000">
-              Up to ₹100,000
-            </label>
+             @endforeach
           </div>
           </div>
         </div>
@@ -1412,25 +1439,16 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
           </button>
           <div class="htl-accordion-body">
           <div class="htl-filter-list" id="htlMealFilterGroup">
+            @foreach(['room' => 'Room Only', 'breakfast' => 'Breakfast Included', 'half' => 'Half Board', 'full' => 'Full Board'] as $mv => $ml)
             <label class="htl-filter-label">
-              <input type="checkbox" name="sidebar_meal" value="room">
-              Room Only
+              <input type="checkbox" name="sidebar_meal" value="{{ $mv }}" {{ in_array($mv, $filters['meals'] ?? []) ? 'checked' : '' }}>
+              {{ $ml }}
             </label>
-            <label class="htl-filter-label">
-              <input type="checkbox" name="sidebar_meal" value="breakfast">
-              Breakfast Included
-            </label>
-            <label class="htl-filter-label">
-              <input type="checkbox" name="sidebar_meal" value="half">
-              Half Board
-            </label>
-            <label class="htl-filter-label">
-              <input type="checkbox" name="sidebar_meal" value="full">
-              Full Board
-            </label>
+            @endforeach
           </div>
           </div>
         </div>
+        @endif
 
         </div>
       </aside>
@@ -1680,6 +1698,44 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
       @endforelse
 
         </div>
+
+        @if($hotelsPage && $hotelsPage->hasPages())
+        <div class="htl-load-more" id="htlLoadMore" hidden>
+          <span class="htl-load-more-spinner" aria-hidden="true"></span>
+          <span class="htl-load-more-text" role="status">Loading more hotels…</span>
+        </div>
+        <nav class="htl-pagination" aria-label="Hotel results pages" data-next-url="{{ $hotelsPage->nextPageUrl() }}">
+          @if($hotelsPage->onFirstPage())
+            <span class="htl-page-btn disabled">&larr; Previous</span>
+          @else
+            <a class="htl-page-btn" href="{{ $hotelsPage->previousPageUrl() }}" rel="prev">&larr; Previous</a>
+          @endif
+
+          @php
+            $cur = $hotelsPage->currentPage();
+            $last = $hotelsPage->lastPage();
+            $pages = collect([1, $last])->merge(range(max(1, $cur - 2), min($last, $cur + 2)))->unique()->sort()->values();
+          @endphp
+          <span class="htl-page-numbers">
+            @foreach($pages as $i => $p)
+              @if($i > 0 && $p - $pages[$i - 1] > 1)
+                <span class="htl-page-gap">&hellip;</span>
+              @endif
+              @if($p === $cur)
+                <span class="htl-page-num current" aria-current="page">{{ $p }}</span>
+              @else
+                <a class="htl-page-num" href="{{ $hotelsPage->url($p) }}">{{ $p }}</a>
+              @endif
+            @endforeach
+          </span>
+
+          @if($hotelsPage->hasMorePages())
+            <a class="htl-page-btn" href="{{ $hotelsPage->nextPageUrl() }}" rel="next">Next &rarr;</a>
+          @else
+            <span class="htl-page-btn disabled">Next &rarr;</span>
+          @endif
+        </nav>
+        @endif
       </main>
     </div>
     @else
@@ -2336,45 +2392,23 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
     });
   })();
 
-  /* ===== QUICK FILTERS (live, no page reload) ===== */
+  /* ===== FILTERS (server-side across the whole search result, TripJack-style) ===== */
+  // Every filter reloads the results from the server, so it applies to all
+  // matching hotels in the city rather than just the cards already loaded.
   const cards = document.querySelectorAll('.htl-card');
   const destinationSearch = document.getElementById('htlSidebarNameSearch');
-  
-  // Depending on layout, we either have a select or radio buttons
   const ratingSelect = document.querySelector('select[name="min_rating"]');
   const ratingRadios = document.querySelectorAll('input[name="sidebar_rating"]');
+  const anyRatingCheckbox = document.getElementById('sidebarRatingAny');
   const hiddenMinRating = document.getElementById('hiddenMinRating');
-
-  // New filters
   const freeCancelCheckbox = document.getElementById('sidebar_free_cancellation');
   const priceSlider = document.getElementById('filterPriceSlider');
   const priceRadios = document.querySelectorAll('input[name="sidebar_price"]');
   const priceLabel = document.getElementById('filterPriceLabel');
   const mealCheckboxes = document.querySelectorAll('input[name="sidebar_meal"]');
 
-  // Sync price radios with slider
-  priceRadios.forEach(radio => {
-    radio.addEventListener('change', (e) => {
-      if (priceSlider) {
-        priceSlider.value = e.target.value;
-        priceLabel.textContent = e.target.value == 250000 ? '₹250,000+' : 'Up to ₹' + parseInt(e.target.value).toLocaleString();
-        applyHotelFilters();
-      }
-    });
-  });
-
-  if (priceSlider) {
-    priceSlider.addEventListener('input', (e) => {
-      priceLabel.textContent = e.target.value == 250000 ? '₹250,000+' : 'Up to ₹' + parseInt(e.target.value).toLocaleString();
-      // Uncheck radios when slider moves manually
-      const matchingRadio = document.querySelector(`input[name="sidebar_price"][value="${e.target.value}"]`);
-      if (matchingRadio) matchingRadio.checked = true;
-      else {
-        const anyChecked = document.querySelector('input[name="sidebar_price"]:checked');
-        if (anyChecked) anyChecked.checked = false;
-      }
-      applyHotelFilters();
-    });
+  function formatPriceLabel(value) {
+    return value == 250000 ? '₹250,000+' : 'Up to ₹' + parseInt(value, 10).toLocaleString();
   }
 
   // Multi-select: any number of star ratings can be checked at once. Only
@@ -2391,22 +2425,39 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
       const v = parseInt(ratingSelect.value, 10) || 0;
       return v > 0 ? [v] : [];
     }
-    return Array.from(document.querySelectorAll('input[name="sidebar_rating"]:checked'))
+    return Array.from(ratingRadios)
+      .filter(cb => cb.checked)
       .map(cb => parseInt(cb.value, 10))
       .filter(v => v > 0);
   }
 
-  function applyHotelFilters() {
-    const search = destinationSearch ? destinationSearch.value.trim().toLowerCase() : '';
-    const selectedRatings = getSelectedRatings();
-    const requireFreeCancel = freeCancelCheckbox ? freeCancelCheckbox.checked : false;
+  function applyFilters() {
+    const url = new URL(window.location.href);
+    const setOrDelete = (key, value) => {
+      if (value) url.searchParams.set(key, value);
+      else url.searchParams.delete(key);
+    };
     const maxPrice = priceSlider ? parseInt(priceSlider.value, 10) : 250000;
-    const selectedMeals = Array.from(mealCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
 
-    // Lets a mobile guest see at a glance which filter categories are
-    // active without opening each pill — badge on "More Filters" (Search +
-    // Cancellation, which don't get their own pill), gold outline on the
-    // Star Rating / Price / Meal pills that have a non-default selection.
+    setOrDelete('min_rating', getSelectedRatings().join(','));
+    setOrDelete('name', destinationSearch ? destinationSearch.value.trim() : '');
+    setOrDelete('free_cancel', freeCancelCheckbox && freeCancelCheckbox.checked ? '1' : '');
+    setOrDelete('max_price', maxPrice < 250000 ? String(maxPrice) : '');
+    setOrDelete('meal', Array.from(mealCheckboxes).filter(cb => cb.checked).map(cb => cb.value).join(','));
+    url.searchParams.delete('page');
+
+    const grid = document.getElementById('htlGrid');
+    if (grid) grid.classList.add('htl-grid-loading');
+    window.location.assign(url.toString());
+  }
+
+  // Lets a mobile guest see at a glance which filter categories are active
+  // without opening each pill — badge on "More Filters" (Search +
+  // Cancellation, which don't get their own pill), gold outline on the
+  // Star Rating / Price / Meal pills that have a non-default selection.
+  (function markActiveFilterPills() {
+    const search = destinationSearch ? destinationSearch.value.trim() : '';
+    const requireFreeCancel = freeCancelCheckbox ? freeCancelCheckbox.checked : false;
     const filterCountBadge = document.getElementById('htlFilterCountBadge');
     if (filterCountBadge) {
       const moreCount = (search ? 1 : 0) + (requireFreeCancel ? 1 : 0);
@@ -2414,70 +2465,40 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
       filterCountBadge.hidden = moreCount === 0;
     }
     const pillSelection = {
-      htlFilterGroupStars: selectedRatings.length > 0,
-      htlFilterGroupPrice: maxPrice < 250000,
-      htlFilterGroupMeal: selectedMeals.length > 0,
+      htlFilterGroupStars: getSelectedRatings().length > 0,
+      htlFilterGroupPrice: priceSlider ? parseInt(priceSlider.value, 10) < 250000 : false,
+      htlFilterGroupMeal: Array.from(mealCheckboxes).some(cb => cb.checked),
     };
     Object.entries(pillSelection).forEach(([target, hasSelection]) => {
       const pill = document.querySelector('.htl-filter-pill[data-target="' + target + '"]');
       if (pill) pill.classList.toggle('has-selection', hasSelection);
     });
+    // Carry the star selection into a fresh search from the top search bar.
+    if (hiddenMinRating) hiddenMinRating.value = getSelectedRatings().join(',');
+  })();
 
-    let delay = 0;
-    let visibleCount = 0;
-
-    // Sync hidden input for form submission (comma-separated so a single
-    // hidden field can carry a multi-select rating forward across a new
-    // search from the results page).
-    if (hiddenMinRating) {
-      hiddenMinRating.value = selectedRatings.join(',');
-    }
-
-    cards.forEach(card => {
-      const searchText = [
-        card.dataset.location,
-        card.dataset.name,
-        card.dataset.category,
-        card.dataset.amenities,
-      ].join(' ').toLowerCase();
-      
-      const textMatch = !search || searchText.includes(search);
-      const ratingMatch = selectedRatings.length === 0 || selectedRatings.includes(parseInt(card.dataset.rating || 0, 10));
-      
-      const cardPrice = parseInt(card.dataset.price || 0, 10);
-      // Hide 'Price on request' (cardPrice === 0) if a specific price filter is applied
-      const priceMatch = maxPrice === 250000 || (cardPrice > 0 && cardPrice <= maxPrice);
-
-      const cancelMatch = !requireFreeCancel || card.dataset.cancellation === 'true';
-
-      const cardMeal = card.dataset.meal || '';
-      const mealMatch = selectedMeals.length === 0 || selectedMeals.some(m => cardMeal.includes(m));
-
-      if (textMatch && ratingMatch && priceMatch && cancelMatch && mealMatch) {
-        card.classList.remove('htl-hidden');
-        card.style.animation = 'none';
-        card.offsetHeight;
-        card.style.animation = `htlCardIn 0.45s ease ${delay}ms both`;
-        delay += 60;
-        visibleCount++;
-      } else {
-        card.classList.add('htl-hidden');
+  // Name search: apply on Enter, or once the guest pauses typing.
+  if (destinationSearch) {
+    let nameTimer = null;
+    const initialName = destinationSearch.value.trim();
+    destinationSearch.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        clearTimeout(nameTimer);
+        applyFilters();
       }
     });
-
-    const noFilterResultsEl = document.getElementById('htlNoFilterResults');
-    if (noFilterResultsEl) {
-      noFilterResultsEl.style.display = (visibleCount === 0 && cards.length > 0) ? 'block' : 'none';
-    }
+    destinationSearch.addEventListener('input', () => {
+      clearTimeout(nameTimer);
+      nameTimer = setTimeout(() => {
+        const value = destinationSearch.value.trim();
+        if (value !== initialName && (value.length === 0 || value.length >= 3)) applyFilters();
+      }, 900);
+    });
   }
 
-  if (destinationSearch) {
-    destinationSearch.addEventListener('input', applyHotelFilters);
-  }
-  if (ratingSelect) {
-    ratingSelect.addEventListener('change', applyHotelFilters);
-  }
-  const anyRatingCheckbox = document.getElementById('sidebarRatingAny');
+  if (ratingSelect) ratingSelect.addEventListener('change', applyFilters);
+
   ratingRadios.forEach(cb => {
     cb.addEventListener('change', () => {
       // Any specific star selected turns off "Any Rating"; clearing every
@@ -2488,7 +2509,7 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
       } else if (anyRatingCheckbox && ! Array.from(ratingRadios).some(r => r.checked)) {
         anyRatingCheckbox.checked = true;
       }
-      applyHotelFilters();
+      applyFilters();
     });
   });
   if (anyRatingCheckbox) {
@@ -2499,16 +2520,33 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
         // Can't leave nothing checked — re-check "Any Rating".
         anyRatingCheckbox.checked = true;
       }
-      applyHotelFilters();
+      applyFilters();
     });
   }
-  if (freeCancelCheckbox) freeCancelCheckbox.addEventListener('change', applyHotelFilters);
-  mealCheckboxes.forEach(cb => cb.addEventListener('change', applyHotelFilters));
 
-  // Reflect server-rendered filter state (e.g. a rating carried over from a
-  // previous search, or a shared/bookmarked filtered URL) immediately,
-  // since star rating is no longer pre-filtered server-side.
-  applyHotelFilters();
+  priceRadios.forEach(radio => {
+    radio.addEventListener('change', (e) => {
+      if (priceSlider) priceSlider.value = e.target.value;
+      if (priceLabel) priceLabel.textContent = formatPriceLabel(e.target.value);
+      applyFilters();
+    });
+  });
+  if (priceSlider) {
+    // Label follows the slider live; the search only reloads once it's released.
+    priceSlider.addEventListener('input', (e) => {
+      if (priceLabel) priceLabel.textContent = formatPriceLabel(e.target.value);
+      const matchingRadio = document.querySelector(`input[name="sidebar_price"][value="${e.target.value}"]`);
+      if (matchingRadio) matchingRadio.checked = true;
+      else {
+        const anyChecked = document.querySelector('input[name="sidebar_price"]:checked');
+        if (anyChecked) anyChecked.checked = false;
+      }
+    });
+    priceSlider.addEventListener('change', applyFilters);
+  }
+
+  if (freeCancelCheckbox) freeCancelCheckbox.addEventListener('change', applyFilters);
+  mealCheckboxes.forEach(cb => cb.addEventListener('change', applyFilters));
 
   /* ===== MOBILE FILTER PILLS (MakeMyTrip pattern) ===== */
   // Tapping a pill shows just its filter group(s) inline below the pill
@@ -2579,7 +2617,6 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
         if (ratingInput) ratingInput.value = val;
         ratingWrap.classList.remove('open');
         ratingTrigger.setAttribute('aria-expanded', 'false');
-        applyHotelFilters();
       });
     });
 
@@ -2699,7 +2736,9 @@ function truncateAmenityChips() {
   window.addEventListener('resize', truncateAmenityChips);
 
   /* ===== HOTEL CARD PHOTO SLIDER (listing thumbnails) ===== */
-  document.querySelectorAll('.htl-thumb-gallery').forEach(function (gallery) {
+  function initGallery(gallery) {
+    if (gallery.dataset.galleryReady) return;
+    gallery.dataset.galleryReady = '1';
     var images = [];
     try { images = JSON.parse(gallery.dataset.images || '[]'); } catch (e) { images = []; }
     if (images.length < 2) return;
@@ -2741,7 +2780,84 @@ function truncateAmenityChips() {
       if (Math.abs(deltaX) < 30) return; // treat as a tap, not a swipe — let the card's link click through
       deltaX < 0 ? next() : prev();
     }, { passive: true });
-  });
+  }
+  document.querySelectorAll('.htl-thumb-gallery').forEach(initGallery);
+
+  /* ===== INFINITE SCROLL (TripJack-style "Loading more hotels…") ===== */
+  // Fetches the next server page and appends its cards; the numbered
+  // pagination stays in the HTML as a no-JS fallback and is hidden here.
+  (function () {
+    var grid = document.getElementById('htlGrid');
+    var pager = document.querySelector('.htl-pagination');
+    var sentinel = document.getElementById('htlLoadMore');
+    if (!grid || !pager || !sentinel || !('IntersectionObserver' in window)) return;
+
+    var nextUrl = pager.dataset.nextUrl || '';
+    if (!nextUrl) return;
+
+    pager.style.display = 'none';
+    sentinel.hidden = false;
+    var loading = false;
+    var status = sentinel.querySelector('.htl-load-more-text');
+
+    function done() {
+      observer.disconnect();
+      sentinel.hidden = true;
+    }
+
+    function loadMore() {
+      if (loading || !nextUrl) return;
+      loading = true;
+      sentinel.classList.add('is-loading');
+      if (status) status.textContent = 'Loading more hotels…';
+
+      fetch(nextUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin' })
+        .then(function (res) {
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          return res.text();
+        })
+        .then(function (html) {
+          var doc = new DOMParser().parseFromString(html, 'text/html');
+          var newCards = doc.querySelectorAll('#htlGrid .htl-card');
+          var anchor = document.getElementById('htlNoFilterResults');
+
+          newCards.forEach(function (card) {
+            var imported = document.importNode(card, true);
+            grid.insertBefore(imported, anchor && anchor.parentNode === grid ? anchor : null);
+            imported.querySelectorAll('.htl-thumb-gallery').forEach(initGallery);
+            revealObs.observe(imported);
+          });
+
+          truncateAmenityChips();
+          if (window.tytWishlist && typeof window.tytWishlist.syncButtons === 'function') {
+            window.tytWishlist.syncButtons();
+          }
+
+          var nextPager = doc.querySelector('.htl-pagination');
+          nextUrl = nextPager ? (nextPager.dataset.nextUrl || '') : '';
+          var range = doc.querySelector('.htl-page-range');
+          var currentRange = document.querySelector('.htl-page-range');
+          if (range && currentRange) currentRange.textContent = range.textContent.replace(/Showing \d+/, 'Showing 1');
+
+          loading = false;
+          sentinel.classList.remove('is-loading');
+          if (!nextUrl || newCards.length === 0) done();
+        })
+        .catch(function () {
+          // Leave the numbered pages as a fallback if a load fails.
+          loading = false;
+          sentinel.classList.remove('is-loading');
+          observer.disconnect();
+          sentinel.hidden = true;
+          pager.style.display = '';
+        });
+    }
+
+    var observer = new IntersectionObserver(function (entries) {
+      if (entries.some(function (e) { return e.isIntersecting; })) loadMore();
+    }, { rootMargin: '600px 0px' });
+    observer.observe(sentinel);
+  })();
 
 })();
 </script>
