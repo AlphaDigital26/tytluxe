@@ -65,11 +65,9 @@ class FrontendController extends Controller
         $liveOptions = collect();
         $searchError = null;
 
-        if (!$hasSearched) {
-            $hotels = collect();
-        } else {
-            $hotelsQuery = Hotel::with(['destination', 'amenities', 'images' => Hotel::visibleImagesConstraint()])->visibleOnWebsite();
+        $hotels = collect();
 
+        if ($hasSearched) {
             if ($destinationQuery !== '') {
                 $searchDestination = Destination::active()
                     ->where(function ($q) use ($destinationQuery) {
@@ -78,18 +76,25 @@ class FrontendController extends Controller
                     })
                     ->first();
 
-                if ($searchDestination) {
-                    $hotelsQuery->where('destination_id', $searchDestination->id);
-                } else {
+                if (! $searchDestination) {
                     $searchError = "We don't have hotels in \"{$destinationQuery}\" yet.";
                 }
+            } else {
+                $searchError = 'Please choose a destination to see hotels.';
             }
+        }
 
+        // Only ever load one destination's hotels: without that filter this pulls
+        // every hotel plus all their images and exhausts PHP's memory limit.
+        if ($searchDestination) {
             // Star rating is filtered client-side (multi-select), not here —
             // fetching every rating up front is what lets the sidebar
             // checkboxes reveal/hide hotels instantly without a reload.
-
-            $hotels = $hotelsQuery->latest()->get();
+            $hotels = Hotel::with(['destination', 'amenities', 'images' => Hotel::visibleImagesConstraint()])
+                ->visibleOnWebsite()
+                ->where('destination_id', $searchDestination->id)
+                ->latest()
+                ->get();
 
             if ($searchActive && $searchDestination) {
                 try {
