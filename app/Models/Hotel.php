@@ -25,6 +25,7 @@ class Hotel extends Model
     public function images() { return $this->hasMany(HotelImage::class); }
     public function amenities() { return $this->belongsToMany(Amenity::class); }
     public function reviews() { return $this->hasMany(Review::class, 'reference_id')->where('vertical', 'hotel')->where('is_published', true); }
+    public function bookings() { return $this->hasMany(Booking::class); }
 
     /**
      * The star ratings currently allowed to show on the public site, set by

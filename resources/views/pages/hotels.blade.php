@@ -542,7 +542,43 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
   overflow: hidden; white-space: nowrap;
 }
 .htl-list-amenities > span { flex-shrink: 0; }
-.htl-page-range { margin-left: 12px; color: var(--white-60); }
+.htl-sortbar {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 12px 18px;
+  margin-bottom: 20px; font-family: 'Jost', sans-serif; font-size: 14px; color: var(--white-60);
+}
+.htl-sortbar strong { color: #fff; font-weight: 600; }
+.htl-sort-wrap { position: relative; }
+.htl-sort-trigger {
+  display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+  padding: 9px 14px; border: 1px solid var(--gold-dim); border-radius: 10px;
+  background: var(--dark-2); color: #fff; font-family: 'Jost', sans-serif; font-size: 14px;
+  transition: border-color var(--transition);
+}
+.htl-sort-trigger:hover, .htl-sort-trigger[aria-expanded="true"] { border-color: var(--gold); }
+.htl-sort-trigger:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.htl-sort-icon { color: var(--gold); flex-shrink: 0; }
+.htl-sort-label { color: var(--white-60); }
+.htl-sort-current { color: #fff; font-weight: 600; }
+.htl-sort-menu {
+  position: absolute; top: calc(100% + 8px); left: 0; z-index: 30;
+  min-width: 100%; width: max-content; margin: 0; padding: 6px 0; list-style: none;
+  background: var(--dark-2); border: 1px solid var(--gold-dim); border-radius: 12px;
+  box-shadow: 0 18px 40px rgba(0,0,0,0.45);
+}
+.htl-sort-menu[hidden] { display: none; }
+.htl-sort-menu li + li { border-top: 1px solid var(--white-10); }
+.htl-sort-option {
+  display: block; width: 100%; padding: 14px 20px; text-align: left; cursor: pointer;
+  background: none; border: none; color: #fff; font-family: 'Jost', sans-serif; font-size: 14px;
+  transition: background var(--transition), color var(--transition);
+}
+.htl-sort-option:hover, .htl-sort-option:focus-visible { background: var(--gold-dim); color: var(--gold); outline: none; }
+.htl-sort-option.is-active { color: var(--gold); font-weight: 600; }
+@media (max-width: 600px) {
+  .htl-sortbar { gap: 10px; }
+  .htl-sort-wrap, .htl-sort-trigger { width: 100%; }
+  .htl-sort-menu { width: 100%; }
+}
 .htl-filter-count { margin-left: auto; color: var(--white-60); font-size: 12px; }
 .htl-grid-loading { opacity: 0.45; pointer-events: none; transition: opacity 0.2s ease; }
 .htl-load-more {
@@ -556,27 +592,7 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
   animation: htlSpin 0.8s linear infinite;
 }
 @keyframes htlSpin { to { transform: rotate(360deg); } }
-.htl-pagination {
-  display: flex; align-items: center; justify-content: center; flex-wrap: wrap;
-  gap: 10px; margin: 36px 0 12px; font-family: 'Jost', sans-serif; font-size: 13px;
-}
-.htl-page-numbers { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center; }
-.htl-page-btn, .htl-page-num {
-  display: inline-flex; align-items: center; justify-content: center;
-  min-width: 38px; height: 38px; padding: 0 14px; border-radius: 8px;
-  border: 1px solid var(--gold-dim); color: var(--white); text-decoration: none;
-  transition: border-color var(--transition), color var(--transition);
-}
-.htl-page-num { padding: 0 8px; }
-a.htl-page-btn:hover, a.htl-page-num:hover { border-color: var(--gold); color: var(--gold); }
-.htl-page-num.current { background: var(--gold); border-color: var(--gold); color: var(--dark); font-weight: 600; }
-.htl-page-btn.disabled { opacity: 0.35; cursor: default; }
-.htl-page-gap { color: var(--white-60); padding: 0 2px; }
-@media (max-width: 600px) {
-  .htl-pagination { gap: 8px; }
-  .htl-page-btn { padding: 0 10px; }
-  .htl-page-numbers { order: -1; width: 100%; }
-}
+.htl-load-more.is-failed .htl-load-more-spinner { display: none; }
 .htl-list-side {
   width: 210px; height: 100%; flex-shrink: 0; padding: 18px 20px; overflow: hidden;
   display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; text-align: right;
@@ -656,11 +672,6 @@ a.htl-page-btn:hover, a.htl-page-num:hover { border-color: var(--gold); color: v
 }
 
 /* Results summary — always visible above the (possibly collapsed) filters */
-.htl-results-summary {
-  font-family: 'Jost', sans-serif; font-size: 13.5px; color: var(--white-60);
-  margin-top: 40px; margin-bottom: -8px;
-}
-.htl-results-summary strong { color: #fff; font-weight: 700; }
 
 /* Sidebar */
 .htl-sidebar {
@@ -1313,17 +1324,17 @@ a.htl-page-btn:hover, a.htl-page-num:hover { border-color: var(--gold); color: v
     {{-- Always visible, above any (possibly collapsed-on-mobile) filters —
          the guest should immediately know how many hotels matched and
          where, without having to scroll past a filter panel first. --}}
-    @php $hotelTotal = $hotelsPage ? $hotelsPage->total() : $hotels->count(); @endphp
-    <div class="htl-results-summary">
-      @if(!empty($searchError))
-        <span>{{ $hotelTotal }} {{ Str::plural('hotel', $hotelTotal) }} shown</span>
-      @else
-        <span><strong>{{ number_format($hotelTotal) }}</strong> {{ Str::plural('hotel', $hotelTotal) }} found{{ !empty($destinationQuery) ? ' in '.$destinationQuery : '' }}</span>
-      @endif
-      @if($hotelsPage && $hotelsPage->lastPage() > 1)
-        <span class="htl-page-range">Showing {{ $hotelsPage->firstItem() }}–{{ $hotelsPage->lastItem() }}</span>
-      @endif
-    </div>
+    @php
+      $hotelTotal = $hotelsPage ? $hotelsPage->total() : $hotels->count();
+      $resultsPlace = $searchDestination->name ?? $destinationQuery;
+      $sortOptions = ['popular' => 'Most Popular'];
+      if (!empty($livePriced)) {
+        $sortOptions['price_asc'] = 'Price ( Lowest first )';
+        $sortOptions['price_desc'] = 'Price ( Highest first )';
+      }
+      $sortOptions['stars'] = 'Star rating ( High to Low )';
+      $currentSort = array_key_exists($sort ?? 'popular', $sortOptions) ? $sort : 'popular';
+    @endphp
     <div class="htl-results-layout">
       <!-- Sidebar Filters -->
       <aside class="htl-sidebar" id="htlSidebar">
@@ -1455,6 +1466,28 @@ a.htl-page-btn:hover, a.htl-page-num:hover { border-color: var(--gold); color: v
 
       <!-- Main Results -->
       <main class="htl-results-main">
+        <div class="htl-sortbar">
+          @if($hotelTotal > 1)
+          <div class="htl-sort-wrap" id="htlSortWrap">
+            <button type="button" class="htl-sort-trigger" id="htlSortTrigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="htlSortMenu">
+              <svg class="htl-sort-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4v16M3 8l4-4 4 4M17 20V4M13 16l4 4 4-4"/></svg>
+              <span class="htl-sort-label">Sort By:</span>
+              <strong class="htl-sort-current">{{ $sortOptions[$currentSort] }}</strong>
+            </button>
+            <ul class="htl-sort-menu" id="htlSortMenu" role="listbox" aria-label="Sort hotels" hidden>
+              @foreach($sortOptions as $value => $label)
+                <li role="option" aria-selected="{{ $currentSort === $value ? 'true' : 'false' }}">
+                  <button type="button" class="htl-sort-option {{ $currentSort === $value ? 'is-active' : '' }}" data-sort="{{ $value }}">{{ $label }}</button>
+                </li>
+              @endforeach
+            </ul>
+          </div>
+          @endif
+          <span class="htl-sortbar-count">
+            Showing <strong>{{ number_format($hotelTotal) }}</strong> {{ Str::plural('hotel', $hotelTotal) }}@if($resultsPlace) for <strong>{{ $resultsPlace }}</strong>@endif
+          </span>
+        </div>
+
         <div class="htl-grid" id="htlGrid">
 
       @forelse($hotels as $hotel)
@@ -1506,6 +1539,7 @@ a.htl-page-btn:hover, a.htl-page-num:hover { border-color: var(--gold); color: v
             'rooms' => $roomCount ?? null,
             'child_ages' => !empty($childAges) ? implode(',', $childAges) : null,
          ])) }}"
+         target="_blank" rel="noopener"
          class="htl-card"
          data-category="{{ $slug }}"
          data-name="{{ Str::slug($hotel->title) }}"
@@ -1699,42 +1733,11 @@ a.htl-page-btn:hover, a.htl-page-num:hover { border-color: var(--gold); color: v
 
         </div>
 
-        @if($hotelsPage && $hotelsPage->hasPages())
-        <div class="htl-load-more" id="htlLoadMore" hidden>
+        @if($hotelsPage && $hotelsPage->hasMorePages())
+        <div class="htl-load-more" id="htlLoadMore" data-next-url="{{ $hotelsPage->nextPageUrl() }}">
           <span class="htl-load-more-spinner" aria-hidden="true"></span>
           <span class="htl-load-more-text" role="status">Loading more hotels…</span>
         </div>
-        <nav class="htl-pagination" aria-label="Hotel results pages" data-next-url="{{ $hotelsPage->nextPageUrl() }}">
-          @if($hotelsPage->onFirstPage())
-            <span class="htl-page-btn disabled">&larr; Previous</span>
-          @else
-            <a class="htl-page-btn" href="{{ $hotelsPage->previousPageUrl() }}" rel="prev">&larr; Previous</a>
-          @endif
-
-          @php
-            $cur = $hotelsPage->currentPage();
-            $last = $hotelsPage->lastPage();
-            $pages = collect([1, $last])->merge(range(max(1, $cur - 2), min($last, $cur + 2)))->unique()->sort()->values();
-          @endphp
-          <span class="htl-page-numbers">
-            @foreach($pages as $i => $p)
-              @if($i > 0 && $p - $pages[$i - 1] > 1)
-                <span class="htl-page-gap">&hellip;</span>
-              @endif
-              @if($p === $cur)
-                <span class="htl-page-num current" aria-current="page">{{ $p }}</span>
-              @else
-                <a class="htl-page-num" href="{{ $hotelsPage->url($p) }}">{{ $p }}</a>
-              @endif
-            @endforeach
-          </span>
-
-          @if($hotelsPage->hasMorePages())
-            <a class="htl-page-btn" href="{{ $hotelsPage->nextPageUrl() }}" rel="next">Next &rarr;</a>
-          @else
-            <span class="htl-page-btn disabled">Next &rarr;</span>
-          @endif
-        </nav>
         @endif
       </main>
     </div>
@@ -2548,6 +2551,48 @@ a.htl-page-btn:hover, a.htl-page-num:hover { border-color: var(--gold); color: v
   if (freeCancelCheckbox) freeCancelCheckbox.addEventListener('change', applyFilters);
   mealCheckboxes.forEach(cb => cb.addEventListener('change', applyFilters));
 
+  const sortWrap = document.getElementById('htlSortWrap');
+  const sortTrigger = document.getElementById('htlSortTrigger');
+  const sortMenu = document.getElementById('htlSortMenu');
+  if (sortWrap && sortTrigger && sortMenu) {
+    const setSortOpen = (open) => {
+      sortMenu.hidden = !open;
+      sortTrigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+    };
+
+    sortTrigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const opening = sortMenu.hidden;
+      setSortOpen(opening);
+      if (opening) sortMenu.querySelector('.htl-sort-option.is-active, .htl-sort-option')?.focus();
+    });
+
+    sortMenu.querySelectorAll('.htl-sort-option').forEach(opt => {
+      opt.addEventListener('click', () => {
+        setSortOpen(false);
+        if (opt.classList.contains('is-active')) return;
+        const url = new URL(window.location.href);
+        if (opt.dataset.sort === 'popular') url.searchParams.delete('sort');
+        else url.searchParams.set('sort', opt.dataset.sort);
+        url.searchParams.delete('page');
+        sortTrigger.querySelector('.htl-sort-current').textContent = opt.textContent;
+        const grid = document.getElementById('htlGrid');
+        if (grid) grid.classList.add('htl-grid-loading');
+        window.location.assign(url.toString());
+      });
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!sortWrap.contains(e.target)) setSortOpen(false);
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !sortMenu.hidden) {
+        setSortOpen(false);
+        sortTrigger.focus();
+      }
+    });
+  }
+
   /* ===== MOBILE FILTER PILLS (MakeMyTrip pattern) ===== */
   // Tapping a pill shows just its filter group(s) inline below the pill
   // row; tapping the same pill again (or another one) hides it. Reuses the
@@ -2784,19 +2829,15 @@ function truncateAmenityChips() {
   document.querySelectorAll('.htl-thumb-gallery').forEach(initGallery);
 
   /* ===== INFINITE SCROLL (TripJack-style "Loading more hotels…") ===== */
-  // Fetches the next server page and appends its cards; the numbered
-  // pagination stays in the HTML as a no-JS fallback and is hidden here.
+  // Fetches the next server page and appends its cards to the list.
   (function () {
     var grid = document.getElementById('htlGrid');
-    var pager = document.querySelector('.htl-pagination');
     var sentinel = document.getElementById('htlLoadMore');
-    if (!grid || !pager || !sentinel || !('IntersectionObserver' in window)) return;
+    if (!grid || !sentinel || !('IntersectionObserver' in window)) return;
 
-    var nextUrl = pager.dataset.nextUrl || '';
+    var nextUrl = sentinel.dataset.nextUrl || '';
     if (!nextUrl) return;
 
-    pager.style.display = 'none';
-    sentinel.hidden = false;
     var loading = false;
     var status = sentinel.querySelector('.htl-load-more-text');
 
@@ -2833,23 +2874,19 @@ function truncateAmenityChips() {
             window.tytWishlist.syncButtons();
           }
 
-          var nextPager = doc.querySelector('.htl-pagination');
-          nextUrl = nextPager ? (nextPager.dataset.nextUrl || '') : '';
-          var range = doc.querySelector('.htl-page-range');
-          var currentRange = document.querySelector('.htl-page-range');
-          if (range && currentRange) currentRange.textContent = range.textContent.replace(/Showing \d+/, 'Showing 1');
+          var nextSentinel = doc.getElementById('htlLoadMore');
+          nextUrl = nextSentinel ? (nextSentinel.dataset.nextUrl || '') : '';
 
           loading = false;
           sentinel.classList.remove('is-loading');
           if (!nextUrl || newCards.length === 0) done();
         })
         .catch(function () {
-          // Leave the numbered pages as a fallback if a load fails.
           loading = false;
-          sentinel.classList.remove('is-loading');
           observer.disconnect();
-          sentinel.hidden = true;
-          pager.style.display = '';
+          sentinel.classList.remove('is-loading');
+          sentinel.classList.add('is-failed');
+          if (status) status.textContent = 'Couldn\'t load more hotels. Please refresh the page to try again.';
         });
     }
 
