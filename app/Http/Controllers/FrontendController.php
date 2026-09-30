@@ -101,6 +101,9 @@ class FrontendController extends Controller
                 ->values()
                 ->all(),
         ];
+        $sort = in_array($request->query('sort'), ['popular', 'price_asc', 'price_desc', 'stars'], true)
+            ? $request->query('sort')
+            : 'popular';
         $starCounts = collect();
         $livePriced = false;
 
@@ -170,15 +173,45 @@ class FrontendController extends Controller
                 ->groupBy('star_rating')
                 ->pluck('total', 'star_rating');
 
-            $hotelsPage = $query
-                ->with(['destination', 'amenities', 'images' => Hotel::visibleImagesConstraint()])
-                ->when($minRatings, fn ($q) => $q->whereIn('star_rating', $minRatings))
-                ->orderByDesc('star_rating')
-                ->orderByDesc('rating_score')
-                ->orderByDesc('review_count')
-                ->orderBy('id')
-                ->paginate(30)
-                ->withQueryString();
+            $query->when($minRatings, fn ($q) => $q->whereIn('star_rating', $minRatings));
+            $withCardData = ['destination', 'amenities', 'images' => Hotel::visibleImagesConstraint()];
+
+            if (in_array($sort, ['price_asc', 'price_desc'], true) && $livePriced) {
+                // Prices live in the cached TripJack result, not the DB, so order
+                // the lightweight id list in PHP and load just this page's models.
+                $ordered = (clone $query)->get(['id', 'tripjack_hotel_id'])
+                    ->sortBy(fn ($h) => (float) ($liveOptions->get((string) $h->tripjack_hotel_id)['customerPrice'] ?? 0), SORT_REGULAR, $sort === 'price_desc')
+                    ->pluck('id')
+                    ->values();
+                $perPage = 30;
+                $page = \Illuminate\Pagination\Paginator::resolveCurrentPage();
+                $pageIds = $ordered->slice(($page - 1) * $perPage, $perPage)->values();
+                $pageHotels = Hotel::with($withCardData)->whereIn('id', $pageIds)->get()
+                    ->sortBy(fn ($h) => $pageIds->search($h->id))
+                    ->values();
+
+                $hotelsPage = new \Illuminate\Pagination\LengthAwarePaginator($pageHotels, $ordered->count(), $perPage, $page, [
+                    'path' => $request->url(),
+                    'query' => $request->query(),
+                ]);
+            } else {
+                if ($sort === 'stars') {
+                    $query->orderByDesc('star_rating')->orderByDesc('rating_score')->orderByDesc('review_count');
+                } else {
+                    // Most Popular: most booked on this site. Cancelled bookings still
+                    // count (they were paid for); failed or abandoned checkouts don't.
+                    $query->withCount(['bookings as times_booked' => fn ($q) => $q->whereIn('status', ['confirmed', 'cancelled'])])
+                        ->orderByDesc('times_booked')
+                        ->orderByDesc('star_rating')
+                        ->orderByDesc('rating_score')
+                        ->orderByDesc('review_count');
+                }
+
+                $hotelsPage = $query->with($withCardData)
+                    ->orderBy('id')
+                    ->paginate(30)
+                    ->withQueryString();
+            }
 
             if ($hotelsPage->currentPage() > $hotelsPage->lastPage()) {
                 return redirect($hotelsPage->url($hotelsPage->lastPage()));
@@ -193,7 +226,7 @@ class FrontendController extends Controller
             'hotels', 'hotelsPage', 'liveOptions', 'searchActive', 'hasSearched', 'searchError',
             'destinationQuery', 'checkIn', 'checkOut', 'adults', 'children', 'roomCount', 'childAges',
             'nationality', 'nationalities', 'minRating', 'minRatings', 'destinations',
-            'filters', 'starCounts', 'livePriced'
+            'filters', 'starCounts', 'livePriced', 'sort', 'searchDestination'
         ));
     }
 
