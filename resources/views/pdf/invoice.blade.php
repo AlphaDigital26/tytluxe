@@ -184,6 +184,42 @@
   </table>
   @endif
 
+  @if($booking->vertical === 'flight')
+  <div class="inv-section-title">Booking Details</div>
+  <table class="inv-table">
+    <thead>
+      <tr>
+        <th>Route</th>
+        <th>Journey Type</th>
+        <th>Cabin Class</th>
+        <th class="right">Passenger(s)</th>
+        <th class="right">Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>{{ $booking->flight_route }}</strong></td>
+        <td>{{ ucwords(strtolower(str_replace('_', ' ', $booking->flight_journey_type ?? '—'))) }}</td>
+        <td>{{ ucwords(strtolower(str_replace('_', ' ', $booking->flight_cabin_class ?? '—'))) }}</td>
+        <td class="right">{{ $guestsCount }}</td>
+        <td class="right">{{ $booking->currency }} {{ number_format($booking->base_amount, 2) }}</td>
+      </tr>
+    </tbody>
+  </table>
+  <table class="inv-stay-strip">
+    <tr>
+      <td><span class="inv-stay-label">Departure</span><span class="inv-stay-value">{{ $booking->flight_departure_date ? \Illuminate\Support\Carbon::parse($booking->flight_departure_date)->format('d M Y') : '—' }}</span></td>
+      @if($booking->flight_return_date)
+      <td><span class="inv-stay-label">Return</span><span class="inv-stay-value">{{ \Illuminate\Support\Carbon::parse($booking->flight_return_date)->format('d M Y') }}</span></td>
+      @endif
+      <td><span class="inv-stay-label">Booked On</span><span class="inv-stay-value">{{ $booking->created_at->format('d M Y') }}</span></td>
+      @if($booking->tripjack_flight_pnr && count($booking->tripjack_flight_pnr))
+      <td><span class="inv-stay-label">PNR</span><span class="inv-stay-value">{{ implode(', ', $booking->tripjack_flight_pnr) }}</span></td>
+      @endif
+    </tr>
+  </table>
+  @endif
+
   <div class="inv-section-title">Guests</div>
   <table class="inv-table" style="margin-bottom:22px;">
     <thead>

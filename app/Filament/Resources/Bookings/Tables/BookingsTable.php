@@ -52,6 +52,26 @@ class BookingsTable
                     ->sortable(),
                 TextColumn::make('flight_route')
                     ->searchable(),
+                TextColumn::make('flight_journey_type')
+                    ->label('Journey Type')
+                    ->badge()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('flight_departure_date')
+                    ->date()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('tripjack_flight_pnr')
+                    ->label('PNR')
+                    ->state(fn ($record) => collect($record->tripjack_flight_pnr ?? [])->implode(', ') ?: null)
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('flight_ssr_status')
+                    ->label('Extras Status')
+                    ->badge()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('flight_reissued_at')
+                    ->label('Reissued')
+                    ->dateTime('M j, Y h:i A')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('pax_adults')
                     ->numeric()
                     ->sortable(),
