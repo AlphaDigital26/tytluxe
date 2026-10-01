@@ -17,6 +17,15 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: [
             'payment/razorpay/webhook',
         ]);
+
+        // Livewire's update endpoint (used by the admin panel's forms) runs
+        // under the 'web' group rather than the Filament panel's own
+        // middleware, so the execution-time bump has to be registered here
+        // to cover admin form saves that process several uploads/repeaters
+        // in one request.
+        $middleware->web(append: [
+            \App\Http\Middleware\IncreaseAdminExecutionLimits::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

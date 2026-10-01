@@ -2,12 +2,17 @@
 
 namespace App\Filament\Resources\Bookings\Tables;
 
-use App\Services\FlightBookingService;
+use App\Models\Booking;
+use App\Services\Booking\BookingCancellationService;
+use App\Services\Payment\RazorpayService;
+use App\Services\TripJack\TripJackClient;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
-use Filament\Forms\Components\Select;
+use Filament\Actions\ViewAction;
+use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -108,50 +113,83 @@ class BookingsTable
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
+            ->defaultSort('created_at', 'desc')
             ->filters([
                 //
             ])
             ->recordActions([
+                ViewAction::make(),
                 EditAction::make(),
-                Action::make('processFullRefund')
-                    ->label('Process Full Refund')
-                    ->icon('heroicon-o-banknotes')
-                    ->color('warning')
-                    ->visible(fn ($record) => $record->vertical === 'flight' && $record->status === 'confirmed' && $record->tripjack_booking_id)
-                    ->requiresConfirmation()
-                    ->modalDescription('This uses TripJack\'s Auto Full Refund — only use it once you\'ve confirmed with the airline/TripJack that a full refund is owed (flight cancelled by airline, DGCA policy, etc.). This is NOT the same as a guest-requested cancellation, which they do themselves.')
-                    ->form([
-                        Select::make('remarks')
-                            ->label('Reason (must match TripJack\'s exact checklist to auto-process)')
-                            ->options([
-                                'Flight Cancelled by Airline' => 'Flight Cancelled by Airline',
-                                'Airline rescheduled flight, revised timings are not suitable' => 'Airline rescheduled flight, revised timings are not suitable',
-                                'Already cancelled by directly contacting airline customer support team' => 'Already cancelled by directly contacting airline customer support team',
-                                'Airline confirmed, refund is already processed' => 'Airline confirmed, refund is already processed',
-                                'Refund under DGCA policy' => 'Refund under DGCA policy',
-                                'Personal loss or bereavement' => 'Personal loss or bereavement',
-                                'Passenger is medically unfit for travel' => 'Passenger is medically unfit for travel',
-                                'Refund under empowerment policy' => 'Refund under empowerment policy',
-                            ])
-                            ->required()
-                            ->native(false),
-                    ])
-                    ->action(function (array $data, $record): void {
-                        $result = app(FlightBookingService::class)->submitFullRefund($record, $data['remarks']);
-
-                        Notification::make()
-                            ->title($result['success'] ? 'Full refund submitted' : 'Could not submit full refund')
-                            ->body($result['success']
-                                ? 'TripJack is processing this — the booking will update automatically once it resolves.'
-                                : ($result['message'] ?? 'Unknown error.'))
-                            ->color($result['success'] ? 'success' : 'danger')
-                            ->send();
-                    }),
+                static::cancelAndRefundAction(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    /**
+     * Mirrors the guest-facing TripJack cancel-booking -> booking-details ->
+     * Razorpay refund flow, but staff-triggered — see
+     * App\Services\Booking\BookingCancellationService. Only shown for
+     * confirmed bookings TripJack actually booked, and only to admins the
+     * BookingPolicy already allows to update this record (Super Admin).
+     */
+    protected static function cancelAndRefundAction(): Action
+    {
+        return Action::make('cancelAndRefund')
+            ->label('Cancel & Refund')
+            ->icon('heroicon-o-x-circle')
+            ->color('danger')
+            ->visible(function (Booking $record): bool {
+                return $record->status === 'confirmed'
+                    && filled($record->tripjack_booking_id)
+                    && (bool) (auth('admin')->user()?->can('update', $record));
+            })
+            ->schema(function (Booking $record) {
+                $preview = app(BookingCancellationService::class)->previewPenalty($record, app(TripJackClient::class));
+                $penalty = $preview['penalty'];
+
+                $penaltyText = match (true) {
+                    $penalty === null => "Couldn't be determined right now — TripJack lookup failed or returned no data. Double-check manually before choosing a refund amount.",
+                    $penalty['amount'] <= 0 => sprintf('%s 0.00 — currently within the free-cancellation window.', $record->currency),
+                    default => sprintf('%s %.2f cancellation penalty currently applies.', $record->currency, $penalty['amount']),
+                };
+
+                return [
+                    Placeholder::make('penalty_preview')
+                        ->label("TripJack's current cancellation penalty")
+                        ->content($penaltyText),
+                    TextInput::make('refund_amount')
+                        ->label('Refund amount to issue')
+                        ->numeric()
+                        ->minValue(0)
+                        ->prefix($record->currency)
+                        ->default($preview['estimatedRefund'])
+                        ->helperText('Pre-filled using TripJack\'s penalty above. Adjust for a partial refund, or clear it to cancel without issuing any refund.'),
+                ];
+            })
+            ->modalHeading('Cancel booking & process refund')
+            ->modalDescription('This calls TripJack to cancel the reservation, then refunds the guest via Razorpay for the amount entered. This cannot be undone.')
+            ->modalSubmitActionLabel('Confirm cancellation')
+            ->action(function (array $data, Booking $record): void {
+                $refundAmount = ($data['refund_amount'] ?? null) !== null && $data['refund_amount'] !== ''
+                    ? (float) $data['refund_amount']
+                    : null;
+
+                $result = app(BookingCancellationService::class)->cancelAndResolve(
+                    $record,
+                    app(TripJackClient::class),
+                    app(RazorpayService::class),
+                    $refundAmount,
+                );
+
+                Notification::make()
+                    ->title($result['success'] ? 'Cancellation processed' : 'Cancellation failed')
+                    ->body($result['message'])
+                    ->color($result['success'] ? 'success' : 'danger')
+                    ->send();
+            });
     }
 }
