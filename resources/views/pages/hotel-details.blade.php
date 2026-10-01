@@ -1700,6 +1700,80 @@ html { scroll-behavior: smooth; }
 
 /* ===== ROOM CATEGORIES ===== */
 .hd-room-cats { display: flex; flex-wrap: wrap; gap: 10px; }
+/* ===== ROOM TYPES TOOLBAR (search + quick filters) ===== */
+.hd-room-count { font-family: 'Jost', sans-serif; font-size: 13px; color: var(--white-60); }
+.hd-room-toolbar {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;
+  gap: 14px; margin-bottom: 24px;
+}
+.hd-room-search {
+  display: flex; align-items: center; gap: 10px; flex: 0 1 360px; min-width: 240px;
+  padding: 11px 16px; border-radius: 12px; cursor: text;
+  background: var(--dark-2); border: 1px solid rgba(255,255,255,0.12); color: var(--white-60);
+  transition: border-color 0.2s ease;
+}
+.hd-room-search:focus-within { border-color: var(--gold); }
+.hd-room-search input {
+  flex: 1; min-width: 0; background: none; border: none; outline: none;
+  color: #fff; font-family: 'Jost', sans-serif; font-size: 14px;
+}
+.hd-room-search input::placeholder { color: var(--white-60); }
+.hd-room-chips { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.hd-room-chip {
+  display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+  padding: 10px 18px; border-radius: 12px; white-space: nowrap;
+  background: var(--dark-2); border: 1px solid rgba(255,255,255,0.12);
+  color: #fff; font-family: 'Jost', sans-serif; font-size: 14px;
+  transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+.hd-room-chip:hover { border-color: rgba(201,168,76,0.6); }
+.hd-room-chip:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.hd-room-chip[aria-pressed="true"], .hd-room-chip.has-selection {
+  background: rgba(201,168,76,0.14); border-color: var(--gold); color: var(--gold);
+}
+.hd-room-meal-wrap { position: relative; }
+.hd-room-meal-count {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; height: 18px; padding: 0 5px; border-radius: 100px;
+  background: var(--gold); color: #0d0d0d; font-size: 11px; font-weight: 700;
+}
+.hd-room-meal-count[hidden] { display: none; }
+.hd-room-meal-menu {
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 40;
+  min-width: 240px; padding: 8px 0; border-radius: 12px;
+  background: var(--dark-2); border: 1px solid rgba(201,168,76,0.3);
+  box-shadow: 0 18px 40px rgba(0,0,0,0.45);
+}
+.hd-room-meal-menu[hidden] { display: none; }
+.hd-room-meal-opt {
+  display: flex; align-items: center; gap: 10px; padding: 11px 18px; cursor: pointer;
+  font-family: 'Jost', sans-serif; font-size: 14px; color: #fff;
+}
+.hd-room-meal-opt:hover { background: rgba(201,168,76,0.1); }
+.hd-room-meal-opt input { accent-color: var(--gold); width: 16px; height: 16px; }
+.hd-room-meal-opt-count { margin-left: auto; color: var(--white-60); font-size: 12px; }
+.hd-room-clear {
+  background: none; border: none; cursor: pointer; padding: 6px 4px;
+  color: var(--gold); font-family: 'Jost', sans-serif; font-size: 13px;
+  text-decoration: underline; text-underline-offset: 3px;
+}
+.hd-room-clear[hidden] { display: none; }
+.hd-room-empty {
+  padding: 36px 20px; margin-bottom: 24px; text-align: center; border-radius: 16px;
+  border: 1px dashed rgba(201,168,76,0.35); color: var(--white-60);
+  font-family: 'Jost', sans-serif; font-size: 14px;
+}
+.hd-room-empty[hidden] { display: none; }
+.hd-rate-row.hd-filtered-out, .hd-room-group-card.hd-filtered-out { display: none !important; }
+@media (max-width: 768px) {
+  .hd-room-search { flex: 1 1 100%; }
+  .hd-room-chips {
+    flex-wrap: nowrap; overflow-x: auto; width: 100%;
+    padding-bottom: 4px; scrollbar-width: none;
+  }
+  .hd-room-chips::-webkit-scrollbar { display: none; }
+  .hd-room-meal-menu { position: fixed; top: auto; bottom: 16px; left: 16px; right: 16px; min-width: 0; }
+}
 /* ===== ROOM CARDS ===== */
 .hd-room-list { display: flex; flex-direction: column; gap: 20px; }
 .hd-room-card {
@@ -3808,9 +3882,9 @@ html { scroll-behavior: smooth; }
 <div style="max-width:1280px; margin:0 auto; padding:0 40px 40px;">
   <div class="hd-section" id="htl-room-section" style="margin-bottom:0;">
     <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:24px;">
-      <h2 class="hd-section-title" style="margin:0;">Available Rooms</h2>
+      <h2 class="hd-section-title" style="margin:0;">Room Types</h2>
       @if(($liveOptions ?? collect())->isNotEmpty())
-      <span style="font-family:'Jost',sans-serif; font-size:13px; color:var(--white-60);">Showing {{ $liveOptions->count() }} of {{ $liveOptions->count() }} room options</span>
+      <span class="hd-room-count" id="hdRoomCount" data-total="{{ $liveOptions->count() }}">Showing results of {{ $liveOptions->count() }} of {{ $liveOptions->count() }} room {{ Str::plural('option', $liveOptions->count()) }}</span>
       @endif
       <button type="button" onclick="document.getElementById('hdSearchModifierWrap')?.scrollIntoView({behavior:'smooth', block:'center'}); document.getElementById('hdModCheckIn')?.click();" style="margin-left:auto; background:rgba(201,168,76,0.12); border:1px solid rgba(201,168,76,0.35); color:var(--gold); font-family:'Jost',sans-serif; font-size:12.5px; font-weight:600; padding:7px 16px; border-radius:100px; cursor:pointer; display:inline-flex; align-items:center; gap:7px; transition:all 0.2s ease;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -3827,6 +3901,42 @@ html { scroll-behavior: smooth; }
     @endif
 
     @if(($liveOptions ?? collect())->isNotEmpty())
+    @php
+      $roomMealPlans = collect($liveOptions)
+        ->map(fn ($o) => $o['mealBasis'] ?? 'Room Only')
+        ->countBy()
+        ->sortKeys();
+    @endphp
+    <div class="hd-room-toolbar" id="hdRoomToolbar">
+      <label class="hd-room-search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        <input type="search" id="hdRoomSearch" placeholder="Search by Room Type/Room Category" autocomplete="off" aria-label="Search by room type or room category">
+      </label>
+      <div class="hd-room-chips">
+        <button type="button" class="hd-room-chip" data-filter="refundable" aria-pressed="false">Refundable</button>
+        <button type="button" class="hd-room-chip" data-filter="breakfast" aria-pressed="false">Breakfast Included</button>
+        <button type="button" class="hd-room-chip" data-filter="pan" aria-pressed="false">PAN (Optional)</button>
+        <div class="hd-room-meal-wrap" id="hdRoomMealWrap">
+          <button type="button" class="hd-room-chip hd-room-meal-trigger" id="hdRoomMealTrigger" aria-haspopup="true" aria-expanded="false">
+            Meal Plans <span class="hd-room-meal-count" id="hdRoomMealCount" hidden></span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="hd-room-meal-menu" id="hdRoomMealMenu" hidden>
+            @foreach($roomMealPlans as $plan => $planCount)
+              <label class="hd-room-meal-opt">
+                <input type="checkbox" value="{{ Str::slug($plan) }}">
+                <span>{{ $plan }}</span>
+                <span class="hd-room-meal-opt-count">({{ $planCount }})</span>
+              </label>
+            @endforeach
+          </div>
+        </div>
+        <button type="button" class="hd-room-clear" id="hdRoomClear" hidden>Clear all</button>
+      </div>
+    </div>
+    <div class="hd-room-empty" id="hdRoomEmpty" hidden>
+      No room options match these filters. <button type="button" class="hd-room-clear" data-clear>Clear all filters</button>
+    </div>
     <div class="hd-room-list">
       @php
         $groupedOptions = collect($liveOptions)->groupBy(function($option) {
@@ -3975,7 +4085,12 @@ html { scroll-behavior: smooth; }
                   };
                 @endphp
 
-                <div class="hd-rate-row">
+                <div class="hd-rate-row"
+                     data-refundable="{{ $isRefundable ? '1' : '0' }}"
+                     data-breakfast="{{ preg_match('/breakfast|half board|full board|all inclusive/i', $mealBasis) ? '1' : '0' }}"
+                     data-pan-required="{{ ($compliance['panRequired'] ?? false) ? '1' : '0' }}"
+                     data-meal="{{ Str::slug($mealBasis) }}"
+                     data-search="{{ Str::lower($roomName.' '.$mealBasis) }}">
 
                   <!-- Option Details (Middle Column) -->
                   <div style="flex: 1; min-width: 220px; padding-right: 20px;">
@@ -5524,6 +5639,93 @@ html { scroll-behavior: smooth; }
       }, Math.max(0, remainingMs));
     })();
     @endif
+
+    /* ===== ROOM TYPES TOOLBAR (search + quick filters) ===== */
+    (function () {
+      const toolbar = document.getElementById('hdRoomToolbar');
+      if (!toolbar) return;
+
+      const searchInput = document.getElementById('hdRoomSearch');
+      const chips = toolbar.querySelectorAll('.hd-room-chip[data-filter]');
+      const mealWrap = document.getElementById('hdRoomMealWrap');
+      const mealTrigger = document.getElementById('hdRoomMealTrigger');
+      const mealMenu = document.getElementById('hdRoomMealMenu');
+      const mealCount = document.getElementById('hdRoomMealCount');
+      const mealBoxes = mealMenu ? mealMenu.querySelectorAll('input[type="checkbox"]') : [];
+      const countLabel = document.getElementById('hdRoomCount');
+      const emptyState = document.getElementById('hdRoomEmpty');
+      const clearButtons = document.querySelectorAll('#hdRoomClear, #hdRoomEmpty [data-clear]');
+      const total = countLabel ? parseInt(countLabel.dataset.total, 10) || 0 : 0;
+
+      function apply() {
+        const term = (searchInput?.value || '').trim().toLowerCase();
+        const active = {};
+        chips.forEach(chip => { active[chip.dataset.filter] = chip.getAttribute('aria-pressed') === 'true'; });
+        const meals = Array.from(mealBoxes).filter(b => b.checked).map(b => b.value);
+        let visible = 0;
+
+        document.querySelectorAll('.hd-room-group-card').forEach(group => {
+          let groupVisible = 0;
+          group.querySelectorAll('.hd-rate-row').forEach(row => {
+            const show = (!term || (row.dataset.search || '').includes(term))
+              && (!active.refundable || row.dataset.refundable === '1')
+              && (!active.breakfast || row.dataset.breakfast === '1')
+              && (!active.pan || row.dataset.panRequired === '0')
+              && (!meals.length || meals.includes(row.dataset.meal));
+            row.classList.toggle('hd-filtered-out', !show);
+            if (show) groupVisible++;
+          });
+          group.classList.toggle('hd-filtered-out', groupVisible === 0);
+          visible += groupVisible;
+        });
+
+        if (countLabel) {
+          countLabel.textContent = 'Showing results of ' + visible + ' of ' + total + ' room ' + (total === 1 ? 'option' : 'options');
+        }
+        if (emptyState) emptyState.hidden = visible > 0;
+        if (mealCount) {
+          mealCount.hidden = meals.length === 0;
+          mealCount.textContent = meals.length;
+        }
+        mealTrigger?.classList.toggle('has-selection', meals.length > 0);
+        const anyActive = !!term || meals.length > 0 || Object.values(active).some(Boolean);
+        const toolbarClear = document.getElementById('hdRoomClear');
+        if (toolbarClear) toolbarClear.hidden = !anyActive;
+      }
+
+      chips.forEach(chip => chip.addEventListener('click', () => {
+        chip.setAttribute('aria-pressed', chip.getAttribute('aria-pressed') === 'true' ? 'false' : 'true');
+        apply();
+      }));
+      searchInput?.addEventListener('input', apply);
+      mealBoxes.forEach(box => box.addEventListener('change', apply));
+
+      function setMealOpen(open) {
+        if (!mealMenu) return;
+        mealMenu.hidden = !open;
+        mealTrigger?.setAttribute('aria-expanded', open ? 'true' : 'false');
+      }
+      mealTrigger?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setMealOpen(mealMenu.hidden);
+      });
+      document.addEventListener('click', (e) => {
+        if (mealWrap && !mealWrap.contains(e.target)) setMealOpen(false);
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && mealMenu && !mealMenu.hidden) {
+          setMealOpen(false);
+          mealTrigger?.focus();
+        }
+      });
+
+      clearButtons.forEach(btn => btn.addEventListener('click', () => {
+        if (searchInput) searchInput.value = '';
+        chips.forEach(chip => chip.setAttribute('aria-pressed', 'false'));
+        mealBoxes.forEach(box => { box.checked = false; });
+        apply();
+      }));
+    })();
 
     /* ===== ROOM CARD PHOTO GALLERY (Available Rooms list) ===== */
     document.querySelectorAll('.hd-room-card-gallery').forEach(gallery => {
