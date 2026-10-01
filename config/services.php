@@ -61,10 +61,26 @@ return [
         'nationality_base_url' => env('TRIPJACK_NATIONALITY_BASE_URL', env('TRIPJACK_ENV', 'test') === 'production'
             ? 'https://hmssearch.tripjack.com/hms/v3'
             : 'https://apitest-hms.tripjack.com/hms/v3'),
-        'timeout' => env('TRIPJACK_TIMEOUT', 30),
+        // 60s (not 30s) — a domestic Multi-City search (2-6 legs) can take
+        // ~30s on its own against TripJack's sandbox; a shorter timeout was
+        // causing spurious TripJackTimeoutExceptions on real, successful
+        // searches. Shared with the hotel client too (same config key).
+        'timeout' => env('TRIPJACK_TIMEOUT', 60),
         'connect_timeout' => env('TRIPJACK_CONNECT_TIMEOUT', 5),
         'retry_times' => env('TRIPJACK_RETRY_TIMES', 3),
         'retry_sleep_ms' => env('TRIPJACK_RETRY_SLEEP_MS', 200),
+
+        // Flights API v2.0 — separate base host structure from Hotels
+        // (apitest.tripjack.com / tripjack.com, no hms-/booker- prefixes),
+        // same apikey header + TRIPJACK_ENV switch.
+        'flight' => [
+            'fms_base_url' => env('TRIPJACK_FLIGHT_FMS_BASE_URL', env('TRIPJACK_ENV', 'test') === 'production'
+                ? 'https://tripjack.com/fms/v1'
+                : 'https://apitest.tripjack.com/fms/v1'),
+            'oms_base_url' => env('TRIPJACK_FLIGHT_OMS_BASE_URL', env('TRIPJACK_ENV', 'test') === 'production'
+                ? 'https://tripjack.com/oms/v1'
+                : 'https://apitest.tripjack.com/oms/v1'),
+        ],
     ],
 
     'razorpay' => [

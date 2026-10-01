@@ -13,7 +13,7 @@ class Payment extends Model
     protected $fillable = [
         'booking_id', 'razorpay_order_id', 'razorpay_payment_id', 'razorpay_signature',
         'amount', 'currency', 'status', 'method', 'raw_response',
-        'refund_amount', 'refund_reason',
+        'refund_amount', 'refund_reason', 'purpose',
     ];
 
     protected $casts = [

@@ -1,0 +1,1253 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Booking;
+use App\Models\Payment;
+use App\Services\FlightBookingService;
+use App\Services\FlightPricingService;
+use App\Services\Payment\RazorpayService;
+use App\Services\TripJack\Exceptions\TripJackApiException;
+use App\Services\TripJack\Exceptions\TripJackException;
+use App\Services\TripJack\TripJackFlightClient;
+use App\Services\TripJack\TripJackFlightErrorCatalog;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
+
+/**
+ * Flights API v2.0 integration — Phase 1 (Search → Review → Instant Book).
+ * Kept separate from FrontendController (already 2000+ lines) rather than
+ * adding to it; only the payment/confirmation/cancellation steps that must
+ * share Razorpay webhook/idempotency plumbing stay in FrontendController,
+ * behind a `$booking->vertical === 'flight'` guard that delegates to
+ * FlightBookingService — see that class's docblock.
+ *
+ * Phase 1 scope only: Oneway and Return (domestic + international), Instant
+ * Book, full-booking cancellation. No Multi-City, Seat Map, SSR add-ons,
+ * Hold booking, or Reissue yet — see the flight integration plan.
+ */
+class FlightController extends Controller
+{
+    /**
+     * GET /flights/search — renders the results page if search params are
+     * present, otherwise just the empty results shell (the actual search
+     * form lives on pages.flights). GET (not POST) so results are
+     * bookmarkable/shareable and a page refresh never re-submits anything.
+     */
+    public function search(Request $request, TripJackFlightClient $client)
+    {
+        $tripType = in_array($request->query('trip_type'), ['return', 'multi'], true) ? $request->query('trip_type') : 'oneway';
+        $from = strtoupper((string) $request->query('from', ''));
+        $to = strtoupper((string) $request->query('to', ''));
+        $departDate = (string) $request->query('depart_date', '');
+        $returnDate = (string) $request->query('return_date', '');
+        $adults = max(1, min(9, (int) $request->query('adults', 1)));
+        $children = max(0, min(9, (int) $request->query('children', 0)));
+        $infants = max(0, min($adults, (int) $request->query('infants', 0)));
+        $cabinClass = in_array($request->query('cabin_class'), ['ECONOMY', 'PREMIUM_ECONOMY', 'BUSINESS', 'FIRST'], true)
+            ? $request->query('cabin_class')
+            : 'ECONOMY';
+        $preferredAirline = strtoupper((string) $request->query('preferred_airline', ''));
+        $fareType = in_array($request->query('fare_type'), ['REGULAR', 'STUDENT', 'SENIOR_CITIZEN'], true)
+            ? $request->query('fare_type')
+            : 'REGULAR';
+        $directFlightOnly = (bool) $request->query('direct_flight');
+
+        // Multi-City (2-6 legs, doc-confirmed) submits its own legs[] array
+        // (see partials.flight-search-widget's submit handler) rather than
+        // the single from/to/depart_date/return_date fields oneway/return
+        // use — from/to/departDate above stay as leg-1 fallbacks for the
+        // results page header only.
+        $legs = [];
+        if ($tripType === 'multi') {
+            foreach ((array) $request->query('legs', []) as $leg) {
+                $legFrom = strtoupper(trim((string) ($leg['from'] ?? '')));
+                $legTo = strtoupper(trim((string) ($leg['to'] ?? '')));
+                $legDate = (string) ($leg['date'] ?? '');
+                if ($legFrom !== '' && $legTo !== '' && $legDate !== '') {
+                    $legs[] = ['from' => $legFrom, 'to' => $legTo, 'date' => $legDate];
+                }
+            }
+            $legs = array_slice($legs, 0, 6);
+        }
+
+        $searchParams = compact('tripType', 'from', 'to', 'departDate', 'returnDate', 'adults', 'children', 'infants', 'cabinClass', 'preferredAirline', 'fareType', 'directFlightOnly', 'legs');
+
+        $hasValidInput = $tripType === 'multi'
+            ? count($legs) >= 2
+            : ($from !== '' && $to !== '' && $departDate !== '' && (! ($tripType === 'return') || $returnDate !== ''));
+
+        if (! $hasValidInput) {
+            return view('pages.flight-results', ['results' => null, 'searchError' => null, 'searchParams' => $searchParams]);
+        }
+
+        $paxInfo = array_filter([
+            'ADULT' => $adults,
+            'CHILD' => $children ?: null,
+            'INFANT' => $infants ?: null,
+        ], fn ($v) => $v !== null);
+
+        if ($tripType === 'multi') {
+            $routeInfos = array_map(fn ($leg) => [
+                'fromCityOrAirport' => ['code' => $leg['from']],
+                'toCityOrAirport' => ['code' => $leg['to']],
+                'travelDate' => $leg['date'],
+            ], $legs);
+        } else {
+            $routeInfos = [[
+                'fromCityOrAirport' => ['code' => $from],
+                'toCityOrAirport' => ['code' => $to],
+                'travelDate' => $departDate,
+            ]];
+            if ($tripType === 'return') {
+                $routeInfos[] = [
+                    'fromCityOrAirport' => ['code' => $to],
+                    'toCityOrAirport' => ['code' => $from],
+                    'travelDate' => $returnDate,
+                ];
+            }
+        }
+
+        // Confirmed live: the correct search modifier is `pfts`, sent as an
+        // ARRAY of strings — not `fareType` (an earlier, unverified guess),
+        // and not a plain string as the doc's own field table states.
+        // Sending pfts as a string 400s with "Expected BEGIN_ARRAY but was
+        // STRING". Always sent (not just for non-REGULAR) since TripJack
+        // itself always echoes a `pfts` array back in its own response.
+        // TODO(future): send the Search API's own `isDirectFlight: true` (and
+        // offer `isConnectingFlight`) in searchModifiers instead of only
+        // filtering direct flights out ourselves below — same results, but
+        // smaller/faster responses. Confirm the exact key live first (an
+        // earlier unverified modifier guess here was wrong).
+        $searchModifiers = ['pfts' => [$fareType]];
+        // TODO(future): TripJack accepts up to 10 preferred airlines
+        // (preferredAirline[].code); the search box currently offers one.
+        // The client already sends this as a list of {code} objects.
+        $preferredAirlines = $preferredAirline !== '' ? [$preferredAirline] : [];
+
+        $results = null;
+        $searchError = null;
+
+        try {
+            $response = $client->search($paxInfo, $routeInfos, $cabinClass, $searchModifiers, $preferredAirlines);
+
+            if (! ($response['status']['success'] ?? false)) {
+                $errorCode = TripJackFlightErrorCatalog::codeFromResponse($response);
+                $described = TripJackFlightErrorCatalog::describe($errorCode, 'We couldn\'t search flights right now. Please try again.');
+                $searchError = $described['message'];
+            } else {
+                $results = $response['searchResult'] ?? null;
+
+                // Direct-flight filtering is done here rather than via a
+                // TripJack search-modifier key (unconfirmed against the
+                // doc) — segment stop counts are already present on every
+                // option, so filtering client-side is guaranteed correct
+                // regardless of what TripJack's own param is actually called.
+                if ($directFlightOnly && $results) {
+                    $results = $this->filterDirectFlightsOnly($results);
+                }
+
+                // International Return / Multi-City come back as ONE "COMBO"
+                // list of whole-journey fares (confirmed live: BLR⇄DXB gave
+                // only a COMBO key), so Review takes a single priceId for them.
+                $searchParams['combo'] = isset($results['tripInfos']['COMBO']);
+
+                // Review needs the same correlation/search context later —
+                // stash the trip type + route so review() can validate the
+                // right number of priceIds was selected (1 for oneway, 2 for
+                // return) without trusting the client-submitted trip_type.
+                session(['flight_search_context' => $searchParams]);
+            }
+        } catch (TripJackException $e) {
+            $errorCode = $e instanceof TripJackApiException ? $e->errorCode : null;
+            $described = TripJackFlightErrorCatalog::describe($errorCode);
+            Log::channel('tripjack')->{$described['logLevel'] === 'critical' ? 'critical' : 'warning'}('flight_search_failed', ['errorCode' => $errorCode, 'message' => $e->getMessage()]);
+            $searchError = $described['message'];
+        }
+
+        return $this->withoutIndentation(view('pages.flight-results', compact('results', 'searchError', 'searchParams'))->render());
+    }
+
+    /**
+     * The results page repeats a deeply-indented card for every flight, and
+     * that indentation alone was ~30% of the page (845 KB of 2.6 MB on a
+     * 236-flight search). Leading whitespace carries no meaning here: the
+     * page has no <pre>/<textarea>, and the only multi-line JS template
+     * strings build HTML, where whitespace collapses anyway.
+     */
+    private function withoutIndentation(string $html)
+    {
+        return response(preg_replace('/\n[ \t]+/', "\n", $html));
+    }
+
+    /**
+     * Keeps only itineraries whose first segment is non-stop. Confirmed
+     * against a live sandbox response: tripInfos is a plain array of
+     * itinerary objects per leg (each its own `sI` segment list + its own
+     * `totalPriceList` of fares for that itinerary) — not a single object
+     * holding one shared `sI`/`totalPriceList`, as earlier (unverified) code
+     * here had assumed. Keyed ONWARD/RETURN for oneway/return, or 0..5 for
+     * Multi-City (confirmed live) — iterating whatever keys are actually
+     * present works for both without caring which.
+     */
+    protected function filterDirectFlightsOnly(array $results): array
+    {
+        foreach (array_keys($results['tripInfos'] ?? []) as $key) {
+            if (! is_array($results['tripInfos'][$key])) {
+                continue;
+            }
+
+            $results['tripInfos'][$key] = array_values(array_filter(
+                $results['tripInfos'][$key],
+                fn ($itinerary) => self::isNonStop($itinerary)
+            ));
+        }
+
+        return $results;
+    }
+
+    /**
+     * A connecting itinerary comes back as several `sI` segments, each with
+     * `stops: 0` (confirmed live, BLR→DEL→IXB) — so the first segment's
+     * `stops` alone doesn't mean the journey is non-stop.
+     */
+    private static function isNonStop(array $itinerary): bool
+    {
+        // Every leg must be a single segment with no technical stop — a
+        // COMBO (international return) itinerary holds one leg per direction.
+        foreach (TripJackFlightClient::itineraryLegs($itinerary['sI'] ?? []) as $leg) {
+            if (count($leg) !== 1 || (int) ($leg[0]['stops'] ?? 0) !== 0) {
+                return false;
+            }
+        }
+
+        return ! empty($itinerary['sI']);
+    }
+
+    /**
+     * GET /flights/fare-calendar (AJAX, JSON) — the "Fetch Fare" cells in the
+     * results page's date strip. TripJack has no fare-calendar service, so
+     * this runs an ordinary search for the other date and returns only the
+     * cheapest total fare (onward + return for a return trip). Deliberately
+     * doesn't touch session('flight_search_context'), which belongs to the
+     * search the guest is actually looking at. Cached briefly, since guests
+     * flick back and forth between the same few dates.
+     */
+    public function fareCalendarAjax(Request $request, TripJackFlightClient $client)
+    {
+        $validated = $request->validate([
+            'from' => 'required|string|size:3',
+            'to' => 'required|string|size:3',
+            'depart_date' => 'required|date_format:Y-m-d|after_or_equal:today',
+            'return_date' => 'nullable|date_format:Y-m-d|after_or_equal:depart_date',
+            'adults' => 'required|integer|min:1|max:9',
+            'children' => 'nullable|integer|min:0|max:9',
+            'infants' => 'nullable|integer|min:0|max:9',
+            'cabin_class' => 'nullable|in:ECONOMY,PREMIUM_ECONOMY,BUSINESS,FIRST',
+            'preferred_airline' => 'nullable|string|max:3',
+            'fare_type' => 'nullable|in:REGULAR,STUDENT,SENIOR_CITIZEN',
+            'direct_flight' => 'nullable|boolean',
+        ]);
+
+        $from = strtoupper($validated['from']);
+        $to = strtoupper($validated['to']);
+        $routeInfos = [[
+            'fromCityOrAirport' => ['code' => $from],
+            'toCityOrAirport' => ['code' => $to],
+            'travelDate' => $validated['depart_date'],
+        ]];
+        if (! empty($validated['return_date'])) {
+            $routeInfos[] = [
+                'fromCityOrAirport' => ['code' => $to],
+                'toCityOrAirport' => ['code' => $from],
+                'travelDate' => $validated['return_date'],
+            ];
+        }
+
+        $adults = (int) $validated['adults'];
+        $paxInfo = array_filter([
+            'ADULT' => $adults,
+            'CHILD' => (int) ($validated['children'] ?? 0) ?: null,
+            'INFANT' => min($adults, (int) ($validated['infants'] ?? 0)) ?: null,
+        ]);
+        $cabinClass = $validated['cabin_class'] ?? 'ECONOMY';
+        $modifiers = ['pfts' => [$validated['fare_type'] ?? 'REGULAR']];
+        $airline = strtoupper((string) ($validated['preferred_airline'] ?? ''));
+        $directOnly = (bool) ($validated['direct_flight'] ?? false);
+
+        $cacheKey = 'flight_fare_calendar:'.md5(json_encode([$paxInfo, $routeInfos, $cabinClass, $modifiers, $airline, $directOnly]));
+        $cached = Cache::get($cacheKey);
+        if ($cached !== null) {
+            return response()->json(['success' => true, 'minPrice' => $cached]);
+        }
+
+        try {
+            $response = $client->search($paxInfo, $routeInfos, $cabinClass, $modifiers, $airline !== '' ? [$airline] : []);
+        } catch (TripJackException $e) {
+            return response()->json(['success' => false, 'message' => 'Fare unavailable right now.']);
+        }
+
+        $tripInfos = ($response['status']['success'] ?? false) ? ($response['searchResult']['tripInfos'] ?? []) : [];
+
+        // Every requested leg must have at least one fare, otherwise there is
+        // no bookable total for that date. A COMBO list (international
+        // return) already prices the whole journey in one fare.
+        $total = isset($tripInfos['COMBO']) || count($tripInfos) === count($routeInfos) ? 0.0 : null;
+        foreach ($tripInfos as $itineraries) {
+            $legMin = null;
+            foreach ((array) $itineraries as $itinerary) {
+                if ($directOnly && ! self::isNonStop($itinerary)) {
+                    continue;
+                }
+                foreach ($itinerary['totalPriceList'] ?? [] as $option) {
+                    $tf = (float) (($option['fd'] ?? $option['fD'] ?? [])['ADULT']['fC']['TF'] ?? 0);
+                    if ($tf > 0 && ($legMin === null || $tf < $legMin)) {
+                        $legMin = $tf;
+                    }
+                }
+            }
+            if ($legMin === null || $total === null) {
+                $total = null;
+                break;
+            }
+            $total += $legMin;
+        }
+
+        if ($total === null) {
+            return response()->json(['success' => false, 'message' => 'No flights']);
+        }
+
+        $total = (int) round($total);
+        Cache::put($cacheKey, $total, now()->addMinutes(15));
+
+        return response()->json(['success' => true, 'minPrice' => $total]);
+    }
+
+    /**
+     * POST /flights/review —revalidates the guest's selected priceId(s)
+     * (1 for Oneway, 2 for Return — ONWARD + RETURN, per TripJack's docs)
+     * and stores the reviewed option in session. PRG: redirects to the GET
+     * counterpart rather than rendering directly, so a refresh never
+     * re-submits/re-reviews.
+     */
+    public function review(Request $request, TripJackFlightClient $client)
+    {
+        $request->validate(['price_ids' => 'required|array|min:1|max:6', 'price_ids.*' => 'required|string']);
+        // The form submits price_ids as an associative array (keyed
+        // ONWARD/RETURN, for the "select one radio per leg" UI) — TripJack's
+        // priceIds must be a plain JSON array, so re-index before sending.
+        $priceIds = array_values($request->input('price_ids'));
+
+        $context = session('flight_search_context');
+        $back = redirect()->route('flights.search');
+
+        if (! $context) {
+            return $back->with('booking_error', 'Your search session has expired. Please search again.');
+        }
+
+        $expectedCount = match (true) {
+            ! empty($context['combo']) => 1,
+            $context['tripType'] === 'multi' => count($context['legs'] ?? []),
+            $context['tripType'] === 'return' => 2,
+            default => 1,
+        };
+        if (count($priceIds) !== $expectedCount) {
+            return $back->with('booking_error', 'Please select a flight for every leg of your trip.');
+        }
+
+        try {
+            $response = $client->review($priceIds);
+        } catch (TripJackException $e) {
+            $errorCode = $e instanceof TripJackApiException ? $e->errorCode : null;
+            $described = TripJackFlightErrorCatalog::describe($errorCode);
+            Log::channel('tripjack')->warning('flight_review_failed', ['errorCode' => $errorCode, 'message' => $e->getMessage()]);
+
+            // Confirmed live: Review rejects an unmatched Special Return pair
+            // (different airlines, a regular fare on one leg, or an Air India
+            // fare that isn't its named partner) with "All Segments Must be
+            // selected if Special Return fare." — explain it, and send the
+            // guest back to the same results rather than a blank search.
+            if (stripos($e->getMessage(), 'Special Return') !== false) {
+                return redirect()->to(url()->previous() ?: route('flights.search'))->with('booking_error', 'Special Return fares can only be booked as a matched pair. Please pick the return fare marked “Pairs with your onward fare”, or choose regular fares on both flights.');
+            }
+
+            return $back->with('booking_error', $described['message']);
+        }
+
+        if (! ($response['status']['success'] ?? false) || empty($response['bookingId'])) {
+            $errorCode = TripJackFlightErrorCatalog::codeFromResponse($response);
+            $described = TripJackFlightErrorCatalog::describe($errorCode, 'This fare is no longer available. Please search again.');
+
+            return $back->with('booking_error', $described['message']);
+        }
+
+        session(['flight_booking_draft' => [
+            'bookingId' => $response['bookingId'],
+            'response' => $response,
+            'context' => $context,
+            // The results page this fare was picked from, so the fare-change
+            // popup's "Back" returns the guest to the same list.
+            'resultsUrl' => url()->previous(),
+            // conditions.st = how long (seconds) the reviewed fare and its
+            // bookingId stay valid — 840 s on live fares checked. Timed on
+            // our own clock from now, rather than parsing TripJack's sct
+            // timestamp (whose timezone isn't stated).
+            'expiresAt' => ! empty($response['conditions']['st']) ? now()->addSeconds((int) $response['conditions']['st'])->timestamp : null,
+        ]]);
+
+        return redirect()->route('flights.review.show');
+    }
+
+    /**
+     * Add-on (SSR) types offered at booking time, mapped to their Book API
+     * field. Only types confirmed live end-to-end are listed — any other
+     * ssrInfo type TripJack returns is not offered, so a guest can never pay
+     * for something Book would then reject. FASTFORWARD's field is NOT the
+     * doc's ssrExtraServiceInfos (confirmed live: that 400s with a generic
+     * "bad data" error; ssrFastForwardInfos books SUCCESS).
+     */
+    private const ADDON_BOOK_FIELDS = [
+        'BAGGAGE' => 'ssrBaggageInfos',
+        'MEAL' => 'ssrMealInfos',
+        'FASTFORWARD' => 'ssrFastForwardInfos',
+    ];
+
+    /**
+     * Step 1 — Flight Itinerary: flight details, fare rules and fare summary
+     * for the reviewed fare, from the session draft.
+     */
+    public function showReview(TripJackFlightClient $client)
+    {
+        $draft = session('flight_booking_draft');
+        if (! $draft) {
+            return redirect()->route('flights.search')->with('booking_error', 'Your booking session has expired. Please search again.');
+        }
+
+        $response = $draft['response'];
+        $context = $draft['context'];
+        // Confirmed against a live sandbox response: Review's tripInfos is a
+        // flat numeric array of itinerary objects (each its own sI segment
+        // list) — unlike Search's tripInfos, it is NOT keyed ONWARD/RETURN.
+        $tripInfos = $response['tripInfos'] ?? [];
+        $conditions = $response['conditions'] ?? [];
+        $breakdown = $this->reviewBreakdown($response);
+
+        // Best-effort, display-only — never block the page if it fails.
+        // flowType=REVIEW with the Review bookingId (confirmed live).
+        $fareRules = null;
+        try {
+            $fareRuleResponse = $client->fareRule('REVIEW', $draft['bookingId']);
+            $fareRules = $fareRuleResponse['fareRule'] ?? null;
+        } catch (TripJackException $e) {
+            Log::channel('tripjack')->info('flight_review_farerule_failed', ['bookingId' => $draft['bookingId'], 'message' => $e->getMessage()]);
+        }
+
+        $fareAlerts = $this->normalizeReviewAlerts($response['alerts'] ?? []);
+        $resultsUrl = $draft['resultsUrl'] ?? route('flights.search');
+
+        $sessionExpiresAt = $draft['expiresAt'] ?? null;
+
+        return view('pages.flight-review', compact('response', 'context', 'tripInfos', 'conditions', 'breakdown', 'fareRules', 'fareAlerts', 'resultsUrl', 'sessionExpiresAt'));
+    }
+
+    /**
+     * Step 2 — Passenger Details: traveller, contact and GST details plus
+     * seat / baggage / meal / other-service add-ons for the reviewed fare.
+     */
+    public function showPassengers(Request $request, TripJackFlightClient $client)
+    {
+        $draft = session('flight_booking_draft');
+        if (! $draft) {
+            return redirect()->route('flights.search')->with('booking_error', 'Your booking session has expired. Please search again.');
+        }
+        // The Continue link carries the fare its Step 1 tab showed; a stale
+        // tab (another fare reviewed since) is sent back to the current one.
+        if ($request->query('booking') !== $draft['bookingId']) {
+            return redirect()->route('flights.review.show')->withErrors([
+                'review_booking_id' => 'You opened another flight in a different tab, so that page was out of date. Please check the flight and fare shown here before continuing.',
+            ]);
+        }
+
+        $response = $draft['response'];
+        $context = $draft['context'];
+        $tripInfos = $response['tripInfos'] ?? [];
+        $conditions = $response['conditions'] ?? [];
+        $breakdown = $this->reviewBreakdown($response);
+        $addonTrips = $this->addonOptions($response);
+
+        // Live seat maps keyed by segment id — best-effort; without one the
+        // seat picker is simply hidden (unless seats are mandatory, which
+        // submitBooking() then enforces with a clear error).
+        $seatMaps = [];
+        if ($conditions['isa'] ?? false) {
+            try {
+                $seatMaps = $client->seatMap($draft['bookingId'])['tripSeatMap']['tripSeat'] ?? [];
+            } catch (TripJackException $e) {
+                Log::channel('tripjack')->info('flight_passengers_seatmap_failed', ['bookingId' => $draft['bookingId'], 'message' => $e->getMessage()]);
+            }
+        }
+
+        $savedTravellers = $request->user()->savedTravellers()->orderBy('first_name')->get();
+        $resultsUrl = $draft['resultsUrl'] ?? route('flights.search');
+
+        $sessionExpiresAt = $draft['expiresAt'] ?? null;
+
+        return view('pages.flight-passengers', compact('response', 'context', 'tripInfos', 'conditions', 'breakdown', 'addonTrips', 'seatMaps', 'savedTravellers', 'resultsUrl', 'sessionExpiresAt'));
+    }
+
+    /**
+     * TYTLUXE's price for the reviewed fare, recalculated from Review's
+     * freshly re-validated TF (never a figure from the Search step).
+     * Confirmed: the total fare lives at totalPriceInfo.totalFareDetail.fC.
+     */
+    private function reviewBreakdown(array $response): array
+    {
+        $fc = $response['totalPriceInfo']['totalFareDetail']['fC'] ?? [];
+        $afc = $response['totalPriceInfo']['totalFareDetail']['afC']['TAF'] ?? [];
+        $breakdown = FlightPricingService::price((float) ($fc['TF'] ?? 0));
+        $breakdown['base_fare'] = round((float) ($fc['BF'] ?? 0), 2);
+        $breakdown['airline_taxes'] = round((float) ($fc['TAF'] ?? 0), 2);
+        $breakdown['tripjack_mf'] = round((float) ($afc['MF'] ?? 0), 2);
+        $breakdown['tripjack_mft'] = round((float) ($afc['MFT'] ?? 0), 2);
+
+        return $breakdown;
+    }
+
+    /**
+     * Bookable add-ons per trip/segment, read from Review's segment ssrInfo
+     * (the server-side source of truth for their prices). Confirmed live:
+     * baggage is per journey — only a trip's first segment carries prices,
+     * and sending it keyed to that segment applies it to the whole trip —
+     * so baggage is offered on each trip's first segment only.
+     *
+     * @return array<int, array{label: string, seatMandatory: bool, segments: array<int, array{id: string, label: string, options: array<string, array<string, array{desc: string, amount: float}>>}>}>
+     */
+    private function addonOptions(array $response): array
+    {
+        $trips = [];
+        foreach ($response['tripInfos'] ?? [] as $trip) {
+            $segs = $trip['sI'] ?? [];
+            if (! $segs) {
+                continue;
+            }
+            $segments = [];
+            foreach ($segs as $idx => $seg) {
+                $options = [];
+                foreach (array_keys(self::ADDON_BOOK_FIELDS) as $type) {
+                    if ($type === 'BAGGAGE' && $idx > 0) {
+                        continue;
+                    }
+                    foreach ($seg['ssrInfo'][$type] ?? [] as $item) {
+                        if (empty($item['code'])) {
+                            continue;
+                        }
+                        $options[$type][$item['code']] = [
+                            'desc' => $item['desc'] ?? $item['code'],
+                            'amount' => round((float) ($item['amount'] ?? 0), 2),
+                        ];
+                    }
+                }
+                $segments[] = [
+                    'id' => (string) $seg['id'],
+                    'label' => ($seg['da']['code'] ?? '').' → '.($seg['aa']['code'] ?? ''),
+                    'options' => $options,
+                ];
+            }
+            $trips[] = [
+                'label' => ($segs[0]['da']['code'] ?? '').' → '.(end($segs)['aa']['code'] ?? ''),
+                // Confirmed live: trip-level `ism` is set on fares whose Book
+                // 400s with "Seat Selection is Mandatory" when no seat is sent.
+                'seatMandatory' => (bool) ($trip['ism'] ?? false),
+                'segments' => $segments,
+            ];
+        }
+
+        return $trips;
+    }
+
+    /**
+     * Flattens Review's `alerts` into display rows, grouped by sector.
+     * Confirmed live: detail changes arrive as
+     * {type: FAREALERT, miscAlert: {"BLR-DEL": [{key, oldValue, newValue}]}};
+     * price changes carry top-level oldFare/newFare (TripJack's own fare,
+     * same basis as the results page — not TYTLUXE's marked-up total).
+     *
+     * @return array<string, array<int, array{label: string, old: string, new: string}>>
+     */
+    private function normalizeReviewAlerts(array $alerts): array
+    {
+        $grouped = [];
+
+        foreach ($alerts as $alert) {
+            if (isset($alert['oldFare'], $alert['newFare']) && (float) $alert['oldFare'] !== (float) $alert['newFare']) {
+                $grouped['Fare'][] = [
+                    'label' => 'Fare',
+                    'old' => '₹'.number_format((float) $alert['oldFare'], 2),
+                    'new' => '₹'.number_format((float) $alert['newFare'], 2),
+                ];
+            }
+
+            foreach ($alert['miscAlert'] ?? [] as $sector => $items) {
+                foreach ((array) $items as $item) {
+                    $old = trim((string) ($item['oldValue'] ?? ''));
+                    $new = trim((string) ($item['newValue'] ?? ''));
+                    if ($old === $new) {
+                        continue;
+                    }
+                    $grouped[$sector][] = [
+                        'label' => $item['key'] ?? 'Details',
+                        'old' => $old !== '' ? $old : '—',
+                        'new' => $new !== '' ? $new : '—',
+                    ];
+                }
+            }
+        }
+
+        return $grouped;
+    }
+
+    /**
+     * Fare Validate (pre-book) — confirms the reviewed fare and booking class
+     * are still available, using the same traveller/SSR payload as Book.
+     * Confirmed live: a valid fare returns status.success with the
+     * re-checked totalPriceInfo (plus `alerts` when it changed, and `iobfe`
+     * when the old booking fare expired); an unavailable fare returns a 400.
+     *
+     * Returns a redirect when the guest must not proceed to payment, or null
+     * to continue. A TripJack outage is deliberately not treated as a
+     * failure: Book re-validates after payment anyway, and a failed Book is
+     * refunded automatically (FlightBookingService).
+     */
+    private function validateFareBeforePayment(TripJackFlightClient $client, array $draft, array $travellerInfo, string $email, string $phone, ?array $gstInfo, float $addonsTotal, ?array $contactInfo = null)
+    {
+        $soldOut = redirect()->route('flights.search')->with('booking_error', 'Sorry — this fare is no longer available with the airline. Please search again and pick another flight.');
+
+        try {
+            $result = $client->fareValidatePreBook(array_filter([
+                'bookingId' => $draft['bookingId'],
+                'deliveryInfo' => [
+                    'emails' => [$email],
+                    'contacts' => ['+91'.substr(preg_replace('/\D/', '', $phone), -10)],
+                ],
+                'contactInfo' => $contactInfo,
+                'travellerInfo' => $travellerInfo,
+                'gstInfo' => $gstInfo,
+            ], fn ($v) => $v !== null));
+        } catch (TripJackApiException $e) {
+            Log::channel('tripjack')->warning('flight_fare_validate_unavailable', ['bookingId' => $draft['bookingId'], 'errorCode' => $e->errorCode, 'message' => $e->getMessage()]);
+
+            return $soldOut;
+        } catch (TripJackException $e) {
+            Log::channel('tripjack')->warning('flight_fare_validate_skipped', ['bookingId' => $draft['bookingId'], 'message' => $e->getMessage()]);
+
+            return null;
+        }
+
+        if (! ($result['status']['success'] ?? false) || ! empty($result['iobfe'])) {
+            return $soldOut;
+        }
+
+        $oldFare = (float) ($draft['response']['totalPriceInfo']['totalFareDetail']['fC']['TF'] ?? 0);
+        $newFare = (float) ($result['totalPriceInfo']['totalFareDetail']['fC']['TF'] ?? $oldFare);
+        $hasFareAlert = collect($result['alerts'] ?? [])->contains(fn ($a) => ($a['type'] ?? '') === 'FAREALERT');
+
+        if (abs($newFare - $oldFare) < 0.01 && ! $hasFareAlert) {
+            return null;
+        }
+
+        // The fare moved: store the new one so the page (and the next
+        // submit) use it, and ask the guest to confirm before paying.
+        $draft['response']['totalPriceInfo'] = $result['totalPriceInfo'] ?? $draft['response']['totalPriceInfo'];
+        session(['flight_booking_draft' => $draft]);
+        $oldPrice = FlightPricingService::price($oldFare + $addonsTotal)['customer_price'];
+        $newPrice = FlightPricingService::price($newFare + $addonsTotal)['customer_price'];
+        Log::channel('tripjack')->info('flight_fare_validate_changed', ['bookingId' => $draft['bookingId'], 'old' => $oldFare, 'new' => $newFare]);
+
+        return back()->withInput()->withErrors([
+            'fare_changed' => abs($newPrice - $oldPrice) >= 0.01
+                ? 'The airline has just changed this fare from ₹'.number_format($oldPrice, 2).' to ₹'.number_format($newPrice, 2).'. The updated amount is shown below — press Proceed to Pay again to continue at the new price.'
+                : 'The airline has updated this fare’s details. Please check the fare summary below and press Proceed to Pay again to continue.',
+        ]);
+    }
+
+    /**
+     * POST /flights/book — guest submits traveller details; creates the
+     * local Booking + Razorpay order and sends them to pay. TripJack's Book
+     * API is NOT called here — only once payment is captured, via
+     * FlightBookingService::confirmAfterPayment() — mirrors the hotel flow.
+     */
+    public function submitBooking(Request $request, RazorpayService $razorpay, TripJackFlightClient $client)
+    {
+        $draft = session('flight_booking_draft');
+        if (! $draft) {
+            return redirect()->route('flights.search')->with('booking_error', 'Your booking session has expired. Please search again.');
+        }
+
+        // Review opens in a new tab and the draft is one-per-session, so a
+        // guest with two review tabs could otherwise submit tab A's form
+        // against tab B's (different, possibly pricier) fare.
+        if ($request->input('review_booking_id') !== $draft['bookingId']) {
+            return redirect()->route('flights.review.show')->withErrors([
+                'review_booking_id' => 'You opened another flight in a different tab, so this page was out of date. Please check the flight and fare shown here before continuing.',
+            ]);
+        }
+
+        // The reviewed fare's TripJack session (conditions.st) has run out —
+        // its bookingId can no longer be booked, so don't take payment.
+        if (! empty($draft['expiresAt']) && now()->timestamp >= $draft['expiresAt']) {
+            return redirect($draft['resultsUrl'] ?? route('flights.search'))->with('booking_error', 'Your fare session expired before booking was completed, so prices may have changed. Please choose your flight again.');
+        }
+
+        $response = $draft['response'];
+        $context = $draft['context'];
+        $conditions = $response['conditions'] ?? [];
+        $panRequired = (bool) ($conditions['gst']['ipa'] ?? $conditions['ipa'] ?? false);
+        $passportRequired = (bool) ($conditions['pcs']['pm'] ?? $conditions['pm'] ?? false);
+        // Per passenger type (adult / child / infant) — e.g. IndiGo requires
+        // DOB for infants only.
+        $dobFlags = [
+            'ADULT' => (bool) ($conditions['dob']['adobr'] ?? false),
+            'CHILD' => (bool) ($conditions['dob']['cdobr'] ?? false),
+            'INFANT' => true,
+        ];
+        $gstMandatory = (bool) ($conditions['gst']['igm'] ?? false);
+        // Confirmed live: a STUDENT fare's Review returned dc.ida and dc.idm
+        // both true — Book then needs each traveller's ID as travellerInfo.di.
+        $docApplicable = (bool) ($conditions['dc']['ida'] ?? false);
+        $docMandatory = (bool) ($conditions['dc']['idm'] ?? false);
+        $emergencyRequired = (bool) ($conditions['iecr'] ?? false);
+
+        $totalPax = $context['adults'] + $context['children'] + $context['infants'];
+        $firstNameMax = (int) ($conditions['anlm']['fN'] ?? 100);
+        $lastNameMax = (int) ($conditions['anlm']['lN'] ?? 100);
+        $nameRegex = "regex:/^[A-Za-z\\s.'-]+$/";
+        $phoneRule = function ($attribute, $value, $fail) {
+            $digits = preg_replace('/\D/', '', (string) $value);
+            $digits = preg_replace('/^91(?=\d{10}$)/', '', $digits);
+            if (! preg_match('/^\d{10}$/', $digits)) {
+                $fail('Please enter a valid 10-digit mobile number.');
+            }
+        };
+
+        $rules = [
+            'contact_email' => 'required|email|max:255',
+            'contact_phone' => ['required', 'string', 'max:20', $phoneRule],
+            'special_requests' => 'nullable|string|max:500',
+            'travellers' => 'required|array|size:'.$totalPax,
+        ];
+        for ($i = 0; $i < $totalPax; $i++) {
+            $rules["travellers.{$i}.title"] = 'required|string|in:Mr,Mrs,Ms,Master,Miss';
+            $rules["travellers.{$i}.first_name"] = ['required', 'string', 'max:'.$firstNameMax, $nameRegex];
+            $rules["travellers.{$i}.last_name"] = ['required', 'string', 'max:'.$lastNameMax, $nameRegex];
+            $rules["travellers.{$i}.save"] = 'nullable|boolean';
+            foreach (['seats', 'baggage', 'meals', 'fastforward'] as $addon) {
+                $rules["travellers.{$i}.{$addon}"] = 'nullable|array';
+                $rules["travellers.{$i}.{$addon}.*"] = 'nullable|string|max:20';
+            }
+            $paxType = $i < $context['adults'] ? 'ADULT' : ($i < $context['adults'] + $context['children'] ? 'CHILD' : 'INFANT');
+            if ($dobFlags[$paxType]) {
+                $rules["travellers.{$i}.dob"] = 'required|date|before:today';
+            }
+            if ($passportRequired) {
+                $rules["travellers.{$i}.passport_number"] = ['required', 'string', 'regex:/^[A-Za-z0-9]{6,20}$/'];
+                $rules["travellers.{$i}.passport_expiry"] = 'required|date|after:today';
+                // Sent as pNat (2-letter code) and pid — both confirmed
+                // accepted and stored by a live sandbox hold.
+                $rules["travellers.{$i}.passport_nationality"] = ['required', 'string', 'size:2', \Illuminate\Validation\Rule::in(array_keys(require resource_path('data/countries.php')))];
+                $rules["travellers.{$i}.passport_issue_date"] = 'required|date|before_or_equal:today';
+            }
+            if ($docApplicable && $paxType !== 'INFANT') {
+                $rules["travellers.{$i}.document_id"] = [$docMandatory ? 'required' : 'nullable', 'string', 'max:30', 'regex:/^[A-Za-z0-9\/-]+$/'];
+            }
+            if ($panRequired && $paxType === 'ADULT') {
+                // Lead traveller's PAN is required; other adults may add theirs.
+                $rules["travellers.{$i}.pan"] = [$i === 0 ? 'required' : 'nullable', 'string', 'regex:/^[A-Za-z]{5}[0-9]{4}[A-Za-z]$/'];
+            }
+            $rules["travellers.{$i}.frequent_flyer"] = ['nullable', 'string', 'max:20', 'regex:/^[A-Za-z0-9]+$/'];
+        }
+        if ($emergencyRequired) {
+            $rules['emergency_name'] = ['required', 'string', 'max:60', $nameRegex];
+            $rules['emergency_phone'] = ['required', 'string', 'max:20', $phoneRule];
+            $rules['emergency_email'] = 'nullable|email|max:255';
+        }
+        // GST is optional unless the fare mandates it; once started, both
+        // fields are needed.
+        $rules['gst_number'] = [$gstMandatory ? 'required' : 'nullable', 'required_with:gst_registered_name', 'string', 'regex:/^[0-9]{2}[A-Za-z0-9]{13}$/'];
+        $rules['gst_registered_name'] = [$gstMandatory ? 'required' : 'nullable', 'required_with:gst_number', 'string', 'max:35'];
+        $validated = $request->validate($rules, [
+            'gst_number.regex' => 'Please enter a valid 15-character GSTIN.',
+            'travellers.*.pan.regex' => 'Please enter a valid 10-character PAN (e.g. ABCDE1234F).',
+            'travellers.*.document_id.required' => 'Please enter the ID number for this '.strtolower(str_replace('_', ' ', $context['fareType'] ?? '')).' fare.',
+            'travellers.*.passport_issue_date.before_or_equal' => 'The passport issue date can’t be in the future.',
+        ]);
+
+        $leadNames = collect($validated['travellers'])->map(fn ($t) => strtolower(trim(($t['first_name'] ?? '').' '.($t['last_name'] ?? ''))));
+        if ($leadNames->duplicates()->isNotEmpty()) {
+            return back()->withInput()->withErrors(['travellers' => 'Each traveller must have a different name.']);
+        }
+
+        $primaryAirlineCode = $response['tripInfos'][0]['sI'][0]['fD']['aI']['code'] ?? null;
+        $addonTrips = $this->addonOptions($response);
+
+        // Never trust a client-submitted add-on price. Seat prices come from
+        // a fresh seat map; baggage/meal/fast-forward prices from Review's
+        // ssrInfo in the server-side draft. TripJack's Book strictly
+        // requires paymentInfos.amount to equal TF + every selected add-on
+        // (confirmed live — a mismatch 400s), and that amount is read from
+        // the pricing breakdown below.
+        $seatAmounts = []; // [segmentId][code] => amount, bookable seats only
+        $wantsSeats = collect($validated['travellers'])->contains(fn ($t) => array_filter($t['seats'] ?? []) !== []);
+        $needsSeats = collect($addonTrips)->contains('seatMandatory', true);
+        if ($wantsSeats || $needsSeats) {
+            try {
+                foreach ($client->seatMap($draft['bookingId'])['tripSeatMap']['tripSeat'] ?? [] as $segId => $map) {
+                    foreach ($map['sInfo'] ?? [] as $s) {
+                        if (! ($s['isBooked'] ?? false) && ! empty($s['code'])) {
+                            $seatAmounts[(string) $segId][$s['code']] = round((float) ($s['amount'] ?? 0), 2);
+                        }
+                    }
+                }
+            } catch (TripJackException $e) {
+                Log::channel('tripjack')->warning('flight_seat_revalidate_failed', ['bookingId' => $draft['bookingId'], 'message' => $e->getMessage()]);
+            }
+        }
+
+        $addonErrors = [];
+        $usedSeats = [];
+        $addonsTotal = 0.0;
+        $travellerInfo = [];
+        foreach ($validated['travellers'] as $i => $t) {
+            $pt = $i < $context['adults'] ? 'ADULT' : ($i < $context['adults'] + $context['children'] ? 'CHILD' : 'INFANT');
+            $paxLabel = ucfirst(strtolower($pt)).' '.($i + 1);
+            $ssr = [];
+
+            // Infants sit on an adult's lap — no seat or add-ons of their own.
+            if ($pt !== 'INFANT') {
+                foreach ($addonTrips as $trip) {
+                    foreach ($trip['segments'] as $seg) {
+                        $segId = $seg['id'];
+
+                        $seatCode = $t['seats'][$segId] ?? null;
+                        if ($seatCode) {
+                            if (! isset($seatAmounts[$segId][$seatCode]) || in_array($seatCode, $usedSeats[$segId] ?? [], true)) {
+                                $addonErrors[] = "Seat {$seatCode} on {$seg['label']} is no longer available for {$paxLabel}. Please choose another seat.";
+                            } else {
+                                $usedSeats[$segId][] = $seatCode;
+                                $addonsTotal += $seatAmounts[$segId][$seatCode];
+                                $ssr['ssrSeatInfos'][] = ['key' => $segId, 'code' => $seatCode];
+                            }
+                        } elseif ($trip['seatMandatory']) {
+                            $addonErrors[] = "Please select a seat on {$seg['label']} for {$paxLabel} — the airline requires seat selection for this fare.";
+                        }
+
+                        foreach (['baggage' => 'BAGGAGE', 'meals' => 'MEAL', 'fastforward' => 'FASTFORWARD'] as $input => $type) {
+                            $code = $t[$input][$segId] ?? null;
+                            if (! $code) {
+                                continue;
+                            }
+                            $option = $seg['options'][$type][$code] ?? null;
+                            if (! $option) {
+                                $addonErrors[] = "The selected add-on on {$seg['label']} for {$paxLabel} is no longer available. Please choose again.";
+
+                                continue;
+                            }
+                            $addonsTotal += $option['amount'];
+                            $ssr[self::ADDON_BOOK_FIELDS[$type]][] = ['key' => $segId, 'code' => $code];
+                        }
+                    }
+                }
+            }
+
+            $travellerInfo[] = array_filter([
+                'ti' => $t['title'],
+                'pt' => $pt,
+                'fN' => $t['first_name'],
+                'lN' => $t['last_name'],
+                'dob' => $t['dob'] ?? null,
+                'pNum' => $t['passport_number'] ?? null,
+                'eD' => $t['passport_expiry'] ?? null,
+                'pNat' => ! empty($t['passport_nationality']) ? strtoupper($t['passport_nationality']) : null,
+                'pid' => $t['passport_issue_date'] ?? null,
+                'di' => ! empty($t['document_id']) ? strtoupper($t['document_id']) : null,
+                'pan' => $panRequired && ! empty($t['pan']) ? strtoupper($t['pan']) : null,
+                'ff' => ($primaryAirlineCode && ! empty($t['frequent_flyer'])) ? [$primaryAirlineCode => $t['frequent_flyer']] : null,
+            ], fn ($v) => $v !== null) + $ssr;
+        }
+
+        if ($addonErrors) {
+            return back()->withInput()->withErrors(['addons' => array_values(array_unique($addonErrors))]);
+        }
+        // A hold blocks the PNR without any payment, so there's nothing to
+        // charge paid add-ons against — free seats/meals are fine.
+        if ($request->input('intent') === 'hold' && $addonsTotal > 0) {
+            return back()->withInput()->withErrors(['addons' => 'Paid seats, baggage or services can’t be added to a held fare. Remove them to hold, or choose Proceed to Pay.']);
+        }
+
+        $gstInfo = ! empty($validated['gst_number']) ? [
+            'gstNumber' => strtoupper($validated['gst_number']),
+            'registeredName' => $validated['gst_registered_name'],
+        ] : null;
+
+        // Book's contactInfo (emergency contact) — confirmed live that
+        // TripJack stores {ecn, emails, contacts} exactly as sent.
+        $contactInfo = $emergencyRequired ? array_filter([
+            'ecn' => trim($validated['emergency_name']),
+            'contacts' => ['+91'.substr(preg_replace('/\D/', '', $validated['emergency_phone']), -10)],
+            'emails' => ! empty($validated['emergency_email']) ? [$validated['emergency_email']] : null,
+        ], fn ($v) => $v !== null) : null;
+
+        // Confirmed against a live sandbox response: the reviewed total fare
+        // lives at totalPriceInfo.totalFareDetail.fC (same shape read in
+        // showReview() above), not response.fD.
+        $fc = $response['totalPriceInfo']['totalFareDetail']['fC'] ?? null;
+        $totalFare = (float) ($fc['TF'] ?? 0);
+
+        // Payment sits between Review and Book, so re-check the fare with
+        // TripJack before sending the guest to pay — otherwise a fare that
+        // sold out or changed meanwhile is only discovered after payment.
+        // (Holds are re-checked separately at confirm time.)
+        if ($request->input('intent') !== 'hold') {
+            $fareCheck = $this->validateFareBeforePayment($client, $draft, $travellerInfo, $validated['contact_email'], $validated['contact_phone'], $gstInfo, $addonsTotal, $contactInfo);
+            if ($fareCheck !== null) {
+                return $fareCheck;
+            }
+        }
+        // Add-ons fold into the same markup formula as the airfare (the
+        // Passenger Details page mirrors this exactly for its live total)
+        // and, critically, into tripjack_total_price — Book's amount must
+        // equal TF + add-ons exactly (confirmed live), and that amount is
+        // read straight from this breakdown by
+        // FlightBookingService::confirmAfterPayment().
+        $breakdown = FlightPricingService::price($totalFare + $addonsTotal);
+        $customerPrice = $breakdown['customer_price'];
+
+        $leadGuestName = trim(($validated['travellers'][0]['first_name'] ?? '').' '.($validated['travellers'][0]['last_name'] ?? ''));
+
+        // Persisted so the Cancellation Amendment API can later scope a
+        // partial cancellation to a specific trip via src/dest/departureDate
+        // (confirmed live: departureDate as plain YYYY-MM-DD) — flight_route
+        // is just a display string and can't be reliably parsed back.
+        if ($context['tripType'] === 'multi') {
+            $legs = $context['legs'] ?? [];
+            $flightLegs = collect($legs)->map(fn ($leg) => ['src' => $leg['from'], 'dest' => $leg['to'], 'departureDate' => $leg['date']])->all();
+            $route = collect($legs)->pluck('from')->push(end($legs)['to'] ?? '')->implode('-');
+            $firstDepartDate = $legs[0]['date'] ?? $context['departDate'];
+            $lastDepartDate = end($legs)['date'] ?? $context['departDate'];
+        } else {
+            $flightLegs = [['src' => $context['from'], 'dest' => $context['to'], 'departureDate' => $context['departDate']]];
+            if ($context['tripType'] === 'return') {
+                $flightLegs[] = ['src' => $context['to'], 'dest' => $context['from'], 'departureDate' => $context['returnDate']];
+            }
+            $route = $context['from'].'-'.$context['to'].($context['tripType'] === 'return' ? '-'.$context['from'] : '');
+            $firstDepartDate = $context['departDate'];
+            $lastDepartDate = $context['tripType'] === 'return' ? $context['returnDate'] : $context['departDate'];
+        }
+
+        try {
+            $booking = Booking::create([
+                'reference' => 'TYT'.strtoupper(\Illuminate\Support\Str::random(8)),
+                'user_id' => $request->user()->id,
+                'guest_email' => $validated['contact_email'],
+                // Bare 10 digits — the Book call prefixes "+91" itself, so a
+                // guest-typed "+91 98…" must not become "+9191 98…".
+                'guest_phone' => substr(preg_replace('/\D/', '', $validated['contact_phone']), -10),
+                'vertical' => 'flight',
+                'flight_route' => $route,
+                'flight_journey_type' => strtoupper($context['tripType'] === 'multi' ? 'MULTI_CITY' : ($context['tripType'] === 'return' ? 'RETURN' : 'ONEWAY')),
+                'flight_cabin_class' => $context['cabinClass'],
+                'flight_departure_date' => $firstDepartDate,
+                'flight_return_date' => $context['tripType'] === 'return' ? $context['returnDate'] : null,
+                'tripjack_hold_id' => $draft['bookingId'], // Review's bookingId — same column meaning as hotels
+                'tripjack_gst_type' => $gstMandatory ? 'PASSTHROUGH' : null,
+                'tripjack_gst_info' => $gstInfo,
+                'flight_segments_payload' => ['travellerInfo' => $travellerInfo, 'contactInfo' => $contactInfo],
+                'flight_legs' => $flightLegs,
+                'check_in' => $firstDepartDate, // reused generic date columns so admin/list views sort sensibly across verticals
+                'check_out' => $lastDepartDate,
+                'pax_adults' => $context['adults'],
+                'pax_children' => $context['children'],
+                'pax_infants' => $context['infants'],
+                'lead_guest_name' => $leadGuestName,
+                'special_requests' => $validated['special_requests'] ?? null,
+                'base_amount' => $breakdown['tripjack_total_price'],
+                'tax_amount' => $customerPrice - $breakdown['tripjack_total_price'],
+                'total_amount' => $customerPrice,
+                'tripjack_total_price' => $breakdown['tripjack_total_price'],
+                'gst_slab' => $breakdown['gst_slab'],
+                'margin_amount' => $breakdown['margin_amount'],
+                'gst_on_margin' => $breakdown['gst_on_margin'],
+                'razorpay_recovery' => $breakdown['razorpay_recovery'],
+                'tripjack_mf' => round((float) ($fc['MF'] ?? 0), 2),
+                'tripjack_mft' => round((float) ($fc['MFT'] ?? 0), 2),
+                'currency' => $fc['currency'] ?? 'INR',
+                'status' => 'pending_payment',
+            ]);
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ((int) $e->getCode() === 23000) {
+                $existing = Booking::where('tripjack_hold_id', $draft['bookingId'])->first();
+                if ($existing) {
+                    session()->forget('flight_booking_draft');
+
+                    return redirect()->route('hotel.payment.show', $existing->reference);
+                }
+            }
+
+            throw $e;
+        }
+
+        $this->saveTicketedTravellers($request->user(), $validated['travellers'], $primaryAirlineCode);
+
+        // Hold (Without Payment) — only offered when Review's conditions.isBA
+        // was true (flight-passengers.blade.php gates the option on that). No
+        // Razorpay order at all yet: TripJack blocks the PNR for free, and
+        // payment is only collected later via confirmHold() below.
+        if ($request->input('intent') === 'hold') {
+            session()->forget(['flight_booking_draft', 'flight_search_context']);
+
+            return $this->submitHold($booking, $client);
+        }
+
+        $order = $razorpay->createOrder((float) $booking->total_amount, $booking->reference);
+        Payment::create([
+            'booking_id' => $booking->id,
+            'razorpay_order_id' => $order['id'],
+            'amount' => $booking->total_amount,
+            'currency' => $booking->currency ?? 'INR',
+            'status' => 'created',
+        ]);
+
+        session()->forget(['flight_booking_draft', 'flight_search_context']);
+
+        return redirect()->route('hotel.payment.show', $booking->reference);
+    }
+
+    /**
+     * "Add this to My Travellers List" — saves ticked travellers to the
+     * guest's profile, skipping anyone already saved under the same name.
+     */
+    private function saveTicketedTravellers(\App\Models\User $user, array $travellers, ?string $airlineCode): void
+    {
+        $existing = $user->savedTravellers()->get()
+            ->map(fn ($t) => strtolower(trim($t->first_name.' '.$t->last_name)))
+            ->all();
+
+        foreach ($travellers as $t) {
+            $name = strtolower(trim($t['first_name'].' '.$t['last_name']));
+            if (empty($t['save']) || in_array($name, $existing, true)) {
+                continue;
+            }
+            $user->savedTravellers()->create([
+                'first_name' => $t['first_name'],
+                'last_name' => $t['last_name'],
+                'gender' => in_array($t['title'], ['Mr', 'Master'], true) ? 'Male' : 'Female',
+                'dob' => $t['dob'] ?? null,
+                'passport_number' => $t['passport_number'] ?? null,
+                'passport_expiry' => $t['passport_expiry'] ?? null,
+                'frequent_flyer_airline' => ! empty($t['frequent_flyer']) ? $airlineCode : null,
+                'frequent_flyer_number' => $t['frequent_flyer'] ?? null,
+            ]);
+            $existing[] = $name;
+        }
+    }
+
+    protected function submitHold(Booking $booking, TripJackFlightClient $client)
+    {
+        $segments = $booking->flight_segments_payload ?? [];
+        $phoneDigits = preg_replace('/\D/', '', (string) $booking->guest_phone);
+
+        try {
+            $response = $client->book(
+                $booking->tripjack_hold_id,
+                null, // omit paymentInfos — this is the Hold, not Instant Book
+                $segments['travellerInfo'] ?? [],
+                [$booking->guest_email],
+                ['+91'.$phoneDigits],
+                gstInfo: $booking->tripjack_gst_info,
+                contactInfo: $segments['contactInfo'] ?? null,
+            );
+        } catch (TripJackException $e) {
+            $errorCode = $e instanceof TripJackApiException ? $e->errorCode : null;
+            $described = TripJackFlightErrorCatalog::describe($errorCode);
+            Log::channel('tripjack')->{$described['logLevel'] === 'critical' ? 'critical' : 'warning'}('flight_hold_failed', ['booking_id' => $booking->id, 'errorCode' => $errorCode, 'message' => $e->getMessage()]);
+            $booking->delete();
+
+            return redirect()->route('flights.search')->with('booking_error', $described['message']);
+        }
+
+        if (! ($response['status']['success'] ?? false) || empty($response['bookingId'])) {
+            $errorCode = TripJackFlightErrorCatalog::codeFromResponse($response);
+            $described = TripJackFlightErrorCatalog::describe($errorCode, 'This fare could not be held. Please search again.');
+            Log::channel('tripjack')->warning('flight_hold_unsuccessful', ['booking_id' => $booking->id, 'errorCode' => $errorCode, 'response' => $response]);
+            $booking->delete();
+
+            return redirect()->route('flights.search')->with('booking_error', $described['message']);
+        }
+
+        $tripjackBookingId = $response['bookingId'];
+        $expiresAt = null;
+        $pnr = null;
+
+        try {
+            $details = $client->bookingDetails($tripjackBookingId);
+            $expiresAt = $details['itemInfos']['AIR']['timeLimit'] ?? null; // confirmed live — not in the doc's field table
+            $pnr = $details['itemInfos']['AIR']['travellerInfos'][0]['pnrDetails'] ?? null;
+        } catch (TripJackException $e) {
+            Log::channel('tripjack')->warning('flight_hold_details_failed', ['bookingId' => $tripjackBookingId, 'message' => $e->getMessage()]);
+        }
+
+        $booking->update([
+            'tripjack_booking_id' => $tripjackBookingId,
+            'tripjack_flight_pnr' => $pnr,
+            'tripjack_hold_expires_at' => $expiresAt,
+            'status' => 'on_hold',
+        ]);
+
+        return redirect()->route('hotel.booking.confirmation', $booking->reference);
+    }
+
+    /**
+     * POST /booking/{reference}/flight/confirm-hold — guest chooses to pay
+     * for a held fare. Fare-validates first (catches an expired hold before
+     * the guest reaches the payment screen), then creates the Razorpay
+     * order — Confirm-Book itself only runs after payment is captured, via
+     * FlightBookingService::confirmHoldAfterPayment().
+     */
+    public function confirmHold(string $reference, RazorpayService $razorpay, FlightBookingService $flights)
+    {
+        $booking = $this->guardHoldBooking($reference);
+
+        $validation = $flights->validateHoldFare($booking);
+        if (! $validation['ok']) {
+            return redirect()->route('hotel.booking.confirmation', $booking->reference)->with('booking_error', $validation['message']);
+        }
+
+        $payment = $booking->payments()->where('purpose', 'flight_confirm_book')->where('status', 'created')->latest()->first();
+        if (! $payment) {
+            $order = $razorpay->createOrder((float) $booking->total_amount, $booking->reference.'-HOLD-'.now()->timestamp);
+            $payment = Payment::create([
+                'booking_id' => $booking->id,
+                'razorpay_order_id' => $order['id'],
+                'amount' => $booking->total_amount,
+                'currency' => $booking->currency ?? 'INR',
+                'status' => 'created',
+                'purpose' => 'flight_confirm_book',
+            ]);
+        }
+
+        return view('pages.flight-payment', [
+            'booking' => $booking,
+            'payment' => $payment,
+            'razorpayKeyId' => config('services.razorpay.key_id'),
+        ]);
+    }
+
+    /**
+     * POST /booking/{reference}/flight/release-hold — guest decides not to
+     * proceed. No refund needed (Hold never captured any payment).
+     */
+    public function releaseHold(string $reference, FlightBookingService $flights)
+    {
+        $booking = $this->guardHoldBooking($reference);
+        $flights->releaseHold($booking);
+
+        return redirect()->route('hotel.booking.confirmation', $booking->reference);
+    }
+
+    protected function guardHoldBooking(string $reference): Booking
+    {
+        $booking = Booking::where('reference', $reference)->firstOrFail();
+
+        if ($booking->user_id !== auth()->id()) {
+            abort(403);
+        }
+
+        if ($booking->vertical !== 'flight' || $booking->status !== 'on_hold') {
+            abort(404);
+        }
+
+        return $booking;
+    }
+
+    /**
+     * POST /booking/{reference}/flight/cancel-quote — the cancel page's live
+     * "what will I get back" estimate for the scope the guest has picked
+     * (TripJack's optional Get Amendment Charges step). Nothing is
+     * cancelled here.
+     */
+    public function cancellationQuote(Request $request, string $reference, FlightBookingService $flights)
+    {
+        $booking = Booking::where('reference', $reference)->firstOrFail();
+        if ($booking->user_id !== auth()->id()) {
+            abort(403);
+        }
+        if ($booking->vertical !== 'flight' || $booking->status !== 'confirmed' || ! $booking->tripjack_booking_id) {
+            return response()->json(['quote' => null], 422);
+        }
+
+        $scope = $flights->cancellationScope(
+            $booking,
+            (string) $request->input('cancel_scope', 'full'),
+            (array) $request->input('leg_indexes', []),
+            (array) $request->input('traveller_indexes', []),
+        );
+        if (! $scope) {
+            return response()->json(['quote' => null, 'empty' => true]);
+        }
+
+        return response()->json(['quote' => $flights->cancellationQuote($booking, $scope['trips'], $scope['paxCounts'])]);
+    }
+
+    /**
+     * GET /booking/{reference}/flight/fare-rules — lets a guest check the
+     * cancellation/date-change policy on an already-confirmed booking, not
+     * just once at Review (before they'd paid). Uses flowType=BOOKING_DETAIL
+     * — confirmed live against a real sandbox booking.
+     */
+    public function showFareRules(string $reference, TripJackFlightClient $client)
+    {
+        $booking = Booking::where('reference', $reference)->firstOrFail();
+
+        if ($booking->user_id !== auth()->id()) {
+            abort(403);
+        }
+
+        if ($booking->vertical !== 'flight' || ! $booking->tripjack_booking_id) {
+            abort(404);
+        }
+
+        $fareRules = null;
+        $fareRuleError = null;
+
+        try {
+            $response = $client->fareRule('BOOKING_DETAIL', $booking->tripjack_booking_id);
+            $fareRules = $response['fareRule'] ?? null;
+        } catch (TripJackException $e) {
+            $fareRuleError = 'Fare rules aren\'t available for this booking right now. Please try again shortly.';
+            Log::channel('tripjack')->info('flight_booking_farerule_failed', ['booking_id' => $booking->id, 'message' => $e->getMessage()]);
+        }
+
+        return view('pages.flight-fare-rules', compact('booking', 'fareRules', 'fareRuleError'));
+    }
+
+    /**
+     * GET /flights/fare-rule (AJAX, JSON) — lazy per-flight-row fare rule
+     * lookup on the results page. Only called when a guest actually opens
+     * that tab for that specific flight, not pre-fetched for every result —
+     * a results page can show 50-100+ flights, so eagerly calling Fare Rule
+     * for all of them would be a large multiple of TripJack calls per page
+     * load for policy text most guests never look at.
+     */
+    public function fareRuleAjax(Request $request, TripJackFlightClient $client)
+    {
+        $validated = $request->validate(['price_id' => 'required|string']);
+
+        try {
+            $response = $client->fareRule('SEARCH', $validated['price_id']);
+        } catch (TripJackException $e) {
+            return response()->json(['success' => false, 'message' => 'Fare rules aren\'t available for this fare right now.'], 200);
+        }
+
+        return response()->json(['success' => true, 'fareRule' => $response['fareRule'] ?? null]);
+    }
+}

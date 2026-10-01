@@ -131,6 +131,13 @@ input[type="date"].tyt-finput::-webkit-calendar-picker-indicator{filter:invert(0
 /* DIVIDER */
 .tyt-section-divider{width:50px;height:2px;background:#C9A84C;margin-bottom:32px;opacity:0.5}
 
+/* ── LIVE SEARCH BAR positioning (widget itself lives in
+     partials.flight-search-widget, shared with the results page) ──────── */
+.tyt-sb-outer{position:relative;z-index:5;max-width:1180px;margin:-46px auto 0;padding:0 24px}
+@media(max-width:560px){
+  .tyt-sb-outer{margin-top:-30px}
+}
+
 @media(max-width:768px){
   .tyt-dark,.tyt-darker{padding:40px 20px}
   .tyt-flights-hero{padding:120px 24px 60px;min-height:400px}
@@ -160,152 +167,52 @@ input[type="date"].tyt-finput::-webkit-calendar-picker-indicator{filter:invert(0
     eyebrow="Flight Experiences"
     title="Fly the <em>Right Way</em>"
     subtitle="Domestic &amp; international flights, business class and beyond —<br>curated by real travel experts, not bots."
-    ctaText="Book a Flight →"
-    ctaLink="#tyt-book-flight"
   />
+
+  <!-- LIVE FLIGHT SEARCH (shared partial — also used as "Modify Search" on the results page) -->
+  <div class="tyt-sb-outer">
+    @include('partials.flight-search-widget')
+  </div>
 
   <!-- FLIGHT CATEGORIES -->
   <div class="tyt-dark">
     <p class="tyt-label">Flight Experiences</p>
     <div class="tyt-head-row">
       <h2 class="tyt-title-light">Choose Your Journey</h2>
-      <a class="tyt-outline-btn" href="#tyt-book-flight">Request a Flight</a>
     </div>
     <div class="tyt-cards-6">
       <div class="tyt-img-card" onclick="location.href='#tyt-book-flight'">
         <img src="https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=700&q=80" alt="Domestic Flights" loading="lazy"/>
-        <button type="button" class="flt-heart-btn js-wishlist-btn"
-          aria-label="Save Domestic Flights to wishlist"
-          data-type="flight"
-          data-badge="Domestic"
-          data-hotel-id="flt-domestic"
-          data-hotel-slug="flt-domestic"
-          data-hotel-title="Domestic Flights"
-          data-hotel-image="https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=700&q=80"
-          data-hotel-destination="Pan-India Routes"
-          data-hotel-stars="5"
-          data-hotel-price="Best Fare on Enquiry"
-          data-hotel-url="{{ route('flights') }}#tyt-book-flight"
-          onclick="event.stopPropagation(); tytWishlist.toggleFromButton(this, event);">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-          </svg>
-        </button>
         <div class="tyt-card-overlay"></div>
         <div class="tyt-card-label">Domestic Flights<div class="tyt-card-sub">Pan-India routes, best fares</div></div>
       </div>
 
       <div class="tyt-img-card" onclick="location.href='#tyt-book-flight'">
         <img src="https://images.unsplash.com/photo-1503221043305-f7498f8b7888?w=700&q=80" alt="International Flights" loading="lazy"/>
-        <button type="button" class="flt-heart-btn js-wishlist-btn"
-          aria-label="Save International Flights to wishlist"
-          data-type="flight"
-          data-badge="International"
-          data-hotel-id="flt-international"
-          data-hotel-slug="flt-international"
-          data-hotel-title="International Flights"
-          data-hotel-image="https://images.unsplash.com/photo-1503221043305-f7498f8b7888?w=700&q=80"
-          data-hotel-destination="Global Destinations"
-          data-hotel-stars="5"
-          data-hotel-price="Best Fare on Enquiry"
-          data-hotel-url="{{ route('flights') }}#tyt-book-flight"
-          onclick="event.stopPropagation(); tytWishlist.toggleFromButton(this, event);">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-          </svg>
-        </button>
         <div class="tyt-card-overlay"></div>
         <div class="tyt-card-label">International<div class="tyt-card-sub">Global destinations covered</div></div>
       </div>
 
       <div class="tyt-img-card" onclick="location.href='#tyt-book-flight'">
         <img src="https://images.unsplash.com/photo-1540339832862-474599807836?w=700&q=80" alt="Business Class" loading="lazy"/>
-        <button type="button" class="flt-heart-btn js-wishlist-btn"
-          aria-label="Save Business Class Flights to wishlist"
-          data-type="flight"
-          data-badge="Business Class"
-          data-hotel-id="flt-business-class"
-          data-hotel-slug="flt-business-class"
-          data-hotel-title="Business Class Flights"
-          data-hotel-image="https://images.unsplash.com/photo-1540339832862-474599807836?w=700&q=80"
-          data-hotel-destination="Lie-Flat & Lounges"
-          data-hotel-stars="5"
-          data-hotel-price="Best Fare on Enquiry"
-          data-hotel-url="{{ route('flights') }}#tyt-book-flight"
-          onclick="event.stopPropagation(); tytWishlist.toggleFromButton(this, event);">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-          </svg>
-        </button>
         <div class="tyt-card-overlay"></div>
         <div class="tyt-card-label">Business Class<div class="tyt-card-sub">Lie-flat beds, premium lounges</div></div>
       </div>
 
       <div class="tyt-img-card" onclick="location.href='#tyt-book-flight'">
         <img src="https://images.unsplash.com/photo-1464037866556-6812c9d1c72e?w=700&q=80" alt="First Class" loading="lazy"/>
-        <button type="button" class="flt-heart-btn js-wishlist-btn"
-          aria-label="Save First Class Flights to wishlist"
-          data-type="flight"
-          data-badge="First Class"
-          data-hotel-id="flt-first-class"
-          data-hotel-slug="flt-first-class"
-          data-hotel-title="First Class Flights"
-          data-hotel-image="https://images.unsplash.com/photo-1464037866556-6812c9d1c72e?w=700&q=80"
-          data-hotel-destination="Suite Experience"
-          data-hotel-stars="5"
-          data-hotel-price="Best Fare on Enquiry"
-          data-hotel-url="{{ route('flights') }}#tyt-book-flight"
-          onclick="event.stopPropagation(); tytWishlist.toggleFromButton(this, event);">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-          </svg>
-        </button>
         <div class="tyt-card-overlay"></div>
         <div class="tyt-card-label">First Class<div class="tyt-card-sub">Suite experience, concierge</div></div>
       </div>
 
       <div class="tyt-img-card" onclick="location.href='#tyt-book-flight'">
         <img src="https://images.unsplash.com/photo-1578474846511-04ba529f0b88?w=700&q=80" alt="Charter Flights" loading="lazy"/>
-        <button type="button" class="flt-heart-btn js-wishlist-btn"
-          aria-label="Save Charter Flights to wishlist"
-          data-type="flight"
-          data-badge="Charter"
-          data-hotel-id="flt-charter-flights"
-          data-hotel-slug="flt-charter-flights"
-          data-hotel-title="Charter Flights"
-          data-hotel-image="https://images.unsplash.com/photo-1578474846511-04ba529f0b88?w=700&q=80"
-          data-hotel-destination="Private & Group Aircraft"
-          data-hotel-stars="5"
-          data-hotel-price="Best Fare on Enquiry"
-          data-hotel-url="{{ route('flights') }}#tyt-book-flight"
-          onclick="event.stopPropagation(); tytWishlist.toggleFromButton(this, event);">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-          </svg>
-        </button>
         <div class="tyt-card-overlay"></div>
         <div class="tyt-card-label">Charter Flights<div class="tyt-card-sub">Private &amp; group aircraft</div></div>
       </div>
 
       <div class="tyt-img-card" onclick="location.href='#tyt-book-flight'">
         <img src="https://images.unsplash.com/photo-1569154941061-e231b4725ef1?w=700&q=80" alt="Multi-City" loading="lazy"/>
-        <button type="button" class="flt-heart-btn js-wishlist-btn"
-          aria-label="Save Multi-City Flights to wishlist"
-          data-type="flight"
-          data-badge="Multi-City"
-          data-hotel-id="flt-multi-city"
-          data-hotel-slug="flt-multi-city"
-          data-hotel-title="Multi-City Flights"
-          data-hotel-image="https://images.unsplash.com/photo-1569154941061-e231b4725ef1?w=700&q=80"
-          data-hotel-destination="Complex Seamless Routes"
-          data-hotel-stars="5"
-          data-hotel-price="Best Fare on Enquiry"
-          data-hotel-url="{{ route('flights') }}#tyt-book-flight"
-          onclick="event.stopPropagation(); tytWishlist.toggleFromButton(this, event);">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-          </svg>
-        </button>
         <div class="tyt-card-overlay"></div>
         <div class="tyt-card-label">Multi-City<div class="tyt-card-sub">Complex itineraries, seamless</div></div>
       </div>
@@ -324,11 +231,11 @@ input[type="date"].tyt-finput::-webkit-calendar-picker-indicator{filter:invert(0
         <div class="tyt-airline-name">IndiGo</div>
       </div>
       <div class="tyt-airline-card">
-        <img src="https://logo.clearbit.com/airindia.com" onerror="this.src='https://ui-avatars.com/api/?name=Air+India&background=1a1a1a&color=C9A84C&size=100'" alt="Air India"/>
+        <img src="https://images.kiwi.com/airlines/64/AI.png" onerror="this.onerror=function(){this.src='https://ui-avatars.com/api/?name=Air+India&background=1a1a1a&color=C9A84C&size=100'};this.src='https://logo.clearbit.com/airindia.com'" alt="Air India"/>
         <div class="tyt-airline-name">Air India</div>
       </div>
       <div class="tyt-airline-card">
-        <img src="https://logo.clearbit.com/spicejet.com" onerror="this.src='https://ui-avatars.com/api/?name=SpiceJet&background=1a1a1a&color=C9A84C&size=100'" alt="SpiceJet"/>
+        <img src="https://images.kiwi.com/airlines/64/SG.png" onerror="this.onerror=function(){this.src='https://ui-avatars.com/api/?name=SpiceJet&background=1a1a1a&color=C9A84C&size=100'};this.src='https://logo.clearbit.com/spicejet.com'" alt="SpiceJet"/>
         <div class="tyt-airline-name">SpiceJet</div>
       </div>
       <div class="tyt-airline-card">
@@ -348,60 +255,17 @@ input[type="date"].tyt-finput::-webkit-calendar-picker-indicator{filter:invert(0
         <div class="tyt-airline-name">British Airways</div>
       </div>
       <div class="tyt-airline-card">
-        <img src="https://logo.clearbit.com/etihad.com" onerror="this.src='https://ui-avatars.com/api/?name=Etihad&background=1a1a1a&color=C9A84C&size=100'" alt="Etihad Airways"/>
+        <img src="https://images.kiwi.com/airlines/64/EY.png" onerror="this.onerror=function(){this.src='https://ui-avatars.com/api/?name=Etihad&background=1a1a1a&color=C9A84C&size=100'};this.src='https://logo.clearbit.com/etihad.com'" alt="Etihad Airways"/>
         <div class="tyt-airline-name">Etihad Airways</div>
       </div>
       <div class="tyt-airline-card">
-        <img src="https://logo.clearbit.com/singaporeair.com" onerror="this.src='https://ui-avatars.com/api/?name=Singapore+Airlines&background=1a1a1a&color=C9A84C&size=100'" alt="Singapore Airlines"/>
+        <img src="https://images.kiwi.com/airlines/64/SQ.png" onerror="this.onerror=function(){this.src='https://ui-avatars.com/api/?name=Singapore+Airlines&background=1a1a1a&color=C9A84C&size=100'};this.src='https://logo.clearbit.com/singaporeair.com'" alt="Singapore Airlines"/>
         <div class="tyt-airline-name">Singapore Airlines</div>
       </div>
       <div class="tyt-airline-card">
         <img src="{{ asset('assets/images/airlines/cathay.svg') }}" onerror="this.src='https://logo.clearbit.com/cathaypacific.com'" alt="Cathay Pacific"/>
         <div class="tyt-airline-name">Cathay Pacific</div>
       </div>
-    </div>
-  </div>
-
-  <!-- BOOKING FORM -->
-  <div class="tyt-dark" id="tyt-book-flight">
-    <p class="tyt-label">Book Your Flight</p>
-    <div class="tyt-head-row" style="margin-bottom:28px">
-      <h2 class="tyt-title-light">Request a Flight</h2>
-      <span style="font-family:'Poppins',sans-serif;font-size:12px;color:#555;font-weight:300;align-self:center">We'll call you back with the best options within 2 hours</span>
-    </div>
-    <div class="tyt-trip-toggle">
-      <button class="tyt-trip-btn active" onclick="tytSetTrip('one',this)">One Way</button>
-      <button class="tyt-trip-btn" onclick="tytSetTrip('round',this)">Round Trip</button>
-      <button class="tyt-trip-btn" onclick="tytSetTrip('multi',this)">Multi-City</button>
-    </div>
-    <div class="tyt-form-2">
-      <div><label class="tyt-flabel">From</label><input class="tyt-finput" type="text" placeholder="City or Airport" id="tyt-from"/></div>
-      <div><label class="tyt-flabel">To</label><input class="tyt-finput" type="text" placeholder="City or Airport" id="tyt-to"/></div>
-    </div>
-    <div class="tyt-form-3">
-      <div><label class="tyt-flabel">Departure Date</label><input class="tyt-finput" type="date" id="tyt-dep" onclick="this.showPicker()"/></div>
-      <div class="tyt-ret" id="tyt-ret"><label class="tyt-flabel">Return Date</label><input class="tyt-finput" type="date" id="tyt-retdate" onclick="this.showPicker()"/></div>
-      <div><label class="tyt-flabel">Passengers</label><select class="tyt-finput" id="tyt-pax"><option>1 Adult</option><option>2 Adults</option><option>2 Adults + 1 Child</option><option>2 Adults + 2 Children</option><option>3+ Adults</option><option>Group Booking</option></select></div>
-    </div>
-    <p class="tyt-flabel" style="margin-bottom:10px">Travel Class</p>
-    <div class="tyt-class-row">
-      <div class="tyt-class-btn active" onclick="tytSelClass(this)">Economy</div>
-      <div class="tyt-class-btn" onclick="tytSelClass(this)">Premium Eco</div>
-      <div class="tyt-class-btn" onclick="tytSelClass(this)">Business</div>
-      <div class="tyt-class-btn" onclick="tytSelClass(this)">First Class</div>
-    </div>
-    <div class="tyt-form-3">
-      <div><label class="tyt-flabel">Full Name</label><input class="tyt-finput" type="text" placeholder="Your Name" id="tyt-name"/></div>
-      <div><label class="tyt-flabel">Phone / WhatsApp</label><input class="tyt-finput" type="tel" placeholder="+91 98750 73788" id="tyt-phone"/></div>
-      <div><label class="tyt-flabel">Email Address</label><input class="tyt-finput" type="email" placeholder="you@email.com" id="tyt-email"/></div>
-    </div>
-    <div style="margin-bottom:28px">
-      <label class="tyt-flabel">Special Requests (optional)</label>
-      <textarea class="tyt-finput" rows="3" placeholder="Airline preference, wheelchair assistance, meal requirements…" id="tyt-special" style="resize:vertical"></textarea>
-    </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px">
-      <p style="font-family:'Poppins',sans-serif;font-size:12px;color:#555;font-weight:300;line-height:1.7">Our travel expert will reach out on<br>WhatsApp &amp; Email with curated options.</p>
-      <button class="tyt-gold-btn" onclick="tytSubmit()" id="tyt-sbtn">ENQUIRE NOW &rarr;</button>
     </div>
   </div>
 
@@ -417,70 +281,3 @@ input[type="date"].tyt-finput::-webkit-calendar-picker-indicator{filter:invert(0
 
 @endsection
 
-@push('scripts')
-<script>
-
-function tytSetTrip(t,b){
-  document.querySelectorAll('.tyt-trip-btn').forEach(function(x){x.classList.remove('active')});
-  b.classList.add('active');
-  document.getElementById('tyt-ret').classList.toggle('show',t==='round');
-}
-function tytSelClass(el){
-  document.querySelectorAll('.tyt-class-btn').forEach(function(x){x.classList.remove('active')});
-  el.classList.add('active');
-}
-async function tytSubmit(){
-  var n=document.getElementById('tyt-name').value.trim();
-  var p=document.getElementById('tyt-phone').value.trim();
-  var e=document.getElementById('tyt-email').value.trim();
-  var f=document.getElementById('tyt-from').value.trim();
-  var t=document.getElementById('tyt-to').value.trim();
-  if(!n||!p||!f||!t){alert('Please fill in: From, To, Name and Phone.');return;}
-  var btn=document.getElementById('tyt-sbtn');
-  var originalText=btn.textContent;
-  btn.textContent='Sending...';
-  btn.disabled = true;
-
-  var tripType = document.querySelector('.tyt-trip-btn.active').textContent;
-  var depDate = document.getElementById('tyt-dep').value;
-  var retDate = document.getElementById('tyt-retdate').value;
-  var pax = document.getElementById('tyt-pax').value;
-  var cls = document.querySelector('.tyt-class-btn.active').textContent;
-  var msg = document.getElementById('tyt-special').value.trim();
-
-  var message = `Trip Type: ${tripType}\nFrom: ${f}\nTo: ${t}\nDeparture: ${depDate}\nReturn: ${retDate}\nPassengers: ${pax}\nClass: ${cls}\n\nSpecial Requests: ${msg}`;
-
-  try {
-      let res = await fetch("{{ route('enquiries.store') }}", {
-          method: 'POST',
-          headers: {
-              'Content-Type': 'application/json',
-              'X-CSRF-TOKEN': '{{ csrf_token() }}'
-          },
-          body: JSON.stringify({
-              vertical: 'flight',
-              reference_id: 0,
-              name: n,
-              phone: p,
-              email: e,
-              message: message
-          })
-      });
-      
-      if (!res.ok) {
-          let errData = await res.text();
-          throw new Error('Server error: ' + errData);
-      }
-      
-      btn.textContent='SUBMITTED \u2713';
-      btn.style.background='#2a7a2a';
-      showToast('Request Received', 'Our team will WhatsApp you shortly with the best flight options.');
-  } catch (error) {
-      console.error(error);
-      btn.textContent = originalText;
-      btn.disabled = false;
-      showToast('Error', 'Something went wrong. Please try again.', 'error');
-  }
-}
-</script>
-@endpush
