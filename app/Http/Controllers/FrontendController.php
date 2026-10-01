@@ -992,6 +992,25 @@ class FrontendController extends Controller
 
     public function bookingConfirmation($reference, Request $request, TripJackClient $client, RazorpayService $razorpay)
     {
+        $verticalCheck = Booking::where('reference', $reference)->value('vertical');
+        if ($verticalCheck === 'flight') {
+            $booking = Booking::where('reference', $reference)->firstOrFail();
+            if ($booking->user_id !== auth()->id()) {
+                abort(403);
+            }
+
+            $flights = app(\App\Services\FlightBookingService::class);
+            $pollingSince = (int) $request->query('polling_since', now()->timestamp);
+            $result = $flights->refreshLiveStatus($booking, $pollingSince, $razorpay);
+
+            return view('pages.flight-booking-confirmation', [
+                'booking' => $booking,
+                'liveStatus' => $result['liveStatus'],
+                'stillPolling' => $result['stillPolling'],
+                'pollingSince' => $pollingSince,
+            ]);
+        }
+
         $booking = Booking::with(['hotel.images', 'hotel.amenities', 'roomType', 'travelers'])->where('reference', $reference)->firstOrFail();
 
         // A booking reference alone must never be enough to view someone
@@ -1093,6 +1112,40 @@ class FrontendController extends Controller
      */
     public function showPayment($reference, RazorpayService $razorpay)
     {
+        // Flight bookings share this route/method rather than duplicating
+        // the Razorpay order lookup-or-create logic below — see
+        // FlightBookingService's docblock for why. Everything past this
+        // guard is unreached for a flight booking and stays exactly as it
+        // was for hotels.
+        $verticalCheck = Booking::where('reference', $reference)->value('vertical');
+        if ($verticalCheck === 'flight') {
+            $booking = Booking::where('reference', $reference)->firstOrFail();
+            if ($booking->user_id !== auth()->id()) {
+                abort(403);
+            }
+            if (! in_array($booking->status, ['pending_payment', 'payment_failed'], true)) {
+                return redirect()->route('hotel.booking.confirmation', $booking->reference);
+            }
+
+            $payment = $booking->payments()->where('status', 'created')->latest()->first();
+            if (! $payment) {
+                $order = $razorpay->createOrder((float) $booking->total_amount, $booking->reference);
+                $payment = Payment::create([
+                    'booking_id' => $booking->id,
+                    'razorpay_order_id' => $order['id'],
+                    'amount' => $booking->total_amount,
+                    'currency' => $booking->currency ?? 'INR',
+                    'status' => 'created',
+                ]);
+            }
+
+            return view('pages.flight-payment', [
+                'booking' => $booking,
+                'payment' => $payment,
+                'razorpayKeyId' => config('services.razorpay.key_id'),
+            ]);
+        }
+
         $booking = Booking::with('hotel')->where('reference', $reference)->firstOrFail();
 
         if ($booking->user_id !== auth()->id()) {
@@ -1161,6 +1214,10 @@ class FrontendController extends Controller
 
         $this->confirmBookingAfterPayment($payment, $client, $razorpay);
 
+        if ($payment->purpose === 'flight_ssr') {
+            return redirect()->route('flights.extras.show', $booking->reference);
+        }
+
         return redirect()->route('hotel.booking.confirmation', $booking->reference);
     }
 
@@ -1216,6 +1273,39 @@ class FrontendController extends Controller
      */
     protected function confirmBookingAfterPayment(Payment $payment, TripJackClient $client, RazorpayService $razorpay): void
     {
+        // A flight-extras (seat/meal/baggage) payment on an ALREADY
+        // confirmed booking must never reach FlightBookingService below —
+        // that path calls TripJack's Book API, which must only ever run
+        // once per booking. This purpose check is the only thing that
+        // routes it correctly; every other payment keeps purpose='booking'
+        // (the column default), so this branch is unreachable for them.
+        if ($payment->purpose === 'flight_ssr') {
+            app(\App\Services\FlightAncillaryService::class)->confirmAfterPayment($payment, $razorpay);
+
+            return;
+        }
+
+        if ($payment->purpose === 'flight_confirm_book') {
+            app(\App\Services\FlightBookingService::class)->confirmHoldAfterPayment($payment, $razorpay);
+
+            return;
+        }
+
+        if ($payment->purpose === 'flight_reissue') {
+            app(\App\Services\FlightReissueService::class)->confirmAfterPayment($payment, $razorpay);
+
+            return;
+        }
+
+        // Flight bookings never hold (Phase 1 is Instant Book only), so this
+        // is a single delegated call, not a parallel copy of the
+        // transaction/locking logic below — see FlightBookingService.
+        if ($payment->booking?->vertical === 'flight') {
+            app(\App\Services\FlightBookingService::class)->confirmAfterPayment($payment, $razorpay);
+
+            return;
+        }
+
         $needsHoldResolution = DB::transaction(function () use ($payment, $client, $razorpay) {
             $payment = Payment::whereKey($payment->id)->lockForUpdate()->first();
             $booking = Booking::whereKey($payment->booking_id)->lockForUpdate()->first();
@@ -1441,6 +1531,31 @@ class FrontendController extends Controller
      */
     public function showCancellation($reference, TripJackClient $client)
     {
+        $verticalCheck = Booking::where('reference', $reference)->value('vertical');
+        if ($verticalCheck === 'flight') {
+            $booking = Booking::where('reference', $reference)->firstOrFail();
+            if ($booking->user_id !== auth()->id()) {
+                abort(403);
+            }
+            if ($booking->cancellation_requested_at !== null || $booking->status !== 'confirmed' || ! $booking->tripjack_booking_id) {
+                return redirect()->route('hotel.booking.confirmation', $booking->reference);
+            }
+
+            // No pre-cancel charge quote for a normal cancellation (optional
+            // per TripJack's docs) — the guest sees the actual charge/refund
+            // only after submitting, via bookingConfirmation()'s eventual
+            // cancellation_reason note once the amendment resolves. Auto
+            // Void IS probed here though — it's a bonus, better-than-normal
+            // option that only sometimes applies (see checkVoidEligibility's
+            // docblock), so the guest needs to see it's available upfront.
+            $flights = app(\App\Services\FlightBookingService::class);
+            $voidEligibility = $flights->checkVoidEligibility($booking);
+            $travellers = $booking->flight_segments_payload['travellerInfo'] ?? [];
+            $legs = $booking->flight_legs ?? [];
+
+            return view('pages.flight-booking-cancel', compact('booking', 'voidEligibility', 'travellers', 'legs'));
+        }
+
         $booking = Booking::with('hotel')->where('reference', $reference)->firstOrFail();
 
         if ($booking->user_id !== auth()->id()) {
@@ -1479,6 +1594,54 @@ class FrontendController extends Controller
      */
     public function submitCancellation($reference, Request $request, TripJackClient $client, RazorpayService $razorpay)
     {
+        $verticalCheck = Booking::where('reference', $reference)->value('vertical');
+        if ($verticalCheck === 'flight') {
+            $booking = Booking::where('reference', $reference)->firstOrFail();
+            if ($booking->user_id !== auth()->id()) {
+                abort(403);
+            }
+            if ($booking->status !== 'confirmed' || ! $booking->tripjack_booking_id) {
+                return redirect()->route('hotel.booking.confirmation', $booking->reference);
+            }
+
+            $flights = app(\App\Services\FlightBookingService::class);
+            $scope = (string) $request->input('cancel_scope', 'full');
+            $trips = [];
+            $type = 'CANCELLATION';
+
+            if ($scope === 'void') {
+                // Re-verify eligibility server-side rather than trusting the
+                // page the guest saw — it may be stale (e.g. window closed
+                // between page load and submit).
+                if (! $flights->checkVoidEligibility($booking)) {
+                    return redirect()->route('hotel.booking.cancel.show', $booking->reference)
+                        ->with('booking_error', 'Same-day free cancellation is no longer available for this booking. Please use the normal cancellation option instead.');
+                }
+                $type = 'VOIDED';
+            } elseif (in_array($scope, ['travellers', 'trip'], true)) {
+                $resolved = $flights->cancellationScope(
+                    $booking,
+                    $scope,
+                    (array) $request->input('leg_indexes', []),
+                    (array) $request->input('traveller_indexes', []),
+                );
+
+                if (! $resolved) {
+                    return redirect()->route('hotel.booking.cancel.show', $booking->reference)
+                        ->with('booking_error', $scope === 'travellers' ? 'Please select at least one traveller to cancel.' : 'Please select at least one flight to cancel.');
+                }
+                $trips = $resolved['trips'];
+            }
+
+            $result = $flights->submitCancellation($booking, $trips, $type);
+            if (! $result['success']) {
+                return redirect()->route('hotel.booking.cancel.show', $booking->reference)
+                    ->with('booking_error', $result['message'] ?? 'This request could not be processed.');
+            }
+
+            return redirect()->route('hotel.booking.confirmation', $booking->reference);
+        }
+
         $booking = Booking::where('reference', $reference)->firstOrFail();
 
         if ($booking->user_id !== auth()->id()) {
