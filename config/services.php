@@ -80,6 +80,9 @@ return [
             'oms_base_url' => env('TRIPJACK_FLIGHT_OMS_BASE_URL', env('TRIPJACK_ENV', 'test') === 'production'
                 ? 'https://tripjack.com/oms/v1'
                 : 'https://apitest.tripjack.com/oms/v1'),
+            // tripjack:health-check alerts admins when the TripJack account's
+            // totalBalance (User Detail API) drops below this, in INR.
+            'low_balance_alert' => (float) env('TRIPJACK_LOW_BALANCE_ALERT', 25000),
         ],
     ],
 

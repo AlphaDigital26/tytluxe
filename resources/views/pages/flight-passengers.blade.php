@@ -52,6 +52,7 @@
   .flp-hint { font-family: 'Jost', sans-serif; font-size: 11px; color: var(--white-30); }
   .flp-phone span { display: flex; align-items: center; padding: 0 14px; border: 1px solid rgba(255,255,255,0.12); border-right: none; border-radius: 10px 0 0 10px; background: rgba(255,255,255,0.03); color: var(--white-60); font-family: 'Jost', sans-serif; font-size: 13.5px; }
   .flp-phone input { border-radius: 0 10px 10px 0 !important; }
+  .flp-phone input.flp-dial { flex: 0 0 74px; width: 74px; text-align: center; border-right: none; border-radius: 10px 0 0 10px !important; }
   .flp-extras { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 26px; }
   .flp-extra-btn { padding: 11px 20px; border-radius: 100px; border: 1px solid rgba(201,168,76,0.45); background: transparent; color: var(--gold-light); font-family: 'Jost', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; cursor: pointer; }
   .flp-extra-btn[aria-expanded="true"] { background: rgba(201,168,76,0.12); }
@@ -390,7 +391,7 @@
         <div class="flr-row" style="grid-template-columns:1fr 1fr;">
           <div class="flr-field">
             <label for="flpPhone">Mobile Number</label>
-            <div class="flp-phone"><span>+91</span><input type="tel" name="contact_phone" id="flpPhone" value="{{ $contactPhone }}" inputmode="numeric" maxlength="10" required autocomplete="tel-national"></div>
+            <div class="flp-phone"><input type="text" name="contact_dial_code" class="flp-dial" value="{{ old('contact_dial_code', '+91') }}" inputmode="tel" maxlength="5" pattern="\+?[1-9][0-9]{0,3}" title="Country code, e.g. +91" aria-label="Country code" required autocomplete="tel-country-code"><input type="tel" name="contact_phone" id="flpPhone" value="{{ $contactPhone }}" inputmode="numeric" maxlength="15" required autocomplete="tel-national"></div>
           </div>
           <div class="flr-field">
             <label for="flpEmail">Email ID</label>
@@ -412,7 +413,7 @@
           </div>
           <div class="flr-field">
             <label for="flpEcPhone">Mobile Number</label>
-            <div class="flp-phone"><span>+91</span><input type="tel" name="emergency_phone" id="flpEcPhone" value="{{ old('emergency_phone') }}" inputmode="numeric" maxlength="10" required autocomplete="off"></div>
+            <div class="flp-phone"><input type="text" name="emergency_dial_code" class="flp-dial" value="{{ old('emergency_dial_code', '+91') }}" inputmode="tel" maxlength="5" pattern="\+?[1-9][0-9]{0,3}" title="Country code, e.g. +91" aria-label="Country code" required autocomplete="off"><input type="tel" name="emergency_phone" id="flpEcPhone" value="{{ old('emergency_phone') }}" inputmode="numeric" maxlength="15" required autocomplete="off"></div>
           </div>
         </div>
         <div class="flr-field" style="max-width:420px;margin-bottom:0;">

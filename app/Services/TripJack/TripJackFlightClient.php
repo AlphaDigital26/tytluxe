@@ -125,6 +125,19 @@ class TripJackFlightClient
     }
 
     /**
+     * User Detail — GET /ums/v1/user-detail. The API account's balances
+     * (totalBalance, walletBalance, creditBalance, totalOutStanding) — every
+     * Book/Confirm-Book/Add SSR/Auto Reissue is paid from these, so a low
+     * balance makes bookings fail after the guest has paid.
+     */
+    public function userDetail(): array
+    {
+        $url = preg_replace('#/fms/v1$#', '/ums/v1', $this->fmsBaseUrl).'/user-detail';
+
+        return $this->rawRequest('GET', $url);
+    }
+
+    /**
      * Review API — POST /fms/v1/review. Revalidates selected priceIds and
      * returns the session bookingId required for Book. $priceIds is a
      * single-element array for Oneway, two elements for Return.
@@ -474,7 +487,7 @@ class TripJackFlightClient
                         || ($exception instanceof \Illuminate\Http\Client\RequestException
                             && ($exception->response->status() >= 500 || $exception->response->status() === 429));
                 }, throw: false)
-                ->send($method, $url, ['json' => $payload]);
+                ->send($method, $url, $method === 'GET' ? ['query' => $payload] : ['json' => $payload]);
         } catch (ConnectionException $e) {
             $this->log($method, $url, null, $startedAt, $payload, ['exception' => $e->getMessage()]);
             throw new TripJackTimeoutException("TripJack flight request timed out: {$url}", previous: $e);

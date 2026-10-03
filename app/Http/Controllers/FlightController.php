@@ -733,7 +733,7 @@ class FlightController extends Controller
                 'bookingId' => $draft['bookingId'],
                 'deliveryInfo' => [
                     'emails' => [$email],
-                    'contacts' => ['+91'.substr(preg_replace('/\D/', '', $phone), -10)],
+                    'contacts' => [$phone],
                 ],
                 'contactInfo' => $contactInfo,
                 'travellerInfo' => $travellerInfo,
@@ -865,16 +865,28 @@ class FlightController extends Controller
         $firstNameMax = (int) ($conditions['anlm']['fN'] ?? 100);
         $lastNameMax = (int) ($conditions['anlm']['lN'] ?? 100);
         $nameRegex = "regex:/^[A-Za-z\\s.'-]+$/";
-        $phoneRule = function ($attribute, $value, $fail) {
+        // Each number is checked against its own country-code field
+        // (contact_dial_code / emergency_dial_code, default +91): India needs
+        // 10 digits, other countries 6–14 (E.164 caps the whole number at 15).
+        $phoneRule = function ($attribute, $value, $fail) use ($request) {
+            $dialField = $attribute === 'emergency_phone' ? 'emergency_dial_code' : 'contact_dial_code';
+            $code = preg_replace('/\D/', '', (string) $request->input($dialField, '+91')) ?: '91';
             $digits = preg_replace('/\D/', '', (string) $value);
-            $digits = preg_replace('/^91(?=\d{10}$)/', '', $digits);
-            if (! preg_match('/^\d{10}$/', $digits)) {
-                $fail('Please enter a valid 10-digit mobile number.');
+
+            if ($code === '91') {
+                $digits = preg_replace('/^(91|0)(?=\d{10}$)/', '', $digits);
+                if (! preg_match('/^\d{10}$/', $digits)) {
+                    $fail('Please enter a valid 10-digit mobile number.');
+                }
+            } elseif (! preg_match('/^\d{6,14}$/', ltrim($digits, '0')) || strlen($code.ltrim($digits, '0')) > 15) {
+                $fail('Please enter a valid mobile number for the selected country code.');
             }
         };
+        $dialCodeRule = ['nullable', 'string', 'regex:/^\+?[1-9]\d{0,3}$/'];
 
         $rules = [
             'contact_email' => 'required|email|max:255',
+            'contact_dial_code' => $dialCodeRule,
             'contact_phone' => ['required', 'string', 'max:20', $phoneRule],
             'special_requests' => 'nullable|string|max:500',
             'travellers' => 'required|array|size:'.$totalPax,
@@ -911,6 +923,7 @@ class FlightController extends Controller
         }
         if ($emergencyRequired) {
             $rules['emergency_name'] = ['required', 'string', 'max:60', $nameRegex];
+            $rules['emergency_dial_code'] = $dialCodeRule;
             $rules['emergency_phone'] = ['required', 'string', 'max:20', $phoneRule];
             $rules['emergency_email'] = 'nullable|email|max:255';
         }
@@ -924,6 +937,8 @@ class FlightController extends Controller
             'travellers.*.document_id.required' => 'Please enter the ID number for this '.strtolower(str_replace('_', ' ', $context['fareType'] ?? '')).' fare.',
             'travellers.*.passport_issue_date.before_or_equal' => 'The passport issue date can’t be in the future.',
         ]);
+
+        $contactPhone = FlightBookingService::phoneFromInput($validated['contact_dial_code'] ?? null, $validated['contact_phone']);
 
         $leadNames = collect($validated['travellers'])->map(fn ($t) => strtolower(trim(($t['first_name'] ?? '').' '.($t['last_name'] ?? ''))));
         if ($leadNames->duplicates()->isNotEmpty()) {
@@ -942,7 +957,8 @@ class FlightController extends Controller
         $seatAmounts = []; // [segmentId][code] => amount, bookable seats only
         $wantsSeats = collect($validated['travellers'])->contains(fn ($t) => array_filter($t['seats'] ?? []) !== []);
         $needsSeats = collect($addonTrips)->contains('seatMandatory', true);
-        if ($wantsSeats || $needsSeats) {
+        // Doc (Seat Map): "Only call this when conditions.isa = true".
+        if (($conditions['isa'] ?? false) && ($wantsSeats || $needsSeats)) {
             try {
                 foreach ($client->seatMap($draft['bookingId'])['tripSeatMap']['tripSeat'] ?? [] as $segId => $map) {
                     foreach ($map['sInfo'] ?? [] as $s) {
@@ -1068,7 +1084,7 @@ class FlightController extends Controller
         // TripJack stores {ecn, emails, contacts} exactly as sent.
         $contactInfo = $emergencyRequired ? array_filter([
             'ecn' => trim($validated['emergency_name']),
-            'contacts' => ['+91'.substr(preg_replace('/\D/', '', $validated['emergency_phone']), -10)],
+            'contacts' => [FlightBookingService::phoneFromInput($validated['emergency_dial_code'] ?? null, $validated['emergency_phone'])],
             'emails' => ! empty($validated['emergency_email']) ? [$validated['emergency_email']] : null,
         ], fn ($v) => $v !== null) : null;
 
@@ -1076,6 +1092,7 @@ class FlightController extends Controller
         // lives at totalPriceInfo.totalFareDetail.fC (same shape read in
         // showReview() above), not response.fD.
         $fc = $response['totalPriceInfo']['totalFareDetail']['fC'] ?? null;
+        $afcTaf = $response['totalPriceInfo']['totalFareDetail']['afC']['TAF'] ?? [];
         $totalFare = (float) ($fc['TF'] ?? 0);
 
         // Payment sits between Review and Book, so re-check the fare with
@@ -1083,9 +1100,14 @@ class FlightController extends Controller
         // sold out or changed meanwhile is only discovered after payment.
         // (Holds are re-checked separately at confirm time.)
         if ($intent !== 'hold') {
-            $fareCheck = $this->validateFareBeforePayment($client, $draft, $travellerInfo, $validated['contact_email'], $validated['contact_phone'], $gstInfo, $addonsTotal, $contactInfo);
+            $fareCheck = $this->validateFareBeforePayment($client, $draft, $travellerInfo, $validated['contact_email'], $contactPhone, $gstInfo, $addonsTotal, $contactInfo);
             if ($fareCheck !== null) {
                 return $fareCheck;
+            }
+
+            // Don't take payment for a booking TripJack can't pay for.
+            if (! app(FlightBookingService::class)->hasTripJackFunds($totalFare + $addonsTotal)) {
+                return back()->withInput()->withErrors(['booking' => FlightBookingService::INSUFFICIENT_FUNDS_MESSAGE]);
             }
         }
         // Add-ons fold into the same markup formula as the airfare (the
@@ -1124,9 +1146,11 @@ class FlightController extends Controller
                 'reference' => 'TYT'.strtoupper(\Illuminate\Support\Str::random(8)),
                 'user_id' => $request->user()->id,
                 'guest_email' => $validated['contact_email'],
-                // Bare 10 digits — the Book call prefixes "+91" itself, so a
-                // guest-typed "+91 98…" must not become "+9191 98…".
-                'guest_phone' => substr(preg_replace('/\D/', '', $validated['contact_phone']), -10),
+                // Full international number ("+919876543210") — Book and
+                // the other TripJack calls send it as-is (see
+                // FlightBookingService::e164(), which also handles older
+                // bookings stored as 10 bare digits).
+                'guest_phone' => $contactPhone,
                 'vertical' => 'flight',
                 'flight_route' => $route,
                 'flight_journey_type' => strtoupper($context['tripType'] === 'multi' ? 'MULTI_CITY' : ($context['tripType'] === 'return' ? 'RETURN' : 'ONEWAY')),
@@ -1161,8 +1185,10 @@ class FlightController extends Controller
                 'margin_amount' => $breakdown['margin_amount'],
                 'gst_on_margin' => $breakdown['gst_on_margin'],
                 'razorpay_recovery' => $breakdown['razorpay_recovery'],
-                'tripjack_mf' => round((float) ($fc['MF'] ?? 0), 2),
-                'tripjack_mft' => round((float) ($fc['MFT'] ?? 0), 2),
+                // MF/MFT are TAF components (afC.TAF), the same place the
+                // Review page reads them — fC itself never carries them.
+                'tripjack_mf' => round((float) ($afcTaf['MF'] ?? $fc['MF'] ?? 0), 2),
+                'tripjack_mft' => round((float) ($afcTaf['MFT'] ?? $fc['MFT'] ?? 0), 2),
                 'currency' => $fc['currency'] ?? 'INR',
                 'status' => 'pending_payment',
             ]);
@@ -1237,7 +1263,6 @@ class FlightController extends Controller
     protected function submitHold(Booking $booking, TripJackFlightClient $client)
     {
         $segments = $booking->flight_segments_payload ?? [];
-        $phoneDigits = preg_replace('/\D/', '', (string) $booking->guest_phone);
 
         try {
             $response = $client->book(
@@ -1245,7 +1270,7 @@ class FlightController extends Controller
                 null, // omit paymentInfos — this is the Hold, not Instant Book
                 $segments['travellerInfo'] ?? [],
                 [$booking->guest_email],
-                ['+91'.$phoneDigits],
+                [FlightBookingService::e164($booking->guest_phone)],
                 gstInfo: $booking->tripjack_gst_info,
                 contactInfo: $segments['contactInfo'] ?? null,
             );
@@ -1319,6 +1344,10 @@ class FlightController extends Controller
         $validation = $flights->validateHoldFare($booking);
         if (! $validation['ok']) {
             return redirect()->route('hotel.booking.confirmation', $booking->reference)->with('booking_error', $validation['message']);
+        }
+
+        if (! $flights->hasTripJackFunds((float) $booking->tripjack_total_price)) {
+            return redirect()->route('hotel.booking.confirmation', $booking->reference)->with('booking_error', FlightBookingService::INSUFFICIENT_FUNDS_MESSAGE);
         }
 
         $payment = $booking->payments()->where('purpose', 'flight_confirm_book')->where('status', 'created')->latest()->first();

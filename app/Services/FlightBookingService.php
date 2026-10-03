@@ -66,8 +66,7 @@ class FlightBookingService
             // hotels' deliveryInfo, which takes a separate parallel `code`
             // array. No dialCodes param on TripJackFlightClient::book() for
             // that reason.
-            $phoneDigits = preg_replace('/\D/', '', (string) $booking->guest_phone);
-            $contactNumber = '+91'.$phoneDigits;
+            $contactNumber = self::e164($booking->guest_phone);
             $segments = $booking->flight_segments_payload ?? [];
 
             try {
@@ -123,6 +122,33 @@ class FlightBookingService
     }
 
     /**
+     * A guest-entered dial code + number as one international number
+     * ("+919876543210"), the form TripJack's deliveryInfo/contactInfo
+     * contacts take. India (+91) keeps the last 10 digits, so a number typed
+     * with its own "91"/"0" prefix isn't doubled up.
+     */
+    public static function phoneFromInput(?string $dialCode, string $number): string
+    {
+        $code = preg_replace('/\D/', '', (string) $dialCode) ?: '91';
+        $digits = preg_replace('/\D/', '', $number);
+
+        return '+'.$code.($code === '91' ? substr($digits, -10) : ltrim($digits, '0'));
+    }
+
+    /**
+     * A stored booking phone as an international number. Newer bookings
+     * already store "+<code><number>"; older ones stored 10 bare Indian
+     * digits, which get +91.
+     */
+    public static function e164(?string $stored): string
+    {
+        $stored = trim((string) $stored);
+        $digits = preg_replace('/\D/', '', $stored);
+
+        return str_starts_with($stored, '+') ? '+'.$digits : '+91'.substr($digits, -10);
+    }
+
+    /**
      * TripJack's live order.status, or null if it couldn't be fetched.
      * Doc (Cancellation Amendment / Ancillaries): "booking must be in
      * SUCCESS state before raising any amendment" — our own 'confirmed'
@@ -138,6 +164,57 @@ class FlightBookingService
 
             return null;
         }
+    }
+
+    public const INSUFFICIENT_FUNDS_MESSAGE = 'Flight bookings are temporarily unavailable. You haven\'t been charged — please try again a little later or contact our support team.';
+
+    /**
+     * Whether the TripJack account (User Detail API) can pay $amount — so a
+     * guest is never charged for a booking TripJack would then refuse for
+     * lack of balance. Fails open: if the lookup itself fails, carry on
+     * (the post-payment refund path still covers that case).
+     */
+    public function hasTripJackFunds(float $amount): bool
+    {
+        try {
+            $detail = app(TripJackFlightClient::class)->userDetail();
+        } catch (TripJackException $e) {
+            Log::channel('tripjack')->warning('flight_balance_lookup_failed', ['message' => $e->getMessage()]);
+
+            return true;
+        }
+
+        $total = self::tripJackBalance($detail);
+        if ($total === null) {
+            Log::channel('tripjack')->warning('flight_balance_missing_in_user_detail', ['keys' => array_keys($detail)]);
+
+            return true;
+        }
+
+        if ($total + 0.01 < $amount) {
+            Log::channel('tripjack')->critical('flight_insufficient_tripjack_balance', ['needed' => $amount, 'totalBalance' => $total]);
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Spendable balance from a User Detail response: totalBalance, else
+     * wallet + credit. Null when the response carries none of them, so an
+     * odd/empty response is never read as "₹0 left".
+     */
+    public static function tripJackBalance(array $detail): ?float
+    {
+        if (isset($detail['totalBalance'])) {
+            return (float) $detail['totalBalance'];
+        }
+        if (isset($detail['walletBalance']) || isset($detail['creditBalance'])) {
+            return (float) ($detail['walletBalance'] ?? 0) + (float) ($detail['creditBalance'] ?? 0);
+        }
+
+        return null;
     }
 
     public const NOT_TICKETED_YET_MESSAGE = 'The airline is still confirming this booking, so changes can\'t be made yet. Please try again in a few minutes.';

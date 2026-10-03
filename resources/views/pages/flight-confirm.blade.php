@@ -69,8 +69,8 @@
 @php
   $paxCode = ['ADULT' => 'A', 'CHILD' => 'C', 'INFANT' => 'I'];
   $firstDeparture = $tripInfos[0]['sI'][0]['dt'] ?? null;
-  $phoneDigits = substr(preg_replace('/\D/', '', (string) ($input['contact_phone'] ?? '')), -10);
-  $emergencyPhone = substr(preg_replace('/\D/', '', (string) ($input['emergency_phone'] ?? '')), -10);
+  $contactPhoneFull = \App\Services\FlightBookingService::phoneFromInput($input['contact_dial_code'] ?? null, (string) ($input['contact_phone'] ?? ''));
+  $emergencyPhoneFull = \App\Services\FlightBookingService::phoneFromInput($input['emergency_dial_code'] ?? null, (string) ($input['emergency_phone'] ?? ''));
 @endphp
 
 @include('partials.flight-booking-steps', ['current' => 3, 'stepUrls' => [
@@ -154,9 +154,9 @@
       </div>
       <div class="flc-contact">
         <div><small>Email</small><span>{{ $input['contact_email'] ?? '' }}</span></div>
-        <div><small>Mobile</small><span>+91 {{ $phoneDigits }}</span></div>
+        <div><small>Mobile</small><span>{{ $contactPhoneFull }}</span></div>
         @if(! empty($input['emergency_name']))
-          <div><small>Emergency Contact</small><span>{{ $input['emergency_name'] }} &middot; +91 {{ $emergencyPhone }}@if(! empty($input['emergency_email'])) &middot; {{ $input['emergency_email'] }}@endif</span></div>
+          <div><small>Emergency Contact</small><span>{{ $input['emergency_name'] }} &middot; {{ $emergencyPhoneFull }}@if(! empty($input['emergency_email'])) &middot; {{ $input['emergency_email'] }}@endif</span></div>
         @endif
         @if(! empty($input['gst_number']))
           <div><small>GST</small><span>{{ strtoupper($input['gst_number']) }} &middot; {{ $input['gst_registered_name'] ?? '' }}</span></div>

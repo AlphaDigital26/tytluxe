@@ -289,7 +289,7 @@ class FlightReissueService
                     (float) $pending['amount'],
                     $pending['travellerInfo'],
                     [$booking->guest_email],
-                    ['+91'.preg_replace('/\D/', '', (string) $booking->guest_phone)],
+                    [FlightBookingService::e164($booking->guest_phone)],
                     $pending['gstInfo'] ?? null,
                 );
             } catch (TripJackException $e) {
@@ -364,6 +364,15 @@ class FlightReissueService
 
     protected function refundAndFail(Booking $booking, Payment $payment, RazorpayService $razorpay, string $reason): void
     {
+        // A no-charge reschedule (TF ≤ 0) never went through Razorpay.
+        if ((float) $payment->amount <= 0 || ! $payment->razorpay_payment_id) {
+            $payment->update(['status' => 'failed', 'refund_reason' => $reason]);
+            $booking->update(['flight_reissue_pending' => null]);
+            Log::channel('tripjack')->warning('flight_reissue_failed_nothing_to_refund', ['booking_id' => $booking->id, 'payment_id' => $payment->id, 'reason' => $reason]);
+
+            return;
+        }
+
         try {
             $razorpay->refund($payment->razorpay_payment_id, (float) $payment->amount);
             $payment->update(['status' => 'refunded', 'refund_amount' => $payment->amount, 'refund_reason' => $reason]);

@@ -67,6 +67,10 @@ class FlightAncillaryController extends Controller
             return back()->withErrors(['selections' => 'Please select at least one seat, meal, or baggage option.']);
         }
 
+        if (! app(\App\Services\FlightBookingService::class)->hasTripJackFunds($built['total'])) {
+            return back()->withErrors(['selections' => \App\Services\FlightBookingService::INSUFFICIENT_FUNDS_MESSAGE]);
+        }
+
         $booking->update(['flight_ssr_pending_selection' => $built['segmentInfos'] ? ['segmentInfos' => $built['segmentInfos']] : null]);
 
         // Deliberately charged at TripJack's own amount — no margin/GST/
