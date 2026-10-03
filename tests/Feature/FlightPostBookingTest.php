@@ -142,7 +142,7 @@ class FlightPostBookingTest extends TestCase
     {
         $this->fakeSsr();
         // Live: Fetch SSR omits seats, Booking Details lists them by "FROM-TO".
-        Http::fake(['*/booking-details' => Http::response(['itemInfos' => ['AIR' => ['travellerInfos' => [
+        Http::fake(['*/booking-details' => Http::response(['order' => ['status' => 'SUCCESS'], 'itemInfos' => ['AIR' => ['travellerInfos' => [
             ['id' => 1, 'fN' => 'Rahul', 'lN' => 'Probe', 'ssrSeatInfos' => ['DEL-BLR' => ['code' => '4A', 'amount' => 800]]],
         ]]], 'status' => ['success' => true]])]);
         $svc = app(FlightAncillaryService::class);
@@ -178,7 +178,7 @@ class FlightPostBookingTest extends TestCase
     {
         $booking = $this->booking(['pax_infants' => 0]);
         Http::fake([
-            '*/booking-details' => Http::response(['itemInfos' => ['AIR' => ['travellerInfos' => [['id' => 1, 'pnrDetails' => ['DEL-COK' => 'ABC123']]]]], 'status' => ['success' => true]]),
+            '*/booking-details' => Http::response(['order' => ['status' => 'SUCCESS'], 'itemInfos' => ['AIR' => ['travellerInfos' => [['id' => 1, 'pnrDetails' => ['DEL-COK' => 'ABC123']]]]], 'status' => ['success' => true]]),
             '*/reissue/poll/searchquery-list' => Http::sequence()
                 ->push(['searchIds' => ['5-R-1'], 'requestIds' => ['1'], 'status' => ['success' => true]])
                 ->push(['status' => ['success' => false, 'httpStatus' => 400], 'errors' => [['errCode' => '1157', 'message' => 'No matching reissue configuration found for the given supplier']]], 400),
@@ -298,7 +298,7 @@ class FlightPostBookingTest extends TestCase
         ], fn ($v) => $v !== null);
 
         Http::fake([
-            '*/booking-details' => Http::response(['itemInfos' => ['AIR' => ['travellerInfos' => [
+            '*/booking-details' => Http::response(['order' => ['status' => 'SUCCESS'], 'itemInfos' => ['AIR' => ['travellerInfos' => [
                 ['id' => 11, 'pnrDetails' => ['DEL-COK' => 'ABC123']], ['id' => 12, 'pnrDetails' => ['DEL-COK' => 'ABC123']],
             ]]], 'status' => ['success' => true]]),
             '*/reissue/poll/searchquery-list' => Http::response(['searchIds' => ['5-R-1'], 'requestIds' => ['R1'], 'status' => ['success' => true]]), // live shape
@@ -336,7 +336,7 @@ class FlightPostBookingTest extends TestCase
     {
         $booking = $this->booking();
         Http::fake([
-            '*/booking-details' => Http::response(['itemInfos' => ['AIR' => ['travellerInfos' => [['id' => 1, 'pnrDetails' => ['DEL-COK' => 'ABC123']]]]], 'status' => ['success' => true]]),
+            '*/booking-details' => Http::response(['order' => ['status' => 'SUCCESS'], 'itemInfos' => ['AIR' => ['travellerInfos' => [['id' => 1, 'pnrDetails' => ['DEL-COK' => 'ABC123']]]]], 'status' => ['success' => true]]),
             '*/reissue/poll/searchquery-list' => Http::response(['searchIds' => ['5-R-9'], 'requestIds' => ['9'], 'status' => ['success' => true]]),
             // Live response, 2026-10-01:
             '*/reissue/poll/search' => Http::response(['status' => ['success' => false, 'httpStatus' => 400], 'errors' => [['errCode' => '1148', 'message' => 'No reissue results found for the given booking']]], 400),
@@ -364,7 +364,7 @@ class FlightPostBookingTest extends TestCase
         $second = $svc->submitCancellation($booking, $trips);
         $this->assertFalse($second['success']);
         $this->assertStringContainsString('already being processed', $second['message']);
-        Http::assertSentCount(2);
+        $this->assertCount(2, Http::recorded(fn ($request) => str_contains($request->url(), 'submit-amendment')));
 
         $other = $svc->cancellationScope($booking, 'travellers', [], [0])['trips'];
         $this->assertTrue($svc->submitCancellation($booking, $other)['success'], 'a different traveller is a different request');

@@ -123,6 +123,26 @@ class FlightBookingService
     }
 
     /**
+     * TripJack's live order.status, or null if it couldn't be fetched.
+     * Doc (Cancellation Amendment / Ancillaries): "booking must be in
+     * SUCCESS state before raising any amendment" — our own 'confirmed'
+     * is set as soon as Book is accepted, while TripJack may still be
+     * PENDING, so amendments check this first.
+     */
+    public function liveOrderStatus(Booking $booking): ?string
+    {
+        try {
+            return app(TripJackFlightClient::class)->bookingDetails($booking->tripjack_booking_id)['order']['status'] ?? null;
+        } catch (TripJackException $e) {
+            Log::channel('tripjack')->warning('flight_live_status_lookup_failed', ['booking_id' => $booking->id, 'message' => $e->getMessage()]);
+
+            return null;
+        }
+    }
+
+    public const NOT_TICKETED_YET_MESSAGE = 'The airline is still confirming this booking, so changes can\'t be made yet. Please try again in a few minutes.';
+
+    /**
      * Book / Confirm-Book timed out or 5xx'd — TripJack may or may not have
      * acted on it. The payment stays captured and the booking goes to
      * failed_needs_review (the confirmation page shows "We're Reviewing Your
@@ -255,7 +275,57 @@ class FlightBookingService
             return ['ok' => false, 'message' => 'This held fare is no longer available. Please search again.'];
         }
 
+        // Doc case (4): "Fare alert — inform customer". Confirm-Book must be
+        // sent the CURRENT fare (a mismatch is error 1015 after the guest
+        // has paid), so re-price the booking and have the guest confirm the
+        // new amount before any payment is taken.
+        $fareAlert = collect($response['alerts'] ?? [])->first(fn ($a) => ($a['type'] ?? '') === 'FAREALERT');
+        $hasFareAlert = $fareAlert !== null;
+        $newFare = $response['totalPriceInfo']['totalFareDetail']['fC']['TF'] ?? $fareAlert['newFare'] ?? null;
+
+        if ($newFare !== null && abs((float) $newFare - (float) $booking->tripjack_total_price) >= 0.01) {
+            $oldPrice = (float) $booking->total_amount;
+            $oldFare = (float) $booking->tripjack_total_price;
+            $this->repriceHold($booking, (float) $newFare);
+            Log::channel('tripjack')->info('flight_hold_fare_changed', ['booking_id' => $booking->id, 'oldTF' => $oldFare, 'newTF' => $newFare]);
+
+            return ['ok' => false, 'message' => 'The airline has changed this fare from ₹'.number_format($oldPrice, 2).' to ₹'.number_format((float) $booking->total_amount, 2).'. Press Confirm & Pay again to continue at the new price.'];
+        }
+
+        if ($hasFareAlert && $newFare === null) {
+            // Changed, but we can't tell to what — can't safely charge.
+            Log::channel('tripjack')->warning('flight_hold_fare_alert_without_amount', ['booking_id' => $booking->id, 'response' => $response]);
+
+            return ['ok' => false, 'message' => 'The airline has changed this fare. Please search again to see the current price.'];
+        }
+
         return ['ok' => true, 'message' => null];
+    }
+
+    /**
+     * Applies a new TripJack TF to a held booking with the same markup
+     * formula as at booking time, and voids any unpaid Razorpay order made
+     * at the old amount so confirmHold() creates a fresh one.
+     */
+    protected function repriceHold(Booking $booking, float $newFare): void
+    {
+        $breakdown = FlightPricingService::price($newFare);
+
+        $booking->update([
+            'base_amount' => $breakdown['tripjack_total_price'],
+            'tax_amount' => $breakdown['customer_price'] - $breakdown['tripjack_total_price'],
+            'total_amount' => $breakdown['customer_price'],
+            'tripjack_total_price' => $breakdown['tripjack_total_price'],
+            'gst_slab' => $breakdown['gst_slab'],
+            'margin_amount' => $breakdown['margin_amount'],
+            'gst_on_margin' => $breakdown['gst_on_margin'],
+            'razorpay_recovery' => $breakdown['razorpay_recovery'],
+        ]);
+
+        $booking->payments()
+            ->where('purpose', 'flight_confirm_book')
+            ->where('status', 'created')
+            ->update(['status' => 'failed']);
     }
 
     /**
@@ -266,21 +336,35 @@ class FlightBookingService
     public function releaseHold(Booking $booking): void
     {
         $client = app(TripJackFlightClient::class);
-        $pnrs = array_values((array) ($booking->tripjack_flight_pnr ?? []));
+        $pnrs = array_values(array_unique((array) ($booking->tripjack_flight_pnr ?? [])));
+        $released = false;
 
         try {
             $client->unhold($booking->tripjack_booking_id, $pnrs);
+
+            // Doc (Release PNR): "verify by checking Booking Details — order
+            // status should be UNCONFIRMED".
+            $status = $client->bookingDetails($booking->tripjack_booking_id)['order']['status'] ?? null;
+            $released = $status === 'UNCONFIRMED';
+            if (! $released) {
+                Log::channel('tripjack')->warning('flight_unhold_not_unconfirmed', ['booking_id' => $booking->id, 'orderStatus' => $status]);
+            }
         } catch (TripJackException $e) {
-            $errorCode = $e instanceof \App\Services\TripJack\Exceptions\TripJackApiException ? $e->errorCode : null;
+            $errorCode = $e instanceof TripJackApiException ? $e->errorCode : null;
             $described = TripJackFlightErrorCatalog::describe($errorCode);
             $this->logFailure($described['logLevel'], 'flight_unhold_failed', ['booking_id' => $booking->id, 'errorCode' => $errorCode, 'message' => $e->getMessage()]);
-            // Still mark it cancelled on our side — the guest asked to walk
-            // away, and a stuck hold auto-expires with the supplier anyway
-            // (timeLimit); this only stops us from double-billing, which was
-            // never at risk here since Hold never captured payment.
         }
 
-        $booking->update(['status' => 'cancelled', 'cancellation_reason' => 'Hold released by guest before payment.']);
+        // Still cancelled on our side either way — the guest asked to walk
+        // away, no payment was ever taken, and an unreleased hold expires
+        // with the supplier at its timeLimit. Staff get a note if TripJack
+        // didn't confirm the release.
+        $booking->update(array_filter([
+            'status' => 'cancelled',
+            'cancellation_reason' => 'Hold released by guest before payment.',
+            'admin_note' => $released ? null : trim(($booking->admin_note ? $booking->admin_note.' ' : '')
+                .'Release PNR was not confirmed by TripJack (status not UNCONFIRMED) — check the hold in TripJack; it will otherwise lapse at its time limit.'),
+        ], fn ($v) => $v !== null));
     }
 
     /**
@@ -604,6 +688,13 @@ class FlightBookingService
     {
         $isFullBooking = empty($trips);
         $remarks ??= $type === 'VOIDED' ? 'Same-day void requested by guest via TYTLUXE website.' : 'Cancelled by guest via TYTLUXE website.';
+
+        // Only block on a definite non-SUCCESS answer — if the lookup itself
+        // fails, TripJack's own amendment validation still applies.
+        $liveStatus = $this->liveOrderStatus($booking);
+        if ($liveStatus !== null && $liveStatus !== 'SUCCESS') {
+            return ['success' => false, 'message' => self::NOT_TICKETED_YET_MESSAGE];
+        }
 
         if ($isFullBooking) {
             $claimed = DB::transaction(function () use ($booking) {

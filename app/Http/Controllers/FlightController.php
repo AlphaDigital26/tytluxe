@@ -740,6 +740,24 @@ class FlightController extends Controller
                 'gstInfo' => $gstInfo,
             ], fn ($v) => $v !== null));
         } catch (TripJackApiException $e) {
+            // A 5xx is an outage, not an answer — same as a timeout below.
+            if (FlightBookingService::isUncertainOutcome($e)) {
+                Log::channel('tripjack')->warning('flight_fare_validate_skipped', ['bookingId' => $draft['bookingId'], 'message' => $e->getMessage()]);
+
+                return null;
+            }
+
+            // Fare Validate checks the traveller details too: a rejected
+            // passport, mobile, age, GSTIN… is the guest's to correct, not a
+            // sold-out fare — send them back to the form with their input.
+            if (TripJackFlightErrorCatalog::isTravellerInputError($e->errorCode)) {
+                Log::channel('tripjack')->info('flight_fare_validate_input_rejected', ['bookingId' => $draft['bookingId'], 'errorCode' => $e->errorCode, 'message' => $e->getMessage()]);
+
+                return redirect()->route('flights.passengers.show', ['booking' => $draft['bookingId']])
+                    ->withInput()
+                    ->withErrors(['travellers' => TripJackFlightErrorCatalog::describe($e->errorCode)['message']]);
+            }
+
             Log::channel('tripjack')->warning('flight_fare_validate_unavailable', ['bookingId' => $draft['bookingId'], 'errorCode' => $e->errorCode, 'message' => $e->getMessage()]);
 
             return $soldOut();
@@ -1028,6 +1046,13 @@ class FlightController extends Controller
             return redirect()->route('flights.confirm.show');
         }
 
+        // Doc (Booking API, Hold): "Check conditions.isBA = true in Review
+        // before attempting" — the Review page hides Block otherwise, but a
+        // crafted/stale post must not reach TripJack either.
+        if ($intent === 'hold' && ! ($conditions['isBA'] ?? false)) {
+            return back()->withInput()->withErrors(['intent' => 'This fare can’t be held — the airline requires payment to book it. Please choose Proceed to Pay.']);
+        }
+
         // A hold blocks the PNR without any payment, so there's nothing to
         // charge paid add-ons against — free seats/meals are fine.
         if ($intent === 'hold' && $addonsTotal > 0) {
@@ -1249,7 +1274,23 @@ class FlightController extends Controller
         try {
             $details = $client->bookingDetails($tripjackBookingId);
             $expiresAt = $details['itemInfos']['AIR']['timeLimit'] ?? null; // confirmed live — not in the doc's field table
-            $pnr = $details['itemInfos']['AIR']['travellerInfos'][0]['pnrDetails'] ?? null;
+            $pnr = FlightBookingService::airTravellers($details)[0]['pnrDetails'] ?? null;
+            $orderStatus = $details['order']['status'] ?? null;
+
+            // Doc booking flow: Block → Booking Details → ON_HOLD. A hold that
+            // TripJack reports as failed must not be shown as held (no
+            // payment was taken, so there's nothing to refund).
+            if (in_array($orderStatus, ['FAILED', 'ABORTED', 'UNCONFIRMED', 'CANCELLED'], true)) {
+                Log::channel('tripjack')->warning('flight_hold_not_on_hold', ['booking_id' => $booking->id, 'bookingId' => $tripjackBookingId, 'orderStatus' => $orderStatus]);
+                $booking->delete();
+
+                return redirect()->route('flights.search')->with('booking_error', 'The airline couldn’t hold this fare. Please search again or book it with payment.');
+            }
+            if ($orderStatus !== 'ON_HOLD') {
+                // Usually still PENDING this soon after Block — the hold is
+                // re-checked (Confirm Fare Before Ticket) before any payment.
+                Log::channel('tripjack')->info('flight_hold_status_not_final', ['booking_id' => $booking->id, 'bookingId' => $tripjackBookingId, 'orderStatus' => $orderStatus]);
+            }
         } catch (TripJackException $e) {
             Log::channel('tripjack')->warning('flight_hold_details_failed', ['bookingId' => $tripjackBookingId, 'message' => $e->getMessage()]);
         }

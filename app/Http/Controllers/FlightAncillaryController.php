@@ -46,6 +46,14 @@ class FlightAncillaryController extends Controller
     {
         $booking = $this->guardBooking($reference);
 
+        // Doc (Ancillaries): booking must be in SUCCESS state — check before
+        // taking payment for extras TripJack would then reject.
+        $liveStatus = app(\App\Services\FlightBookingService::class)->liveOrderStatus($booking);
+        if ($liveStatus !== null && $liveStatus !== 'SUCCESS') {
+            return redirect()->route('hotel.booking.confirmation', $booking->reference)
+                ->with('booking_error', \App\Services\FlightBookingService::NOT_TICKETED_YET_MESSAGE);
+        }
+
         $cached = $booking->flight_ssr_options_cache;
         if (! $cached) {
             return redirect()->route('flights.extras.show', $booking->reference)

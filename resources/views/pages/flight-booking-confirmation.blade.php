@@ -83,11 +83,19 @@
   .bd-price-row { display: flex; justify-content: space-between; font-family: 'Jost', sans-serif; font-size: 13px; color: var(--white-60); padding: 8px 0; }
   .bd-price-row.total { border-top: 1px solid rgba(201,168,76,0.25); margin-top: 6px; padding-top: 14px; font-size: 16px; color: #fff; font-weight: 600; }
   .bd-price-row.total span:last-child { color: var(--gold-light); }
+  .bc-notice { margin: 0 0 22px; padding: 12px 16px; border-radius: 8px; text-align: left; font-size: 14px; line-height: 1.5;
+    background: rgba(224,179,74,0.08); border: 1px solid rgba(224,179,74,0.35); color: var(--amber); }
 </style>
 @endpush
 
 @section('content')
 <div class="bc-wrap">
+
+  {{-- Messages from actions that redirect here (hold confirm / fare change,
+       extras unavailable, …) — previously flashed but never shown. --}}
+  @if(session('booking_error'))
+    <div class="bc-notice" role="alert">⚠️ {{ session('booking_error') }}</div>
+  @endif
 
   @if($paymentFailed)
     <div class="bc-icon-ring bad">⚠️</div>

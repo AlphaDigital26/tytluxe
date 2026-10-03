@@ -63,6 +63,11 @@ class FlightReissueService
             return ['success' => false, 'message' => 'We couldn\'t look up this booking right now. Please try again.', 'options' => []];
         }
 
+        // Doc: amendments (reissue included) need the booking in SUCCESS.
+        if (($details['order']['status'] ?? null) !== 'SUCCESS') {
+            return ['success' => false, 'message' => FlightBookingService::NOT_TICKETED_YET_MESSAGE, 'options' => []];
+        }
+
         $pnr = $details['itemInfos']['AIR']['travellerInfos'][0]['pnrDetails'][$leg['src'].'-'.$leg['dest']]
             ?? collect($details['itemInfos']['AIR']['travellerInfos'][0]['pnrDetails'] ?? [])->first();
         $paxIds = collect($details['itemInfos']['AIR']['travellerInfos'] ?? [])->pluck('id')->map(fn ($id) => (string) $id)->all();
