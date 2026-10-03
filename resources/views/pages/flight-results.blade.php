@@ -672,31 +672,60 @@
   .frx-flight:hover { border-color: rgba(201,168,76,0.25); }
   .frx-flight.has-selected { border-color: var(--gold); background: rgba(201,168,76,0.04); }
 
-  .frx-flight-main { display: flex; align-items: center; gap: 18px; padding: 16px 20px; flex-wrap: wrap; }
+  /* TripJack-style card: airline | journey | fare list | actions */
+  .frx-flight-main { display: grid; grid-template-columns: 190px minmax(250px, 1fr) minmax(260px, 1.15fr) 132px; align-items: start; gap: 20px; padding: 18px 20px; }
 
-  .frx-card-airline { display: flex; align-items: center; gap: 10px; width: 150px; flex-shrink: 0; }
-  .frx-card-airline img { width: 34px; height: 34px; object-fit: contain; border-radius: 6px; background: #fff; padding: 3px; }
-  .frx-card-airline-name { font-size: 12.5px; font-weight: 600; color: #fff; }
-  .frx-card-flightno { font-size: 10.5px; color: var(--white-30); }
+  .frx-col-airline { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; min-width: 0; }
+  .frx-card-airline { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .frx-card-airline img { width: 34px; height: 34px; flex-shrink: 0; object-fit: contain; border-radius: 6px; background: #fff; padding: 3px; }
+  .frx-card-airline-name { font-size: 14px; font-weight: 600; color: #fff; line-height: 1.25; }
+  .frx-card-flightno { font-size: 11px; color: var(--white-30); margin-top: 2px; }
+  .frx-details-toggle.frx-view-details { background: linear-gradient(90deg, #c9a84c, #e8c96b); border: none; color: var(--dark); font-weight: 700; padding: 9px 16px; }
+  .frx-details-toggle.frx-view-details:hover { color: var(--dark); box-shadow: 0 6px 16px rgba(201,168,76,0.3); }
+  .frx-details-toggle.frx-view-details.open { background: transparent; border: 1px solid rgba(201,168,76,0.5); color: var(--gold-light); }
+  .frx-seats-left { font-size: 12px; font-weight: 600; color: #f0c47a; }
 
-  .frx-card-times { display: flex; align-items: center; gap: 14px; flex: 1; min-width: 220px; }
-  .frx-card-time { text-align: center; }
-  .frx-card-time-val { font-size: 16px; font-weight: 600; color: #fff; }
-  .frx-card-time-sub { font-size: 10px; color: var(--white-30); text-transform: uppercase; letter-spacing: 0.05em; }
-  .frx-card-path { flex: 1; text-align: center; min-width: 60px; }
-  .frx-card-path-line { position: relative; height: 1px; background: rgba(255,255,255,0.15); margin: 6px 0 4px; }
-  .frx-card-path-line::after { content: '✈'; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%) rotate(90deg); font-size: 10px; color: var(--gold); background: var(--dark-2); padding: 0 4px; }
-  .frx-card-stops { font-size: 10.5px; color: var(--white-60); }
+  .frx-col-journey { min-width: 0; padding-top: 2px; }
+  .frx-card-times { display: flex; align-items: flex-start; gap: 14px; }
+  .frx-card-time { flex-shrink: 0; min-width: 58px; }
+  .frx-card-time:last-child { text-align: right; }
+  .frx-card-time-sub { font-size: 11px; font-weight: 600; color: var(--white-60); text-transform: uppercase; letter-spacing: 0.06em; }
+  .frx-card-time-val { font-size: 21px; font-weight: 600; color: #fff; line-height: 1.25; margin-top: 2px; }
+  .frx-card-time-date { font-size: 11.5px; color: var(--white-30); margin-top: 2px; }
+  .frx-card-path { flex: 1; text-align: center; min-width: 70px; padding-top: 4px; }
+  .frx-card-stops { font-size: 11px; color: var(--white-60); }
+  .frx-card-path-line { position: relative; height: 1px; background: rgba(255,255,255,0.18); margin: 8px 0 6px; }
+  .frx-card-path-line::after { content: '✈'; position: absolute; top: 50%; right: -2px; transform: translateY(-52%); font-size: 11px; color: var(--gold); background: var(--dark-2); padding-left: 3px; }
+  .frx-card-duration { font-size: 13px; font-weight: 600; color: var(--white-80); }
+  .frx-card-via { font-size: 10.5px; font-weight: 400; color: var(--white-30); }
+  .frx-nearby-chip { display: inline-block; margin-top: 8px; padding: 3px 10px; border-radius: 100px; background: rgba(201,168,76,0.12); color: var(--gold-light); font-size: 10.5px; font-weight: 600; }
+  .frx-arrives-note { margin-top: 12px; font-size: 12px; color: var(--white-60); }
+  .frx-arrives-note span { color: var(--gold); margin-right: 4px; }
   .frx-next-day { font-size: 9.5px; font-weight: 700; color: var(--gold); margin-left: 2px; vertical-align: super; }
+
+  .frx-col-actions { display: flex; flex-direction: column; gap: 10px; }
+  .frx-col-actions .frx-row-continue-btn.frx-book-btn { width: 100%; padding: 13px 10px; border-radius: 8px; font-size: 13px; letter-spacing: 0.12em; }
+  .frx-col-actions .frx-compare-btn { width: 100%; padding: 10px; border-radius: 8px; text-align: center; }
+
+  @media (max-width: 1180px) {
+    .frx-flight-main { grid-template-columns: 170px minmax(0, 1fr); }
+    .frx-col-fares { grid-column: 1 / -1; }
+    .frx-col-actions { grid-column: 1 / -1; flex-direction: row; justify-content: flex-end; }
+    .frx-col-actions .frx-row-continue-btn.frx-book-btn, .frx-col-actions .frx-compare-btn { width: auto; min-width: 140px; }
+  }
+  @media (max-width: 600px) {
+    .frx-flight-main { grid-template-columns: minmax(0, 1fr); gap: 16px; padding: 16px; }
+    .frx-col-airline { flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+    .frx-col-actions .frx-row-continue-btn.frx-book-btn, .frx-col-actions .frx-compare-btn { flex: 1; min-width: 0; }
+  }
   /* Multi-leg (COMBO) cards: one compact row per leg */
-  .frx-card-legs { flex: 1; min-width: 260px; display: flex; flex-direction: column; gap: 10px; }
+  .frx-card-legs { display: flex; flex-direction: column; gap: 10px; }
   .frx-card-leg { display: flex; align-items: center; gap: 14px; }
   .frx-card-leg + .frx-card-leg { padding-top: 10px; border-top: 1px dashed rgba(255,255,255,0.08); }
   .frx-card-leg-label { width: 116px; flex-shrink: 0; }
   .frx-card-leg-label span { display: block; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold-light); }
   .frx-card-leg-label small { display: block; margin-top: 2px; font-size: 10px; color: var(--white-30); }
   .frx-card-leg .frx-card-times { min-width: 0; }
-  @media (max-width: 720px) { .frx-card-legs { order: 3; width: 100%; } }
 
   .frx-details-toggle { flex-shrink: 0; background: transparent; border: 1px solid rgba(255,255,255,0.15); color: var(--white-60); font-family: 'Jost', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; padding: 8px 14px; border-radius: 8px; cursor: pointer; transition: all var(--tr); }
   .frx-details-toggle:hover { border-color: rgba(201,168,76,0.4); color: var(--gold-light); }
@@ -767,28 +796,35 @@
   .frx-cmp-subnote { display: block; max-width: 190px; margin: 4px auto 0; color: var(--white-30); font-size: 10.5px; line-height: 1.5; }
   .frx-cmp-more { display: inline-block; margin-top: 8px; align-self: center; background: none; border: none; padding: 0; color: var(--gold-light); font-size: 10px; font-weight: 600; letter-spacing: 0.02em; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
 
-  .frx-flight-options { display: flex; flex-wrap: wrap; gap: 10px; padding: 0 20px 16px; }
-  .frx-opt-row { display: flex; align-items: center; gap: 9px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 8px 12px; cursor: pointer; transition: all var(--tr); }
-  .frx-opt-row:hover { border-color: rgba(201,168,76,0.3); }
-  .frx-opt-row.selected { border-color: var(--gold); background: rgba(201,168,76,0.1); }
-  .frx-opt-row input[type="radio"] { accent-color: var(--gold); width: 15px; height: 15px; flex-shrink: 0; }
-  .frx-opt-fareid { font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--white-60); }
-  .frx-opt-price { font-size: 14px; font-weight: 700; color: var(--gold-light); }
+  /* Fare list — one fare per line: radio · price, then fare type + cabin/refundability */
+  .frx-col-fares { display: flex; flex-direction: column; min-width: 0; }
+  .frx-opt-row { display: grid; grid-template-columns: 20px auto minmax(0, 1fr); column-gap: 10px; row-gap: 4px; align-items: center; padding: 10px 6px; border-bottom: 1px solid rgba(255,255,255,0.07); border-radius: 6px; cursor: pointer; transition: background var(--tr); }
+  .frx-opt-row > input[type="radio"] { grid-row: 1 / span 2; align-self: start; margin: 4px 0 0; accent-color: var(--gold); width: 17px; height: 17px; cursor: pointer; }
+  .frx-opt-row > .frx-opt-price { grid-column: 2; }
+  .frx-opt-row > .frx-sr-badge { grid-column: 3; justify-self: start; }
+  .frx-opt-row > .frx-opt-meta { grid-column: 2 / -1; }
+  .frx-opt-row:hover { background: rgba(255,255,255,0.03); }
+  .frx-opt-row.selected { background: rgba(201,168,76,0.08); }
+  .frx-opt-price { font-size: 18px; font-weight: 700; color: #fff; white-space: nowrap; }
+  .frx-opt-row.selected .frx-opt-price { color: var(--gold-light); }
+  .frx-opt-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+  .frx-opt-fareid { display: inline-block; padding: 2px 8px; border-radius: 4px; background: rgba(201,168,76,0.16); color: var(--gold-light); font-size: 10.5px; font-weight: 700; letter-spacing: 0.02em; }
+  .frx-opt-desc { font-size: 12.5px; color: var(--white-60); }
+  .frx-refund-ok { color: var(--green); }
+  .frx-refund-part { color: #f0c47a; }
+  .frx-refund-non { color: #f3a3a3; }
+  .frx-opt-flex { font-size: 10.5px; font-weight: 600; color: var(--green); }
+  /* "+N more fares" — rows past the 4th visible one are tucked away
+     (a selected fare always stays visible). */
+  .frx-flight:not(.frx-fares-open) .frx-opt-row.frx-opt-extra:not(.selected) { display: none; }
+  .frx-more-fares { align-self: flex-end; margin-top: 10px; padding: 5px 14px; border-radius: 100px; border: 1px solid rgba(201,168,76,0.35); background: rgba(201,168,76,0.08); color: var(--gold-light); font-family: 'Jost', sans-serif; font-size: 11px; font-weight: 600; cursor: pointer; transition: background var(--tr); }
+  .frx-more-fares:hover { background: rgba(201,168,76,0.16); }
+  .frx-more-fares[hidden] { display: none; }
 
-  /* Per-flight-row book/continue action — lets a guest act on the flight
-     they're looking at right now instead of scrolling to the shared bar
-     at the bottom of a long results list. */
-  .frx-row-continue-bar { display: flex; align-items: center; justify-content: flex-end; gap: 14px; padding: 0 20px 18px; }
-  .frx-row-continue-hint { font-size: 10.5px; color: var(--white-30); }
   .frx-row-continue-btn { padding: 10px 24px; border: none; border-radius: 100px; background: linear-gradient(90deg, #c9a84c, #e8c96b); color: var(--dark); font-family: 'Jost', sans-serif; font-size: 11px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; cursor: pointer; white-space: nowrap; transition: transform 0.15s, box-shadow 0.15s; }
   .frx-row-continue-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(201,168,76,0.35); }
   .frx-group-title.frx-group-title-nudge { animation: frxNudge 1.1s ease; }
   @keyframes frxNudge { 0%, 100% { color: var(--gold); } 30% { color: #fff; text-shadow: 0 0 14px rgba(201,168,76,0.6); } }
-
-  .frx-card-tag { display: inline-block; font-size: 9.5px; font-weight: 600; padding: 3px 9px; border-radius: 100px; }
-  .frx-card-tag.refundable { background: rgba(74,222,128,0.1); color: var(--green); }
-  .frx-card-tag.nonrefundable { background: rgba(220,80,80,0.1); color: #f3a3a3; }
-  .frx-card-tag.partial { background: rgba(232,180,80,0.12); color: #f0c47a; }
 
   /* ── Expandable details panel: Flight / Fare / Fare Rules tabs ────── */
   .frx-flight-details { display: none; border-top: 1px solid rgba(255,255,255,0.08); background: rgba(0,0,0,0.15); padding: 18px 20px; }
@@ -848,11 +884,6 @@
 
   .frx-no-match { text-align: center; padding: 40px 20px; color: var(--white-30); font-size: 13px; }
 
-  @media (max-width: 720px) {
-    .frx-flight-main { flex-wrap: wrap; }
-    .frx-card-times { order: 3; width: 100%; }
-    .frx-details-toggle { margin-left: auto; }
-  }
 
 </style>
 @endpush
@@ -1367,15 +1398,33 @@
                      rest are revealed 20 at a time as the guest scrolls. --}}
                 @if($fIdx >= $pageSize) style="display:none" @endif>
 
+                @php
+                  // TripJack-style card: airline | journey | fare list | actions.
+                  $cardDate = fn ($raw) => $raw ? \Carbon\Carbon::parse($raw)->format('M d') : '';
+                  $seatsLeft = collect($flight['options'])->pluck('seatsLeft')->filter(fn ($s) => is_numeric($s) && (int) $s > 0)->min();
+                  $isNearby = $flight['depAirport'] !== $group['meta']['from'] || $flight['arrAirport'] !== $group['meta']['to'];
+                  $arrivesNextDay = count($flight['legs']) === 1 && ($flight['legs'][0]['nextDay'] ?? false);
+                  // "NDC_XPRESS_PROMO" → "NDC Xpress Promo" (acronyms stay upper case, like TripJack's own labels)
+                  $fareLabel = fn ($id) => collect(explode('_', strtoupper((string) $id)))
+                      ->map(fn ($w) => in_array($w, ['SME', 'NDC', 'TJ', 'LCC', 'GDS', 'SOTO', 'SOTI'], true) ? $w : ucfirst(strtolower($w)))
+                      ->implode(' ');
+                @endphp
                 <div class="frx-flight-main">
-                  <div class="frx-card-airline">
-                    <img src="https://images.kiwi.com/airlines/64/{{ $flight['airlineCode'] }}.png" loading="lazy" decoding="async" width="34" height="34" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name={{ urlencode($flight['airlineName']) }}&background=1a1a1a&color=C9A84C&size=64'" alt="{{ $flight['airlineName'] }}">
-                    <div>
-                      <div class="frx-card-airline-name">{{ $flight['airlineName'] }}</div>
-                      <div class="frx-card-flightno">{{ $flight['airlineCode'] }} {{ $flight['flightNo'] }}</div>
+                  <div class="frx-col-airline">
+                    <div class="frx-card-airline">
+                      <img src="https://images.kiwi.com/airlines/64/{{ $flight['airlineCode'] }}.png" loading="lazy" decoding="async" width="34" height="34" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name={{ urlencode($flight['airlineName']) }}&background=1a1a1a&color=C9A84C&size=64'" alt="{{ $flight['airlineName'] }}">
+                      <div>
+                        <div class="frx-card-airline-name">{{ $flight['airlineName'] }}</div>
+                        <div class="frx-card-flightno">{{ implode(', ', $flight['flightNos']) ?: $flight['airlineCode'].' '.$flight['flightNo'] }}</div>
+                      </div>
                     </div>
+                    <button type="button" class="frx-details-toggle frx-view-details" data-target="{{ $rowId }}">View Details <span class="frx-toggle-icon">+</span></button>
+                    @if($seatsLeft)
+                      <div class="frx-seats-left">Seats left: {{ $seatsLeft }}</div>
+                    @endif
                   </div>
 
+                  <div class="frx-col-journey">
                   @if(count($flight['legs']) > 1)
                     {{-- COMBO itinerary: one line per leg (Onward / Return, or each Multi-City flight). --}}
                     <div class="frx-card-legs">
@@ -1405,48 +1454,65 @@
                   @else
                     <div class="frx-card-times">
                       <div class="frx-card-time">
-                        <div class="frx-card-time-val">{{ $flight['depTime'] }}</div>
                         <div class="frx-card-time-sub">{{ $flight['depAirport'] ?: $group['meta']['from'] }}</div>
+                        <div class="frx-card-time-val">{{ $flight['depTime'] }}</div>
+                        <div class="frx-card-time-date">{{ $cardDate($flight['depDateTimeRaw']) }}</div>
                       </div>
                       <div class="frx-card-path">
+                        <div class="frx-card-stops" @if($flight['via']) title="via {{ implode(', ', $flight['via']) }}" @endif>{{ $flight['stops'] === 0 ? 'Non-Stop' : $flight['stops'].' Stop(s)' }}</div>
                         <div class="frx-card-path-line"></div>
-                        <div class="frx-card-stops">{{ $flight['stops'] === 0 ? 'Non-stop' : $flight['stops'].' stop(s)'.($flight['via'] ? ' via '.implode(', ', $flight['via']) : '') }}{{ $flight['duration'] ? ' · '.$fmtDuration($flight['duration']) : '' }}</div>
+                        <div class="frx-card-duration">{{ $flight['duration'] ? $fmtDuration($flight['duration']) : '' }}@if($flight['via'])<span class="frx-card-via"> &middot; via {{ implode(', ', $flight['via']) }}</span>@endif</div>
+                        @if($isNearby)<span class="frx-nearby-chip">Nearby Airport</span>@endif
                       </div>
                       <div class="frx-card-time">
-                        <div class="frx-card-time-val">{{ $flight['arrTime'] }}@if($flight['legs'][0]['nextDay'] ?? false)<sup class="frx-next-day">+1</sup>@endif</div>
                         <div class="frx-card-time-sub">{{ $flight['arrAirport'] ?: $group['meta']['to'] }}</div>
+                        <div class="frx-card-time-val">{{ $flight['arrTime'] }}@if($arrivesNextDay)<sup class="frx-next-day">+1</sup>@endif</div>
+                        <div class="frx-card-time-date">{{ $cardDate($flight['arrDateTimeRaw']) }}</div>
                       </div>
                     </div>
+                    @if($arrivesNextDay)
+                      <div class="frx-arrives-note"><span aria-hidden="true">&#9992;</span> Flight arrives after 1 day</div>
+                    @endif
                   @endif
+                  </div>
 
-                  <button type="button" class="frx-details-toggle" data-target="{{ $rowId }}">View Details <span class="frx-toggle-icon">+</span></button>
-                  @if(count($flight['options']) > 1)
-                    <button type="button" class="frx-details-toggle frx-compare-btn" data-row="{{ $rowId }}" data-group="{{ $key }}">Compare</button>
-                  @endif
-                </div>
+                  {{-- Fare list: each option on its own line (price, fare type,
+                       cabin & refundability). The first 4 show; the rest sit
+                       behind "+N more fares" (see frxSyncMoreFares). --}}
+                  <div class="frx-col-fares frx-flight-options">
+                    @foreach($flight['options'] as $oIdx => $opt)
+                      @php
+                        $refundLabel = ['Non-Refundable', 'Refundable', 'Partially Refundable'][$opt['refundType']];
+                        $refundClass = ['non', 'ok', 'part'][$opt['refundType']];
+                        $cabin = $titleCase($opt['cabinClass'] ?? $searchParams['cabinClass']);
+                      @endphp
+                      <label class="frx-opt-row" data-special-return="{{ $opt['isSpecialReturn'] ? '1' : '0' }}" data-fare-group="{{ $opt['fareGroup'] }}" data-refundable="{{ $opt['refundType'] }}">
+                        <input type="radio" name="price_ids[{{ $key }}]" value="{{ $opt['id'] }}" required class="frx-radio" data-price="{{ (int) $opt['price'] }}" data-special-return="{{ $opt['isSpecialReturn'] ? '1' : '0' }}" @if($opt['isSpecialReturn']) data-sri="{{ $opt['sri'] }}" data-msri="{{ implode(',', $opt['msri']) }}" data-airline="{{ $flight['airlineCode'] }}" @endif>
+                        {{-- Must stay a direct child of the label: the Special
+                             Return script inserts its badge right before it. --}}
+                        <span class="frx-opt-price">&#8377;{{ number_format($opt['price'], 2) }}</span>
+                        <span class="frx-opt-meta">
+                          <span class="frx-opt-fareid">{{ $fareLabel($opt['fareIdentifier']) }}</span>
+                          <span class="frx-opt-desc">{{ $cabin }}, <span class="frx-refund-{{ $refundClass }}">{{ $refundLabel }}</span></span>
+                          @if($opt['isFlex'])
+                            {{-- Search doc: TJ_FLEX has no cancellation fee only if cancelled
+                                 at least 24 hours before departure, and the flex charge
+                                 itself is non-refundable — say so on the tag. --}}
+                            <span class="frx-opt-flex" title="No airline cancellation fee if you cancel at least 24 hours before departure. The flex charge included in this fare is non-refundable.">Zero Cancellation Fee &middot; 24h+</span>
+                          @endif
+                          @if($opt['baggageCheckin'])<span class="frx-opt-bag" title="Check-in baggage">&#129523;&#xFE0E; {{ $opt['baggageCheckin'] }}</span>@endif
+                        </span>
+                      </label>
+                    @endforeach
+                    <button type="button" class="frx-more-fares" hidden></button>
+                  </div>
 
-                <div class="frx-flight-options">
-                  @foreach($flight['options'] as $oIdx => $opt)
-                    <label class="frx-opt-row" data-special-return="{{ $opt['isSpecialReturn'] ? '1' : '0' }}" data-fare-group="{{ $opt['fareGroup'] }}" data-refundable="{{ $opt['refundType'] }}">
-                      <input type="radio" name="price_ids[{{ $key }}]" value="{{ $opt['id'] }}" required class="frx-radio" data-price="{{ (int) $opt['price'] }}" data-special-return="{{ $opt['isSpecialReturn'] ? '1' : '0' }}" @if($opt['isSpecialReturn']) data-sri="{{ $opt['sri'] }}" data-msri="{{ implode(',', $opt['msri']) }}" data-airline="{{ $flight['airlineCode'] }}" @endif>
-                      <span class="frx-opt-fareid">{{ ucwords(strtolower(str_replace('_',' ', $opt['fareIdentifier']))) }}</span>
-                      @php [$refundClass, $refundLabel] = [[ 'nonrefundable', 'Non-Refundable'], ['refundable', 'Refundable'], ['partial', 'Partially Refundable']][$opt['refundType']]; @endphp
-                      <span class="frx-card-tag {{ $refundClass }}">{{ $refundLabel }}</span>
-                      @if($opt['isFlex'])
-                        {{-- Search doc: TJ_FLEX has no cancellation fee only if cancelled
-                             at least 24 hours before departure, and the flex charge
-                             itself is non-refundable — say so on the tag. --}}
-                        <span class="frx-card-tag" style="background:rgba(74,222,128,0.1);color:var(--green);" title="No airline cancellation fee if you cancel at least 24 hours before departure. The flex charge included in this fare is non-refundable.">Zero Cancellation Fee &middot; 24h+ before departure</span>
-                      @endif
-                      @if($opt['baggageCheckin'])<span class="frx-opt-bag" title="Check-in baggage">&#129523;&#xFE0E; {{ $opt['baggageCheckin'] }}</span>@endif
-                      <span class="frx-opt-price">&#8377;{{ number_format($opt['price']) }}</span>
-                    </label>
-                  @endforeach
-                </div>
-
-                <div class="frx-row-continue-bar">
-                  <span class="frx-row-continue-hint">{{ count($flight['options']) > 1 ? 'Pick a fare above, or ' : '' }}Book this flight now</span>
-                  <button type="button" class="frx-row-continue-btn" data-group="{{ $key }}">Select &amp; Continue &rarr;</button>
+                  <div class="frx-col-actions">
+                    <button type="button" class="frx-row-continue-btn frx-book-btn" data-group="{{ $key }}">Book</button>
+                    @if(count($flight['options']) > 1)
+                      <button type="button" class="frx-details-toggle frx-compare-btn" data-row="{{ $rowId }}" data-group="{{ $key }}">Compare <span aria-hidden="true">&#9662;</span></button>
+                    @endif
+                  </div>
                 </div>
 
                 {{-- Filled in by the browser on first "View Details" (see frxFlightData). --}}
@@ -1527,6 +1593,38 @@
       if (u.searchParams.has('notice')) { u.searchParams.delete('notice'); history.replaceState(null, '', u.toString()); }
     } catch (e) {}
   })();
+
+  // "+N more fares": a card lists its first 4 visible fares (after the fare
+  // filters) and tucks the rest behind this button. Re-run whenever filters
+  // or the selected fare change — a selected fare is never tucked away.
+  var FRX_FARES_SHOWN = 4;
+  window.frxSyncMoreFares = function (row) {
+    var btn = row.querySelector('.frx-more-fares');
+    if (!btn) return;
+    var visible = Array.prototype.filter.call(row.querySelectorAll('.frx-opt-row'), function (opt) {
+      return !opt.classList.contains('frx-opt-hidden');
+    });
+    var tucked = 0;
+    visible.forEach(function (opt, i) {
+      var extra = i >= FRX_FARES_SHOWN;
+      opt.classList.toggle('frx-opt-extra', extra);
+      if (extra && !opt.classList.contains('selected')) tucked++;
+    });
+    var open = row.classList.contains('frx-fares-open');
+    var extras = Math.max(0, visible.length - FRX_FARES_SHOWN);
+    btn.hidden = open ? extras === 0 : tucked === 0;
+    btn.innerHTML = open ? 'Show fewer fares &#9652;' : '+' + tucked + ' more fare' + (tucked === 1 ? '' : 's') + ' &#9662;';
+  };
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.frx-flight').forEach(window.frxSyncMoreFares);
+    document.addEventListener('click', function (e) {
+      var btn = e.target.closest('.frx-more-fares');
+      if (!btn) return;
+      var row = btn.closest('.frx-flight');
+      row.classList.toggle('frx-fares-open');
+      window.frxSyncMoreFares(row);
+    });
+  });
 </script>
 <script>
 (function () {
@@ -1673,6 +1771,7 @@
         if (!show && radio.checked) { radio.checked = false; unchecked = true; }
         if (show) cheapest = Math.min(cheapest, parseInt(radio.dataset.price, 10));
       });
+      window.frxSyncMoreFares(row);
       if (cheapest === Infinity) ok = false;
       if (ok && priceMin !== null && cheapest < priceMin) ok = false;
       if (ok && priceMax !== null && cheapest > priceMax) ok = false;
@@ -2276,6 +2375,7 @@
     });
     flightRows.forEach(function (row) {
       row.classList.toggle('has-selected', !!row.querySelector('.frx-radio:checked'));
+      window.frxSyncMoreFares(row);
     });
 
     // Doc: "When fareIdentifier is SPECIAL_RETURN, both legs must be
