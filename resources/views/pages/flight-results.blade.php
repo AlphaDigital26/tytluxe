@@ -974,11 +974,38 @@
     // previously never reading, so those redirects landed on a bare
     // /flights/search with the error silently dropped and just the generic
     // empty-state message shown instead.
-    $displayError = $searchError ?? session('booking_error');
+    // review() also puts a fixed ?notice= code on the URL — it survives
+    // even if a background request from another tab consumed the flash.
+    $noticeMessages = [
+        'unavailable' => 'Sorry, that fare just sold out with the airline. Here are the latest fares — please choose another flight.',
+        'review_failed' => 'We couldn’t confirm that fare with the airline. Please choose another flight.',
+        'special_return' => 'Special Return fares can only be booked as a matched pair. Please pick the return fare marked “Pairs with your onward fare”, or choose regular fares on both flights.',
+        'legs' => 'Please select a flight for every leg of your trip.',
+        'expired' => 'Your search session has expired, so the fares were refreshed. Please choose your flight again.',
+    ];
+    $noticeCode = (string) request()->query('notice');
+    $notice = $noticeMessages[$noticeCode] ?? null;
+    // "Sold out" always uses our own wording; other codes prefer the fuller
+    // flashed message when it's still there. Shown as a toast (the site's
+    // global one, layouts.frontend) — the results stay the focus. Only a
+    // failed search of THIS request stays inline, as it explains the empty
+    // list below it.
+    $toastMessage = $noticeCode === 'unavailable' ? $notice : (session('booking_error') ?: $notice);
+    $displayError = $searchError;
   @endphp
 
   @if($displayError)
     <div class="frx-error">⚠️ {{ $displayError }}</div>
+  @endif
+
+  @if($toastMessage)
+    <script>
+      window.addEventListener('load', function () {
+        if (typeof showToast === 'function') {
+          showToast(@json($noticeCode === 'unavailable' ? 'Fare sold out' : 'Please choose again'), @json($toastMessage), 'error');
+        }
+      });
+    </script>
   @endif
 
   @if($results === null && ! $displayError)
@@ -1491,6 +1518,16 @@
 @push('scripts')
 {{-- JSON_HEX_TAG turns "<" into <, so no value can close this tag. --}}
 <script type="application/json" id="frxFlightData">{!! json_encode($flightData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE) !!}</script>
+<script>
+  // The ?notice= message has been shown — drop it from the address bar so a
+  // refresh or a shared link doesn't repeat it.
+  (function () {
+    try {
+      var u = new URL(window.location.href);
+      if (u.searchParams.has('notice')) { u.searchParams.delete('notice'); history.replaceState(null, '', u.toString()); }
+    } catch (e) {}
+  })();
+</script>
 <script>
 (function () {
   var modifyBtn = document.getElementById('frxModifyToggle');

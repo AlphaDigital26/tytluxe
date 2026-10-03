@@ -109,6 +109,10 @@
   .flp-qty button:disabled { border-color: rgba(255,255,255,0.15); color: rgba(255,255,255,0.2); cursor: not-allowed; }
   .flp-qty output { min-width: 14px; text-align: center; font-size: 13px; color: #fff; }
 
+  /* Add-ons + actions span the full page width below the two columns. */
+  .flr-wrap.flp-wrap { padding-bottom: 0; }
+  .flp-full { max-width: 1100px; margin: 0 auto; padding: 0 24px 100px; box-sizing: content-box; } /* same box as .flr-wrap */
+  @media (max-width: 900px) { .flr-wrap.flp-wrap { padding-bottom: 28px; } }
   .flp-actions { display: flex; justify-content: space-between; gap: 14px; margin-top: 6px; }
   .flp-actions .flr-submit { width: auto; padding: 15px 32px; margin: 0; }
   .flp-actions a.flr-submit { display: inline-flex; align-items: center; }
@@ -237,7 +241,7 @@
 @include('partials.flight-booking-steps', ['current' => 2, 'stepOneUrl' => route('flights.review.show')])
 @include('partials.flight-session-timer', ['expiresAt' => $sessionExpiresAt ?? null, 'resultsUrl' => $resultsUrl ?? null])
 
-<div class="flr-wrap">
+<div class="flr-wrap flp-wrap">
   <div>
     <h1 class="flp-title">Passenger Details</h1>
 
@@ -278,7 +282,7 @@
 
     <form method="POST" action="{{ route('flights.book') }}" id="flrForm" novalidate>
       @csrf
-      <input type="hidden" name="intent" id="flrIntent" value="pay">
+      <input type="hidden" name="intent" id="flrIntent" value="review">
       <input type="hidden" name="review_booking_id" value="{{ $response['bookingId'] }}">
       <div id="flpAddonInputs"></div>
 
@@ -442,6 +446,39 @@
         </div>
       </div>
 
+    </form>
+  </div>
+
+  <aside class="flr-summary">
+    <h3>Fare Summary</h3>
+    <p class="flr-sum-pax">{{ $context['adults'] }} Adult{{ $context['adults'] > 1 ? 's' : '' }}@if($context['children']), {{ $context['children'] }} Child{{ $context['children'] > 1 ? 'ren' : '' }}@endif@if($context['infants']), {{ $context['infants'] }} Infant{{ $context['infants'] > 1 ? 's' : '' }}@endif &middot; {{ ucwords(strtolower(str_replace('_', ' ', $context['cabinClass']))) }}</p>
+
+    <div class="flr-sum-row"><span>Base fare</span><span>&#8377;{{ number_format($breakdown['base_fare'], 2) }}</span></div>
+    <div class="flr-sum-row">
+      <span><button type="button" class="flr-sum-toggle" aria-expanded="false" aria-controls="flrTaxBreakdown">Taxes and fees</button></span>
+      <span id="flpSumTaxes">&#8377;{{ number_format($breakdown['airline_taxes'] + $convenienceFee, 2) }}</span>
+    </div>
+    <div class="flr-sum-sub" id="flrTaxBreakdown" hidden>
+      <div><span>Airline taxes &amp; surcharges</span><span>&#8377;{{ number_format($breakdown['airline_taxes'], 2) }}</span></div>
+      <div><span>Convenience fee</span><span id="flpSumConv">&#8377;{{ number_format($convenienceFee, 2) }}</span></div>
+    </div>
+    <div class="flr-sum-row" id="flpSumAddonsRow" hidden>
+      <span><button type="button" class="flr-sum-toggle" aria-expanded="false" aria-controls="flpAddonBreakdown">Add-ons</button></span>
+      <span id="flpSumAddons">&#8377;0.00</span>
+    </div>
+    <div class="flr-sum-sub" id="flpAddonBreakdown" hidden></div>
+    <div class="flr-line total"><span>Amount to Pay</span><span id="flpSumTotal">&#8377;{{ number_format($breakdown['customer_price'], 2) }}</span></div>
+
+    <button type="submit" form="flrForm" class="flr-submit" data-intent="review">Continue &rarr;</button>
+    <p class="flr-note">You'll review your booking before paying{{ $canHold ? ' or blocking this fare' : '' }}.</p>
+  </aside>
+</div>
+
+{{-- Full page width (not the left column) so the seat map and add-on
+     cards have room. Holds no form fields of its own: picks are written as
+     hidden inputs into #flpAddonInputs inside #flrForm, and the buttons
+     submit that form via the `form` attribute. --}}
+<div class="flp-full">
       @if($hasAddons)
       <div class="flr-section" id="flpAddons">
         <h2>Flight Add On</h2>
@@ -504,39 +541,8 @@
 
       <div class="flp-actions">
         <a href="{{ route('flights.review.show') }}" class="flr-submit outline">&laquo; Back</a>
-        <button type="submit" class="flr-submit" data-intent="pay">Proceed to Pay &raquo;</button>
+        <button type="submit" form="flrForm" class="flr-submit" data-intent="review">Continue &raquo;</button>
       </div>
-    </form>
-  </div>
-
-  <aside class="flr-summary">
-    <h3>Fare Summary</h3>
-    <p class="flr-sum-pax">{{ $context['adults'] }} Adult{{ $context['adults'] > 1 ? 's' : '' }}@if($context['children']), {{ $context['children'] }} Child{{ $context['children'] > 1 ? 'ren' : '' }}@endif@if($context['infants']), {{ $context['infants'] }} Infant{{ $context['infants'] > 1 ? 's' : '' }}@endif &middot; {{ ucwords(strtolower(str_replace('_', ' ', $context['cabinClass']))) }}</p>
-
-    <div class="flr-sum-row"><span>Base fare</span><span>&#8377;{{ number_format($breakdown['base_fare'], 2) }}</span></div>
-    <div class="flr-sum-row">
-      <span><button type="button" class="flr-sum-toggle" aria-expanded="false" aria-controls="flrTaxBreakdown">Taxes and fees</button></span>
-      <span id="flpSumTaxes">&#8377;{{ number_format($breakdown['airline_taxes'] + $convenienceFee, 2) }}</span>
-    </div>
-    <div class="flr-sum-sub" id="flrTaxBreakdown" hidden>
-      <div><span>Airline taxes &amp; surcharges</span><span>&#8377;{{ number_format($breakdown['airline_taxes'], 2) }}</span></div>
-      <div><span>Convenience fee</span><span id="flpSumConv">&#8377;{{ number_format($convenienceFee, 2) }}</span></div>
-    </div>
-    <div class="flr-sum-row" id="flpSumAddonsRow" hidden>
-      <span><button type="button" class="flr-sum-toggle" aria-expanded="false" aria-controls="flpAddonBreakdown">Add-ons</button></span>
-      <span id="flpSumAddons">&#8377;0.00</span>
-    </div>
-    <div class="flr-sum-sub" id="flpAddonBreakdown" hidden></div>
-    <div class="flr-line total"><span>Amount to Pay</span><span id="flpSumTotal">&#8377;{{ number_format($breakdown['customer_price'], 2) }}</span></div>
-
-    <button type="submit" form="flrForm" class="flr-submit" data-intent="pay">Proceed to Pay</button>
-    <p class="flr-note">You'll be redirected to our secure payment partner to complete your booking.</p>
-
-    @if($canHold)
-      <button type="submit" form="flrForm" class="flr-submit outline" data-intent="hold" id="flpHoldBtn">Hold This Fare (Pay Later)</button>
-      <p class="flr-note" id="flpHoldNote">We'll block this fare with the airline for a few hours, no payment needed now. You'll get a link to confirm and pay before it expires.</p>
-    @endif
-  </aside>
 </div>
 @endsection
 

@@ -57,8 +57,19 @@
     color: #f3a3a3; font-family: 'Jost', sans-serif; font-size: 13px;
   }
   .pay-secure-note { font-family: 'Jost', sans-serif; font-size: 11px; color: var(--white-30); margin-top: 24px; line-height: 1.6; }
+
+  /* Fare-hold countdown (partials.flight-session-timer), inside the card */
+  .pay-card .flt-timer { margin: 0 0 22px; padding: 10px 14px; justify-content: center; border-radius: 12px; background: rgba(201,168,76,0.06); border: 1px solid rgba(201,168,76,0.18); }
+  .pay-search-btn { display: inline-block; width: 100%; padding: 16px; border-radius: 100px; margin-top: 8px; background: linear-gradient(90deg, #c9a84c, #e8c96b); color: var(--dark); font-family: 'Jost', sans-serif; font-size: 13px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; text-decoration: none; box-sizing: border-box; }
+  .flt-expired-box .flr-submit { display: inline-block; padding: 14px 30px; border-radius: 100px; background: linear-gradient(90deg, #c9a84c, #e8c96b); color: var(--dark); font-size: 12.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; text-decoration: none; }
 </style>
 @endpush
+
+@php
+  $fareExpired = $fareExpired ?? false;
+  $fareExpiresAt = $fareExpiresAt ?? null;
+  $resultsUrl = $resultsUrl ?? route('flights.search');
+@endphp
 
 @section('content')
 <div class="pay-wrap">
@@ -68,33 +79,44 @@
 
   <div class="pay-card">
     <p class="pay-eyebrow">Secure Payment</p>
-    <h1 class="pay-title">Complete Your Booking</h1>
+    <h1 class="pay-title">{{ $fareExpired ? 'Fare Hold Expired' : 'Complete Your Booking' }}</h1>
     <p class="pay-hotel">{{ $booking->flight_route }}</p>
 
-    <p class="pay-amount">Amount Payable</p>
-    <p class="pay-amount-value">{{ $payment->currency ?? 'INR' }} {{ number_format($payment->amount) }}</p>
+    @if($fareExpired)
+      {{-- Nothing was charged; paying now would only end in a refund. --}}
+      <p class="pay-status" style="margin-bottom:22px;">The airline only holds a reviewed fare for a limited time, and this one ran out before payment. <b style="color:#fff;">You have not been charged.</b> Prices and seats may have changed — please pick your flight again to see the latest fares.</p>
+      <a href="{{ $resultsUrl }}" class="pay-search-btn">Search Again</a>
+    @else
+      @include('partials.flight-session-timer', ['expiresAt' => $fareExpiresAt, 'resultsUrl' => $resultsUrl])
 
-    <div id="payWaiting">
-      <div class="pay-spinner"></div>
-      <p class="pay-status" id="payStatusText">Opening secure payment window…</p>
-    </div>
+      <p class="pay-amount">Amount Payable</p>
+      <p class="pay-amount-value">&#8377;{{ number_format((float) $payment->amount, 2) }}</p>
 
-    <p class="pay-error" id="payFailedNote" style="display:none; margin-top:16px; margin-bottom:0;"></p>
+      <div id="payWaiting">
+        <div class="pay-spinner"></div>
+        <p class="pay-status" id="payStatusText">Opening secure payment window…</p>
+      </div>
 
-    <button type="button" class="pay-retry-btn" id="payRetryBtn">Retry Payment</button>
+      <p class="pay-error" id="payFailedNote" style="display:none; margin-top:16px; margin-bottom:0;"></p>
+
+      <button type="button" class="pay-retry-btn" id="payRetryBtn">Retry Payment</button>
+    @endif
 
     <p class="pay-secure-note">Payments are processed securely by Razorpay. TYTLUXE never stores your card or bank details.</p>
   </div>
 </div>
 
+@unless($fareExpired)
 <form method="POST" action="{{ route('payment.razorpay.callback') }}" id="payCallbackForm" style="display:none;">
   @csrf
   <input type="hidden" name="razorpay_payment_id" id="payFieldPaymentId">
   <input type="hidden" name="razorpay_order_id" id="payFieldOrderId">
   <input type="hidden" name="razorpay_signature" id="payFieldSignature">
 </form>
+@endunless
 @endsection
 
+@unless($fareExpired)
 @push('scripts')
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>
@@ -103,14 +125,47 @@
     var waiting = document.getElementById('payWaiting');
     var retryBtn = document.getElementById('payRetryBtn');
     var failedNote = document.getElementById('payFailedNote');
+    var rzp = null;
+    var paid = false;
+
+    // Same server-relative clock as the countdown: seconds left on the
+    // reviewed fare's hold, or null when this payment has no such limit.
+    var timer = document.getElementById('flrSessionTimer');
+    var secsLeftAtLoad = timer ? parseInt(timer.dataset.expires, 10) - parseInt(timer.dataset.now, 10) : null;
+    var loadedAt = Date.now();
+    function secsLeft() { return secsLeftAtLoad === null ? Infinity : secsLeftAtLoad - (Date.now() - loadedAt) / 1000; }
+
+    // Too little time to finish paying: don't open (or re-open) Razorpay —
+    // the airline would refuse the booking and the payment be refunded.
+    function fareRunningOut() { return secsLeft() <= 30; }
+    function showExpired() {
+      if (paid) return; // already paid — let the confirmation go through
+      if (rzp) { try { rzp.close(); } catch (e) {} }
+      // Belt and braces: if Checkout didn't close (e.g. mid-load), remove
+      // its overlay too so the expiry message isn't hidden behind it.
+      document.querySelectorAll('.razorpay-container, .razorpay-backdrop').forEach(function (el) { el.style.display = 'none'; });
+      waiting.style.display = 'none';
+      retryBtn.classList.remove('visible');
+      failedNote.textContent = '⚠️ The fare hold has run out, so payment was stopped. You have not been charged — please search again.';
+      failedNote.style.display = '';
+      var popup = document.getElementById('flrSessionExpired');
+      if (popup) popup.hidden = false;
+    }
+    if (secsLeftAtLoad !== null) {
+      (function watch() {
+        if (fareRunningOut()) { showExpired(); return; }
+        setTimeout(watch, 1000);
+      })();
+    }
 
     function openCheckout() {
+      if (fareRunningOut()) { showExpired(); return; }
       waiting.style.display = '';
       retryBtn.classList.remove('visible');
       failedNote.style.display = 'none';
       statusText.textContent = 'Opening secure payment window…';
 
-      var rzp = new Razorpay({
+      rzp = new Razorpay({
         key: @json($razorpayKeyId),
         order_id: @json($payment->razorpay_order_id),
         amount: @json((int) round($payment->amount * 100)),
@@ -124,6 +179,7 @@
         },
         theme: { color: '#c9a84c' },
         handler: function (response) {
+          paid = true;
           statusText.textContent = 'Payment received — confirming your booking…';
           document.getElementById('payFieldPaymentId').value = response.razorpay_payment_id;
           document.getElementById('payFieldOrderId').value = response.razorpay_order_id;
@@ -154,3 +210,4 @@
   })();
 </script>
 @endpush
+@endunless
