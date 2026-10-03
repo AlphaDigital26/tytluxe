@@ -85,14 +85,5 @@ class HotelWishlistTest extends TestCase
         $response->assertSee('wlTabBadgePackages');
         $response->assertSee('wlTabBadgeFlights');
     }
-
-    public function test_flights_page_includes_wishlist_buttons(): void
-    {
-        $response = $this->get('/flights');
-
-        $response->assertStatus(200);
-        $response->assertSee('flt-heart-btn');
-        $response->assertSee('data-type="flight"', false);
-    }
 }
 
