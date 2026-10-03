@@ -490,12 +490,14 @@ class TripJackFlightClient
                 ->send($method, $url, $method === 'GET' ? ['query' => $payload] : ['json' => $payload]);
         } catch (ConnectionException $e) {
             $this->log($method, $url, null, $startedAt, $payload, ['exception' => $e->getMessage()]);
+            $this->writeCertificationLog($method, $url, $payload, null, null);
             throw new TripJackTimeoutException("TripJack flight request timed out: {$url}", previous: $e);
         }
 
         $responseBody = $response->json() ?? [];
         $businessFailed = array_key_exists('status', $responseBody) && ! ($responseBody['status']['success'] ?? true);
         $this->log($method, $url, $response->status(), $startedAt, $payload, $responseBody, $response->failed() || $businessFailed);
+        $this->writeCertificationLog($method, $url, $payload, $response->status(), $response->body());
 
         if ($response->status() === 401 || $response->status() === 403) {
             throw new TripJackAuthException("TripJack flight auth failed ({$response->status()}) on {$url}: ".$response->body());
@@ -523,11 +525,85 @@ class TripJackFlightClient
             'url' => $url,
             'status' => $status,
             'duration_ms' => (int) round((microtime(true) - $startedAt) * 1000),
-            'request' => $requestPayload,
-            'response' => $includeFullResponse ? $responseBody : [
+            'request' => self::maskPii($requestPayload),
+            'response' => $includeFullResponse ? self::maskPii($responseBody) : [
                 'status' => $responseBody['status'] ?? null,
                 'keys' => array_keys($responseBody),
             ],
         ]);
+    }
+
+    /**
+     * Traveller/contact fields masked in tripjack.log (kept 14 days):
+     * passport no./expiry/issue date, PAN, document ID, date of birth,
+     * phone numbers, emails, GSTIN and GST contact details. Names stay —
+     * they're needed to match a log line to a booking.
+     */
+    protected const PII_KEYS = ['pNum', 'eD', 'pid', 'pan', 'di', 'dob', 'contacts', 'emails', 'gstNumber', 'mobile', 'email', 'address'];
+
+    public static function maskPii(array $data): array
+    {
+        foreach ($data as $key => $value) {
+            if (is_string($key) && in_array($key, self::PII_KEYS, true)) {
+                $data[$key] = self::maskValue($value);
+            } elseif (is_array($value)) {
+                $data[$key] = self::maskPii($value);
+            }
+        }
+
+        return $data;
+    }
+
+    protected static function maskValue(mixed $value): mixed
+    {
+        if (is_array($value)) {
+            return array_map(fn ($v) => self::maskValue($v), $value);
+        }
+        if (! is_string($value) || $value === '') {
+            return $value;
+        }
+        if (str_contains($value, '@')) {
+            return '***@'.substr(strrchr($value, '@'), 1);
+        }
+        if (preg_match('/^\d{4}-\d{2}-\d{2}/', $value)) {
+            return '****-**-**';
+        }
+
+        // Last 4 characters only — enough to tell two travellers apart.
+        return str_repeat('*', max(0, strlen($value) - 4)).substr($value, -4);
+    }
+
+    /**
+     * UAT certification evidence (doc "Log Format Rules": JSON, a separate
+     * file for each request and each response, response unmodified). Only
+     * when TRIPJACK_CERT_LOGS is on and TRIPJACK_ENV isn't production —
+     * these files are deliberately unmasked. Never lets a write failure
+     * break the actual API call.
+     */
+    protected function writeCertificationLog(string $method, string $url, array $payload, ?int $status, ?string $rawResponse): void
+    {
+        if (! config('services.tripjack.flight.cert_logs') || config('services.tripjack.env') === 'production') {
+            return;
+        }
+
+        try {
+            $dir = rtrim((string) config('services.tripjack.flight.cert_log_path'), '/\\').'/'.now()->format('Y-m-d');
+            if (! is_dir($dir)) {
+                mkdir($dir, 0750, true);
+            }
+
+            // e.g. 153012_481022_oms-v1-air-book_TJS100000000001
+            $endpoint = trim(preg_replace('#[^a-z0-9]+#i', '-', parse_url($url, PHP_URL_PATH) ?? ''), '-');
+            $ref = preg_replace('#[^A-Za-z0-9]#', '', (string) ($payload['bookingId'] ?? $payload['amendmentId'] ?? ''));
+            $base = $dir.'/'.now()->format('His_u').'_'.$endpoint.($ref !== '' ? '_'.$ref : '');
+
+            file_put_contents($base.'_request.json', json_encode(
+                ['method' => $method, 'url' => $url, 'body' => $payload],
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+            ));
+            file_put_contents($base.'_response.json', $rawResponse ?? json_encode(['error' => 'No response — request timed out', 'httpStatus' => $status]));
+        } catch (\Throwable $e) {
+            Log::channel('tripjack')->warning('tripjack_cert_log_write_failed', ['message' => $e->getMessage()]);
+        }
     }
 }
