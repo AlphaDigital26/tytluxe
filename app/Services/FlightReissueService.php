@@ -63,6 +63,11 @@ class FlightReissueService
             return ['success' => false, 'message' => 'We couldn\'t look up this booking right now. Please try again.', 'options' => []];
         }
 
+        // Doc: amendments (reissue included) need the booking in SUCCESS.
+        if (($details['order']['status'] ?? null) !== 'SUCCESS') {
+            return ['success' => false, 'message' => FlightBookingService::NOT_TICKETED_YET_MESSAGE, 'options' => []];
+        }
+
         $pnr = $details['itemInfos']['AIR']['travellerInfos'][0]['pnrDetails'][$leg['src'].'-'.$leg['dest']]
             ?? collect($details['itemInfos']['AIR']['travellerInfos'][0]['pnrDetails'] ?? [])->first();
         $paxIds = collect($details['itemInfos']['AIR']['travellerInfos'] ?? [])->pluck('id')->map(fn ($id) => (string) $id)->all();
@@ -284,10 +289,21 @@ class FlightReissueService
                     (float) $pending['amount'],
                     $pending['travellerInfo'],
                     [$booking->guest_email],
-                    ['+91'.preg_replace('/\D/', '', (string) $booking->guest_phone)],
+                    [FlightBookingService::e164($booking->guest_phone)],
                     $pending['gstInfo'] ?? null,
                 );
             } catch (TripJackException $e) {
+                // Timed out / 5xx: TripJack may have reissued the ticket.
+                // Keep flight_reissue_pending (it holds the new bookingId to
+                // check) and flag it rather than refunding blind.
+                if (FlightBookingService::isUncertainOutcome($e)) {
+                    $booking->update(['admin_note' => trim(($booking->admin_note ? $booking->admin_note.' ' : '')
+                        ."Auto Reissue request (new booking {$pending['newBookingId']}, payment #{$payment->id}) got no answer from TripJack — check its Booking Details, then complete the reschedule or refund.")]);
+                    Log::channel('tripjack')->critical('flight_reissue_book_outcome_unknown', ['booking_id' => $booking->id, 'payment_id' => $payment->id, 'newBookingId' => $pending['newBookingId'], 'message' => $e->getMessage()]);
+
+                    return;
+                }
+
                 $errorCode = $e instanceof TripJackApiException ? $e->errorCode : null;
                 $described = TripJackFlightErrorCatalog::describe($errorCode);
                 Log::channel('tripjack')->{$described['logLevel'] === 'critical' ? 'critical' : 'warning'}('flight_reissue_book_failed', ['booking_id' => $booking->id, 'errorCode' => $errorCode, 'message' => $e->getMessage()]);
@@ -348,6 +364,15 @@ class FlightReissueService
 
     protected function refundAndFail(Booking $booking, Payment $payment, RazorpayService $razorpay, string $reason): void
     {
+        // A no-charge reschedule (TF ≤ 0) never went through Razorpay.
+        if ((float) $payment->amount <= 0 || ! $payment->razorpay_payment_id) {
+            $payment->update(['status' => 'failed', 'refund_reason' => $reason]);
+            $booking->update(['flight_reissue_pending' => null]);
+            Log::channel('tripjack')->warning('flight_reissue_failed_nothing_to_refund', ['booking_id' => $booking->id, 'payment_id' => $payment->id, 'reason' => $reason]);
+
+            return;
+        }
+
         try {
             $razorpay->refund($payment->razorpay_payment_id, (float) $payment->amount);
             $payment->update(['status' => 'refunded', 'refund_amount' => $payment->amount, 'refund_reason' => $reason]);

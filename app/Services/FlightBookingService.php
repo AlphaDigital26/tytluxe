@@ -3,10 +3,13 @@
 namespace App\Services;
 
 use App\Jobs\PollFlightAmendmentJob;
+use App\Jobs\PollFlightBookingStatusJob;
 use App\Models\Booking;
 use App\Models\Payment;
 use App\Services\Payment\RazorpayService;
+use App\Services\TripJack\Exceptions\TripJackApiException;
 use App\Services\TripJack\Exceptions\TripJackException;
+use App\Services\TripJack\Exceptions\TripJackTimeoutException;
 use App\Services\TripJack\TripJackFlightClient;
 use App\Services\TripJack\TripJackFlightErrorCatalog;
 use Illuminate\Support\Facades\Cache;
@@ -63,8 +66,7 @@ class FlightBookingService
             // hotels' deliveryInfo, which takes a separate parallel `code`
             // array. No dialCodes param on TripJackFlightClient::book() for
             // that reason.
-            $phoneDigits = preg_replace('/\D/', '', (string) $booking->guest_phone);
-            $contactNumber = '+91'.$phoneDigits;
+            $contactNumber = self::e164($booking->guest_phone);
             $segments = $booking->flight_segments_payload ?? [];
 
             try {
@@ -78,7 +80,16 @@ class FlightBookingService
                     contactInfo: $segments['contactInfo'] ?? null,
                 );
             } catch (TripJackException $e) {
-                $errorCode = $e instanceof \App\Services\TripJack\Exceptions\TripJackApiException ? $e->errorCode : null;
+                $errorCode = $e instanceof TripJackApiException ? $e->errorCode : null;
+
+                // Timed out / 5xx: TripJack may still have ticketed it, so
+                // a refund now could refund a real ticket — find out first.
+                if (self::isUncertainOutcome($e)) {
+                    $this->markOutcomeUnknown($booking, $booking->tripjack_hold_id, 'flight_book_outcome_unknown', $e);
+
+                    return;
+                }
+
                 $described = TripJackFlightErrorCatalog::describe($errorCode);
                 $this->logFailure($described['logLevel'], 'flight_book_after_payment_failed', ['booking_id' => $booking->id, 'errorCode' => $errorCode, 'message' => $e->getMessage()]);
                 $this->refundAndMarkFailed($booking, $payment, $razorpay, $described['message']);
@@ -95,41 +106,232 @@ class FlightBookingService
                 return;
             }
 
-            $bookingId = $response['bookingId'] ?? null;
-            $tripjackStatus = null;
-            $pnr = null;
-            $ticketNumbers = null;
-
-            if ($bookingId) {
-                try {
-                    $details = $client->bookingDetails($bookingId);
-                    $tripjackStatus = $details['order']['status'] ?? null;
-                    $pnr = $details['travellerInfos'][0]['pnrDetails'] ?? null;
-                    $ticketNumbers = $details['travellerInfos'][0]['ticketNumberDetails'] ?? null;
-                } catch (TripJackException $e) {
-                    Log::channel('tripjack')->warning('flight_booking_details_failed', ['bookingId' => $bookingId, 'message' => $e->getMessage()]);
-                }
-            }
-
+            // TripJack accepted the request — the guest paid and the booking
+            // is confirmed on our side. The real order status, PNR and
+            // ticket numbers come from Booking Details, which TripJack's doc
+            // says to call only after 5 seconds; PollFlightBookingStatusJob
+            // does that and refunds if it ends FAILED/ABORTED.
             $booking->update([
-                'tripjack_booking_id' => $bookingId,
-                'tripjack_flight_pnr' => $pnr,
-                'tripjack_flight_ticket_numbers' => $ticketNumbers,
+                'tripjack_booking_id' => $response['bookingId'] ?? $booking->tripjack_hold_id,
+                'tripjack_confirm_attempted_at' => now(),
+                'status' => 'confirmed',
             ]);
 
-            if (in_array($tripjackStatus, ['ABORTED', 'FAILED'], true)) {
-                $this->refundAndMarkFailed($booking, $payment, $razorpay, "TripJack reported this booking as {$tripjackStatus} immediately after confirmation.");
+            PollFlightBookingStatusJob::dispatch($booking->id)->delay(now()->addSeconds(5))->afterCommit();
+        });
+    }
 
-                return;
+    /**
+     * A guest-entered dial code + number as one international number
+     * ("+919876543210"), the form TripJack's deliveryInfo/contactInfo
+     * contacts take. India (+91) keeps the last 10 digits, so a number typed
+     * with its own "91"/"0" prefix isn't doubled up.
+     */
+    public static function phoneFromInput(?string $dialCode, string $number): string
+    {
+        $code = preg_replace('/\D/', '', (string) $dialCode) ?: '91';
+        $digits = preg_replace('/\D/', '', $number);
+
+        return '+'.$code.($code === '91' ? substr($digits, -10) : ltrim($digits, '0'));
+    }
+
+    /**
+     * A stored booking phone as an international number. Newer bookings
+     * already store "+<code><number>"; older ones stored 10 bare Indian
+     * digits, which get +91.
+     */
+    public static function e164(?string $stored): string
+    {
+        $stored = trim((string) $stored);
+        $digits = preg_replace('/\D/', '', $stored);
+
+        return str_starts_with($stored, '+') ? '+'.$digits : '+91'.substr($digits, -10);
+    }
+
+    /**
+     * TripJack's live order.status, or null if it couldn't be fetched.
+     * Doc (Cancellation Amendment / Ancillaries): "booking must be in
+     * SUCCESS state before raising any amendment" — our own 'confirmed'
+     * is set as soon as Book is accepted, while TripJack may still be
+     * PENDING, so amendments check this first.
+     */
+    public function liveOrderStatus(Booking $booking): ?string
+    {
+        try {
+            return app(TripJackFlightClient::class)->bookingDetails($booking->tripjack_booking_id)['order']['status'] ?? null;
+        } catch (TripJackException $e) {
+            Log::channel('tripjack')->warning('flight_live_status_lookup_failed', ['booking_id' => $booking->id, 'message' => $e->getMessage()]);
+
+            return null;
+        }
+    }
+
+    public const INSUFFICIENT_FUNDS_MESSAGE = 'Flight bookings are temporarily unavailable. You haven\'t been charged — please try again a little later or contact our support team.';
+
+    /**
+     * Whether the TripJack account (User Detail API) can pay $amount — so a
+     * guest is never charged for a booking TripJack would then refuse for
+     * lack of balance. Fails open: if the lookup itself fails, carry on
+     * (the post-payment refund path still covers that case).
+     */
+    public function hasTripJackFunds(float $amount): bool
+    {
+        try {
+            $detail = app(TripJackFlightClient::class)->userDetail();
+        } catch (TripJackException $e) {
+            Log::channel('tripjack')->warning('flight_balance_lookup_failed', ['message' => $e->getMessage()]);
+
+            return true;
+        }
+
+        $total = self::tripJackBalance($detail);
+        if ($total === null) {
+            Log::channel('tripjack')->warning('flight_balance_missing_in_user_detail', ['keys' => array_keys($detail)]);
+
+            return true;
+        }
+
+        if ($total + 0.01 < $amount) {
+            Log::channel('tripjack')->critical('flight_insufficient_tripjack_balance', ['needed' => $amount, 'totalBalance' => $total]);
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Spendable balance from a User Detail response: totalBalance, else
+     * wallet + credit. Null when the response carries none of them, so an
+     * odd/empty response is never read as "₹0 left".
+     *
+     * Confirmed live (sandbox, 2026-10-03): the balances are nested as
+     * {user: {userId, bs: {totalBalance, walletBalance}}, status} — not at
+     * the root as the doc's field table shows. Both layouts are accepted.
+     */
+    public static function tripJackBalance(array $detail): ?float
+    {
+        foreach ([$detail['user']['bs'] ?? null, $detail['user'] ?? null, $detail] as $balances) {
+            if (! is_array($balances)) {
+                continue;
+            }
+            if (isset($balances['totalBalance'])) {
+                return (float) $balances['totalBalance'];
+            }
+            if (isset($balances['walletBalance']) || isset($balances['creditBalance'])) {
+                return (float) ($balances['walletBalance'] ?? 0) + (float) ($balances['creditBalance'] ?? 0);
+            }
+        }
+
+        return null;
+    }
+
+    public const NOT_TICKETED_YET_MESSAGE = 'The airline is still confirming this booking, so changes can\'t be made yet. Please try again in a few minutes.';
+
+    /**
+     * Book / Confirm-Book timed out or 5xx'd — TripJack may or may not have
+     * acted on it. The payment stays captured and the booking goes to
+     * failed_needs_review (the confirmation page shows "We're Reviewing Your
+     * Booking") while PollFlightBookingStatusJob checks Booking Details:
+     * SUCCESS confirms it, FAILED/ABORTED/not-found refunds it.
+     */
+    protected function markOutcomeUnknown(Booking $booking, ?string $tripjackBookingId, string $event, TripJackException $e): void
+    {
+        $booking->update([
+            'tripjack_booking_id' => $tripjackBookingId,
+            'tripjack_confirm_attempted_at' => now(),
+            'status' => 'failed_needs_review',
+            'admin_note' => trim(($booking->admin_note ? $booking->admin_note.' ' : '')
+                .'TripJack did not answer the booking request in time — the site is checking Booking Details and will confirm or refund automatically.'),
+        ]);
+        Log::channel('tripjack')->critical($event, ['booking_id' => $booking->id, 'tripjack_booking_id' => $tripjackBookingId, 'message' => $e->getMessage()]);
+
+        PollFlightBookingStatusJob::dispatch($booking->id, verifyUnconfirmed: true)->delay(now()->addSeconds(5))->afterCommit();
+    }
+
+    /**
+     * A timeout (no response) or a 5xx means the request may have reached
+     * TripJack and been acted on. Anything else — a 4xx, or a 200 with
+     * status.success false — is TripJack's definite "no".
+     */
+    public static function isUncertainOutcome(TripJackException $e): bool
+    {
+        return $e instanceof TripJackTimeoutException
+            || ($e instanceof TripJackApiException && $e->status >= 500);
+    }
+
+    /**
+     * Booking Details' travellers. Confirmed against live sandbox responses
+     * (and every other reader in this codebase): they're under
+     * itemInfos.AIR.travellerInfos — the doc's field table drops the
+     * itemInfos.AIR prefix.
+     */
+    public static function airTravellers(array $details): array
+    {
+        return $details['itemInfos']['AIR']['travellerInfos'] ?? [];
+    }
+
+    /**
+     * Acts on a Booking Details response for a booking we've asked TripJack
+     * to ticket — shared by PollFlightBookingStatusJob and the confirmation
+     * page's own polling. SUCCESS saves the PNR/ticket numbers (and, when
+     * $resolvingUncertain, confirms a booking whose Book call timed out);
+     * FAILED/ABORTED refunds the ticket payment; CANCELLED mirrors it.
+     *
+     * @return bool true once TripJack's status is final
+     */
+    public function applyBookingDetails(Booking $booking, array $details, RazorpayService $razorpay, bool $resolvingUncertain = false): bool
+    {
+        $status = $details['order']['status'] ?? null;
+        $expected = $resolvingUncertain ? 'failed_needs_review' : 'confirmed';
+
+        if ($booking->status !== $expected) {
+            return $this->isTerminal($status);
+        }
+
+        if ($status === 'SUCCESS') {
+            $traveller = self::airTravellers($details)[0] ?? [];
+            $booking->update([
+                'status' => 'confirmed',
+                'tripjack_flight_pnr' => $traveller['pnrDetails'] ?? $booking->tripjack_flight_pnr,
+                'tripjack_flight_ticket_numbers' => $traveller['ticketNumberDetails'] ?? $booking->tripjack_flight_ticket_numbers,
+            ]);
+            if ($resolvingUncertain) {
+                Log::channel('tripjack')->info('flight_booking_confirmed_after_timeout', ['booking_id' => $booking->id]);
             }
 
-            // SUCCESS, or still PENDING/IN_PROGRESS (payment is already
-            // captured and TripJack accepted the request) — either way the
-            // guest paid and the booking is confirmed on our side;
-            // bookingConfirmation()'s polling catches a later PENDING→SUCCESS
-            // transition and updates the PNR/ticket numbers then.
-            $booking->update(['status' => 'confirmed']);
-        });
+            return true;
+        }
+
+        if (in_array($status, ['FAILED', 'ABORTED'], true)) {
+            $this->refundUnconfirmedBooking($booking, $razorpay, "TripJack reported this booking as {$status}.");
+
+            return true;
+        }
+
+        if ($status === 'CANCELLED' && ! $resolvingUncertain) {
+            $booking->update(['status' => 'cancelled']);
+
+            return true;
+        }
+
+        return false; // PENDING / ON_HOLD / unknown — check again later
+    }
+
+    /**
+     * Refunds the ticket payment of a booking TripJack never ticketed.
+     */
+    public function refundUnconfirmedBooking(Booking $booking, RazorpayService $razorpay, string $reason): void
+    {
+        $payment = $this->farePayment($booking);
+        if (! $payment) {
+            $booking->update(['status' => 'failed_needs_review']);
+            Log::channel('tripjack')->critical('flight_unconfirmed_booking_no_payment_to_refund', ['booking_id' => $booking->id, 'reason' => $reason]);
+
+            return;
+        }
+
+        $this->refundAndMarkFailed($booking, $payment, $razorpay, $reason);
     }
 
     /**
@@ -159,7 +361,57 @@ class FlightBookingService
             return ['ok' => false, 'message' => 'This held fare is no longer available. Please search again.'];
         }
 
+        // Doc case (4): "Fare alert — inform customer". Confirm-Book must be
+        // sent the CURRENT fare (a mismatch is error 1015 after the guest
+        // has paid), so re-price the booking and have the guest confirm the
+        // new amount before any payment is taken.
+        $fareAlert = collect($response['alerts'] ?? [])->first(fn ($a) => ($a['type'] ?? '') === 'FAREALERT');
+        $hasFareAlert = $fareAlert !== null;
+        $newFare = $response['totalPriceInfo']['totalFareDetail']['fC']['TF'] ?? $fareAlert['newFare'] ?? null;
+
+        if ($newFare !== null && abs((float) $newFare - (float) $booking->tripjack_total_price) >= 0.01) {
+            $oldPrice = (float) $booking->total_amount;
+            $oldFare = (float) $booking->tripjack_total_price;
+            $this->repriceHold($booking, (float) $newFare);
+            Log::channel('tripjack')->info('flight_hold_fare_changed', ['booking_id' => $booking->id, 'oldTF' => $oldFare, 'newTF' => $newFare]);
+
+            return ['ok' => false, 'message' => 'The airline has changed this fare from ₹'.number_format($oldPrice, 2).' to ₹'.number_format((float) $booking->total_amount, 2).'. Press Confirm & Pay again to continue at the new price.'];
+        }
+
+        if ($hasFareAlert && $newFare === null) {
+            // Changed, but we can't tell to what — can't safely charge.
+            Log::channel('tripjack')->warning('flight_hold_fare_alert_without_amount', ['booking_id' => $booking->id, 'response' => $response]);
+
+            return ['ok' => false, 'message' => 'The airline has changed this fare. Please search again to see the current price.'];
+        }
+
         return ['ok' => true, 'message' => null];
+    }
+
+    /**
+     * Applies a new TripJack TF to a held booking with the same markup
+     * formula as at booking time, and voids any unpaid Razorpay order made
+     * at the old amount so confirmHold() creates a fresh one.
+     */
+    protected function repriceHold(Booking $booking, float $newFare): void
+    {
+        $breakdown = FlightPricingService::price($newFare);
+
+        $booking->update([
+            'base_amount' => $breakdown['tripjack_total_price'],
+            'tax_amount' => $breakdown['customer_price'] - $breakdown['tripjack_total_price'],
+            'total_amount' => $breakdown['customer_price'],
+            'tripjack_total_price' => $breakdown['tripjack_total_price'],
+            'gst_slab' => $breakdown['gst_slab'],
+            'margin_amount' => $breakdown['margin_amount'],
+            'gst_on_margin' => $breakdown['gst_on_margin'],
+            'razorpay_recovery' => $breakdown['razorpay_recovery'],
+        ]);
+
+        $booking->payments()
+            ->where('purpose', 'flight_confirm_book')
+            ->where('status', 'created')
+            ->update(['status' => 'failed']);
     }
 
     /**
@@ -170,21 +422,35 @@ class FlightBookingService
     public function releaseHold(Booking $booking): void
     {
         $client = app(TripJackFlightClient::class);
-        $pnrs = array_values((array) ($booking->tripjack_flight_pnr ?? []));
+        $pnrs = array_values(array_unique((array) ($booking->tripjack_flight_pnr ?? [])));
+        $released = false;
 
         try {
             $client->unhold($booking->tripjack_booking_id, $pnrs);
+
+            // Doc (Release PNR): "verify by checking Booking Details — order
+            // status should be UNCONFIRMED".
+            $status = $client->bookingDetails($booking->tripjack_booking_id)['order']['status'] ?? null;
+            $released = $status === 'UNCONFIRMED';
+            if (! $released) {
+                Log::channel('tripjack')->warning('flight_unhold_not_unconfirmed', ['booking_id' => $booking->id, 'orderStatus' => $status]);
+            }
         } catch (TripJackException $e) {
-            $errorCode = $e instanceof \App\Services\TripJack\Exceptions\TripJackApiException ? $e->errorCode : null;
+            $errorCode = $e instanceof TripJackApiException ? $e->errorCode : null;
             $described = TripJackFlightErrorCatalog::describe($errorCode);
             $this->logFailure($described['logLevel'], 'flight_unhold_failed', ['booking_id' => $booking->id, 'errorCode' => $errorCode, 'message' => $e->getMessage()]);
-            // Still mark it cancelled on our side — the guest asked to walk
-            // away, and a stuck hold auto-expires with the supplier anyway
-            // (timeLimit); this only stops us from double-billing, which was
-            // never at risk here since Hold never captured payment.
         }
 
-        $booking->update(['status' => 'cancelled', 'cancellation_reason' => 'Hold released by guest before payment.']);
+        // Still cancelled on our side either way — the guest asked to walk
+        // away, no payment was ever taken, and an unreleased hold expires
+        // with the supplier at its timeLimit. Staff get a note if TripJack
+        // didn't confirm the release.
+        $booking->update(array_filter([
+            'status' => 'cancelled',
+            'cancellation_reason' => 'Hold released by guest before payment.',
+            'admin_note' => $released ? null : trim(($booking->admin_note ? $booking->admin_note.' ' : '')
+                .'Release PNR was not confirmed by TripJack (status not UNCONFIRMED) — check the hold in TripJack; it will otherwise lapse at its time limit.'),
+        ], fn ($v) => $v !== null));
     }
 
     /**
@@ -224,7 +490,13 @@ class FlightBookingService
         try {
             $response = $client->confirmBook($booking->tripjack_booking_id, (float) $booking->tripjack_total_price);
         } catch (TripJackException $e) {
-            $errorCode = $e instanceof \App\Services\TripJack\Exceptions\TripJackApiException ? $e->errorCode : null;
+            if (self::isUncertainOutcome($e)) {
+                $this->markOutcomeUnknown($booking, $booking->tripjack_booking_id, 'flight_confirm_book_outcome_unknown', $e);
+
+                return;
+            }
+
+            $errorCode = $e instanceof TripJackApiException ? $e->errorCode : null;
             $described = TripJackFlightErrorCatalog::describe($errorCode);
             $this->logFailure($described['logLevel'], 'flight_confirm_book_failed', ['booking_id' => $booking->id, 'errorCode' => $errorCode, 'message' => $e->getMessage()]);
             $this->refundAndMarkFailed($booking, $payment, $razorpay, $described['message']);
@@ -241,22 +513,11 @@ class FlightBookingService
             return;
         }
 
-        $pnr = $booking->tripjack_flight_pnr;
-        $ticketNumbers = null;
+        // Ticket numbers (and the final status) follow via Booking Details
+        // after the doc's 5-second wait — same as Instant Book.
+        $booking->update(['status' => 'confirmed']);
 
-        try {
-            $details = $client->bookingDetails($booking->tripjack_booking_id);
-            $pnr = $details['itemInfos']['AIR']['travellerInfos'][0]['pnrDetails'] ?? $pnr;
-            $ticketNumbers = $details['itemInfos']['AIR']['travellerInfos'][0]['ticketNumberDetails'] ?? null;
-        } catch (TripJackException $e) {
-            Log::channel('tripjack')->warning('flight_confirm_book_details_failed', ['bookingId' => $booking->tripjack_booking_id, 'message' => $e->getMessage()]);
-        }
-
-        $booking->update([
-            'status' => 'confirmed',
-            'tripjack_flight_pnr' => $pnr,
-            'tripjack_flight_ticket_numbers' => $ticketNumbers,
-        ]);
+        PollFlightBookingStatusJob::dispatch($booking->id)->delay(now()->addSeconds(5));
     }
 
     protected function refundAndMarkFailed(Booking $booking, Payment $payment, RazorpayService $razorpay, string $reason): void
@@ -292,25 +553,19 @@ class FlightBookingService
     {
         $liveStatus = null;
 
-        if ($booking->tripjack_booking_id) {
+        // Doc: Booking Details only after 5 seconds from Book/Confirm-Book —
+        // the first page load right after payment skips the lookup.
+        $tooSoon = $booking->tripjack_confirm_attempted_at !== null
+            && \Illuminate\Support\Carbon::parse($booking->tripjack_confirm_attempted_at)->gt(now()->subSeconds(5));
+
+        if ($booking->tripjack_booking_id && ! $tooSoon) {
             try {
                 $client = app(TripJackFlightClient::class);
                 $details = $client->bookingDetails($booking->tripjack_booking_id);
                 $liveStatus = $details['order']['status'] ?? null;
 
-                if (in_array($liveStatus, ['ABORTED', 'FAILED'], true) && $booking->status === 'confirmed') {
-                    $payment = $booking->payments()->where('status', 'captured')->latest()->first();
-                    if ($payment) {
-                        $this->refundAndMarkFailed($booking, $payment, $razorpay, "TripJack reported this booking as {$liveStatus} during status polling.");
-                        $booking->refresh();
-                    }
-                } elseif ($liveStatus === 'CANCELLED' && $booking->status !== 'cancelled') {
-                    $booking->update(['status' => 'cancelled']);
-                } elseif ($liveStatus === 'SUCCESS' && ! in_array($booking->status, ['refunded', 'failed_needs_review', 'cancelled'], true)) {
-                    $pnr = $details['travellerInfos'][0]['pnrDetails'] ?? $booking->tripjack_flight_pnr;
-                    $ticketNumbers = $details['travellerInfos'][0]['ticketNumberDetails'] ?? $booking->tripjack_flight_ticket_numbers;
-                    $booking->update(['status' => 'confirmed', 'tripjack_flight_pnr' => $pnr, 'tripjack_flight_ticket_numbers' => $ticketNumbers]);
-                }
+                $this->applyBookingDetails($booking, $details, $razorpay);
+                $booking->refresh();
             } catch (TripJackException $e) {
                 Log::channel('tripjack')->warning('flight_booking_details_failed', ['bookingId' => $booking->tripjack_booking_id, 'message' => $e->getMessage()]);
             }
@@ -520,6 +775,13 @@ class FlightBookingService
         $isFullBooking = empty($trips);
         $remarks ??= $type === 'VOIDED' ? 'Same-day void requested by guest via TYTLUXE website.' : 'Cancelled by guest via TYTLUXE website.';
 
+        // Only block on a definite non-SUCCESS answer — if the lookup itself
+        // fails, TripJack's own amendment validation still applies.
+        $liveStatus = $this->liveOrderStatus($booking);
+        if ($liveStatus !== null && $liveStatus !== 'SUCCESS') {
+            return ['success' => false, 'message' => self::NOT_TICKETED_YET_MESSAGE];
+        }
+
         if ($isFullBooking) {
             $claimed = DB::transaction(function () use ($booking) {
                 $fresh = Booking::whereKey($booking->id)->lockForUpdate()->first();
@@ -552,7 +814,19 @@ class FlightBookingService
         try {
             $response = $client->submitAmendment($booking->tripjack_booking_id, $remarks, $type, $trips);
         } catch (TripJackException $e) {
-            $errorCode = $e instanceof \App\Services\TripJack\Exceptions\TripJackApiException ? $e->errorCode : null;
+            // Timed out / 5xx: the amendment may have been raised without us
+            // getting its amendmentId — so nothing would poll or refund it.
+            // Keep the claim (a resubmit would only hit "already raised") and
+            // flag it for a manual check.
+            if (self::isUncertainOutcome($e)) {
+                $booking->update(['admin_note' => trim(($booking->admin_note ? $booking->admin_note.' ' : '')
+                    ."Flight {$type} request got no answer from TripJack — check whether the amendment was raised, then finalise/refund manually.")]);
+                Log::channel('tripjack')->critical('flight_amendment_submit_outcome_unknown', ['booking_id' => $booking->id, 'type' => $type, 'trips' => $trips, 'message' => $e->getMessage()]);
+
+                return ['success' => false, 'message' => 'We\'ve sent your request to the airline but haven\'t had a reply yet. Our team is checking it and will update you — please don\'t submit it again.'];
+            }
+
+            $errorCode = $e instanceof TripJackApiException ? $e->errorCode : null;
             $described = TripJackFlightErrorCatalog::describe($errorCode, 'We couldn\'t process this request right now. Please try again.');
             $this->logFailure($described['logLevel'], 'flight_cancel_failed', ['booking_id' => $booking->id, 'type' => $type, 'errorCode' => $errorCode, 'message' => $e->getMessage()]);
             if ($isFullBooking) {

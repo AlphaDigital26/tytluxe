@@ -46,6 +46,14 @@ class FlightAncillaryController extends Controller
     {
         $booking = $this->guardBooking($reference);
 
+        // Doc (Ancillaries): booking must be in SUCCESS state — check before
+        // taking payment for extras TripJack would then reject.
+        $liveStatus = app(\App\Services\FlightBookingService::class)->liveOrderStatus($booking);
+        if ($liveStatus !== null && $liveStatus !== 'SUCCESS') {
+            return redirect()->route('hotel.booking.confirmation', $booking->reference)
+                ->with('booking_error', \App\Services\FlightBookingService::NOT_TICKETED_YET_MESSAGE);
+        }
+
         $cached = $booking->flight_ssr_options_cache;
         if (! $cached) {
             return redirect()->route('flights.extras.show', $booking->reference)
@@ -57,6 +65,10 @@ class FlightAncillaryController extends Controller
 
         if (! $built) {
             return back()->withErrors(['selections' => 'Please select at least one seat, meal, or baggage option.']);
+        }
+
+        if (! app(\App\Services\FlightBookingService::class)->hasTripJackFunds($built['total'])) {
+            return back()->withErrors(['selections' => \App\Services\FlightBookingService::INSUFFICIENT_FUNDS_MESSAGE]);
         }
 
         $booking->update(['flight_ssr_pending_selection' => $built['segmentInfos'] ? ['segmentInfos' => $built['segmentInfos']] : null]);

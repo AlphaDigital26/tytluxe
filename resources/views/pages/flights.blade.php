@@ -37,56 +37,6 @@
 .tyt-card-label{position:absolute;bottom:20px;left:20px;font-family:'Playfair Display',serif;font-size:17px;font-weight:700;color:#fff}
 .tyt-card-sub{font-family:'Poppins',sans-serif;font-size:11px;font-weight:400;color:rgba(255,255,255,0.75);margin-top:4px}
 
-/* FLIGHT WISHLIST HEART */
-.flt-heart-btn {
-  position: absolute;
-  top: 15px;
-  right: 15px;
-  z-index: 5;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  color: #fff;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.28s ease;
-  padding: 0 !important;
-  margin: 0;
-  line-height: 0;
-  box-sizing: border-box;
-  outline: none;
-}
-.flt-heart-btn svg {
-  display: block;
-  transform: translateY(1px);
-  transition: stroke 0.2s ease, fill 0.2s ease;
-}
-.flt-heart-btn:hover {
-  background: rgba(0, 0, 0, 0.75);
-  border-color: #C9A84C;
-  color: #C9A84C;
-  transform: scale(1.12);
-  box-shadow: 0 0 16px rgba(201, 168, 76, 0.35);
-}
-.flt-heart-btn:hover svg {
-  stroke: #C9A84C;
-}
-.flt-heart-btn.active {
-  background: rgba(0, 0, 0, 0.7) !important;
-  border-color: #C9A84C !important;
-  color: #C9A84C !important;
-  box-shadow: 0 0 16px rgba(201, 168, 76, 0.4);
-}
-.flt-heart-btn.active svg {
-  fill: #C9A84C !important;
-  stroke: #C9A84C !important;
-}
-
 /* AIRLINE GRID */
 .tyt-airline-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:48px}
 .tyt-airline-card{

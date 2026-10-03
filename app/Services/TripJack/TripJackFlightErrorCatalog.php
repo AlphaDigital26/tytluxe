@@ -142,7 +142,17 @@ class TripJackFlightErrorCatalog
                 'logLevel' => 'info',
                 'action' => 'none',
             ],
-            '2542', '2545', '2546', '2549', '2550', '2551', '2552', '2556', '2560', '2567', '2568' => [
+            '2560' => [ // Emergency contact fields cannot be null
+                'message' => 'Please fill in the emergency contact details for this booking.',
+                'logLevel' => 'warning',
+                'action' => 'none',
+            ],
+            '2567', '2568' => [ // Document ID not provided / has special characters
+                'message' => 'Please enter a valid ID number (letters and numbers only) for each traveller on this fare.',
+                'logLevel' => 'warning',
+                'action' => 'none',
+            ],
+            '2542', '2545', '2546', '2549', '2550', '2551', '2552', '2556' => [
                 'message' => 'Something went wrong with this request. Please try again or contact us.',
                 'logLevel' => 'error', // most of these mean a bug in the request we built
                 'action' => 'contact_support',
@@ -168,6 +178,23 @@ class TripJackFlightErrorCatalog
                 'action' => 'retry',
             ],
         };
+    }
+
+    /**
+     * Codes that mean a traveller/contact detail the guest typed was
+     * rejected (doc error table: GSTIN, email/mobile, address, pax counts,
+     * duplicate names, ages/DOB, passport, emergency contact, document ID)
+     * — the fix is to correct the form, not to search for another flight.
+     */
+    public static function isTravellerInputError(?string $code): bool
+    {
+        return in_array($code, [
+            '805', '806', '819',
+            '1001', '1002', '1006', '1010',
+            '1012', '1013', '1014', '1051', '1052', '1053',
+            '1064', '1065', '1066', '1067',
+            '2560', '2567', '2568', '2569',
+        ], true);
     }
 
     /**
