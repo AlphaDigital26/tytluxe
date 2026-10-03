@@ -7,12 +7,17 @@
     --white-80: rgba(255,255,255,0.80); --white-60: rgba(255,255,255,0.60); --white-30: rgba(255,255,255,0.30);
   }
   body { background: var(--dark); }
+  /* style.css sets overflow-x: hidden on html/body, which silently stops
+     position: sticky — the Fare Summary scrolled away instead of staying
+     beside the page. clip still prevents sideways scrolling but keeps
+     sticky working (same fix as the results page). */
+  html, body { overflow-x: clip; }
 
   .flr-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 100px; display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 40px; align-items: start; }
   /* minmax(0, 1fr), not 1fr: a plain 1fr column grows to its widest child
      (e.g. the fare-rules table), pushing the card off-screen on phones
      instead of letting that child scroll inside it. */
-  @media (max-width: 900px) { .flr-wrap { grid-template-columns: minmax(0, 1fr); gap: 28px; } .flr-summary { position: static; } }
+  @media (max-width: 900px) { .flr-wrap { grid-template-columns: minmax(0, 1fr); gap: 28px; } .flr-summary { position: static; max-height: none; overflow: visible; } }
 
   .flr-section { background: var(--dark-2); border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; padding: 32px 34px; margin-bottom: 26px; }
   .flr-section h2 { font-family: 'Cormorant Garamond', serif; font-size: 1.5rem; color: var(--gold); margin-bottom: 24px; }
@@ -26,7 +31,7 @@
   .flr-row { display: grid; grid-template-columns: 110px 1fr 1fr; gap: 14px; }
   @media (max-width: 560px) { .flr-row { grid-template-columns: 1fr; } }
 
-  .flr-summary { position: sticky; top: 100px; background: var(--dark-2); border: 1px solid rgba(201,168,76,0.25); border-radius: 22px; padding: 30px; }
+  .flr-summary { position: sticky; top: 120px; max-height: calc(100vh - 140px); overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(201,168,76,0.4) transparent; background: var(--dark-2); border: 1px solid rgba(201,168,76,0.25); border-radius: 22px; padding: 30px; }
   .flr-summary h3 { font-family: 'Cormorant Garamond', serif; font-size: 1.4rem; color: #fff; margin-bottom: 14px; }
   .flr-line { display: flex; justify-content: space-between; gap: 10px; font-family: 'Jost', sans-serif; font-size: 13px; color: var(--white-80); padding: 8px 0; }
   .flr-line.total { border-top: 1px solid rgba(255,255,255,0.12); margin-top: 6px; padding-top: 14px; font-weight: 700; font-size: 16px; color: #fff; }
@@ -60,4 +65,13 @@
   .flr-step-line { flex: 1; height: 1px; background: rgba(255,255,255,0.1); min-width: 16px; }
   .flr-step-line.done { background: rgba(201,168,76,0.55); }
   @media (max-width: 760px) { .flr-step-text { display: none; } .flr-step.active .flr-step-text { display: block; } }
+  /* Five steps on a phone: smaller dots, tighter gaps, so the bar fits. */
+  @media (max-width: 560px) {
+    .flr-steps { gap: 6px; padding-left: 16px; padding-right: 16px; }
+    .flr-step { gap: 8px; }
+    .flr-step-dot { width: 30px; height: 30px; font-size: 12px; }
+    .flr-step-line { min-width: 6px; }
+    .flr-step-k { font-size: 8.5px; }
+    .flr-step-v { font-size: 12px; white-space: nowrap; }
+  }
 </style>

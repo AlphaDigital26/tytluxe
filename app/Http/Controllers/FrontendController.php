@@ -1253,6 +1253,24 @@ class FrontendController extends Controller
                 return redirect()->route('hotel.booking.confirmation', $booking->reference);
             }
 
+            // The reviewed fare's TripJack hold (Review conditions.st) runs
+            // out mid-payment too. Past it, Book is certain to fail after the
+            // guest has paid — so stop here instead of charging and then
+            // refunding (a refund takes days to reach the guest). 30 s of
+            // margin: a payment started that late can't finish in time.
+            $fareExpiresAt = $booking->flight_segments_payload['fareExpiresAt'] ?? null;
+            $resultsUrl = $booking->flight_segments_payload['resultsUrl'] ?? route('flights.search');
+            if ($fareExpiresAt && now()->timestamp >= (int) $fareExpiresAt - 30) {
+                return view('pages.flight-payment', [
+                    'booking' => $booking,
+                    'payment' => null,
+                    'razorpayKeyId' => null,
+                    'fareExpired' => true,
+                    'fareExpiresAt' => null,
+                    'resultsUrl' => $resultsUrl,
+                ]);
+            }
+
             $payment = $booking->payments()->where('status', 'created')->latest()->first();
             if (! $payment) {
                 $order = $razorpay->createOrder((float) $booking->total_amount, $booking->reference);
@@ -1269,6 +1287,9 @@ class FrontendController extends Controller
                 'booking' => $booking,
                 'payment' => $payment,
                 'razorpayKeyId' => config('services.razorpay.key_id'),
+                'fareExpired' => false,
+                'fareExpiresAt' => $fareExpiresAt,
+                'resultsUrl' => $resultsUrl,
             ]);
         }
 

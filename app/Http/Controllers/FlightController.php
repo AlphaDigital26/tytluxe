@@ -340,10 +340,25 @@ class FlightController extends Controller
         $priceIds = array_values($request->input('price_ids'));
 
         $context = session('flight_search_context');
-        $back = redirect()->route('flights.search');
+
+        // A failed pick goes back to the SAME results list (re-searched, so
+        // the guest sees fresh fares), not a blank search page. The reason
+        // rides in the URL as a fixed notice code: "Select & Continue" opens
+        // a new tab, and the results tab left behind keeps making background
+        // requests that can consume a one-request flash message before the
+        // new tab renders it — which left guests on an empty search page with
+        // no explanation. The flash is kept for the code's fuller message.
+        $back = function (string $notice, ?string $message = null) {
+            $previous = url()->previous();
+            $isResults = $previous && str_starts_with($previous, route('flights.search').'?');
+            $target = $isResults ? preg_replace('/([?&])notice=[^&]*&?/', '$1', $previous) : route('flights.search');
+            $target = rtrim($target, '?&').(str_contains($target, '?') ? '&' : '?').'notice='.$notice;
+
+            return redirect()->to($target)->with('booking_error', $message);
+        };
 
         if (! $context) {
-            return $back->with('booking_error', 'Your search session has expired. Please search again.');
+            return $back('expired', 'Your search session has expired. Please search again.');
         }
 
         $expectedCount = match (true) {
@@ -353,7 +368,7 @@ class FlightController extends Controller
             default => 1,
         };
         if (count($priceIds) !== $expectedCount) {
-            return $back->with('booking_error', 'Please select a flight for every leg of your trip.');
+            return $back('legs', 'Please select a flight for every leg of your trip.');
         }
 
         try {
@@ -369,17 +384,19 @@ class FlightController extends Controller
             // selected if Special Return fare." — explain it, and send the
             // guest back to the same results rather than a blank search.
             if (stripos($e->getMessage(), 'Special Return') !== false) {
-                return redirect()->to(url()->previous() ?: route('flights.search'))->with('booking_error', 'Special Return fares can only be booked as a matched pair. Please pick the return fare marked “Pairs with your onward fare”, or choose regular fares on both flights.');
+                return $back('special_return', 'Special Return fares can only be booked as a matched pair. Please pick the return fare marked “Pairs with your onward fare”, or choose regular fares on both flights.');
             }
 
-            return $back->with('booking_error', $described['message']);
+            // 1000 = "Requested flight is no longer available" (sold out
+            // since the search — common, especially on the sandbox).
+            return $back((string) $errorCode === '1000' ? 'unavailable' : 'review_failed', $described['message']);
         }
 
         if (! ($response['status']['success'] ?? false) || empty($response['bookingId'])) {
             $errorCode = TripJackFlightErrorCatalog::codeFromResponse($response);
             $described = TripJackFlightErrorCatalog::describe($errorCode, 'This fare is no longer available. Please search again.');
 
-            return $back->with('booking_error', $described['message']);
+            return $back((string) $errorCode === '1000' ? 'unavailable' : 'review_failed', $described['message']);
         }
 
         session(['flight_booking_draft' => [
@@ -493,7 +510,83 @@ class FlightController extends Controller
 
         $sessionExpiresAt = $draft['expiresAt'] ?? null;
 
+        // Back from Step 3 (Review): refill the form — add-on picks included,
+        // the page restores them from old('travellers') — with what the guest
+        // already entered, unless a failed submit just flashed newer input.
+        if (! $request->session()->hasOldInput() && ! empty($draft['passengerReview']['input'])) {
+            $request->session()->now('_old_input', $draft['passengerReview']['input']);
+        }
+
         return view('pages.flight-passengers', compact('response', 'context', 'tripInfos', 'conditions', 'breakdown', 'addonTrips', 'seatMaps', 'savedTravellers', 'resultsUrl', 'sessionExpiresAt'));
+    }
+
+    /**
+     * Step 3 — Review: the flight, every traveller with their seat / meal /
+     * baggage picks, contact details and the final price, before the guest
+     * pays or blocks the fare. Shows the details validated by Step 2's
+     * submitBooking(intent=review); nothing has been booked yet.
+     */
+    public function showConfirm()
+    {
+        $draft = session('flight_booking_draft');
+        if (! $draft) {
+            return redirect()->route('flights.search')->with('booking_error', 'Your booking session has expired. Please search again.');
+        }
+        $reviewed = $draft['passengerReview'] ?? null;
+        if (! $reviewed) {
+            return redirect()->route('flights.passengers.show', ['booking' => $draft['bookingId']]);
+        }
+
+        $response = $draft['response'];
+        $context = $draft['context'];
+        $tripInfos = $response['tripInfos'] ?? [];
+        $conditions = $response['conditions'] ?? [];
+        $input = $reviewed['input'];
+        $addonsTotal = (float) $reviewed['addonsTotal'];
+
+        // Same formula the Passenger Details page shows live and that
+        // submitBooking() charges: add-ons fold into the marked-up total.
+        $fareBreakdown = $this->reviewBreakdown($response);
+        $priced = FlightPricingService::price($fareBreakdown['tripjack_total_price'] + $addonsTotal);
+        $summary = [
+            'base_fare' => $fareBreakdown['base_fare'],
+            'airline_taxes' => $fareBreakdown['airline_taxes'],
+            'convenience_fee' => max(0, round($priced['customer_price'] - $priced['tripjack_total_price'], 2)),
+            'addons' => $addonsTotal,
+            // Same labels as the Passenger Details summary, in a fixed order.
+            'addon_rows' => collect(['seats' => 'Seats', 'baggage' => 'Extra baggage', 'meals' => 'Meals', 'fastforward' => 'Other services'])
+                ->filter(fn ($label, $kind) => ! empty($reviewed['addonTotals'][$kind]['count']))
+                ->map(fn ($label, $kind) => [
+                    'label' => $label,
+                    'count' => (int) $reviewed['addonTotals'][$kind]['count'],
+                    'amount' => round((float) $reviewed['addonTotals'][$kind]['amount'], 2),
+                ])
+                ->values()
+                ->all(),
+            'total' => $priced['customer_price'],
+        ];
+
+        $travellers = collect($reviewed['travellerInfo'])->map(function ($t, $i) use ($input, $reviewed) {
+            return [
+                'name' => trim(($t['ti'] ?? '').' '.($t['fN'] ?? '').' '.($t['lN'] ?? '')),
+                'type' => $t['pt'] ?? 'ADULT',
+                'dob' => $t['dob'] ?? null,
+                'passport' => $t['pNum'] ?? null,
+                'passportExpiry' => $t['eD'] ?? null,
+                'frequentFlyer' => $input['travellers'][$i]['frequent_flyer'] ?? null,
+                'seats' => $reviewed['addonLines'][$i]['seats'] ?? [],
+                'extras' => $reviewed['addonLines'][$i]['extras'] ?? [],
+            ];
+        })->all();
+
+        // Hold blocks the PNR without payment, so it's only offered when the
+        // airline allows it (isBA) and nothing paid was added.
+        $canHold = (bool) ($conditions['isBA'] ?? false) && $addonsTotal <= 0;
+        $resultsUrl = $draft['resultsUrl'] ?? route('flights.search');
+        $sessionExpiresAt = $draft['expiresAt'] ?? null;
+        $bookingId = $draft['bookingId'];
+
+        return view('pages.flight-confirm', compact('response', 'context', 'tripInfos', 'summary', 'travellers', 'input', 'canHold', 'resultsUrl', 'sessionExpiresAt', 'bookingId'));
     }
 
     /**
@@ -621,7 +714,19 @@ class FlightController extends Controller
      */
     private function validateFareBeforePayment(TripJackFlightClient $client, array $draft, array $travellerInfo, string $email, string $phone, ?array $gstInfo, float $addonsTotal, ?array $contactInfo = null)
     {
-        $soldOut = redirect()->route('flights.search')->with('booking_error', 'Sorry — this fare is no longer available with the airline. Please search again and pick another flight.');
+        // Built only when actually returned: RedirectResponse::with() writes
+        // the flash to the session immediately, so creating it up front
+        // flashed "fare no longer available" on EVERY validation — it then
+        // showed on the payment page even though the fare was fine.
+        // Back to the guest's own results (fresh fares) with the same
+        // ?notice=unavailable toast review() uses.
+        $soldOut = function () use ($draft) {
+            $resultsUrl = $draft['resultsUrl'] ?? '';
+            $target = str_starts_with($resultsUrl, route('flights.search').'?') ? $resultsUrl : route('flights.search');
+            $target = preg_replace('/([?&])notice=[^&]*&?/', '$1', $target);
+
+            return redirect()->to(rtrim($target, '?&').(str_contains($target, '?') ? '&' : '?').'notice=unavailable');
+        };
 
         try {
             $result = $client->fareValidatePreBook(array_filter([
@@ -637,7 +742,7 @@ class FlightController extends Controller
         } catch (TripJackApiException $e) {
             Log::channel('tripjack')->warning('flight_fare_validate_unavailable', ['bookingId' => $draft['bookingId'], 'errorCode' => $e->errorCode, 'message' => $e->getMessage()]);
 
-            return $soldOut;
+            return $soldOut();
         } catch (TripJackException $e) {
             Log::channel('tripjack')->warning('flight_fare_validate_skipped', ['bookingId' => $draft['bookingId'], 'message' => $e->getMessage()]);
 
@@ -645,7 +750,7 @@ class FlightController extends Controller
         }
 
         if (! ($result['status']['success'] ?? false) || ! empty($result['iobfe'])) {
-            return $soldOut;
+            return $soldOut();
         }
 
         $oldFare = (float) ($draft['response']['totalPriceInfo']['totalFareDetail']['fC']['TF'] ?? 0);
@@ -697,6 +802,26 @@ class FlightController extends Controller
         // its bookingId can no longer be booked, so don't take payment.
         if (! empty($draft['expiresAt']) && now()->timestamp >= $draft['expiresAt']) {
             return redirect($draft['resultsUrl'] ?? route('flights.search'))->with('booking_error', 'Your fare session expired before booking was completed, so prices may have changed. Please choose your flight again.');
+        }
+
+        // Step 2 posts intent=review (validate + show Step 3, book nothing);
+        // Step 3's Proceed to Pay / Block post intent=pay|hold with
+        // from_review, and the details the guest reviewed are replayed from
+        // the session — every check below runs again on them before booking.
+        $intent = in_array($request->input('intent'), ['review', 'pay', 'hold'], true) ? $request->input('intent') : 'pay';
+        if ($request->boolean('from_review')) {
+            $reviewed = $draft['passengerReview']['input'] ?? null;
+            if (! $reviewed) {
+                return redirect()->route('flights.passengers.show', ['booking' => $draft['bookingId']])
+                    ->withErrors(['travellers' => 'Please enter your passenger details again.']);
+            }
+            // Step 3's agreement checkbox (Terms, Privacy Policy, fare rules).
+            if (! $request->boolean('accept_terms')) {
+                return redirect()->route('flights.confirm.show')
+                    ->withErrors(['accept_terms' => 'Please accept the Terms of Use, Privacy Policy and fare rules to continue.']);
+            }
+            $request->merge($reviewed);
+            $request->merge(['intent' => $intent]);
         }
 
         $response = $draft['response'];
@@ -817,6 +942,8 @@ class FlightController extends Controller
         $usedSeats = [];
         $addonsTotal = 0.0;
         $travellerInfo = [];
+        $addonLines = []; // [travellerIdx]['seats'|'extras'][] = "DEL → BOM: 12A" — for the Step 3 table
+        $addonTotals = []; // [seats|baggage|meals|fastforward] => {amount, count} — Step 3's fare summary breakdown
         foreach ($validated['travellers'] as $i => $t) {
             $pt = $i < $context['adults'] ? 'ADULT' : ($i < $context['adults'] + $context['children'] ? 'CHILD' : 'INFANT');
             $paxLabel = ucfirst(strtolower($pt)).' '.($i + 1);
@@ -836,6 +963,9 @@ class FlightController extends Controller
                                 $usedSeats[$segId][] = $seatCode;
                                 $addonsTotal += $seatAmounts[$segId][$seatCode];
                                 $ssr['ssrSeatInfos'][] = ['key' => $segId, 'code' => $seatCode];
+                                $addonLines[$i]['seats'][] = "{$seg['label']}: {$seatCode}";
+                                $addonTotals['seats']['amount'] = ($addonTotals['seats']['amount'] ?? 0) + $seatAmounts[$segId][$seatCode];
+                                $addonTotals['seats']['count'] = ($addonTotals['seats']['count'] ?? 0) + 1;
                             }
                         } elseif ($trip['seatMandatory']) {
                             $addonErrors[] = "Please select a seat on {$seg['label']} for {$paxLabel} — the airline requires seat selection for this fare.";
@@ -854,6 +984,9 @@ class FlightController extends Controller
                             }
                             $addonsTotal += $option['amount'];
                             $ssr[self::ADDON_BOOK_FIELDS[$type]][] = ['key' => $segId, 'code' => $code];
+                            $addonLines[$i]['extras'][] = "{$seg['label']}: {$option['desc']}";
+                            $addonTotals[$input]['amount'] = ($addonTotals[$input]['amount'] ?? 0) + $option['amount'];
+                            $addonTotals[$input]['count'] = ($addonTotals[$input]['count'] ?? 0) + 1;
                         }
                     }
                 }
@@ -878,9 +1011,26 @@ class FlightController extends Controller
         if ($addonErrors) {
             return back()->withInput()->withErrors(['addons' => array_values(array_unique($addonErrors))]);
         }
+
+        // Step 2 → Step 3: everything is valid, so keep the details for the
+        // Review page (and for its Pay / Block buttons) — nothing is booked
+        // or charged yet.
+        if ($intent === 'review') {
+            $draft['passengerReview'] = [
+                'input' => $request->except(['_token', 'intent', 'from_review']),
+                'travellerInfo' => $travellerInfo,
+                'addonsTotal' => round($addonsTotal, 2),
+                'addonLines' => $addonLines,
+                'addonTotals' => $addonTotals,
+            ];
+            session(['flight_booking_draft' => $draft]);
+
+            return redirect()->route('flights.confirm.show');
+        }
+
         // A hold blocks the PNR without any payment, so there's nothing to
         // charge paid add-ons against — free seats/meals are fine.
-        if ($request->input('intent') === 'hold' && $addonsTotal > 0) {
+        if ($intent === 'hold' && $addonsTotal > 0) {
             return back()->withInput()->withErrors(['addons' => 'Paid seats, baggage or services can’t be added to a held fare. Remove them to hold, or choose Proceed to Pay.']);
         }
 
@@ -907,7 +1057,7 @@ class FlightController extends Controller
         // TripJack before sending the guest to pay — otherwise a fare that
         // sold out or changed meanwhile is only discovered after payment.
         // (Holds are re-checked separately at confirm time.)
-        if ($request->input('intent') !== 'hold') {
+        if ($intent !== 'hold') {
             $fareCheck = $this->validateFareBeforePayment($client, $draft, $travellerInfo, $validated['contact_email'], $validated['contact_phone'], $gstInfo, $addonsTotal, $contactInfo);
             if ($fareCheck !== null) {
                 return $fareCheck;
@@ -961,7 +1111,15 @@ class FlightController extends Controller
                 'tripjack_hold_id' => $draft['bookingId'], // Review's bookingId — same column meaning as hotels
                 'tripjack_gst_type' => $gstMandatory ? 'PASSTHROUGH' : null,
                 'tripjack_gst_info' => $gstInfo,
-                'flight_segments_payload' => ['travellerInfo' => $travellerInfo, 'contactInfo' => $contactInfo],
+                // fareExpiresAt / resultsUrl let the payment page keep the
+                // fare-hold countdown and stop payment once the reviewed fare
+                // has expired (Book would then fail and need a refund).
+                'flight_segments_payload' => [
+                    'travellerInfo' => $travellerInfo,
+                    'contactInfo' => $contactInfo,
+                    'fareExpiresAt' => $draft['expiresAt'] ?? null,
+                    'resultsUrl' => $draft['resultsUrl'] ?? null,
+                ],
                 'flight_legs' => $flightLegs,
                 'check_in' => $firstDepartDate, // reused generic date columns so admin/list views sort sensibly across verticals
                 'check_out' => $lastDepartDate,
@@ -1002,7 +1160,7 @@ class FlightController extends Controller
         // was true (flight-passengers.blade.php gates the option on that). No
         // Razorpay order at all yet: TripJack blocks the PNR for free, and
         // payment is only collected later via confirmHold() below.
-        if ($request->input('intent') === 'hold') {
+        if ($intent === 'hold') {
             session()->forget(['flight_booking_draft', 'flight_search_context']);
 
             return $this->submitHold($booking, $client);

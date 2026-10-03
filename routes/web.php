@@ -52,6 +52,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/flights/review', [FlightController::class, 'review'])->name('flights.review')->middleware('throttle:10,1');
     Route::get('/flights/review', [FlightController::class, 'showReview'])->name('flights.review.show');
     Route::get('/flights/review/passengers', [FlightController::class, 'showPassengers'])->name('flights.passengers.show')->middleware('throttle:20,1');
+    Route::get('/flights/review/confirm', [FlightController::class, 'showConfirm'])->name('flights.confirm.show')->middleware('throttle:20,1');
     Route::post('/flights/book', [FlightController::class, 'submitBooking'])->name('flights.book')->middleware('throttle:10,1');
 
     // Post-booking Seat/Meal/Baggage add-ons (TripJack's Ancillaries (SSR)
