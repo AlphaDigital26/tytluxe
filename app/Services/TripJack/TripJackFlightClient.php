@@ -167,7 +167,7 @@ class TripJackFlightClient
             'gstInfo' => $gstInfo,
         ], fn ($v) => $v !== null);
 
-        return $this->request('oms', 'POST', '/air/book', $payload);
+        return $this->request('oms', 'POST', '/air/book', $payload, retry: false);
     }
 
     /**
@@ -193,7 +193,7 @@ class TripJackFlightClient
         return $this->request('oms', 'POST', '/air/confirm-book', [
             'bookingId' => $bookingId,
             'paymentInfos' => [['amount' => $amount]],
-        ]);
+        ], retry: false);
     }
 
     /**
@@ -208,7 +208,7 @@ class TripJackFlightClient
         return $this->request('oms', 'POST', '/air/unhold', [
             'bookingId' => $bookingId,
             'pnrs' => $pnrs,
-        ]);
+        ], retry: false);
     }
 
     /**
@@ -282,7 +282,7 @@ class TripJackFlightClient
             'deliveryInfo' => ['emails' => $emails, 'contacts' => $contacts],
             'travellerInfo' => $travellerInfo,
             'gstInfo' => $gstInfo,
-        ], fn ($v) => $v !== null));
+        ], fn ($v) => $v !== null), retry: false);
     }
 
     /**
@@ -351,7 +351,7 @@ class TripJackFlightClient
             'bookingId' => $bookingId,
             'paymentInfos' => [['amount' => $amount]],
             'sI' => $segmentInfos,
-        ]);
+        ], retry: false);
     }
 
     /**
@@ -406,7 +406,7 @@ class TripJackFlightClient
             'type' => $type,
             'remarks' => $remarks,
             'trips' => $trips ?: null,
-        ], fn ($v) => $v !== null));
+        ], fn ($v) => $v !== null), retry: false);
     }
 
     /**
@@ -428,18 +428,25 @@ class TripJackFlightClient
      * TripJackClient::request() exactly (see that class for the full
      * rationale on each behavior) — kept as a separate copy rather than a
      * shared base class, see this class's docblock.
+     *
+     * $retry is false for calls that book, charge or amend (Book,
+     * Confirm-Book, Unhold, Add SSR, Auto Reissue, Submit Amendment): a
+     * timeout there doesn't mean TripJack didn't act on it, so resending
+     * could book or charge twice (doc error 816, "Duplicate request").
+     * Callers treat a timeout/5xx on those as "outcome unknown" instead —
+     * see FlightBookingService::isUncertainOutcome().
      */
-    protected function request(string $host, string $method, string $path, array $payload = []): array
+    protected function request(string $host, string $method, string $path, array $payload = [], bool $retry = true): array
     {
         $baseUrl = match ($host) {
             'oms' => $this->omsBaseUrl,
             default => $this->fmsBaseUrl,
         };
 
-        return $this->rawRequest($method, $baseUrl.$path, $payload);
+        return $this->rawRequest($method, $baseUrl.$path, $payload, $retry);
     }
 
-    protected function rawRequest(string $method, string $url, array $payload = []): array
+    protected function rawRequest(string $method, string $url, array $payload = [], bool $retry = true): array
     {
         $startedAt = microtime(true);
 
@@ -451,7 +458,8 @@ class TripJackFlightClient
             ])
                 ->timeout($this->timeout)
                 ->connectTimeout($this->connectTimeout)
-                ->retry($this->retryTimes, function (int $attempt, \Exception $exception) {
+                // Laravel's retry() takes the TOTAL attempt count — 1 = send once.
+                ->retry($retry ? $this->retryTimes : 1, function (int $attempt, \Exception $exception) {
                     if ($exception instanceof \Illuminate\Http\Client\RequestException
                         && $exception->response->status() === 429) {
                         $retryAfter = $exception->response->header('Retry-After');

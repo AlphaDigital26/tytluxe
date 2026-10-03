@@ -288,6 +288,17 @@ class FlightReissueService
                     $pending['gstInfo'] ?? null,
                 );
             } catch (TripJackException $e) {
+                // Timed out / 5xx: TripJack may have reissued the ticket.
+                // Keep flight_reissue_pending (it holds the new bookingId to
+                // check) and flag it rather than refunding blind.
+                if (FlightBookingService::isUncertainOutcome($e)) {
+                    $booking->update(['admin_note' => trim(($booking->admin_note ? $booking->admin_note.' ' : '')
+                        ."Auto Reissue request (new booking {$pending['newBookingId']}, payment #{$payment->id}) got no answer from TripJack — check its Booking Details, then complete the reschedule or refund.")]);
+                    Log::channel('tripjack')->critical('flight_reissue_book_outcome_unknown', ['booking_id' => $booking->id, 'payment_id' => $payment->id, 'newBookingId' => $pending['newBookingId'], 'message' => $e->getMessage()]);
+
+                    return;
+                }
+
                 $errorCode = $e instanceof TripJackApiException ? $e->errorCode : null;
                 $described = TripJackFlightErrorCatalog::describe($errorCode);
                 Log::channel('tripjack')->{$described['logLevel'] === 'critical' ? 'critical' : 'warning'}('flight_reissue_book_failed', ['booking_id' => $booking->id, 'errorCode' => $errorCode, 'message' => $e->getMessage()]);

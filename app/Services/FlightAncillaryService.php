@@ -332,6 +332,21 @@ class FlightAncillaryService
             try {
                 $response = $client->addSsr($booking->tripjack_booking_id, (float) $payment->amount, $selection['segmentInfos']);
             } catch (TripJackException $e) {
+                // Timed out / 5xx: the extras may have been added (and
+                // charged to the wallet) without us getting the amendment
+                // IDs back — refunding blind could refund extras the guest
+                // keeps. Hold the payment and flag it for a manual check.
+                if (FlightBookingService::isUncertainOutcome($e)) {
+                    $booking->update([
+                        'flight_ssr_status' => 'needs_review',
+                        'admin_note' => trim(($booking->admin_note ? $booking->admin_note.' ' : '')
+                            ."Add SSR request (payment #{$payment->id}) got no answer from TripJack — check in TripJack whether the extras were added, then confirm or refund."),
+                    ]);
+                    Log::channel('tripjack')->critical('flight_ssr_add_outcome_unknown', ['booking_id' => $booking->id, 'payment_id' => $payment->id, 'message' => $e->getMessage()]);
+
+                    return;
+                }
+
                 $errorCode = $e instanceof TripJackApiException ? $e->errorCode : null;
                 $described = TripJackFlightErrorCatalog::describe($errorCode);
                 Log::channel('tripjack')->{$described['logLevel'] === 'critical' ? 'critical' : 'warning'}('flight_ssr_add_failed', ['booking_id' => $booking->id, 'errorCode' => $errorCode, 'message' => $e->getMessage()]);
