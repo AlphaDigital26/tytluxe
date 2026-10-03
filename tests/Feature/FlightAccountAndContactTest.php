@@ -125,7 +125,8 @@ class FlightAccountAndContactTest extends TestCase
     {
         Http::fake([
             '*/air/book/fare-validate' => Http::response($this->fareValid()),
-            '*/user-detail' => Http::response(['totalBalance' => 1200, 'walletBalance' => 1200, 'creditBalance' => 0]),
+            // Real (sandbox-confirmed) shape: balances nested under user.bs.
+            '*/user-detail' => Http::response(['user' => ['userId' => '413398', 'bs' => ['totalBalance' => 1200, 'walletBalance' => 1200]], 'status' => ['success' => true, 'httpStatus' => 200]]),
         ]);
 
         $this->submit()->assertSessionHasErrors('booking');
@@ -150,7 +151,7 @@ class FlightAccountAndContactTest extends TestCase
         config(['services.tripjack.flight.low_balance_alert' => 25000]);
         $admin = Admin::forceCreate(['name' => 'Ops', 'email' => 'ops@example.com', 'password' => bcrypt('x'), 'role' => 'admin', 'status' => 'Active']);
         Http::fake([
-            '*/user-detail' => Http::response(['totalBalance' => 8000]),
+            '*/user-detail' => Http::response(['user' => ['userId' => '413398', 'bs' => ['totalBalance' => 8000, 'walletBalance' => 8000]], 'status' => ['success' => true, 'httpStatus' => 200]]),
             '*' => Http::response(['status' => ['success' => true]]),
         ]);
 

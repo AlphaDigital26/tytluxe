@@ -204,14 +204,23 @@ class FlightBookingService
      * Spendable balance from a User Detail response: totalBalance, else
      * wallet + credit. Null when the response carries none of them, so an
      * odd/empty response is never read as "₹0 left".
+     *
+     * Confirmed live (sandbox, 2026-10-03): the balances are nested as
+     * {user: {userId, bs: {totalBalance, walletBalance}}, status} — not at
+     * the root as the doc's field table shows. Both layouts are accepted.
      */
     public static function tripJackBalance(array $detail): ?float
     {
-        if (isset($detail['totalBalance'])) {
-            return (float) $detail['totalBalance'];
-        }
-        if (isset($detail['walletBalance']) || isset($detail['creditBalance'])) {
-            return (float) ($detail['walletBalance'] ?? 0) + (float) ($detail['creditBalance'] ?? 0);
+        foreach ([$detail['user']['bs'] ?? null, $detail['user'] ?? null, $detail] as $balances) {
+            if (! is_array($balances)) {
+                continue;
+            }
+            if (isset($balances['totalBalance'])) {
+                return (float) $balances['totalBalance'];
+            }
+            if (isset($balances['walletBalance']) || isset($balances['creditBalance'])) {
+                return (float) ($balances['walletBalance'] ?? 0) + (float) ($balances['creditBalance'] ?? 0);
+            }
         }
 
         return null;

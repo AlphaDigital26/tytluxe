@@ -125,8 +125,9 @@ class TripJackFlightClient
     }
 
     /**
-     * User Detail — GET /ums/v1/user-detail. The API account's balances
-     * (totalBalance, walletBalance, creditBalance, totalOutStanding) — every
+     * User Detail — GET /ums/v1/user-detail (POST is 405). The API account's
+     * balances, nested under user.bs — see FlightBookingService::
+     * tripJackBalance(). Every
      * Book/Confirm-Book/Add SSR/Auto Reissue is paid from these, so a low
      * balance makes bookings fail after the guest has paid.
      */
