@@ -346,7 +346,7 @@ class TripJackClient
         return $this->request('booker', 'POST', '/hotel/book', $payload);
     }
 
-    /**
+    /**  
      * Confirm Hold — POST /hotel/confirm-book (booker host). Required when
      * Book's response (or a later bookingDetails() poll) shows ON_HOLD —
      * TripJack only reserved the option, it isn't actually confirmed yet.
