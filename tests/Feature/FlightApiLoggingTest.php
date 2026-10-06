@@ -66,8 +66,8 @@ class FlightApiLoggingTest extends TestCase
 
     public function test_certification_logs_are_separate_raw_request_and_response_files_on_uat(): void
     {
-        config(['services.tripjack.env' => 'test', 'services.tripjack.flight.cert_logs' => true]);
-        $raw = '{"bookingId":"TJS500000000001","status":{"success":true,"httpStatus":200}}';
+        config(['services.tripjack.env' => 'test', 'services.tripjack.flight.cert_logs' => true, 'services.tripjack.api_key' => 'uat-key-123']);
+        $raw ='{"bookingId":"TJS500000000001","status":{"success":true,"httpStatus":200}}';
         Http::fake(['*' => Http::response($raw, 200, ['Content-Type' => 'application/json'])]);
 
         $this->book();
@@ -79,6 +79,7 @@ class FlightApiLoggingTest extends TestCase
         $this->assertSame($raw, file_get_contents($responses[0])); // unmodified
         $request = json_decode(file_get_contents($requests[0]), true);
         $this->assertSame('Z1234567', $request['body']['travellerInfo'][0]['pNum']); // full, unmasked evidence
+        $this->assertSame('uat-key-123', $request['headers']['apikey']); // doc: include the API key
     }
 
     public function test_certification_logs_are_never_written_in_production(): void

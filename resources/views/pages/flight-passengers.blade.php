@@ -310,8 +310,10 @@
                 <div class="flr-field">
                   <label for="flpTitle{{ $i }}">Title</label>
                   <select name="travellers[{{ $i }}][title]" id="flpTitle{{ $i }}" required>
-                    @foreach($t['type'] === 'ADULT' ? ['Mr', 'Mrs', 'Ms'] : ['Master', 'Miss'] as $title)
-                      <option value="{{ $title }}" @selected(($old['title'] ?? null) === $title)>{{ $title }}</option>
+                    {{-- TripJack titles (doc): Mr/Mrs/Ms for adults, Master/Ms
+                         for children and infants — "Miss" is only the label. --}}
+                    @foreach($t['type'] === 'ADULT' ? ['Mr' => 'Mr', 'Mrs' => 'Mrs', 'Ms' => 'Ms'] : ['Master' => 'Master', 'Ms' => 'Miss'] as $title => $titleLabel)
+                      <option value="{{ $title }}" @selected(($old['title'] ?? null) === $title || ($title === 'Ms' && ($old['title'] ?? null) === 'Miss'))>{{ $titleLabel }}</option>
                     @endforeach
                   </select>
                 </div>
@@ -851,7 +853,7 @@
   function titleFor(type, gender) {
     var male = String(gender || '').toLowerCase() === 'male';
     if (type === 'ADULT') return male ? 'Mr' : 'Ms';
-    return male ? 'Master' : 'Miss';
+    return male ? 'Master' : 'Ms';
   }
 
   document.querySelectorAll('.flp-pax').forEach(function (card) {

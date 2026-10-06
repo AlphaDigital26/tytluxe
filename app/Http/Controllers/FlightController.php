@@ -892,7 +892,11 @@ class FlightController extends Controller
             'travellers' => 'required|array|size:'.$totalPax,
         ];
         for ($i = 0; $i < $totalPax; $i++) {
-            $rules["travellers.{$i}.title"] = 'required|string|in:Mr,Mrs,Ms,Master,Miss';
+            $paxType = $i < $context['adults'] ? 'ADULT' : ($i < $context['adults'] + $context['children'] ? 'CHILD' : 'INFANT');
+            // Doc titles: Mr/Mrs/Ms (adult), Master/Ms (child/infant). "Miss"
+            // is still accepted from details entered before this changed and
+            // is sent to TripJack as Ms.
+            $rules["travellers.{$i}.title"] = 'required|string|in:'.($paxType === 'ADULT' ? 'Mr,Mrs,Ms' : 'Master,Ms,Miss');
             $rules["travellers.{$i}.first_name"] = ['required', 'string', 'max:'.$firstNameMax, $nameRegex];
             $rules["travellers.{$i}.last_name"] = ['required', 'string', 'max:'.$lastNameMax, $nameRegex];
             $rules["travellers.{$i}.save"] = 'nullable|boolean';
@@ -900,7 +904,6 @@ class FlightController extends Controller
                 $rules["travellers.{$i}.{$addon}"] = 'nullable|array';
                 $rules["travellers.{$i}.{$addon}.*"] = 'nullable|string|max:20';
             }
-            $paxType = $i < $context['adults'] ? 'ADULT' : ($i < $context['adults'] + $context['children'] ? 'CHILD' : 'INFANT');
             if ($dobFlags[$paxType]) {
                 $rules["travellers.{$i}.dob"] = 'required|date|before:today';
             }
@@ -1027,7 +1030,7 @@ class FlightController extends Controller
             }
 
             $travellerInfo[] = array_filter([
-                'ti' => $t['title'],
+                'ti' => $t['title'] === 'Miss' ? 'Ms' : $t['title'],
                 'pt' => $pt,
                 'fN' => $t['first_name'],
                 'lN' => $t['last_name'],

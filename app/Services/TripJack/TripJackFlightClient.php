@@ -598,8 +598,10 @@ class TripJackFlightClient
             $ref = preg_replace('#[^A-Za-z0-9]#', '', (string) ($payload['bookingId'] ?? $payload['amendmentId'] ?? ''));
             $base = $dir.'/'.now()->format('His_u').'_'.$endpoint.($ref !== '' ? '_'.$ref : '');
 
+            // Doc: "Include API key with the logs" — the UAT key; these files
+            // are never written in production (see the guard above).
             file_put_contents($base.'_request.json', json_encode(
-                ['method' => $method, 'url' => $url, 'body' => $payload],
+                ['method' => $method, 'url' => $url, 'headers' => ['apikey' => $this->apiKey, 'Content-Type' => 'application/json'], 'body' => $payload],
                 JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
             ));
             file_put_contents($base.'_response.json', $rawResponse ?? json_encode(['error' => 'No response — request timed out', 'httpStatus' => $status]));
