@@ -14,27 +14,29 @@ class ListTripjackBookings extends Command
      * @var string
      */
     protected $signature = 'tripjack:bookings
-        {--start= : Range start (Y-m-d or Y-m-d\TH:i:s), defaults to 7 days ago}
-        {--end= : Range end (Y-m-d or Y-m-d\TH:i:s), defaults to now}';
+        {--start= : Range start in IST (Y-m-d or Y-m-d\TH:i:s), defaults to 6 days ago; max 15 days back}
+        {--end= : Range end in IST (Y-m-d or Y-m-d\TH:i:s), defaults to now; max 7 days after start}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'List TripJack hotel bookings created within a date range (oms/v1/hotel/bookings)';
+    protected $description = 'List TripJack hotel bookings created within a date range (oms/v3/hotel/bookings)';
 
     public function handle(TripJackClient $client): int
     {
-        $start = $this->option('start')
-            ? \Carbon\Carbon::parse($this->option('start'))
-            : now()->subDays(7)->startOfDay();
-        $end = $this->option('end')
-            ? \Carbon\Carbon::parse($this->option('end'))
-            : now();
+        // Dates are IST, as TripJack expects.
+        $start = $this->option('start') ?: now('Asia/Kolkata')->subDays(6)->startOfDay();
+        $end = $this->option('end') ?: now('Asia/Kolkata');
 
         try {
-            $response = $client->bookingList($start->format('Y-m-d\TH:i:s'), $end->format('Y-m-d\TH:i:s'));
+            [$start, $end] = TripJackClient::bookingListRange($start, $end);
+            $response = $client->bookingList($start, $end);
+        } catch (\InvalidArgumentException $e) {
+            $this->error($e->getMessage());
+
+            return self::FAILURE;
         } catch (TripJackException $e) {
             $this->error("TripJack bookings list failed: {$e->getMessage()}");
 
@@ -58,7 +60,7 @@ class ListTripjackBookings extends Command
         ])->all();
 
         $this->table(['Booking ID', 'Status', 'Total Price', 'Check-in', 'Check-out'], $rows);
-        $this->info(count($bookings).' booking(s) between '.$start->toDateString().' and '.$end->toDateString().'.');
+        $this->info(count($bookings)." booking(s) between {$start} and {$end} IST.");
 
         return self::SUCCESS;
     }

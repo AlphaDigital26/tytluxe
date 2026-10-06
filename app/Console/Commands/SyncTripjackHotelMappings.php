@@ -28,7 +28,12 @@ class SyncTripjackHotelMappings extends Command
             ? $sync->syncDeleted($maxPages)
             : $sync->syncMappings($type, $maxPages);
 
+        $finished = (bool) ($stats['finished'] ?? true);
+        unset($stats['finished']);
         $this->info("Type: {$type}. ".collect($stats)->map(fn ($v, $k) => "{$k}: {$v}")->implode(', '));
+        $this->line($finished
+            ? 'Run complete — next run starts from this run\'s start time.'
+            : 'Stopped before the end — progress saved; the next run resumes from here.');
 
         return self::SUCCESS;
     }

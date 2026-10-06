@@ -16,6 +16,11 @@ class RazorpayPaymentFlowTest extends TestCase
 {
     use RefreshDatabase;
 
+    /** Stay dates relative to today, so the tests never go stale. */
+    protected string $checkIn;
+
+    protected string $checkOut;
+
     protected FakeRazorpayService $razorpay;
 
     protected User $user;
@@ -23,6 +28,8 @@ class RazorpayPaymentFlowTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->checkIn = now()->addDays(20)->toDateString();
+        $this->checkOut = now()->addDays(23)->toDateString();
         $this->razorpay = new FakeRazorpayService();
         $this->app->instance(RazorpayService::class, $this->razorpay);
         $this->user = User::factory()->create();
@@ -61,7 +68,7 @@ class RazorpayPaymentFlowTest extends TestCase
                 ],
             ],
             'correlationId' => 'cid-rzp',
-            'check_in' => '2026-09-15', 'check_out' => '2026-09-18',
+            'check_in' => $this->checkIn, 'check_out' => $this->checkOut,
             'adults' => 1, 'children' => 0, 'rooms' => 1,
         ]]);
 
@@ -235,10 +242,10 @@ class RazorpayPaymentFlowTest extends TestCase
     {
         Http::fake([
             '*/hotel/book' => Http::response(['bookingId' => 'TJ-BOOK-HOLD', 'status' => ['success' => true]], 200),
-            '*/hotel/booking-details' => Http::response([
-                'order' => ['bookingId' => 'TJ-BOOK-HOLD', 'status' => 'ON_HOLD'],
-                'status' => ['success' => true],
-            ], 200),
+            // ON_HOLD after Book, SUCCESS once confirm-book has gone through.
+            '*/hotel/booking-details' => Http::sequence()
+                ->push(['order' => ['bookingId' => 'TJ-BOOK-HOLD', 'status' => 'ON_HOLD'], 'status' => ['success' => true]], 200)
+                ->whenEmpty(Http::response(['order' => ['bookingId' => 'TJ-BOOK-HOLD', 'status' => 'SUCCESS'], 'status' => ['success' => true]], 200)),
             '*/hotel/confirm-book' => Http::response(['bookingId' => 'TJ-BOOK-HOLD', 'status' => ['success' => true]], 200),
         ]);
 
@@ -342,6 +349,8 @@ class RazorpayPaymentFlowTest extends TestCase
         });
 
         $this->assertSame(1, $confirmBookCalls, 'confirm-book must never be called twice — it could double-deduct the TripJack wallet');
-        $this->assertSame('confirmed', $booking->fresh()->status);
+        // TripJack still reports ON_HOLD here, so the booking is paid but
+        // not yet confirmed — the background refresh picks up SUCCESS later.
+        $this->assertSame('pending_confirmation', $booking->fresh()->status);
     }
 }

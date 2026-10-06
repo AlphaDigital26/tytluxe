@@ -14,9 +14,16 @@ class TripJackBookingFlowTest extends TestCase
 {
     use RefreshDatabase;
 
+    /** Stay dates relative to today, so the tests never go stale. */
+    protected string $checkIn;
+
+    protected string $checkOut;
+
     protected function setUp(): void
     {
         parent::setUp();
+        $this->checkIn = now()->addDays(20)->toDateString();
+        $this->checkOut = now()->addDays(23)->toDateString();
         // Booking now requires an account — every test in this file acts as
         // a logged-in guest, matching the auth-gated routes in web.php.
         $this->actingAs(User::factory()->create());
@@ -78,7 +85,7 @@ class TripJackBookingFlowTest extends TestCase
                     'commercial' => ['type' => 'NET', 'commission' => 0],
                     'compliance' => ['gstType' => 'NA', 'panRequired' => true, 'passportRequired' => false],
                     'cancellation' => ['isRefundable' => true, 'penalties' => []],
-                    'deadlineDateTime' => '2026-09-14T23:59:59',
+                    'deadlineDateTime' => now()->addDays(19)->format('Y-m-d\TH:i:s'),
                 ],
                 'onholdAllowed' => 'true',
                 'status' => ['success' => true],
@@ -100,7 +107,7 @@ class TripJackBookingFlowTest extends TestCase
         $this->app->bind(\App\Services\Payment\RazorpayService::class, fn () => new \Tests\Doubles\FakeRazorpayService());
 
         // Step 1: visit hotel details with dates -> populates session pricing context
-        $detailsResponse = $this->get("/hotels/{$hotel->slug}?check_in=2026-09-15&check_out=2026-09-18&adults=1&rooms=1");
+        $detailsResponse = $this->get("/hotels/{$hotel->slug}?check_in={$this->checkIn}&check_out={$this->checkOut}&adults=1&rooms=1");
         $detailsResponse->assertStatus(200);
         $detailsResponse->assertSee('Select Room');
         $expectedCustomerPrice = \App\Services\HotelPricingService::price(25000)['customer_price'];
@@ -109,8 +116,8 @@ class TripJackBookingFlowTest extends TestCase
         // Step 2: submit Select Room -> Review (should redirect, not render directly — PRG)
         $reviewPost = $this->post("/hotels/{$hotel->slug}/review", [
             'option_id' => 'opt-abc-123',
-            'check_in' => '2026-09-15',
-            'check_out' => '2026-09-18',
+            'check_in' => $this->checkIn,
+            'check_out' => $this->checkOut,
             'adults' => 1,
             'children' => 0,
             'rooms' => 1,
@@ -122,14 +129,14 @@ class TripJackBookingFlowTest extends TestCase
         $reviewGet->assertStatus(200);
         $reviewGet->assertSee('PAN Number');
         $reviewGet->assertSee('Deluxe King Room');
-        $reviewGet->assertSee(number_format($expectedCustomerPrice));
+        $reviewGet->assertSee(number_format($expectedCustomerPrice, 2));
 
         // Step 4: submit guest details -> Book
         $bookPost = $this->post("/hotels/{$hotel->slug}/book", [
             'contact_email' => 'john@example.com',
             'contact_phone' => '9876543210',
             'pan_name' => 'John Doe',
-            'pan_number' => 'ABCDE1234F',
+            'pan_number' => 'ABCPE1234F',
             'rooms' => [
                 0 => ['travelers' => [
                     0 => ['title' => 'Mr', 'first_name' => 'John', 'last_name' => 'Doe'],
@@ -147,7 +154,7 @@ class TripJackBookingFlowTest extends TestCase
         $this->assertSame('pending_payment', $booking->status); // ON_HOLD maps to pending_payment (awaiting Phase 8 payment)
         $this->assertEqualsWithDelta($expectedCustomerPrice, (float) $booking->total_amount, 0.01);
         $this->assertSame(1, $booking->travelers()->count());
-        $this->assertSame('ABCDE1234F', $booking->travelers()->first()->pan_number);
+        $this->assertSame('ABCPE1234F', $booking->travelers()->first()->pan_number);
         $this->assertNotNull($booking->tripjack_room_traveller_payload, 'Book payload must be persisted for the post-payment call');
         $this->assertSame(1, $booking->payments()->count());
         $this->assertSame('created', $booking->payments()->first()->status);
@@ -175,7 +182,7 @@ class TripJackBookingFlowTest extends TestCase
             'bookingId' => 'TGS-X',
             'option' => ['optionId' => 'opt-x', 'compliance' => ['panRequired' => false, 'passportRequired' => false], 'pricing' => ['totalPrice' => 1000, 'currency' => 'INR']],
             'correlationId' => 'cid-x',
-            'check_in' => '2026-09-15', 'check_out' => '2026-09-18',
+            'check_in' => $this->checkIn, 'check_out' => $this->checkOut,
             'adults' => 2, 'children' => 0, 'rooms' => 2,
         ]]);
 
@@ -213,7 +220,7 @@ class TripJackBookingFlowTest extends TestCase
 
         session(['tripjack_pricing.999999997' => [
             'correlationId' => 'cid-y', 'reviewHash' => 'hash-y', 'hid' => '999999997',
-            'check_in' => '2026-09-15', 'check_out' => '2026-09-18', 'adults' => 2, 'children' => 0, 'rooms' => 1,
+            'check_in' => $this->checkIn, 'check_out' => $this->checkOut, 'adults' => 2, 'children' => 0, 'rooms' => 1,
         ]]);
 
         Http::fake([
@@ -226,7 +233,7 @@ class TripJackBookingFlowTest extends TestCase
         ]);
 
         $response = $this->post("/hotels/{$hotel->slug}/review", [
-            'option_id' => 'opt-nohold', 'check_in' => '2026-09-15', 'check_out' => '2026-09-18',
+            'option_id' => 'opt-nohold', 'check_in' => $this->checkIn, 'check_out' => $this->checkOut,
             'adults' => 2, 'children' => 0, 'rooms' => 1,
         ]);
 
@@ -255,7 +262,7 @@ class TripJackBookingFlowTest extends TestCase
             ], 200),
         ]);
 
-        $this->get("/hotels/{$hotel->slug}?check_in=2026-09-15&check_out=2026-09-18&adults=1&children=2&rooms=1&child_ages=5,9");
+        $this->get("/hotels/{$hotel->slug}?check_in={$this->checkIn}&check_out={$this->checkOut}&adults=1&children=2&rooms=1&child_ages=5,9");
 
         Http::assertSent(function ($request) {
             if (! str_contains($request->url(), '/hotel/pricing')) {
@@ -295,7 +302,7 @@ class TripJackBookingFlowTest extends TestCase
                 'pricing' => ['totalPrice' => 2000, 'currency' => 'INR'],
             ],
             'correlationId' => 'cid-mismatch',
-            'check_in' => '2026-09-15', 'check_out' => '2026-09-18',
+            'check_in' => $this->checkIn, 'check_out' => $this->checkOut,
             'adults' => 1, 'children' => 0, 'rooms' => 1, // stale/mismatched on purpose
         ]]);
 

@@ -9,6 +9,7 @@ use App\Models\Hotel;
 use App\Models\HotelImage;
 use App\Models\RoomType;
 use App\Models\TripjackCity;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -103,76 +104,153 @@ class TripJackHotelSync
     }
 
     /**
+     * TripJack's own spelling of a country (Fetch Countries, uppercase), or
+     * null when it doesn't know the name. Case-insensitive; list cached 1 day.
+     */
+    public function resolveCountry(string $countryName): ?string
+    {
+        $wanted = strtoupper(trim($countryName));
+
+        return in_array($wanted, $this->knownCountries(), true) ? $wanted : null;
+    }
+
+    /** Closest TripJack country name to a mistyped one, for the error message. */
+    public function suggestCountry(string $countryName): ?string
+    {
+        $wanted = strtoupper(trim($countryName));
+        $best = null;
+        $bestDistance = PHP_INT_MAX;
+        foreach ($this->knownCountries() as $country) {
+            $distance = levenshtein($wanted, $country);
+            if ($distance < $bestDistance) {
+                [$best, $bestDistance] = [$country, $distance];
+            }
+        }
+
+        return $bestDistance <= max(3, (int) (strlen($wanted) / 3)) ? $best : null;
+    }
+
+    /** @return string[] */
+    protected function knownCountries(): array
+    {
+        $countries = Cache::get('tripjack_hotel_countries');
+        if (! $countries) {
+            $countries = array_values(array_map('strtoupper', $this->client->fetchCountries()['hotelCountries'] ?? []));
+            if ($countries) {
+                Cache::put('tripjack_hotel_countries', $countries, now()->addDay());
+            }
+        }
+
+        return $countries;
+    }
+
+    /**
      * Sync hotels for a city into the local `hotels` table.
      *
-     * Prefers the cached city_region_id (precise, from tripjack_cities) when
-     * available; otherwise falls back to TripJack's countryName filter and
-     * matches hotels client-side by static-detail's locale.address.city,
-     * since the world city/region list is not practical to fully crawl
-     * up front just to resolve one city.
+     * The country is checked against Fetch Countries first (a typo used to
+     * return 0 hotels with success:true). Prefers the cached city region
+     * (matched on city AND country); otherwise pages through the country's
+     * Hotel ID Mapping, matching hotels by static content's
+     * locale.address.city, until $limit are found or $maxCountryPages pages
+     * have been read. The destination is only created once a hotel is
+     * actually found, so a failed sync never leaves an empty destination.
+     *
+     * @return array{found:int, synced:int, skipped:int, errors:int, error?:string}
      */
-    public function syncCity(string $cityName, string $countryName, int $limit = 20): array
+    public function syncCity(string $cityName, string $countryName, int $limit = 20, int $maxCountryPages = 10, ?Destination $into = null): array
     {
-        $destination = Destination::firstOrCreate(
-            ['slug' => Str::slug($cityName)],
-            [
+        $stats = ['found' => 0, 'synced' => 0, 'skipped' => 0, 'errors' => 0];
+
+        $country = $this->resolveCountry($countryName);
+        if ($country === null) {
+            $suggestion = $this->suggestCountry($countryName);
+            $stats['error'] = "TripJack has no hotels for country \"{$countryName}\"."
+                .($suggestion ? " Did you mean \"{$suggestion}\"?" : '');
+
+            return $stats;
+        }
+
+        $destination = $into ?? Destination::where('slug', Str::slug($cityName))->first();
+        $getDestinationId = function () use (&$destination, $cityName, $country) {
+            $destination ??= Destination::create([
+                'slug' => Str::slug($cityName),
                 'name' => Str::title($cityName),
-                'country' => Str::title($countryName),
+                'country' => Str::title(strtolower($country)),
                 'type' => 'city',
                 'for' => ['hotel'],
                 'is_active' => true,
-            ]
-        );
+            ]);
 
-        $tripjackCity = TripjackCity::whereRaw('LOWER(city_name) = ?', [strtolower($cityName)])->first();
+            return $destination->id;
+        };
 
-        $tjHotelIds = $tripjackCity
-            ? $this->hotelIdsByRegion((string) $tripjackCity->city_region_id, $limit)
-            : $this->hotelIdsByCountry(strtoupper($countryName), $limit);
+        $tripjackCity = $this->findTripjackCity($cityName, $country);
 
-        $stats = ['found' => count($tjHotelIds), 'synced' => 0, 'skipped' => 0, 'errors' => 0];
+        $pages = $tripjackCity
+            ? [$this->hotelIdsByRegion((string) $tripjackCity->city_region_id, $limit)]
+            : $this->hotelIdPagesByCountry($country, $maxCountryPages);
 
-        // Bulk fetch 100 IDs at a time (TripJack's per-call cap) instead of
-        // one static-detail call per hotel — looping single calls over a
-        // large candidate list (e.g. a country-wide fallback search) is what
-        // triggered TripJack's rate limiting and a cascade of timeouts on a
-        // real run of this exact loop.
-        foreach (array_chunk($tjHotelIds, 100) as $chunk) {
-            try {
-                $response = $this->client->fetchHotelContent(array_map('strval', $chunk));
-                $detailsByHotelId = collect($response['hotels'] ?? [])->keyBy(fn ($d) => (string) ($d['tjHotelId'] ?? ''));
-            } catch (\Throwable $e) {
-                Log::channel('tripjack')->warning('static_content_chunk_failed', ['tjHotelIds' => $chunk, 'message' => $e->getMessage()]);
-                $stats['errors'] += count($chunk);
+        foreach ($pages as $tjHotelIds) {
+            $stats['found'] += count($tjHotelIds);
 
-                continue;
-            }
-
-            foreach ($chunk as $tjHotelId) {
-                $detail = $detailsByHotelId->get((string) $tjHotelId);
-                if (! $detail) {
-                    $stats['errors']++;
+            // Bulk fetch 100 IDs at a time (TripJack's per-call cap) instead
+            // of one static-detail call per hotel — single calls over a large
+            // candidate list triggered TripJack's rate limiting.
+            foreach (array_chunk($tjHotelIds, 100) as $chunk) {
+                try {
+                    $response = $this->client->fetchHotelContent(array_map('strval', $chunk));
+                    $detailsByHotelId = collect($response['hotels'] ?? [])->keyBy(fn ($d) => (string) ($d['tjHotelId'] ?? ''));
+                } catch (\Throwable $e) {
+                    Log::channel('tripjack')->warning('static_content_chunk_failed', ['tjHotelIds' => $chunk, 'message' => $e->getMessage()]);
+                    $stats['errors'] += count($chunk);
 
                     continue;
                 }
 
-                $detailCity = $detail['locale']['address']['city'] ?? null;
-                if (! $tripjackCity && $detailCity && strtolower($detailCity) !== strtolower($cityName)) {
-                    $stats['skipped']++;
+                foreach ($chunk as $tjHotelId) {
+                    $detail = $detailsByHotelId->get((string) $tjHotelId);
+                    if (! $detail) {
+                        $stats['errors']++;
 
-                    continue;
-                }
+                        continue;
+                    }
 
-                $this->upsertHotel($detail, $destination->id);
-                $stats['synced']++;
+                    $detailCity = $detail['locale']['address']['city'] ?? null;
+                    if (! $tripjackCity && (! $detailCity || strtolower(trim($detailCity)) !== strtolower(trim($cityName)))) {
+                        $stats['skipped']++;
 
-                if ($stats['synced'] >= $limit) {
-                    break 2;
+                        continue;
+                    }
+
+                    $this->upsertHotel($detail, $getDestinationId());
+                    $stats['synced']++;
+
+                    if ($stats['synced'] >= $limit) {
+                        return $stats;
+                    }
                 }
             }
         }
 
         return $stats;
+    }
+
+    /**
+     * The TripJack region for a city in a given country. Names repeat across
+     * countries (Hyderabad IN/PK) and within one (65 "Barrio Pueblo"s), so
+     * the country must match, and an actual CITY-type region whose full name
+     * starts with the city wins over other region types.
+     */
+    protected function findTripjackCity(string $cityName, string $country): ?TripjackCity
+    {
+        $city = strtolower(trim($cityName));
+
+        return TripjackCity::whereRaw('LOWER(city_name) = ?', [$city])
+            ->whereRaw('UPPER(country_name) = ?', [$country])
+            ->get()
+            ->sortByDesc(fn (TripjackCity $c) => (strtolower((string) $c->region_type) === 'city' ? 2 : 0)
+                + (str_starts_with(strtolower((string) $c->full_region_name), $city) ? 1 : 0))
+            ->first();
     }
 
     /** @return string[] */
@@ -194,13 +272,26 @@ class TripJackHotelSync
         return array_slice($ids, 0, $limit);
     }
 
-    /** @return string[] */
-    protected function hotelIdsByCountry(string $countryName, int $limit): array
+    /**
+     * Lazily yields one page (up to 2000 ids) of a country's hotels at a
+     * time — the caller stops pulling once it has enough, so a big country
+     * (India: 56 pages) isn't fetched in full, but isn't limited to page 0
+     * either.
+     *
+     * @return \Generator<int, string[]>
+     */
+    protected function hotelIdPagesByCountry(string $countryName, int $maxPages): \Generator
     {
-        $response = $this->client->fetchHotelMapping(countryName: $countryName, page: 0, size: min(max($limit * 10, 200), 2000));
-        $rows = $response['hotels'] ?? [];
-
-        return array_map(fn ($row) => $row['tjHotelId'], $rows);
+        $page = 0;
+        do {
+            $response = $this->client->fetchHotelMapping(countryName: $countryName, page: $page, size: 2000);
+            $ids = array_map(fn ($row) => (string) $row['tjHotelId'], $response['hotels'] ?? []);
+            if ($ids) {
+                yield $ids;
+            }
+            $page++;
+            $totalPages = (int) ($response['pageable']['totalPages'] ?? 1);
+        } while ($ids && $page < $totalPages && $page < $maxPages);
     }
 
     /**
@@ -689,9 +780,21 @@ class TripJackHotelSync
         )->all();
 
         $hotel = Hotel::firstOrNew(['tripjack_hotel_id' => $tjHotelId]);
+        $unicaId = isset($detail['unicaId']) && $detail['unicaId'] !== '' ? (string) $detail['unicaId'] : null;
+
+        // Same property already listed under another tjHotelId — don't
+        // create a duplicate listing of it.
+        if (! $hotel->exists && $unicaId !== null
+            && Hotel::where('unica_id', $unicaId)->where('tripjack_hotel_id', '!=', $tjHotelId)->exists()) {
+            Log::channel('tripjack')->info('hotel_sync_duplicate_unica_skipped', ['tjHotelId' => $tjHotelId, 'unicaId' => $unicaId]);
+
+            return;
+        }
+
         $hotel->fill(
             [
                 'destination_id' => $destinationId,
+                'unica_id' => $unicaId ?? $hotel->unica_id,
                 'title' => $name,
                 'slug' => $hotel->slug ?? Str::slug($name.'-'.$tjHotelId),
                 'description' => $description ?: 'No description available.',
@@ -701,12 +804,15 @@ class TripJackHotelSync
                 'address' => $address,
                 'lat' => $lat,
                 'lng' => $lng,
-                'star_rating' => max(1, min(5, $starRating ?: 3)),
+                // Unrated properties stay null instead of a fake 3-star.
+                'star_rating' => $starRating > 0 ? min(5, $starRating) : null,
                 'price_from' => 0,
                 'source' => 'tripjack',
                 'is_active' => (bool) ($detail['is_active'] ?? true),
                 'check_in_time' => $this->formatClockTime($detail['policies']['checkInCheckOut']['checkin_from'] ?? null) ?? $hotel->check_in_time ?? '2:00 PM',
                 'check_out_time' => $this->formatClockTime($detail['policies']['checkInCheckOut']['checkout_from'] ?? null) ?? $hotel->check_out_time ?? '11:00 AM',
+                'checkin_min_age' => is_numeric($detail['policies']['checkInCheckOut']['checkin_min_age'] ?? null) ? (int) $detail['policies']['checkInCheckOut']['checkin_min_age'] : null,
+                'checkout_till' => $this->formatClockTime($detail['policies']['checkInCheckOut']['checkout_till'] ?? null),
                 'mandatory_fees' => $this->formatAsBulletList($this->unwrapJsonBlob($detail['policies']['mandatory_fees'] ?? null, ['mandatory'])),
                 'chain_name' => $detail['chain']['name'] ?? null,
                 'house_rules' => ! empty($detail['policies']['houseRules']) ? $detail['policies']['houseRules'] : null,

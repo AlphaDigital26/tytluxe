@@ -24,6 +24,7 @@
                                 <th class="px-4 py-2 text-left font-semibold">Local Reference</th>
                                 <th class="px-4 py-2 text-left font-semibold">Local Status</th>
                                 <th class="px-4 py-2 text-right font-semibold">Local Price</th>
+                                <th class="px-4 py-2 text-left font-semibold">Issue</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -46,6 +47,7 @@
                                     </td>
                                     <td class="px-4 py-2">{{ $row['localStatus'] ?? '—' }}</td>
                                     <td class="px-4 py-2 text-right">{{ $row['localTotalPrice'] !== null ? number_format($row['localTotalPrice'], 2) : '—' }}</td>
+                                    <td class="px-4 py-2 {{ ($row['issue'] ?? null) ? 'text-danger-600 font-medium' : '' }}">{{ $row['issue'] ?? '—' }}</td>
                                 </tr>
                             @endforeach
                         </tbody>

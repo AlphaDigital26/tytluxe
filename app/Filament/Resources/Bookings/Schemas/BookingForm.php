@@ -80,6 +80,7 @@ class BookingForm
                 Select::make('status')
                     ->options([
             'pending_payment' => 'Pending payment',
+            'pending_confirmation' => 'Paid, awaiting hotel confirmation',
             'confirmed' => 'Confirmed',
             'cancelled' => 'Cancelled',
             'failed_needs_review' => 'Failed needs review',

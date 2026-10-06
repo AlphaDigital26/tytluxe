@@ -1,3 +1,41 @@
+## TYT Luxe — required server setup: the scheduler
+
+Every background TripJack job lives in `routes/console.php` and only runs if
+Laravel's scheduler is triggered **every minute**. Without it: deleted TripJack
+hotels stay bookable (Book fails after the guest has paid), new/updated hotels
+never sync, unconfirmed hotel bookings and pending cancellations are never
+re-checked, and the health check / rate-limit monitor never fire.
+
+**Linux (crontab -e for the web user):**
+
+```
+* * * * * cd /path/to/tytluxe && php artisan schedule:run >> /dev/null 2>&1
+```
+
+**Windows (Task Scheduler):** `tools/windows-schedule-run.vbs` runs it with no
+console window (edit the `php` path inside if PHP isn't at `C:\xampp\php`):
+
+```
+schtasks /Create /F /TN "TYT Luxe Laravel Scheduler" /SC MINUTE /MO 1 /TR "wscript.exe \"D:\path\to\tytluxe\tools\windows-schedule-run.vbs\""
+```
+
+The scheduler also runs the queue worker every minute (`queue:work
+--stop-when-empty`), so this one entry covers queued jobs too — room-type
+fills, admin "sync destination hotels", notifications. A separate always-on
+`queue:work` (Supervisor) is optional, for faster pickup. Keep
+`DB_QUEUE_RETRY_AFTER` (330) above the longest job timeout (300s).
+
+Check it with `php artisan schedule:list` (shows next run times). After the
+first deploy, seed the TripJack data once by hand:
+
+```
+php artisan app:cache-tripjack-cities          # full city/region list (weekly afterwards)
+php artisan app:sync-tripjack-hotel-mappings DELETE
+php artisan app:sync-tripjack-hotel-mappings NEW --max-pages=5   # resumes where it stopped
+```
+
+---
+
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
 <p align="center">

@@ -5,11 +5,18 @@ namespace App\Services\TripJack;
 use App\Models\Destination;
 use App\Models\Hotel;
 use App\Models\Setting;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
 
 class TripJackMappingSync
 {
+    /** How far back a first-ever run starts (TripJack has 1.5M+ hotels over 5 years). */
+    protected const FIRST_RUN_LOOKBACK_DAYS = 7;
+
+    /** Extra attempts for a failed content batch before its IDs are parked for the next run. */
+    protected const CHUNK_RETRIES = 2;
+
     public function __construct(
         protected TripJackClient $client,
         protected TripJackHotelSync $hotelSync,
@@ -21,19 +28,68 @@ class TripJackMappingSync
         return "tripjack_mapping_sync_last_run_{$type}";
     }
 
+    /** In-progress run: {since, runStartedAt, cursor, page} — saved after every page. */
+    protected function stateKey(string $type): string
+    {
+        return "tripjack_mapping_sync_state_{$type}";
+    }
+
+    /** tjHotelIds whose content fetch failed every attempt, retried next run. */
+    protected function failedKey(string $type): string
+    {
+        return "tripjack_mapping_sync_failed_{$type}";
+    }
+
     /**
-     * Pulls NEW or UPDATE hotel mappings since the last successful run of
-     * this $type and syncs each into the local hotels table.
+     * Where this run starts: an unfinished run's saved cursor, or a fresh run
+     * from the last completed run (first ever run: only a week back).
      *
-     * A NEW hotel is only synced when its city already matches an existing
-     * Destination — TripJack's catalogue spans 200+ countries and we don't
-     * want every worldwide city silently turned into a browsable destination
-     * just because a hotel mapping appeared; unmatched hotels are counted
-     * under skipped_no_destination for manual review instead. An UPDATE row
-     * for a hotel we don't have locally is treated the same way rather than
-     * created blind.
+     * @return array{since:string, runStartedAt:string, cursor:?string, page:int}
+     */
+    protected function startState(string $type): array
+    {
+        $saved = Setting::getJson($this->stateKey($type), []);
+        if (! empty($saved['since']) && ! empty($saved['runStartedAt'])) {
+            return [
+                'since' => $saved['since'],
+                'runStartedAt' => $saved['runStartedAt'],
+                'cursor' => $saved['cursor'] ?? null,
+                'page' => (int) ($saved['page'] ?? 0),
+            ];
+        }
+
+        return [
+            'since' => Setting::get($this->settingKey($type)) ?: now()->subDays(self::FIRST_RUN_LOOKBACK_DAYS)->toIso8601String(),
+            'runStartedAt' => now()->toIso8601String(),
+            'cursor' => null,
+            'page' => 0,
+        ];
+    }
+
+    /** Saves progress, or — when the run reached the end — moves the watermark and clears it. */
+    protected function saveState(string $type, array $state, bool $finished): void
+    {
+        if ($finished) {
+            Setting::set($this->settingKey($type), $state['runStartedAt']);
+            Setting::setJson($this->stateKey($type), []);
+
+            return;
+        }
+
+        Setting::setJson($this->stateKey($type), $state);
+    }
+
+    /**
+     * Pulls NEW or UPDATE hotel mappings since the last completed run and
+     * syncs each into the local hotels table. Progress is saved after every
+     * page, so a run cut short (timeout, rate limit, --max-pages) resumes
+     * from the same cursor next time instead of starting over.
      *
-     * @return array{fetched:int, synced:int, skipped_no_destination:int, errors:int}
+     * A NEW hotel is only synced when its city AND country match an existing
+     * Destination; unmatched hotels are counted under skipped_no_destination.
+     * UPDATE only fetches content for hotels we already have.
+     *
+     * @return array{fetched:int, synced:int, skipped_no_destination:int, errors:int, retried_ok:int, finished:bool}
      */
     public function syncMappings(string $type, ?int $maxPages = null): array
     {
@@ -42,81 +98,115 @@ class TripJackMappingSync
             throw new InvalidArgumentException("Invalid mapping sync type: {$type}. Must be NEW or UPDATE.");
         }
 
-        $lastUpdateTime = Setting::get($this->settingKey($type), now()->subYears(5)->toIso8601String());
-        $runStartedAt = now()->toIso8601String();
+        $stats = ['fetched' => 0, 'synced' => 0, 'skipped_no_destination' => 0, 'errors' => 0, 'retried_ok' => 0, 'finished' => false];
 
-        $stats = ['fetched' => 0, 'synced' => 0, 'skipped_no_destination' => 0, 'errors' => 0];
-        $cursor = null;
-        $page = 0;
+        // Batches that failed last time go first.
+        $parked = collect(Setting::getJson($this->failedKey($type), []))->map(fn ($id) => (string) $id);
+        Setting::setJson($this->failedKey($type), []);
+        if ($parked->isNotEmpty()) {
+            $before = $stats['synced'];
+            $this->syncIds($parked, $type, $stats);
+            $stats['retried_ok'] = $stats['synced'] - $before;
+        }
+
+        $state = $this->startState($type);
+        $pagesThisRun = 0;
 
         do {
-            $mappingResponse = $this->client->fetchHotelMappingSync($type, $lastUpdateTime, $cursor, $page);
+            $mappingResponse = $this->client->fetchHotelMappingSync($type, $state['since'], $state['cursor'], $state['page']);
             $rows = $mappingResponse['hotels'] ?? [];
             $stats['fetched'] += count($rows);
 
-            $tjHotelIds = collect($rows)
-                ->pluck('tjHotelId')
-                ->filter()
-                ->map(fn ($id) => (string) $id)
-                ->values();
+            $this->syncIds(collect($rows)->pluck('tjHotelId')->filter()->map(fn ($id) => (string) $id)->values(), $type, $stats);
 
-            // Bulk fetch content 100 IDs at a time (TripJack's per-call cap)
-            // instead of one static-detail call per hotel — the difference
-            // between ~20 calls and ~2000 for a full 2000-hotel page.
-            foreach ($tjHotelIds->chunk(100) as $chunk) {
-                try {
-                    $contentResponse = $this->client->fetchHotelContent($chunk->all());
-                } catch (\Throwable $e) {
-                    Log::channel('tripjack')->warning('mapping_sync_chunk_failed', [
-                        'tjHotelIds' => $chunk->all(),
-                        'type' => $type,
-                        'message' => $e->getMessage(),
-                    ]);
-                    $stats['errors'] += $chunk->count();
+            $state['cursor'] = $mappingResponse['nextCursor'] ?? null;
+            $state['page']++;
+            $pagesThisRun++;
+            $this->saveState($type, $state, finished: ! $state['cursor']);
+        } while ($state['cursor'] && ($maxPages === null || $pagesThisRun < $maxPages));
 
-                    continue;
-                }
-
-                $detailsByHotelId = collect($contentResponse['hotels'] ?? [])->keyBy(fn ($d) => (string) ($d['tjHotelId'] ?? ''));
-
-                foreach ($chunk as $tjHotelId) {
-                    $detail = $detailsByHotelId->get($tjHotelId);
-                    if (! $detail) {
-                        // TripJack didn't return content for this ID (e.g. it
-                        // was delisted between the mapping call and now).
-                        $stats['errors']++;
-
-                        continue;
-                    }
-
-                    try {
-                        $this->syncOne($detail, $type, $stats);
-                    } catch (\Throwable $e) {
-                        Log::channel('tripjack')->warning('mapping_sync_hotel_failed', [
-                            'tjHotelId' => $tjHotelId,
-                            'type' => $type,
-                            'message' => $e->getMessage(),
-                        ]);
-                        $stats['errors']++;
-                    }
-                }
-            }
-
-            $cursor = $mappingResponse['nextCursor'] ?? null;
-            $page++;
-        } while ($cursor && ($maxPages === null || $page < $maxPages));
-
-        // Only advance the watermark once the whole run has completed
-        // without throwing — a mid-run failure should retry from the same
-        // lastUpdateTime next time rather than silently skip the remainder.
-        Setting::set($this->settingKey($type), $runStartedAt);
+        $stats['finished'] = ! $state['cursor'];
 
         return $stats;
     }
 
     /**
+     * Fetches content for the given IDs (100 per call, retried) and syncs
+     * each. IDs whose batch still fails are parked for the next run.
+     */
+    protected function syncIds(Collection $tjHotelIds, string $type, array &$stats): void
+    {
+        // UPDATE: only hotels we actually list — content for the rest of
+        // the world's updated hotels would just be thrown away.
+        if ($type === 'UPDATE' && $tjHotelIds->isNotEmpty()) {
+            $local = Hotel::whereIn('tripjack_hotel_id', $tjHotelIds->all())->pluck('tripjack_hotel_id')->map(fn ($id) => (string) $id);
+            $stats['skipped_no_destination'] += $tjHotelIds->count() - $local->count();
+            $tjHotelIds = $tjHotelIds->intersect($local)->values();
+        }
+
+        foreach ($tjHotelIds->chunk(100) as $chunk) {
+            $contentResponse = $this->fetchContentWithRetry($chunk->values()->all(), $type);
+            if ($contentResponse === null) {
+                $this->park($type, $chunk->all());
+                $stats['errors'] += $chunk->count();
+
+                continue;
+            }
+
+            $detailsByHotelId = collect($contentResponse['hotels'] ?? [])->keyBy(fn ($d) => (string) ($d['tjHotelId'] ?? ''));
+
+            foreach ($chunk as $tjHotelId) {
+                $detail = $detailsByHotelId->get($tjHotelId);
+                if (! $detail) {
+                    // No content for this ID (e.g. delisted since the mapping call).
+                    $stats['errors']++;
+
+                    continue;
+                }
+
+                try {
+                    $this->syncOne($detail, $type, $stats);
+                } catch (\Throwable $e) {
+                    Log::channel('tripjack')->warning('mapping_sync_hotel_failed', [
+                        'tjHotelId' => $tjHotelId,
+                        'type' => $type,
+                        'message' => $e->getMessage(),
+                    ]);
+                    $stats['errors']++;
+                }
+            }
+        }
+    }
+
+    protected function fetchContentWithRetry(array $ids, string $type): ?array
+    {
+        for ($attempt = 0; $attempt <= self::CHUNK_RETRIES; $attempt++) {
+            try {
+                return $this->client->fetchHotelContent($ids);
+            } catch (\Throwable $e) {
+                Log::channel('tripjack')->warning('mapping_sync_chunk_failed', [
+                    'tjHotelIds' => $ids,
+                    'type' => $type,
+                    'attempt' => $attempt + 1,
+                    'message' => $e->getMessage(),
+                ]);
+                if ($attempt < self::CHUNK_RETRIES && ! app()->runningUnitTests()) {
+                    sleep(2 ** $attempt);
+                }
+            }
+        }
+
+        return null;
+    }
+
+    protected function park(string $type, array $ids): void
+    {
+        $existing = Setting::getJson($this->failedKey($type), []);
+        Setting::setJson($this->failedKey($type), array_values(array_unique(array_merge($existing, array_map('strval', $ids)))));
+    }
+
+    /**
      * @param  array<string,mixed>  $detail  One hotel's payload from fetchHotelContent().
-     * @param  array{fetched:int, synced:int, skipped_no_destination:int, errors:int}  $stats
      */
     protected function syncOne(array $detail, string $type, array &$stats): void
     {
@@ -136,9 +226,7 @@ class TripJackMappingSync
             return;
         }
 
-        $city = $detail['locale']['address']['city'] ?? null;
-        $destination = $city ? Destination::whereRaw('LOWER(name) = ?', [strtolower($city)])->first() : null;
-
+        $destination = $this->destinationFor($detail);
         if (! $destination) {
             $stats['skipped_no_destination']++;
 
@@ -150,23 +238,43 @@ class TripJackMappingSync
     }
 
     /**
-     * Pulls deleted hotel mappings since the last successful run and
+     * The local destination for a hotel: same city name AND same country
+     * (Hyderabad, Pakistan must not land in Hyderabad, India). A hotel whose
+     * content has no country is not matched rather than guessed.
+     */
+    protected function destinationFor(array $detail): ?Destination
+    {
+        $address = $detail['locale']['address'] ?? [];
+        $city = $address['city'] ?? null;
+        // Static content has address.countryname (e.g. "United Arab
+        // Emirates") and countrycode; there is no "country" key.
+        $country = $address['countryname'] ?? null;
+
+        if (! $city || ! $country) {
+            return null;
+        }
+
+        return Destination::whereRaw('LOWER(name) = ?', [strtolower(trim($city))])
+            ->whereRaw('LOWER(country) = ?', [strtolower(trim($country))])
+            ->first();
+    }
+
+    /**
+     * Pulls deleted hotel mappings since the last completed run and
      * deactivates the matching local hotels. Soft-deactivates only (never
      * deletes the row) so admin overrides and booking history stay intact.
+     * Resumable page by page, like syncMappings().
      *
-     * @return array{fetched:int, deactivated:int}
+     * @return array{fetched:int, deactivated:int, finished:bool}
      */
     public function syncDeleted(?int $maxPages = null): array
     {
-        $lastUpdateTime = Setting::get($this->settingKey('DELETE'), now()->subYears(5)->toIso8601String());
-        $runStartedAt = now()->toIso8601String();
-
-        $stats = ['fetched' => 0, 'deactivated' => 0];
-        $cursor = null;
-        $page = 0;
+        $stats = ['fetched' => 0, 'deactivated' => 0, 'finished' => false];
+        $state = $this->startState('DELETE');
+        $pagesThisRun = 0;
 
         do {
-            $response = $this->client->fetchDeletedHotelMapping($lastUpdateTime, $cursor, $page);
+            $response = $this->client->fetchDeletedHotelMapping($state['since'], $state['cursor'], $state['page']);
             $rows = $response['hotels'] ?? [];
             $stats['fetched'] += count($rows);
 
@@ -180,11 +288,13 @@ class TripJackMappingSync
                 $stats['deactivated'] += Hotel::whereIn('tripjack_hotel_id', $tjHotelIds)->update(['is_active' => false]);
             }
 
-            $cursor = $response['nextCursor'] ?? null;
-            $page++;
-        } while ($cursor && ($maxPages === null || $page < $maxPages));
+            $state['cursor'] = $response['nextCursor'] ?? null;
+            $state['page']++;
+            $pagesThisRun++;
+            $this->saveState('DELETE', $state, finished: ! $state['cursor']);
+        } while ($state['cursor'] && ($maxPages === null || $pagesThisRun < $maxPages));
 
-        Setting::set($this->settingKey('DELETE'), $runStartedAt);
+        $stats['finished'] = ! $state['cursor'];
 
         return $stats;
     }

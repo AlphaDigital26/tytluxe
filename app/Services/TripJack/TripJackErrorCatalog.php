@@ -20,6 +20,13 @@ class TripJackErrorCatalog
     public static function describe(?string $code, string $fallbackMessage = ''): array
     {
         return match ($code) {
+            // Confirmed live (Book): "Please, enter valid PAN number." —
+            // every site booking up to 2026-10 failed after payment on this.
+            '1092' => [
+                'message' => 'The hotel couldn’t accept the PAN entered. Please check the PAN number (e.g. ABCPE1234F) and book again — any amount paid is refunded automatically.',
+                'logLevel' => 'warning',
+                'action' => 'none',
+            ],
             '6502' => [ // SEARCH_SESSION_EXPIRED
                 'message' => 'Your search has expired. Please search again to see current rates.',
                 'logLevel' => 'info',

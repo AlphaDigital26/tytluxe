@@ -11,10 +11,10 @@ class Booking extends Model
     use HasFactory;
 
     protected $fillable = [
-        'reference', 'user_id', 'guest_email', 'guest_phone', 'vertical',
+        'reference', 'user_id', 'guest_email', 'guest_phone', 'guest_phone_code', 'vertical',
         'hotel_id', 'package_id', 'room_type_id', 'room_name', 'meal_basis',
         'tripjack_gst_type', 'tripjack_gst_info',
-        'tripjack_booking_id', 'tripjack_hold_id', 'tripjack_hold_expires_at',
+        'tripjack_booking_id', 'hotel_confirmation_number', 'tripjack_hold_id', 'tripjack_hold_expires_at',
         'tripjack_option_id', 'tripjack_room_traveller_payload', 'tripjack_confirm_attempted_at',
         'check_in', 'check_out', 'flight_route', 'pax_adults', 'pax_children', 'pax_infants',
         'flight_journey_type', 'flight_cabin_class', 'flight_fare_identifier',
