@@ -74,6 +74,40 @@ class TripJackFlightClient
     }
 
     /**
+     * Merges itineraries that are the same flight(s) into one, combining
+     * their fares. Confirmed live (DEL→BOM, 2026-10-06): Search returns some
+     * flights twice — e.g. IX-1056 once with PUBLISHED/SME/FLEX and again
+     * with its NDC_* fares — and TripJack's own site shows them as one card.
+     * Same flight = same airline, flight number, route and departure time on
+     * every segment. Each fare keeps its own priceId, so Review is unaffected.
+     *
+     * @param  array<int, array>  $itineraries  one tripInfos group (ONWARD, RETURN, COMBO, 0..5)
+     * @return array<int, array>
+     */
+    public static function mergeSameFlights(array $itineraries): array
+    {
+        $merged = [];
+        foreach ($itineraries as $itinerary) {
+            if (! is_array($itinerary) || empty($itinerary['sI'])) {
+                $merged[] = $itinerary;
+
+                continue;
+            }
+
+            $key = implode('|', array_map(fn ($s) => ($s['fD']['aI']['code'] ?? '').($s['fD']['fN'] ?? '')
+                .':'.($s['da']['code'] ?? '').'-'.($s['aa']['code'] ?? '').'@'.($s['dt'] ?? ''), $itinerary['sI']));
+
+            if (isset($merged[$key])) {
+                $merged[$key]['totalPriceList'] = array_merge($merged[$key]['totalPriceList'] ?? [], $itinerary['totalPriceList'] ?? []);
+            } else {
+                $merged[$key] = $itinerary;
+            }
+        }
+
+        return array_values($merged);
+    }
+
+    /**
      * Search API — POST /fms/v1/air-search-all. Returns cheapest fares for
      * Oneway/Return journeys. priceIds in the response are valid 15 minutes.
      * Phase 1 supports only single-route (Oneway) and 2-route (Return)
