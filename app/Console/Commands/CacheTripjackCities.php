@@ -37,16 +37,26 @@ class CacheTripjackCities extends Command
             $response = $client->fetchCityRegionIds($limit, $cursor);
             $rows = $response['hotelCityRegionIds'] ?? [];
 
-            foreach ($rows as $row) {
-                TripjackCity::updateOrCreate(
-                    ['city_region_id' => $row['cityRegionId']],
-                    [
-                        'city_name' => $row['cityName'],
-                        'region_name' => $row['regionName'] ?? null,
-                        'country_name' => $row['countryName'],
-                        'region_type' => $row['regionType'] ?? null,
-                        'full_region_name' => $row['fullRegionName'] ?? null,
-                    ]
+            // One upsert per page (in DB-friendly slices) instead of a
+            // lookup + write per city — makes the full global list practical.
+            $now = now();
+            $records = collect($rows)
+                ->filter(fn ($row) => isset($row['cityRegionId'], $row['cityName'], $row['countryName']))
+                ->map(fn ($row) => [
+                    'city_region_id' => $row['cityRegionId'],
+                    'city_name' => $row['cityName'],
+                    'region_name' => $row['regionName'] ?? null,
+                    'country_name' => $row['countryName'],
+                    'region_type' => $row['regionType'] ?? null,
+                    'full_region_name' => $row['fullRegionName'] ?? null,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]);
+            foreach ($records->chunk(500) as $slice) {
+                TripjackCity::upsert(
+                    $slice->values()->all(),
+                    ['city_region_id'],
+                    ['city_name', 'region_name', 'country_name', 'region_type', 'full_region_name', 'updated_at'],
                 );
             }
 

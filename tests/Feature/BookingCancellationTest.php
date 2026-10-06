@@ -149,7 +149,7 @@ class BookingCancellationTest extends TestCase
         $this->assertCount(1, $this->razorpay->refunds);
     }
 
-    public function test_cancellation_with_penalty_does_not_auto_refund(): void
+    public function test_cancellation_with_penalty_refunds_the_scaled_remainder(): void
     {
         $tjId = 'TJ-CX-999000002';
 
@@ -171,10 +171,12 @@ class BookingCancellationTest extends TestCase
 
         $this->assertSame('cancelled', $booking->status);
         $this->assertStringContainsString('penalty', strtolower($booking->cancellation_reason));
-        // A penalty applies — this must NOT be auto-refunded, it needs a human
-        // to decide the actual split, so the captured payment stays untouched.
-        $this->assertSame('captured', $payment->status);
-        $this->assertCount(0, $this->razorpay->refunds);
+        // Penalty 5000 of TripJack's 25000 = 20% kept; the guest gets 80%
+        // of what they actually paid back automatically.
+        $expected = round((float) $payment->amount * 0.8, 2);
+        $this->assertSame('partially_refunded', $payment->status);
+        $this->assertEqualsWithDelta($expected, (float) $payment->refund_amount, 0.01);
+        $this->assertCount(1, $this->razorpay->refunds);
     }
 
     public function test_cancellation_pending_leaves_booking_confirmed_until_resolved(): void

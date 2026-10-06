@@ -18,9 +18,16 @@ class BookingSecurityTest extends TestCase
 {
     use RefreshDatabase;
 
+    /** Stay dates relative to today, so the tests never go stale. */
+    protected string $checkIn;
+
+    protected string $checkOut;
+
     protected function setUp(): void
     {
         parent::setUp();
+        $this->checkIn = now()->addDays(20)->toDateString();
+        $this->checkOut = now()->addDays(23)->toDateString();
         $this->app->instance(RazorpayService::class, new FakeRazorpayService());
     }
 
@@ -46,7 +53,7 @@ class BookingSecurityTest extends TestCase
 
         $hotel = $this->makeHotel('public-browse-hotel', '777000001');
 
-        $this->get("/hotels/{$hotel->slug}?check_in=2026-10-20&check_out=2026-10-22&adults=2&rooms=1")
+        $this->get("/hotels/{$hotel->slug}?check_in={$this->checkIn}&check_out={$this->checkOut}&adults=2&rooms=1")
             ->assertStatus(200);
     }
 
@@ -55,7 +62,7 @@ class BookingSecurityTest extends TestCase
         $hotel = $this->makeHotel('login-required-hotel', '777000002');
 
         $this->post("/hotels/{$hotel->slug}/review", [
-            'option_id' => 'opt-x', 'check_in' => '2026-10-20', 'check_out' => '2026-10-22',
+            'option_id' => 'opt-x', 'check_in' => $this->checkIn, 'check_out' => $this->checkOut,
             'adults' => 2, 'children' => 0, 'rooms' => 1,
         ])->assertRedirect(route('login'));
     }
@@ -86,7 +93,7 @@ class BookingSecurityTest extends TestCase
         session(['tripjack_booking_draft' => [
             'hotel_id' => $hotel->id, 'hid' => '777000005', 'bookingId' => 'TGS-SEC-1',
             'option' => ['optionId' => 'opt-1', 'compliance' => ['panRequired' => false, 'passportRequired' => false], 'pricing' => ['totalPrice' => 1000, 'currency' => 'INR']],
-            'correlationId' => 'cid-1', 'check_in' => '2026-10-20', 'check_out' => '2026-10-22',
+            'correlationId' => 'cid-1', 'check_in' => $this->checkIn, 'check_out' => $this->checkOut,
             'adults' => 1, 'children' => 0, 'rooms' => 1,
         ]]);
 
@@ -141,13 +148,13 @@ class BookingSecurityTest extends TestCase
         session(['tripjack_booking_draft' => [
             'hotel_id' => $hotel->id, 'hid' => (string) $hotel->tripjack_hotel_id, 'bookingId' => 'TGS-VAL-1',
             'option' => ['optionId' => 'opt-1', 'compliance' => ['panRequired' => true, 'passportRequired' => false], 'pricing' => ['totalPrice' => 1000, 'currency' => 'INR']],
-            'correlationId' => 'cid-1', 'check_in' => '2026-10-20', 'check_out' => '2026-10-22',
+            'correlationId' => 'cid-1', 'check_in' => $this->checkIn, 'check_out' => $this->checkOut,
             'adults' => 1, 'children' => 0, 'rooms' => 1,
         ]]);
 
         $payload = [
             'contact_email' => 'john@example.com', 'contact_phone' => '9876543210',
-            'pan_name' => 'John Doe', 'pan_number' => 'ABCDE1234F',
+            'pan_name' => 'John Doe', 'pan_number' => 'ABCPE1234F',
             'rooms' => [0 => ['travelers' => [0 => ['title' => 'Mr', 'first_name' => 'John', 'last_name' => 'Doe']]]],
         ];
         data_set($payload, $field, $value);
@@ -175,7 +182,7 @@ class BookingSecurityTest extends TestCase
         session(['tripjack_booking_draft' => [
             'hotel_id' => $hotel->id, 'hid' => '777000099', 'bookingId' => 'TGS-SYNC-1',
             'option' => ['optionId' => 'opt-1', 'compliance' => ['panRequired' => false, 'passportRequired' => false], 'pricing' => ['totalPrice' => 1000, 'currency' => 'INR']],
-            'correlationId' => 'cid-1', 'check_in' => '2026-10-20', 'check_out' => '2026-10-22',
+            'correlationId' => 'cid-1', 'check_in' => $this->checkIn, 'check_out' => $this->checkOut,
             'adults' => 1, 'children' => 0, 'rooms' => 1,
         ]]);
 
@@ -196,7 +203,7 @@ class BookingSecurityTest extends TestCase
         session(['tripjack_booking_draft' => [
             'hotel_id' => $hotel->id, 'hid' => '777000098', 'bookingId' => 'TGS-SYNC-2',
             'option' => ['optionId' => 'opt-1', 'compliance' => ['panRequired' => false, 'passportRequired' => false], 'pricing' => ['totalPrice' => 1000, 'currency' => 'INR']],
-            'correlationId' => 'cid-1', 'check_in' => '2026-10-20', 'check_out' => '2026-10-22',
+            'correlationId' => 'cid-1', 'check_in' => $this->checkIn, 'check_out' => $this->checkOut,
             'adults' => 1, 'children' => 0, 'rooms' => 1,
         ]]);
 

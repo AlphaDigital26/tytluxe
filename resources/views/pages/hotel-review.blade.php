@@ -126,6 +126,25 @@
   @media (max-width: 360px) { .br-refund span:last-child { margin-left: 0; } }
   .br-note { font-family: 'Jost', sans-serif; font-size: 11.5px; color: var(--white-30); margin-top: 16px; line-height: 1.6; }
 
+  /* Rate-hold countdown */
+  .br-timer { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; padding: 11px 16px; border-radius: 12px; background: rgba(201,168,76,0.07); border: 1px solid rgba(201,168,76,0.22); font-family: 'Jost', sans-serif; font-size: 12.5px; color: var(--white-60); }
+  .br-timer b { color: var(--gold-light); font-variant-numeric: tabular-nums; }
+  .br-timer-icon { color: var(--gold); font-size: 15px; }
+  .br-timer.urgent { background: rgba(220,80,80,0.08); border-color: rgba(220,80,80,0.3); }
+  .br-timer.urgent b { color: #f3a3a3; }
+  .br-price-change b { color: #fff; }
+
+  /* Country code + phone */
+  .br-phone { display: flex; gap: 8px; }
+  .br-phone select { flex: 0 0 auto; width: 118px; }
+  .br-phone input { flex: 1; min-width: 0; }
+
+  /* Per-room names + hotel booking notes */
+  .br-room-lines { margin: 6px 0 12px; padding: 0; list-style: none; font-family: 'Jost', sans-serif; font-size: 12.5px; color: var(--white-60); }
+  .br-room-lines li + li { margin-top: 3px; }
+  .br-booking-notes { margin: 14px 0 4px; padding: 12px 14px; border-radius: 10px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); font-family: 'Jost', sans-serif; font-size: 12.5px; line-height: 1.6; color: var(--white-80, rgba(255,255,255,0.8)); }
+  .br-booking-notes-title { font-size: 10.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold); margin-bottom: 4px; }
+
   .br-error {
     margin-bottom: 28px; padding: 15px 20px; border-radius: 12px;
     background: rgba(220,80,80,0.08); border: 1px solid rgba(220,80,80,0.3);
@@ -226,7 +245,7 @@
 
 @php
   $pricing = $option['pricing'] ?? [];
-  $roomNames = collect($option['roomInfo'] ?? [])->pluck('name')->unique()->implode(' + ');
+  $roomNames = \App\Support\RoomLabel::forOption($option);
   $cancellation = $option['cancellation'] ?? [];
   $isRefundable = $cancellation['isRefundable'] ?? false;
 
@@ -243,14 +262,29 @@
 @endphp
 
 @php
+  // Same guests as the search (child ages + nationality included), so going
+  // back re-prices exactly what the guest searched for.
   $backUrl = route('hotel.details', array_filter([
-    'slug'      => $hotel->slug,
-    'check_in'  => $draft['check_in'] ?? null,
-    'check_out' => $draft['check_out'] ?? null,
-    'adults'    => $draft['adults'] ?? null,
-    'children'  => $draft['children'] ?? null,
-    'rooms'     => $draft['rooms'] ?? null,
+    'slug'        => $hotel->slug,
+    'check_in'    => $draft['check_in'] ?? null,
+    'check_out'   => $draft['check_out'] ?? null,
+    'adults'      => $draft['adults'] ?? null,
+    'children'    => $draft['children'] ?? null,
+    'rooms'       => $draft['rooms'] ?? null,
+    'child_ages'  => ! empty($draft['child_ages']) ? implode(',', $draft['child_ages']) : null,
+    'nationality' => $draft['nationality'] ?? null,
   ]));
+
+  // Per-slot room names (TripJack best practice for CROSS options:
+  // "Room 1: Deluxe | Room 2: Standard"), and the hotel's booking notes,
+  // which TripJack says must be shown before booking.
+  $roomLines = collect($option['roomInfo'] ?? [])->values()->map(fn ($r, $i) => 'Room '.($i + 1).': '.($r['name'] ?? 'Room'))->all();
+  $showRoomLines = count($roomLines) > 1;
+  $bookingNotes = trim((string) ($option['bookingNotes'] ?? ''));
+
+  // Rate re-check countdown (re-confirmed again automatically on Continue).
+  $rateExpiresAt = ! empty($draft['reviewed_at']) ? (int) $draft['reviewed_at'] + $sessionSeconds : null;
+  $priceChange = $draft['price_change'] ?? null;
 @endphp
 
 @section('content')
@@ -281,8 +315,18 @@
 
 <div class="br-wrap">
   <div>
+    @if($rateExpiresAt)
+    <div class="br-timer" id="brRateTimer" data-expires="{{ $rateExpiresAt }}" data-now="{{ now()->timestamp }}" role="status">
+      <span class="br-timer-icon" aria-hidden="true">&#9719;</span>
+      <span id="brRateTimerText">This rate is held for <b id="brRateTimerLeft">--:--</b> — complete your details to continue.</span>
+    </div>
+    @endif
     @if(session('booking_error'))
     <div class="br-error">⚠️ {{ session('booking_error') }}</div>
+    @elseif($priceChange)
+    {{-- Detail → Review moved the price: say so instead of silently
+         showing a different total than the one the guest picked. --}}
+    <div class="br-error br-price-change">⚠️ The hotel updated this rate since you selected it: <s>₹{{ number_format($priceChange['old'], 2) }}</s> → <b>₹{{ number_format($priceChange['new'], 2) }}</b>. The new total is shown below.</div>
     @endif
     @if($errors->any())
     <div class="br-error" style="flex-direction:column; align-items:flex-start; gap:6px;">
@@ -338,6 +382,11 @@
 
         <div class="br-room-card">
           <p class="br-room-name">{{ $roomNames ?: 'Room' }}</p>
+          @if($showRoomLines)
+            <ul class="br-room-lines">
+              @foreach($roomLines as $line)<li>{{ $line }}</li>@endforeach
+            </ul>
+          @endif
           <div class="br-room-tags">
             <span class="br-room-tag {{ $isRefundable ? 'refundable' : 'non-refundable' }}">
               @if($isRefundable)
@@ -349,6 +398,12 @@
             </span>
             <span class="br-room-tag meal">{{ $option['mealBasis'] ?? 'Room Only' }}</span>
           </div>
+          @if($bookingNotes !== '')
+            <div class="br-booking-notes">
+              <p class="br-booking-notes-title">Hotel rules for this rate</p>
+              <p>{!! nl2br(e($bookingNotes)) !!}</p>
+            </div>
+          @endif
           <label class="br-confirm-check">
             <input type="checkbox" required>
             <span>I confirm that I have reviewed and agree to proceed with the above selected room category for booking.</span>
@@ -396,7 +451,17 @@
           </div>
           <div class="br-field {{ $errors->has('contact_phone') ? 'error' : '' }}">
             <label>Phone / WhatsApp</label>
-            <input type="tel" name="contact_phone" value="{{ old('contact_phone', auth()->user()->phone) }}" placeholder="98765 43210" required>
+            {{-- Country code from TripJack's Nationalities list (dialCode) —
+                 sent to the hotel as deliveryInfo.code; was always +91. --}}
+            <div class="br-phone">
+              @php $dialSel = ltrim((string) old('contact_dial_code', '91'), '+'); @endphp
+              <select name="contact_dial_code" aria-label="Country code">
+                @foreach($dialCodes as $code => $label)
+                  <option value="{{ $code }}" @selected($dialSel === (string) $code)>{{ $label }}</option>
+                @endforeach
+              </select>
+              <input type="tel" name="contact_phone" value="{{ old('contact_phone', auth()->user()->phone) }}" placeholder="98765 43210" required>
+            </div>
           </div>
         </div>
       </div>
@@ -411,10 +476,29 @@
           </div>
           <div class="br-field {{ $errors->has('pan_number') ? 'error' : '' }}">
             <label>PAN Number (required for this rate)</label>
-            <input type="text" name="pan_number" id="brPanInput" value="{{ old('pan_number', $profilePan) }}" placeholder="ABCDE1234F" maxlength="10" pattern="[A-Za-z]{5}[0-9]{4}[A-Za-z]{1}" title="Enter a valid PAN, e.g. ABCDE1234F" style="text-transform:uppercase;" required>
+            <input type="text" name="pan_number" id="brPanInput" value="{{ old('pan_number', $profilePan) }}" placeholder="ABCPE1234F" maxlength="10" pattern="[A-Za-z]{3}[ABCFGHJLPTKEabcfghjlptke][A-Za-z][0-9]{4}[A-Za-z]" title="Enter a valid PAN, e.g. ABCPE1234F — the 4th letter is P for an individual" style="text-transform:uppercase;" required>
           </div>
         </div>
         <p class="br-pan-verify-note">Format checked automatically — this is not a government verification.</p>
+      </div>
+      @endif
+
+      @if($gstRequired)
+      {{-- PASSTHROUGH / RESELLER GST rate: TripJack requires gstInfo with
+           the booking, and only the guest can supply it. --}}
+      <div class="br-section">
+        <h2>GST Details</h2>
+        <p style="font-family:'Jost',sans-serif; font-size:12px; color:var(--white-60); margin:-14px 0 22px;">This rate is invoiced with GST — please enter the company's GST details.</p>
+        <div class="br-row">
+          <div class="br-field {{ $errors->has('gst_number') ? 'error' : '' }}">
+            <label>GSTIN</label>
+            <input type="text" name="gst_number" value="{{ old('gst_number') }}" placeholder="27ABCDE1234F1Z5" maxlength="15" style="text-transform:uppercase;" required>
+          </div>
+          <div class="br-field {{ $errors->has('gst_registered_name') ? 'error' : '' }}">
+            <label>Registered Company Name</label>
+            <input type="text" name="gst_registered_name" value="{{ old('gst_registered_name') }}" maxlength="100" required>
+          </div>
+        </div>
       </div>
       @endif
 
@@ -504,7 +588,13 @@
           @if($hotel->check_out_time)
           <div class="br-info-time-item">
             <span class="br-stay-label">Check-Out</span>
-            <span class="br-stay-value">{{ $hotel->check_out_time }}</span>
+            <span class="br-stay-value">{{ $hotel->check_out_time }}@if($hotel->checkout_till) (till {{ $hotel->checkout_till }})@endif</span>
+          </div>
+          @endif
+          @if($hotel->checkin_min_age)
+          <div class="br-info-time-item">
+            <span class="br-stay-label">Min. Check-In Age</span>
+            <span class="br-stay-value">{{ $hotel->checkin_min_age }} years</span>
           </div>
           @endif
         </div>
@@ -564,20 +654,18 @@
 
     <div class="br-line"><span>Room</span><span>{{ $roomNames ?: 'Room' }}</span></div>
     <div class="br-line"><span>Meal Plan</span><span>{{ $option['mealBasis'] ?? 'Room Only' }}</span></div>
-    <div class="br-line total"><span>Total</span><span>{{ $pricing['currency'] ?? 'INR' }} {{ number_format($customerPrice) }}</span></div>
     @php
-      $tjMf = $breakdown['tripjack_mf'] ?? 0;
-      $tjMft = $breakdown['tripjack_mft'] ?? 0;
+      $tjMf = (float) ($breakdown['tripjack_mf'] ?? 0);
+      $tjMft = (float) ($breakdown['tripjack_mft'] ?? 0);
+      $cur = ($pricing['currency'] ?? 'INR') === 'INR' ? '₹' : ($pricing['currency'] ?? 'INR').' ';
     @endphp
-    @if($tjMf > 0 || $tjMft > 0)
-    {{-- Total above already includes these — shown per TripJack's
-         requirement to surface Management Fee / Tax as their own line
-         items, without reintroducing the full base/tax breakdown this
-         page deliberately keeps hidden otherwise. --}}
-    <p class="br-note" style="margin-top:4px;">
-      Includes Management Fee {{ $pricing['currency'] ?? 'INR' }} {{ number_format($tjMf, 2) }}@if($tjMft > 0) + Tax {{ $pricing['currency'] ?? 'INR' }} {{ number_format($tjMft, 2) }}@endif
-    </p>
-    @endif
+    {{-- TripJack: "Always display MF and MFT as separate line items in the
+         price breakup" (totalPrice = basePrice + taxes + mf + mft). They're
+         inside the total, so the room line is the rest — the lines add up. --}}
+    <div class="br-line"><span>Room &amp; taxes</span><span>{{ $cur }}{{ number_format($customerPrice - $tjMf - $tjMft, 2) }}</span></div>
+    <div class="br-line"><span>Management fee</span><span>{{ $cur }}{{ number_format($tjMf, 2) }}</span></div>
+    <div class="br-line"><span>Management fee tax</span><span>{{ $cur }}{{ number_format($tjMft, 2) }}</span></div>
+    <div class="br-line total"><span>Total</span><span>{{ $cur }}{{ number_format($customerPrice, 2) }}</span></div>
 
     @if($isRefundable)
     <div class="br-refund htl-cancel-policy-trigger"
@@ -610,6 +698,30 @@
 
 @push('scripts')
 <script>
+  // Rate-hold countdown (TripJack best practice: show a session timer). The
+  // rate is re-confirmed with the hotel on Continue anyway, so running out
+  // only changes the message — it never lets a stale price through.
+  (function () {
+    var box = document.getElementById('brRateTimer');
+    if (!box) return;
+    var left = document.getElementById('brRateTimerLeft');
+    var text = document.getElementById('brRateTimerText');
+    // Server-relative: the guest's clock may be off.
+    var remaining = parseInt(box.dataset.expires, 10) - parseInt(box.dataset.now, 10);
+    var start = Date.now();
+    (function tick() {
+      var secs = Math.max(0, Math.round(remaining - (Date.now() - start) / 1000));
+      if (secs <= 0) {
+        box.classList.add('urgent');
+        text.textContent = 'The rate hold has run out — we’ll re-check the latest price with the hotel when you continue.';
+        return;
+      }
+      left.textContent = Math.floor(secs / 60) + ':' + ('0' + (secs % 60)).slice(-2);
+      box.classList.toggle('urgent', secs <= 120);
+      setTimeout(tick, 1000);
+    })();
+  })();
+
   (function () {
     // Render the same cancellation-policy content used by the site-wide
     // modal (partials.cancellation-modal), but inline and always visible —

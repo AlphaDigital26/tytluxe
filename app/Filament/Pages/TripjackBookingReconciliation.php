@@ -44,8 +44,8 @@ class TripjackBookingReconciliation extends Page
     public function mount(): void
     {
         $this->data = [
-            'start_date' => now()->subDays(7)->toDateString(),
-            'end_date' => now()->toDateString(),
+            'start_date' => now('Asia/Kolkata')->subDays(6)->toDateString(),
+            'end_date' => now('Asia/Kolkata')->toDateString(),
         ];
     }
 
@@ -55,7 +55,7 @@ class TripjackBookingReconciliation extends Page
             ->statePath('data')
             ->components([
                 Section::make('Date Range')
-                    ->description('TripJack returns bookings created within this window. Range is capped to 31 days to keep the request fast.')
+                    ->description('TripJack returns bookings created within this window (IST dates). TripJack allows at most 7 days per request, starting no more than 15 days ago.')
                     ->schema([
                         DatePicker::make('start_date')->required()->native(false),
                         DatePicker::make('end_date')->required()->native(false),
@@ -77,25 +77,21 @@ class TripjackBookingReconciliation extends Page
 
     public function fetch(): void
     {
-        $start = Carbon::parse($this->data['start_date'] ?? now()->subDays(7))->startOfDay();
-        $end = Carbon::parse($this->data['end_date'] ?? now())->endOfDay();
+        // Picked dates are IST calendar days (TripJack's timezone).
+        $start = Carbon::parse($this->data['start_date'] ?? now()->subDays(6), 'Asia/Kolkata')->startOfDay();
+        $end = Carbon::parse($this->data['end_date'] ?? now(), 'Asia/Kolkata')->endOfDay();
 
-        if ($start->diffInDays($end) > 31) {
-            Notification::make()
-                ->title('Range too wide')
-                ->body('Please keep the range to 31 days or less.')
-                ->danger()
-                ->send();
+        try {
+            [$startIst, $endIst] = TripJackClient::bookingListRange($start, $end);
+        } catch (\InvalidArgumentException $e) {
+            Notification::make()->title('Invalid range')->body($e->getMessage())->danger()->send();
 
             return;
         }
 
         try {
             $client = app(TripJackClient::class);
-            $response = $client->bookingList(
-                $start->format('Y-m-d\TH:i:s'),
-                $end->format('Y-m-d\TH:i:s'),
-            );
+            $response = $client->bookingList($startIst, $endIst);
         } catch (TripJackException $e) {
             Notification::make()
                 ->title('TripJack request failed')
@@ -111,26 +107,52 @@ class TripjackBookingReconciliation extends Page
             ->get()
             ->keyBy('tripjack_booking_id');
 
-        $this->results = $tjBookings->map(function (array $tj) use ($localByTjId) {
+        $rows = $tjBookings->map(function (array $tj) use ($localByTjId) {
             $local = $localByTjId->get($tj['bookingId'] ?? null);
-            $expectedLocalStatus = $this->mapTripjackStatus($tj['status'] ?? null);
+            $acceptable = $this->acceptableLocalStatuses($tj['status'] ?? null);
+            $tjPrice = isset($tj['totalPrice']) ? (float) $tj['totalPrice'] : null;
+            $localPrice = $local?->tripjack_total_price !== null ? (float) $local->tripjack_total_price : null;
+            $priceMismatch = $local && $tjPrice !== null && $localPrice !== null && abs($tjPrice - $localPrice) > 1.0;
+
+            $issue = match (true) {
+                ! $local => 'Not in our database',
+                ! in_array($local->status, $acceptable, true) => 'Status differs',
+                $priceMismatch => 'Price differs',
+                default => null,
+            };
 
             return [
                 'bookingId' => $tj['bookingId'] ?? '—',
                 'tjStatus' => $tj['status'] ?? '—',
-                'tjTotalPrice' => $tj['totalPrice'] ?? null,
+                'tjTotalPrice' => $tjPrice,
                 'localReference' => $local?->reference,
                 'localStatus' => $local?->status,
-                'localTotalPrice' => $local?->tripjack_total_price,
-                // Flag anything that doesn't have a matching local row at
-                // all, or whose local status doesn't match what TripJack's
-                // status *should* map to (same mapping submitBooking()'s
-                // confirmation flow uses) — the actual thing an ops person
-                // needs to notice, not a raw string comparison (our local
-                // statuses use a different vocabulary than TripJack's).
-                'mismatch' => ! $local || $local->status !== $expectedLocalStatus,
+                'localTotalPrice' => $localPrice,
+                'issue' => $issue,
+                'mismatch' => $issue !== null,
             ];
-        })->values()->all();
+        });
+
+        // Reverse check: our hotel bookings sent to TripJack in this window
+        // that TripJack's list doesn't contain at all. created_at is UTC;
+        // the window is IST.
+        $missingOnTripjack = Booking::where('vertical', 'hotel')
+            ->whereNotNull('tripjack_booking_id')
+            ->whereBetween('created_at', [Carbon::parse($startIst, 'Asia/Kolkata')->utc(), Carbon::parse($endIst, 'Asia/Kolkata')->utc()])
+            ->whereNotIn('tripjack_booking_id', $tjBookings->pluck('bookingId')->filter()->all())
+            ->get()
+            ->map(fn (Booking $local) => [
+                'bookingId' => $local->tripjack_booking_id,
+                'tjStatus' => '—',
+                'tjTotalPrice' => null,
+                'localReference' => $local->reference,
+                'localStatus' => $local->status,
+                'localTotalPrice' => $local->tripjack_total_price !== null ? (float) $local->tripjack_total_price : null,
+                'issue' => 'Missing on TripJack',
+                'mismatch' => true,
+            ]);
+
+        $this->results = $rows->concat($missingOnTripjack)->values()->all();
 
         $this->searched = true;
 
@@ -142,17 +164,21 @@ class TripjackBookingReconciliation extends Page
     }
 
     /**
-     * Mirrors FrontendController::mapTripjackBookingStatus() — kept as a
-     * separate copy rather than reusing that protected controller method,
-     * since this is a read-only comparison, not something that should be
-     * able to accidentally inherit controller-specific side effects.
+     * Local statuses that are consistent with a TripJack status (mirrors
+     * FrontendController::mapTripjackBookingStatus()). A failed TripJack
+     * booking is fine locally as either refunded or under review; a
+     * CANCELLATION_PENDING one is still confirmed locally until it lands.
+     *
+     * @return string[]
      */
-    protected function mapTripjackStatus(?string $tripjackStatus): string
+    protected function acceptableLocalStatuses(?string $tripjackStatus): array
     {
         return match ($tripjackStatus) {
-            'CANCELLED' => 'cancelled',
-            'ABORTED', 'FAILED' => 'failed_needs_review',
-            default => 'confirmed',
+            'SUCCESS' => ['confirmed'],
+            'CANCELLED' => ['cancelled'],
+            'CANCELLATION_PENDING' => ['confirmed'],
+            'ABORTED', 'FAILED' => ['failed_needs_review', 'refunded'],
+            default => ['pending_confirmation', 'confirmed'], // PENDING / IN_PROGRESS / ON_HOLD
         };
     }
 }

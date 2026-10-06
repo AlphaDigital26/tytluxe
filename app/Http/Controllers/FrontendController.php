@@ -34,17 +34,18 @@ class FrontendController extends Controller
 
     public function hotels(Request $request, TripJackListingSearch $listingSearch, TripJackClient $client)
     {
-        [$checkIn, $checkOut] = $this->normalizeStayDates($request->query('check_in'), $request->query('check_out'));
+        $input = $this->hotelSearchInput($request);
+        [$checkIn, $checkOut] = [$input['checkIn'], $input['checkOut']];
         $destinationQuery = trim((string) $request->query('destination', ''));
         // A specific property picked from the search bar's autocomplete
         // (see hotelSearchSuggestions()) — shows just that one hotel as a
         // listing card rather than jumping straight to its detail page, so
         // the guest still lands on a search result they can click into.
         $hotelSlug = trim((string) $request->query('hotel', ''));
-        $adults = max(1, (int) $request->query('adults', 2));
-        $children = max(0, (int) $request->query('children', 0));
-        $roomCount = max(1, (int) $request->query('rooms', 1));
-        $nationality = (string) $request->query('nationality', '106');
+        $adults = $input['adults'];
+        $children = $input['children'];
+        $roomCount = $input['roomCount'];
+        $nationality = $input['nationality'];
         // Accepts a single value (pre-search "More Options" pill), a
         // comma-separated string (the post-search sidebar's multi-select
         // checkboxes sync into one hidden field), or an array — star rating
@@ -58,7 +59,7 @@ class FrontendController extends Controller
             ->values()
             ->all();
         $minRating = $minRatings[0] ?? 0;
-        $childAges = $this->parseChildAges($request->query('child_ages', ''));
+        $childAges = $input['childAges'];
 
         $hasSearched = $request->has('destination') || $request->has('hotel') || $request->has('check_in') || $request->has('min_rating');
         $searchActive = ($destinationQuery !== '' || $hotelSlug !== '') && $checkIn && $checkOut;
@@ -108,7 +109,13 @@ class FrontendController extends Controller
         $livePriced = false;
 
         if ($searchDestination) {
-            if ($searchActive) {
+            if ($input['error'] && ($searchActive || $request->has('check_in'))) {
+                // Invalid search (past date, too many guests per room, missing
+                // child age, …): say exactly what to change, and don't send
+                // TripJack a request it would reject. The destination's hotels
+                // are still listed below.
+                $searchError = $input['error'];
+            } elseif ($searchActive) {
                 try {
                     $rooms = $this->distributeGuestsAcrossRooms($adults, $children, $roomCount, $childAges);
                     $result = $this->cityListingSearch($listingSearch, $searchDestination, $checkIn, $checkOut, $rooms, $nationality);
@@ -144,7 +151,12 @@ class FrontendController extends Controller
                     ]]);
                 } catch (TripJackException $e) {
                     Log::channel('tripjack')->warning('listing_search_failed', ['message' => $e->getMessage()]);
-                    $searchError = 'Live pricing is temporarily unavailable for this search. Showing our curated listing instead — enquire for the latest rates.';
+                    // A 400 means TripJack rejected the search itself (e.g. a
+                    // restricted nationality) — tell the guest what was wrong
+                    // instead of implying an outage.
+                    $searchError = $e instanceof TripJackApiException && (int) $e->status === 400
+                        ? 'We couldn’t search with these details: '.preg_replace('/^.*?:\s*/', '', $e->getMessage())
+                        : 'Live pricing is temporarily unavailable for this search. Showing our curated listing instead — enquire for the latest rates.';
                 }
             }
 
@@ -255,6 +267,12 @@ class FrontendController extends Controller
         $result = $listingSearch->searchCity($hids, $checkIn, $checkOut, $rooms, nationality: $nationality);
 
         if ($result['batches'] > 0 && $result['failedBatches'] === $result['batches']) {
+            $first = $result['firstError'] ?? null;
+            if ($first) {
+                // Carries TripJack's own status/reason (e.g. a 400 for a search
+                // it rejects) so hotels() can tell the guest what to change.
+                throw new TripJackApiException("Listing rejected: {$first['message']}", status: (int) $first['status'], errorCode: $first['errorCode'] ? (string) $first['errorCode'] : null);
+            }
             throw new TripJackException('Every listing batch failed for destination '.$destination->id);
         }
 
@@ -347,74 +365,203 @@ class FrontendController extends Controller
     }
 
     /**
-     * Fetch nationality list with a short-lived cache.
-     *
-     * The nationality dropdown is best-effort \u2014 if TripJack is unreachable we
-     * fall back to India-only and cache *that* result for 1 hour so the API is
-     * not hammered on every page load while it is down.
+     * Nationality list: fresh copy cached 24h, plus a last-known-good copy
+     * kept indefinitely. When TripJack fails (or returns nothing) the
+     * last-known-good list is served and a 1h back-off flag stops every
+     * page load from re-calling a down API. India-only is the last resort.
      */
     protected function tripjackNationalities(TripJackClient $client): array
     {
-        // Use a separate key for the "failed" fallback so it expires faster (1 h)
-        // while a successful list is kept for 24 h.
-        try {
-            return \Illuminate\Support\Facades\Cache::remember('tripjack_nationalities', now()->addDay(), function () use ($client) {
-                $response = $client->nationalityInfo();
+        $cache = \Illuminate\Support\Facades\Cache::store();
+        $fallback = fn () => $cache->get('tripjack_nationalities_last_good') ?: [['countryId' => '106', 'countryName' => 'India']];
 
-                return collect($response['nationalityInfos'] ?? [])
-                    ->sortBy('countryName')
-                    ->values()
-                    ->all();
-            });
-        } catch (TripJackException $e) {
-            Log::channel('tripjack')->warning('nationality_info_failed', ['message' => $e->getMessage()]);
-
-            // Cache the fallback for 1 hour \u2014 avoids hammering a down API on every request
-            return \Illuminate\Support\Facades\Cache::remember('tripjack_nationalities_fallback', now()->addHour(), function () {
-                return [['countryId' => '106', 'countryName' => 'India']];
-            });
-        } catch (\Throwable $e) {
-            // Safety net for any other unexpected failure (connection errors, etc.)
-            Log::channel('tripjack')->error('nationality_info_unexpected', ['message' => $e->getMessage()]);
-
-            return [['countryId' => '106', 'countryName' => 'India']];
+        if ($fresh = $cache->get('tripjack_nationalities')) {
+            return $fresh;
         }
+        if ($cache->has('tripjack_nationalities_backoff')) {
+            return $fallback();
+        }
+
+        try {
+            $list = collect($client->nationalityInfo()['nationalityInfos'] ?? [])
+                ->sortBy('countryName')
+                ->values()
+                ->all();
+        } catch (\Throwable $e) {
+            Log::channel('tripjack')->warning('nationality_info_failed', ['message' => $e->getMessage()]);
+            $list = [];
+        }
+
+        if (empty($list)) {
+            $cache->put('tripjack_nationalities_backoff', true, now()->addHour());
+
+            return $fallback();
+        }
+
+        $cache->put('tripjack_nationalities', $list, now()->addDay());
+        $cache->forever('tripjack_nationalities_last_good', $list);
+
+        return $list;
+    }
+
+    /** TripJack's documented hotel search limits (Listing/Detail). */
+    protected const HOTEL_MAX_ROOMS = 9;
+
+    protected const HOTEL_MAX_ADULTS_PER_ROOM = 6;
+
+    protected const HOTEL_MAX_CHILDREN_PER_ROOM = 4;
+
+    /** Re-search prompt after a Detail/Review (TripJack best practice: ~12 of its ~15 minutes). */
+    protected const HOTEL_SESSION_SECONDS = 720;
+
+    /** PAN: AAAAA9999A where the 4th letter is a valid holder type (TripJack error 1092 otherwise). */
+    public const PAN_REGEX = 'regex:/^[A-Za-z]{3}[ABCFGHJLPTKEabcfghjlptke][A-Za-z][0-9]{4}[A-Za-z]$/';
+
+    /**
+     * A dialling code (digits only, e.g. "91", "44") that appears in
+     * TripJack's Nationalities list; anything else falls back to India.
+     */
+    protected function dialCodeFromInput(string $dialCode): string
+    {
+        $dialCode = ltrim(preg_replace('/[^\d]/', '', $dialCode), '0');
+        if ($dialCode === '91' || $dialCode === '') {
+            return '91'; // the default — no list lookup needed
+        }
+        $known = collect($this->tripjackNationalities(app(TripJackClient::class)))
+            ->pluck('dialCode')->filter()->map(fn ($c) => (string) $c);
+
+        return $known->contains($dialCode) ? $dialCode : '91';
     }
 
     /**
-     * Parses the comma-separated "child_ages" query/form value into a flat
-     * int[] of real ages (0-17), dropping anything unparsable rather than
-     * silently defaulting it.
+     * The guest's number without its country code — digits only. A number
+     * typed with its code ("+91 98765 43210" with code 91) would otherwise
+     * be sent to TripJack as "919876543210" alongside code +91.
      */
+    protected function localPhoneDigits(string $phone, string $dialCode = '91'): string
+    {
+        // Digits only, without a leading trunk "0" (e.g. 09876… → 9876…).
+        $digits = ltrim(preg_replace('/\D/', '', $phone), '0');
+        $minLocal = $dialCode === '91' ? 10 : 6;
+        if (str_starts_with($digits, $dialCode) && strlen($digits) - strlen($dialCode) >= $minLocal) {
+            $digits = substr($digits, strlen($dialCode));
+        }
+
+        return $digits;
+    }
+
     /**
-     * A hotel stay needs at least 1 night — the search bar's date pickers
-     * already prevent picking the same day twice client-side, but this is
-     * the server-side backstop for anyone hitting a search URL directly
-     * (bookmarked, hand-typed, or a stale link) with check_in === check_out
-     * or check_out before check_in. Nudges check-out to the day after
-     * check-in rather than sending TripJack (or our own per-night math) a
-     * 0-or-negative-night range.
+     * One validated hotel search — shared by search, hotel detail and the
+     * review/back links, so all three always send TripJack the same,
+     * documented-valid request. Query parameters win; $fallback (the
+     * session's last search) fills anything missing.
      *
-     * @return array{0: ?string, 1: ?string}
+     * Nothing is guessed: an invalid search (past date, too many people per
+     * room, a child without an age, …) comes back with `error` set and must
+     * not be sent to TripJack — previously these went through and TripJack
+     * either rejected them (shown as "pricing unavailable") or, worse,
+     * priced the wrong guests.
+     *
+     * @return array{checkIn:?string, checkOut:?string, adults:int, children:int, roomCount:int, childAges:int[], nationality:string, error:?string}
+     */
+    protected function hotelSearchInput(Request $request, array $fallback = []): array
+    {
+        $param = fn (string $key, $default = null) => $request->query($key, $fallback[$key] ?? $default);
+
+        [$checkIn, $checkOut, $error] = $this->normalizeStayDates($param('check_in'), $param('check_out'));
+
+        $roomCount = max(1, min(self::HOTEL_MAX_ROOMS, (int) $param('rooms', 1)));
+        $adults = max(1, (int) $param('adults', 2));
+        $children = max(0, (int) $param('children', 0));
+        $childAges = $request->has('child_ages')
+            ? $this->parseChildAges((string) $request->query('child_ages', ''))
+            : array_values(array_map('intval', (array) ($fallback['child_ages'] ?? [])));
+
+        $error ??= match (true) {
+            (int) $param('rooms', 1) > self::HOTEL_MAX_ROOMS => 'You can book up to '.self::HOTEL_MAX_ROOMS.' rooms at a time.',
+            $adults < $roomCount => 'Each room needs at least one adult — please add adults or choose fewer rooms.',
+            $adults > $roomCount * self::HOTEL_MAX_ADULTS_PER_ROOM => 'A room can have at most '.self::HOTEL_MAX_ADULTS_PER_ROOM.' adults — please add another room.',
+            $children > $roomCount * self::HOTEL_MAX_CHILDREN_PER_ROOM => 'A room can have at most '.self::HOTEL_MAX_CHILDREN_PER_ROOM.' children — please add another room.',
+            $children > 0 && count($childAges) !== $children => 'Please select the age of each child — hotels price children by age.',
+            default => null,
+        };
+
+        return [
+            'checkIn' => $checkIn,
+            'checkOut' => $checkOut,
+            'adults' => $adults,
+            'children' => $children,
+            'roomCount' => $roomCount,
+            'childAges' => array_slice($childAges, 0, $children),
+            'nationality' => $this->validNationality((string) $param('nationality', '106')),
+            'error' => $error,
+        ];
+    }
+
+    /**
+     * A countryId from TripJack's Nationalities list, or India (106). Any
+     * other value would be rejected by TripJack.
+     */
+    protected function validNationality(string $nationality): string
+    {
+        if ($nationality === '106' || $nationality === '') {
+            return '106'; // the default — no list lookup needed
+        }
+        $known = collect($this->tripjackNationalities(app(TripJackClient::class)))->pluck('countryId')->map(fn ($id) => (string) $id);
+
+        return $known->contains($nationality) ? $nationality : '106';
+    }
+
+    /**
+     * Normalises stay dates to TripJack's required YYYY-MM-DD and checks
+     * them: check-in must be today or later (IST — TripJack rejects
+     * "earlier than today"), and a stay needs at least one night (a
+     * check-out on/before check-in is nudged to the next day, as the date
+     * pickers would). Returns an error message instead of passing a bad
+     * date through.
+     *
+     * @return array{0: ?string, 1: ?string, 2: ?string} [checkIn, checkOut, error]
      */
     protected function normalizeStayDates(?string $checkIn, ?string $checkOut): array
     {
         if (! $checkIn || ! $checkOut) {
-            return [$checkIn, $checkOut];
+            return [$checkIn ?: null, $checkOut ?: null, null];
         }
 
-        try {
-            $in = \Illuminate\Support\Carbon::parse($checkIn);
-            $out = \Illuminate\Support\Carbon::parse($checkOut);
-        } catch (\Throwable) {
-            return [$checkIn, $checkOut];
+        // Strict: the date must read back exactly as given, so overflow like
+        // "2026-02-31" (which PHP would roll into March) is rejected.
+        $parse = function (string $value): ?\Illuminate\Support\Carbon {
+            $value = trim($value);
+            foreach (['Y-m-d', 'd/m/Y', 'd-m-Y'] as $format) {
+                try {
+                    $date = \Illuminate\Support\Carbon::createFromFormat('!'.$format, $value, 'Asia/Kolkata');
+                } catch (\Throwable) {
+                    continue;
+                }
+                if ($date && $date->format($format) === $value) {
+                    return $date;
+                }
+            }
+
+            return null;
+        };
+
+        $in = $parse($checkIn);
+        $out = $parse($checkOut);
+
+        if (! $in || ! $out) {
+            return [null, null, 'Please choose valid check-in and check-out dates.'];
+        }
+
+        if ($in->lt(now('Asia/Kolkata')->startOfDay())) {
+            return [$in->format('Y-m-d'), $out->format('Y-m-d'), 'Check-in can’t be in the past — please choose a date from today onwards.'];
         }
 
         if ($out->lessThanOrEqualTo($in)) {
-            $checkOut = $in->copy()->addDay()->format('Y-m-d');
+            $out = $in->copy()->addDay();
         }
 
-        return [$checkIn, $checkOut];
+        return [$in->format('Y-m-d'), $out->format('Y-m-d'), null];
     }
 
     protected function parseChildAges(string $raw): array
@@ -451,16 +598,13 @@ class FrontendController extends Controller
             if ($roomChildren > 0) {
                 $room['children'] = $roomChildren;
                 $ages = array_splice($ageQueue, 0, $roomChildren);
-                if (count($ages) < $roomChildren) {
-                    // Ages weren't supplied (e.g. a stale link built before the
-                    // age picker existed) — log it rather than silently booking
-                    // wrong-rate rooms with a guessed age.
-                    Log::channel('tripjack')->warning('child_ages_missing', [
-                        'expected' => $roomChildren, 'provided' => count($ages),
-                    ]);
-                    $ages = array_pad($ages, $roomChildren, 10);
+                // Ages are never guessed: hotelSearchInput() rejects a search
+                // without one age per child before anything reaches TripJack.
+                // Without ages (only the guest-form slot counts need this),
+                // childAge is left off rather than invented.
+                if (count($ages) === $roomChildren) {
+                    $room['childAge'] = array_map('intval', $ages);
                 }
-                $room['childAge'] = array_map('intval', $ages);
             }
 
             $rooms[] = $room;
@@ -605,52 +749,47 @@ class FrontendController extends Controller
             SyncHotelRoomTypes::dispatchIfNeeded($hotel);
         }
 
-        $sessionSearch = session('tripjack_search');
-        [$checkIn, $checkOut] = $this->normalizeStayDates(
-            $request->query('check_in') ?? ($sessionSearch['check_in'] ?? null),
-            $request->query('check_out') ?? ($sessionSearch['check_out'] ?? null),
-        );
-        $adults = max(1, (int) $request->query('adults', $sessionSearch['adults'] ?? 2));
-        $children = max(0, (int) $request->query('children', $sessionSearch['children'] ?? 0));
-        $roomCount = max(1, (int) $request->query('rooms', $sessionSearch['rooms'] ?? 1));
-        $childAges = $request->has('child_ages')
-            ? $this->parseChildAges((string) $request->query('child_ages', ''))
-            : ($sessionSearch['child_ages'] ?? []);
+        $sessionSearch = session('tripjack_search') ?? [];
+        $input = $this->hotelSearchInput($request, $sessionSearch);
+        [$checkIn, $checkOut] = [$input['checkIn'], $input['checkOut']];
+        $adults = $input['adults'];
+        $children = $input['children'];
+        $roomCount = $input['roomCount'];
+        $childAges = $input['childAges'];
+        $nationality = $input['nationality'];
 
         $liveOptions = collect();
         $pricingError = null;
         $correlationId = null;
 
-        if ($hotel->source === 'tripjack' && $hotel->tripjack_hotel_id && $checkIn && $checkOut) {
-            // TripJack requires the same correlationId across Listing, Detail,
-            // and Review for one search journey (used for their support
-            // tracing). Reuse the one from the Listing search that brought the
-            // guest here when it's still the same search context; only mint a
-            // fresh one when there's no session search to continue (e.g. a
-            // bookmarked/direct link straight to this hotel).
-            $correlationId = ($sessionSearch['correlationId'] ?? null) ?: TripJackClient::newCorrelationId();
+        if ($hotel->source === 'tripjack' && $hotel->tripjack_hotel_id && $input['error'] && ($checkIn || $request->has('check_in'))) {
+            // Same validation as the search page — never price an invalid
+            // search (it would be rejected, or price the wrong guests).
+            $pricingError = $input['error'];
+        } elseif ($hotel->source === 'tripjack' && $hotel->tripjack_hotel_id && $checkIn && $checkOut) {
+            // TripJack: Detail must carry the Listing's correlationId, and its
+            // dates/rooms/nationality must match that Listing call. Reuse it
+            // only when this is still exactly the search that found the
+            // hotel; any change (dates, guests, ages, nationality, another
+            // destination) is a new search journey with a fresh id.
+            $sameSearch = ! empty($sessionSearch['correlationId'])
+                && ($sessionSearch['destination_id'] ?? null) === $hotel->destination_id
+                && ($sessionSearch['check_in'] ?? null) === $checkIn
+                && ($sessionSearch['check_out'] ?? null) === $checkOut
+                && (int) ($sessionSearch['adults'] ?? 0) === $adults
+                && (int) ($sessionSearch['children'] ?? 0) === $children
+                && (int) ($sessionSearch['rooms'] ?? 0) === $roomCount
+                && array_values(array_map('intval', $sessionSearch['child_ages'] ?? [])) === $childAges
+                && (string) ($sessionSearch['nationality'] ?? '106') === $nationality;
+            $correlationId = $sameSearch ? $sessionSearch['correlationId'] : TripJackClient::newCorrelationId();
 
             try {
                 $rooms = $this->distributeGuestsAcrossRooms($adults, $children, $roomCount, $childAges);
-                $response = $client->pricing($hotel->tripjack_hotel_id, $checkIn, $checkOut, $rooms, $correlationId);
+                $response = $client->pricing($hotel->tripjack_hotel_id, $checkIn, $checkOut, $rooms, $correlationId, nationality: $nationality);
                 // Add the customer-facing price (TripJack's raw totalPrice + TYTLUXE markup)
                 // to every option here, once, so every view downstream reads it rather than
                 // re-deriving it from the raw TripJack price.
-                $liveOptions = collect($response['options'] ?? [])->map(function ($option) {
-                    if (isset($option['pricing']['totalPrice'])) {
-                        $breakdown = HotelPricingService::price((float) $option['pricing']['totalPrice']);
-                        // TripJack requires mf (management fee) and mft (its tax) to be
-                        // shown as separate line items to the end user. They're already
-                        // included inside totalPrice, so this is display-only passthrough —
-                        // it does not feed into or change the markup formula above.
-                        $breakdown['tripjack_mf'] = round((float) ($option['pricing']['mf'] ?? 0), 2);
-                        $breakdown['tripjack_mft'] = round((float) ($option['pricing']['mft'] ?? 0), 2);
-                        $option['pricing']['pricingBreakdown'] = $breakdown;
-                        $option['pricing']['customerPrice'] = $breakdown['customer_price'];
-                    }
-
-                    return $option;
-                });
+                $liveOptions = collect($response['options'] ?? [])->map(fn ($option) => $this->withCustomerPricing($option));
                 $reviewHash = $response['reviewHash'] ?? null;
 
                 session(["tripjack_pricing.{$hotel->tripjack_hotel_id}" => [
@@ -662,6 +801,13 @@ class FrontendController extends Controller
                     'adults' => $adults,
                     'children' => $children,
                     'rooms' => $roomCount,
+                    // Carried into Review / the back link so a retry re-prices
+                    // the same guests (H3-6/H3-7) instead of defaults.
+                    'child_ages' => $childAges,
+                    'nationality' => $nationality,
+                    // The price each option was shown at, so Review can tell
+                    // the guest if it moved since they picked it.
+                    'option_prices' => $liveOptions->mapWithKeys(fn ($o) => [($o['optionId'] ?? '') => $o['pricing']['totalPrice'] ?? null])->filter()->all(),
                     // TripJack's own docs: a search/pricing session is valid
                     // for ~15 minutes. Drives the on-page countdown so a
                     // guest never books off a price TripJack would silently
@@ -677,14 +823,165 @@ class FrontendController extends Controller
         $destinations = $this->hotelSearchDestinations();
 
         // Drives the on-page price-freshness countdown — null when there's
-        // no live pricing session to time out in the first place.
+        // no live pricing session to time out in the first place. TripJack's
+        // session lasts ~15 min; their best practice is to prompt a re-search
+        // at ~12 so a guest never picks a rate that then expires at Review.
         $pricingExpiresAt = $liveOptions->isNotEmpty()
-            ? session("tripjack_pricing.{$hotel->tripjack_hotel_id}.fetched_at", now()->timestamp) + 900
+            ? session("tripjack_pricing.{$hotel->tripjack_hotel_id}.fetched_at", now()->timestamp) + self::HOTEL_SESSION_SECONDS
             : null;
 
         return view('pages.hotel-details', compact(
-            'hotel', 'liveOptions', 'pricingError', 'checkIn', 'checkOut', 'adults', 'children', 'roomCount', 'childAges', 'destinations', 'pricingExpiresAt'
+            'hotel', 'liveOptions', 'pricingError', 'checkIn', 'checkOut', 'adults', 'children', 'roomCount', 'childAges', 'nationality', 'destinations', 'pricingExpiresAt'
         ));
+    }
+
+    /**
+     * Adds TYTLUXE's customer price (TripJack's totalPrice + markup) and the
+     * breakdown to one Detail/Review option, once, so every view reads it
+     * rather than re-deriving it. mf/mft are carried for TripJack's
+     * "show them as separate line items" rule — already inside totalPrice,
+     * so display-only; they never change the markup.
+     *
+     * Also normalises deadlineDateTime: the docs put it under `cancellation`,
+     * live Review responses put it on the option itself.
+     */
+    protected function withCustomerPricing(array $option): array
+    {
+        if (isset($option['pricing']['totalPrice'])) {
+            $breakdown = HotelPricingService::price((float) $option['pricing']['totalPrice']);
+            $breakdown['tripjack_mf'] = round((float) ($option['pricing']['mf'] ?? 0), 2);
+            $breakdown['tripjack_mft'] = round((float) ($option['pricing']['mft'] ?? 0), 2);
+            $option['pricing']['pricingBreakdown'] = $breakdown;
+            $option['pricing']['customerPrice'] = $breakdown['customer_price'];
+
+            // The strikethrough is in TripJack's raw terms — mark it up the
+            // same way, or it's compared against (and shown below) a price
+            // that already includes our margin.
+            $strike = (float) ($option['pricing']['strikethrough'] ?? 0);
+            $option['pricing']['customerStrikethrough'] = $strike > (float) $option['pricing']['totalPrice']
+                ? HotelPricingService::price($strike)['customer_price']
+                : null;
+        }
+
+        $option['deadlineDateTime'] ??= $option['cancellation']['deadlineDateTime'] ?? null;
+
+        // Penalty slab times are IST with no offset; the app runs in UTC,
+        // so parse them explicitly as IST. Free cancellation only counts if
+        // its zero-penalty slab hasn't already ended.
+        $now = now();
+        $freeUntil = null;
+        foreach ($option['cancellation']['penalties'] ?? [] as $slab) {
+            $to = $this->parseIst($slab['to'] ?? null);
+            if ((float) ($slab['amount'] ?? 1) <= 0 && $to && $to->isAfter($now)) {
+                $freeUntil = $to;
+                break;
+            }
+        }
+        $option['cancellation']['freeCancelUntil'] = $freeUntil?->toIso8601String();
+
+        return $option;
+    }
+
+    /** Parses a TripJack timestamp (IST, no offset) — null if unparseable. */
+    protected function parseIst(?string $value): ?\Illuminate\Support\Carbon
+    {
+        if (! $value) {
+            return null;
+        }
+        try {
+            return \Illuminate\Support\Carbon::parse($value, 'Asia/Kolkata');
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /**
+     * Re-runs Review for the draft's option right before the guest is sent
+     * to pay (TripJack: Review immediately before Book). Returns the
+     * refreshed draft — with Review's NEW bookingId, which is what Book must
+     * use — or a redirect:
+     *  - sold out / expired / not found → back to the hotel to choose again;
+     *  - price changed → back to the review page showing the new total, so
+     *    the guest confirms it before paying (never charged a price they
+     *    didn't see).
+     * A TripJack outage doesn't block payment: Book re-validates after
+     * payment anyway, and a failed Book is refunded automatically.
+     */
+    protected function refreshHotelReview(TripJackClient $client, Hotel $hotel, array $draft): array|\Illuminate\Http\RedirectResponse
+    {
+        $optionId = $draft['option']['optionId'] ?? null;
+        if (empty($draft['reviewHash']) || ! $optionId) {
+            return $draft; // a draft from before this check existed
+        }
+
+        $backToHotel = fn (string $message) => redirect()
+            ->route('hotel.details', $this->hotelDetailsParams($hotel->slug, $draft))
+            ->with('booking_error', $message);
+
+        try {
+            $response = $client->review($draft['correlationId'], $optionId, $draft['reviewHash'], (string) $hotel->tripjack_hotel_id);
+        } catch (TripJackApiException $e) {
+            $described = TripJackErrorCatalog::describe($e->errorCode, 'This room is no longer available at this rate. Please choose again.');
+            $this->logTripjackFailure($described['logLevel'], 'rereview_failed', ['hid' => $hotel->tripjack_hotel_id, 'optionId' => $optionId, 'errorCode' => $e->errorCode, 'message' => $e->getMessage()]);
+
+            return $backToHotel($described['message']);
+        } catch (TripJackException $e) {
+            Log::channel('tripjack')->warning('rereview_skipped', ['hid' => $hotel->tripjack_hotel_id, 'message' => $e->getMessage()]);
+
+            return $draft;
+        }
+
+        if (! ($response['status']['success'] ?? false) || empty($response['bookingId'])) {
+            $described = TripJackErrorCatalog::describe(TripJackErrorCatalog::codeFromResponse($response), 'This room is no longer available at this rate. Please choose again.');
+
+            return $backToHotel($described['message']);
+        }
+
+        $oldTotal = (float) ($draft['option']['pricing']['totalPrice'] ?? 0);
+        $oldCustomerPrice = (float) ($draft['option']['pricing']['customerPrice'] ?? HotelPricingService::price($oldTotal)['customer_price']);
+        $option = $this->withCustomerPricing($response['option'] ?? []);
+        $newTotal = (float) ($option['pricing']['totalPrice'] ?? 0);
+
+        $draft['bookingId'] = $response['bookingId'];
+        $draft['option'] = $option;
+        $draft['reviewed_at'] = now()->timestamp;
+
+        if (abs($newTotal - $oldTotal) >= 0.01) {
+            $draft['price_change'] = [
+                'old' => $oldCustomerPrice,
+                'new' => $option['pricing']['customerPrice'],
+            ];
+            session(['tripjack_booking_draft' => $draft]);
+
+            return redirect()->route('hotel.review.show', $hotel->slug)
+                ->withInput()
+                ->with('booking_error', sprintf('The hotel just changed this rate from ₹%s to ₹%s. Please check the new total and confirm again to continue.', number_format($draft['price_change']['old'], 2), number_format($draft['price_change']['new'], 2)));
+        }
+
+        session(['tripjack_booking_draft' => $draft]);
+
+        return $draft;
+    }
+
+    /**
+     * Query parameters that reproduce a hotel detail search — dates, guests,
+     * child ages and nationality — so a "back to the hotel" redirect
+     * re-prices the same guests instead of falling back to defaults.
+     */
+    protected function hotelDetailsParams(string $slug, array $context, ?Request $request = null): array
+    {
+        $params = [
+            'slug' => $slug,
+            'check_in' => $context['check_in'] ?? $request?->input('check_in'),
+            'check_out' => $context['check_out'] ?? $request?->input('check_out'),
+            'adults' => $context['adults'] ?? $request?->input('adults'),
+            'children' => $context['children'] ?? $request?->input('children'),
+            'rooms' => $context['rooms'] ?? $request?->input('rooms'),
+            'child_ages' => ! empty($context['child_ages']) ? implode(',', $context['child_ages']) : $request?->input('child_ages'),
+            'nationality' => $context['nationality'] ?? $request?->input('nationality'),
+        ];
+
+        return array_filter($params, fn ($v) => $v !== null && $v !== '');
     }
 
     /**
@@ -703,10 +1000,8 @@ class FrontendController extends Controller
         $request->validate(['option_id' => 'required|string']);
         $optionId = $request->input('option_id');
 
-        $searchParams = $request->only(['check_in', 'check_out', 'adults', 'children', 'rooms']);
-        $backToDetails = redirect()->route('hotel.details', array_merge(['slug' => $slug], array_filter($searchParams)));
-
         $pricingContext = session("tripjack_pricing.{$hotel->tripjack_hotel_id}");
+        $backToDetails = redirect()->route('hotel.details', $this->hotelDetailsParams($slug, $pricingContext ?? [], $request));
         if (! $pricingContext || empty($pricingContext['reviewHash'])) {
             return $backToDetails->with('booking_error', 'Your search session has expired. Please select your dates again.');
         }
@@ -746,16 +1041,16 @@ class FrontendController extends Controller
         // reuse a markup figure computed at an earlier step (per founder's
         // pricing rules) — this recalculated value is what the guest sees on
         // the review/checkout page and what ultimately gets booked/charged.
-        $option = $response['option'] ?? null;
-        if (isset($option['pricing']['totalPrice'])) {
-            $breakdown = HotelPricingService::price((float) $option['pricing']['totalPrice']);
-            // See hotelDetails() — mf/mft passthrough for TripJack's separate-line-item
-            // requirement, display-only, does not affect the markup formula.
-            $breakdown['tripjack_mf'] = round((float) ($option['pricing']['mf'] ?? 0), 2);
-            $breakdown['tripjack_mft'] = round((float) ($option['pricing']['mft'] ?? 0), 2);
-            $option['pricing']['pricingBreakdown'] = $breakdown;
-            $option['pricing']['customerPrice'] = $breakdown['customer_price'];
-        }
+        $option = $this->withCustomerPricing($response['option'] ?? []);
+
+        // Detail → Review can move the price. The guest picked a room at the
+        // Detail price, so tell them on the review page rather than silently
+        // showing a different total.
+        $pickedTotal = $pricingContext['option_prices'][$optionId] ?? null;
+        $reviewedTotal = $option['pricing']['totalPrice'] ?? null;
+        $priceChange = ($pickedTotal !== null && $reviewedTotal !== null && abs((float) $reviewedTotal - (float) $pickedTotal) >= 0.01)
+            ? ['old' => HotelPricingService::price((float) $pickedTotal)['customer_price'], 'new' => $option['pricing']['customerPrice']]
+            : null;
 
         session(['tripjack_booking_draft' => [
             'hotel_id' => $hotel->id,
@@ -763,11 +1058,18 @@ class FrontendController extends Controller
             'bookingId' => $response['bookingId'],
             'option' => $option,
             'correlationId' => $pricingContext['correlationId'],
+            // Kept so the rate can be re-reviewed right before payment
+            // (TripJack: call Review immediately before Book).
+            'reviewHash' => $pricingContext['reviewHash'],
+            'reviewed_at' => now()->timestamp,
+            'price_change' => $priceChange,
             'check_in' => $pricingContext['check_in'],
             'check_out' => $pricingContext['check_out'],
             'adults' => $pricingContext['adults'],
             'children' => $pricingContext['children'],
             'rooms' => $pricingContext['rooms'],
+            'child_ages' => $pricingContext['child_ages'] ?? [],
+            'nationality' => $pricingContext['nationality'] ?? '106',
         ]]);
 
         // Post/Redirect/Get: never render this page as a direct POST response —
@@ -833,7 +1135,29 @@ class FrontendController extends Controller
             // retyping name/passport for every room — see the picker in the
             // traveler fields.
             'savedTravellers' => auth()->user()->savedTravellers,
+            'gstRequired' => in_array($option['compliance']['gstType'] ?? null, ['PASSTHROUGH', 'RESELLER'], true),
+            'dialCodes' => $this->dialCodeOptions(),
+            'sessionSeconds' => self::HOTEL_SESSION_SECONDS,
         ]);
+    }
+
+    /**
+     * Country-code picker options from TripJack's Nationalities list
+     * (dialCode), India first: ["91" => "IN +91", ...].
+     *
+     * @return array<string, string>
+     */
+    protected function dialCodeOptions(): array
+    {
+        $options = ['91' => 'IN +91'];
+        foreach ($this->tripjackNationalities(app(TripJackClient::class)) as $n) {
+            $code = ltrim((string) ($n['dialCode'] ?? ''), '+');
+            if ($code !== '' && ! isset($options[$code])) {
+                $options[$code] = ($n['code'] ?? '').' +'.$code;
+            }
+        }
+
+        return $options;
     }
 
     /**
@@ -843,7 +1167,7 @@ class FrontendController extends Controller
      * confirmBookingAfterPayment()), with paymentInfos, for a real/instant
      * booking rather than a HOLD.
      */
-    public function submitBooking($slug, Request $request, RazorpayService $razorpay)
+    public function submitBooking($slug, Request $request, RazorpayService $razorpay, TripJackClient $client)
     {
         $hotel = Hotel::visibleOnWebsite()->where('slug', $slug)->firstOrFail();
         $draft = session('tripjack_booking_draft');
@@ -858,47 +1182,53 @@ class FrontendController extends Controller
         // Booking Details) — accept either so we're not blindsided again.
         $panRequired = $option['compliance']['panRequired'] ?? $option['ipr'] ?? false;
         $passportRequired = $option['compliance']['passportRequired'] ?? $option['ipm'] ?? false;
-        // Per TripJack's docs: "When reseller/GST passthrough details are
-        // received in the detail response, the same GST details must be
-        // passed in the booking request under the gstInfo object." The docs
-        // don't formally list a gstInfo field on the Review option (only the
-        // compliance.gstType flag), so this is defensive — captured now and
-        // only actually sent to Book if TripJack did include it.
+        // TripJack: for PASSTHROUGH / RESELLER GST rates, Book must carry
+        // gstInfo {gstNumber, registeredName}. TripJack never returns those
+        // details itself (only the gstType flag), so the guest provides them
+        // on the review page — without them Book is rejected after payment.
         $gstType = $option['compliance']['gstType'] ?? null;
-        $gstInfo = ($gstType && in_array($gstType, ['PASSTHROUGH', 'RESELLER'], true))
-            ? ($option['gstInfo'] ?? null)
-            : null;
+        $gstRequired = in_array($gstType, ['PASSTHROUGH', 'RESELLER'], true);
         $roomSlots = $this->roomSlotsFromDraft($draft);
 
-        // Matches the same format ProfileUpdateRequest already enforces for
-        // a PAN Card govt_id, so a booking's PAN and a profile's PAN are
-        // never validated against two different standards.
-        $panRegex = 'regex:/^[A-Za-z]{5}[0-9]{4}[A-Za-z]{1}$/';
+        // A real PAN: 5 letters, 4 digits, 1 letter — and the 4th letter is
+        // the holder type (P individual, C company, H HUF, F firm, A AOP,
+        // T trust, B BOI, L local authority, J juridical person, G govt,
+        // K/E). TripJack rejects anything else with 1092 "enter valid PAN"
+        // — previously only AFTER the guest paid (every live attempt failed
+        // this way with the shape-only check).
+        $panRegex = self::PAN_REGEX;
         $nameRegex = "regex:/^[A-Za-z\\s.'-]+$/"; // letters/spaces/., ' and - only — rejects digits and stray symbols
-        $phoneRule = function ($attribute, $value, $fail) {
-            $digits = preg_replace('/\D/', '', (string) $value);
-            $digits = preg_replace('/^91(?=\d{10}$)/', '', $digits); // strip an optional leading +91/91 country code
-            // Just enough to reject garbage (too short/long, letters) — not
-            // an Indian-mobile-carrier-prefix check. Restricting to numbers
-            // starting 6-9 wrongly rejected real 10-digit numbers that don't
-            // happen to follow that convention.
-            if (! preg_match('/^\d{10}$/', $digits)) {
-                $fail('Please enter a valid 10-digit mobile number.');
+        $dialCode = $this->dialCodeFromInput((string) $request->input('contact_dial_code', '91'));
+        $phoneRule = function ($attribute, $value, $fail) use ($dialCode) {
+            $digits = $this->localPhoneDigits((string) $value, $dialCode);
+            // Indian numbers are 10 digits; other countries vary (E.164
+            // allows up to 15 including the country code).
+            $valid = $dialCode === '91'
+                ? (bool) preg_match('/^\d{10}$/', $digits)
+                : (bool) preg_match('/^\d{6,'.(15 - strlen($dialCode)).'}$/', $digits);
+            if (! $valid) {
+                $fail($dialCode === '91' ? 'Please enter a valid 10-digit mobile number.' : 'Please enter a valid mobile number for +'.$dialCode.'.');
             }
         };
 
         $rules = [
             'contact_email' => 'required|email|max:255',
             'contact_phone' => ['required', 'string', 'max:20', $phoneRule],
+            'contact_dial_code' => 'nullable|string|max:6',
             'pan_name' => [$panRequired ? 'required' : 'nullable', 'string', 'max:255', $nameRegex],
             'pan_number' => [$panRequired ? 'required' : 'nullable', 'string', $panRegex],
+            'gst_number' => [$gstRequired ? 'required' : 'nullable', 'string', 'regex:/^[0-9]{2}[A-Za-z]{5}[0-9]{4}[A-Za-z][1-9A-Za-z]Z[0-9A-Za-z]$/'],
+            'gst_registered_name' => [$gstRequired ? 'required' : 'nullable', 'string', 'max:100'],
             'special_requests' => 'nullable|string|max:500',
             'rooms' => 'required|array',
         ];
         foreach ($roomSlots as $ri => $slot) {
             $count = $slot['adults'] + ($slot['children'] ?? 0);
             for ($ti = 0; $ti < $count; $ti++) {
-                $rules["rooms.{$ri}.travelers.{$ti}.title"] = 'required|string|max:10';
+                // TripJack accepts Mr/Mrs/Ms/Miss/Master only; an adult can't
+                // be "Master"/"Miss" or a child "Mr" (same split the form offers).
+                $allowedTitles = $ti < $slot['adults'] ? 'Mr,Mrs,Ms' : 'Master,Miss';
+                $rules["rooms.{$ri}.travelers.{$ti}.title"] = 'required|string|in:'.$allowedTitles;
                 $rules["rooms.{$ri}.travelers.{$ti}.first_name"] = ['required', 'string', 'max:100', $nameRegex];
                 $rules["rooms.{$ri}.travelers.{$ti}.last_name"] = ['required', 'string', 'max:100', $nameRegex];
                 $rules["rooms.{$ri}.travelers.{$ti}.save_to_list"] = 'nullable|boolean';
@@ -907,7 +1237,14 @@ class FrontendController extends Controller
                 }
             }
         }
-        $validated = $request->validate($rules);
+        $validated = $request->validate($rules, [
+            'pan_number.regex' => 'Please enter a valid PAN, e.g. ABCPE1234F — the 4th letter is the holder type (P for an individual).',
+            'gst_number.regex' => 'Please enter a valid 15-character GSTIN.',
+        ]);
+        $gstInfo = $gstRequired ? [
+            'gstNumber' => strtoupper($validated['gst_number']),
+            'registeredName' => $validated['gst_registered_name'],
+        ] : null;
 
         // TripJack requires the lead (first) traveler's name to be unique
         // across rooms — reject before calling Book, not after it fails there.
@@ -943,11 +1280,28 @@ class FrontendController extends Controller
             $roomTravellerInfo[] = ['travellerInfo' => $travellerInfo];
         }
 
+        // A re-review (below) mints a new bookingId each time, so the unique
+        // tripjack_hold_id no longer stops a double-submit on its own — this
+        // short lock on the review the guest is completing does.
+        if (! Cache::lock('hotel_submit:'.$draft['bookingId'], 60)->get()) {
+            return redirect()->route('hotel.review.show', $slug)->with('booking_error', 'Your booking is already being processed — please wait a moment.');
+        }
+
+        // TripJack: "Always call Review immediately before Book." Book can
+        // only run after payment, so the closest we can get is re-reviewing
+        // right before sending the guest to pay: a sold-out or expired rate
+        // is caught here instead of failing Book after the guest has paid.
+        $refreshed = $this->refreshHotelReview($client, $hotel, $draft);
+        if ($refreshed instanceof \Illuminate\Http\RedirectResponse) {
+            return $refreshed;
+        }
+        $draft = $refreshed;
+        $option = $draft['option'];
+
         $pricing = $option['pricing'] ?? [];
-        // pricingBreakdown was computed once, at Review time, from TripJack's
-        // freshly re-validated totalPrice (see reviewRoom()) — never
-        // recalculated again here, so the amount the guest saw and agreed to
-        // on the review page is exactly what gets charged via Razorpay.
+        // pricingBreakdown comes from the review just above — the exact rate
+        // the guest is shown and charged (any change sent them back to
+        // confirm the new total first).
         $breakdown = $pricing['pricingBreakdown'] ?? null;
         $customerPrice = $pricing['customerPrice'] ?? ($pricing['totalPrice'] ?? 0);
         $basePrice = $pricing['basePrice'] ?? 0;
@@ -955,7 +1309,7 @@ class FrontendController extends Controller
         // catalog is only for the manually-added "Request Price" rooms), so
         // room_type_id stays null below — this is the only place the room
         // name is available at all, straight from TripJack's review response.
-        $roomName = collect($option['roomInfo'] ?? [])->pluck('name')->filter()->unique()->implode(' + ') ?: null;
+        $roomName = \App\Support\RoomLabel::forOption($option) ?: null;
 
         // No separate "Lead Guest" field is collected any more — the first
         // traveler on the first room stands in as the booking's primary
@@ -969,7 +1323,11 @@ class FrontendController extends Controller
                 'reference' => 'TYT'.strtoupper(Str::random(8)),
                 'user_id' => $request->user()->id,
                 'guest_email' => $validated['contact_email'],
-                'guest_phone' => $validated['contact_phone'],
+                // Local digits only + the country code separately — Book
+                // sends them as contacts/code, and a number typed with its
+                // code ("+91 98…") must not become "9198…" + "+91".
+                'guest_phone' => $this->localPhoneDigits($validated['contact_phone'], $dialCode),
+                'guest_phone_code' => $dialCode,
                 'vertical' => 'hotel',
                 'hotel_id' => $hotel->id,
                 'room_name' => $roomName,
@@ -1112,8 +1470,113 @@ class FrontendController extends Controller
         return match ($tripjackStatus) {
             'CANCELLED' => 'cancelled',
             'ABORTED', 'FAILED' => 'failed_needs_review',
-            default => 'confirmed', // SUCCESS/ON_HOLD, or still processing — payment is already captured, TripJack accepted
+            'SUCCESS' => 'confirmed',
+            // PENDING/IN_PROGRESS/ON_HOLD, or unreadable: paid and accepted
+            // but not yet confirmed by the hotel — PollHotelBookingStatusJob
+            // keeps checking until it settles.
+            default => 'pending_confirmation',
         };
+    }
+
+    /**
+     * A Book failure whose outcome we can't know: the request timed out, or
+     * TripJack answered with a 5xx (gateway/server error mid-request). A
+     * business rejection (4xx, success:false) is a definite "not booked".
+     */
+    protected function isUnknownBookOutcome(TripJackException $e): bool
+    {
+        return $e instanceof \App\Services\TripJack\Exceptions\TripJackTimeoutException
+            || ($e instanceof TripJackApiException && $e->status >= 500);
+    }
+
+    /** How long an unknown-outcome Book is given to appear at TripJack before we refund. */
+    protected const UNKNOWN_BOOK_GRACE_MINUTES = 30;
+
+    /**
+     * Finished bookings never change on TripJack's side again, so no live
+     * Booking Details read is needed (a pending cancellation still needs
+     * one, and a confirmed booking until its hotel confirmation number lands).
+     */
+    public function isFinishedHotelBooking(Booking $booking): bool
+    {
+        return in_array($booking->status, ['refunded', 'failed_needs_review', 'cancelled', 'payment_failed'], true)
+            || ($booking->status === 'confirmed' && $booking->cancellation_requested_at === null && $booking->hotel_confirmation_number);
+    }
+
+    /**
+     * One live Booking Details read for a hotel booking, applying whatever
+     * it shows (late failure → refund, ON_HOLD → confirm-book, offline
+     * cancellation → finalize, PENDING → SUCCESS → confirmed). Shared by the
+     * confirmation page and the tripjack:refresh-hotel-bookings command.
+     * Returns TripJack's raw order status, or null if it couldn't be read.
+     */
+    public function refreshHotelBookingStatus(Booking $booking, TripJackClient $client, RazorpayService $razorpay): ?string
+    {
+        if (! $booking->tripjack_booking_id) {
+            return null;
+        }
+
+        try {
+            $details = $client->bookingDetails($booking->tripjack_booking_id);
+        } catch (TripJackException $e) {
+            Log::channel('tripjack')->warning('booking_details_failed', ['bookingId' => $booking->tripjack_booking_id, 'message' => $e->getMessage()]);
+
+            // A Book whose outcome was unknown, and TripJack still answers
+            // "no such booking" (a 4xx, not an outage) well after it was
+            // sent: it never went through, so refund the guest.
+            if ($e instanceof TripJackApiException && $e->status < 500
+                && $booking->status === 'pending_confirmation'
+                && $booking->updated_at->lt(now()->subMinutes(self::UNKNOWN_BOOK_GRACE_MINUTES))) {
+                $payment = $booking->payments()->where('status', 'captured')->latest()->first();
+                if ($payment) {
+                    $this->refundAndMarkFailed($booking, $payment, $razorpay, 'The hotel booking could not be completed, so your payment has been refunded in full.');
+                    $booking->refresh();
+                }
+            }
+
+            return null;
+        }
+
+        $liveStatus = $details['order']['status'] ?? null;
+        $this->storeHotelConfirmationNumber($booking, $details);
+        if ($liveStatus === 'SUCCESS' && ! $booking->hotel_confirmation_number) {
+            // Not yet seen in any real response (sandbox never sends one);
+            // log so the first production booking shows where it lives.
+            Log::channel('tripjack')->info('hotel_confirmation_number_missing', ['bookingId' => $booking->tripjack_booking_id, 'top_keys' => array_keys($details), 'op_keys' => array_keys($details['itemInfos']['HOTEL']['hInfo']['ops'][0] ?? [])]);
+        }
+
+        if (in_array($liveStatus, ['ABORTED', 'FAILED'], true) && in_array($booking->status, ['confirmed', 'pending_confirmation'], true)) {
+            // The guest was already charged — a late-discovered failure
+            // needs the same refund as one caught in confirmBookingAfterPayment().
+            $payment = $booking->payments()->where('status', 'captured')->latest()->first();
+            if ($payment) {
+                $this->refundAndMarkFailed($booking, $payment, $razorpay, "TripJack reported this booking as {$liveStatus} during status polling.");
+                $booking->refresh();
+            }
+        } elseif ($liveStatus === 'ON_HOLD' && $booking->tripjack_confirm_attempted_at === null) {
+            // Resolve via confirm-book; the attempted_at guard means this
+            // only ever fires once.
+            $payment = $booking->payments()->where('status', 'captured')->latest()->first();
+            if ($payment) {
+                $this->resolveOnHoldBooking($booking, $payment, $client, $razorpay);
+                $booking->refresh();
+            }
+        } elseif ($liveStatus === 'CANCELLED' && $booking->status !== 'cancelled') {
+            // A cancellation (ours, still pending, or the hotel's own)
+            // that has since resolved offline.
+            $this->finalizeCancellation($booking, $details, $razorpay);
+            $booking->refresh();
+        } elseif (in_array($liveStatus, ['SUCCESS', 'PENDING', 'IN_PROGRESS'], true)
+            && in_array($booking->status, ['confirmed', 'pending_confirmation'], true)) {
+            // Only map statuses we understand — an unreadable or
+            // CANCELLATION_PENDING status must not downgrade a confirmed booking.
+            $mapped = $this->mapTripjackBookingStatus($liveStatus);
+            if ($mapped !== $booking->status && ! ($booking->status === 'confirmed' && $mapped === 'pending_confirmation')) {
+                $booking->update(['status' => $mapped]);
+            }
+        }
+
+        return $liveStatus;
     }
 
     public function bookingConfirmation($reference, Request $request, TripJackClient $client, RazorpayService $razorpay)
@@ -1146,49 +1609,8 @@ class FrontendController extends Controller
             abort(403);
         }
 
-        $liveStatus = null;
-        if ($booking->tripjack_booking_id) {
-            try {
-                $details = $client->bookingDetails($booking->tripjack_booking_id);
-                $liveStatus = $details['order']['status'] ?? null;
-
-                if (in_array($liveStatus, ['ABORTED', 'FAILED'], true) && $booking->status === 'confirmed') {
-                    // The guest was already charged (status only reaches
-                    // 'confirmed' after payment capture) — a late-discovered
-                    // failure here needs the same refund treatment as one
-                    // caught immediately in confirmBookingAfterPayment().
-                    $payment = $booking->payments()->where('status', 'captured')->latest()->first();
-                    if ($payment) {
-                        $this->refundAndMarkFailed($booking, $payment, $razorpay, "TripJack reported this booking as {$liveStatus} during status polling.");
-                        $booking->refresh();
-                    }
-                } elseif ($liveStatus === 'ON_HOLD' && $booking->tripjack_confirm_attempted_at === null) {
-                    // Book's own immediate check (confirmBookingAfterPayment)
-                    // didn't see ON_HOLD yet when this happened — resolve it
-                    // now via confirm-book, same as that path. The
-                    // attempted_at guard means this only ever fires once.
-                    $payment = $booking->payments()->where('status', 'captured')->latest()->first();
-                    if ($payment) {
-                        $this->resolveOnHoldBooking($booking, $payment, $client, $razorpay);
-                        $booking->refresh();
-                    }
-                } elseif ($liveStatus === 'CANCELLED' && $booking->status !== 'cancelled') {
-                    // Catches a cancellation that was still CANCELLATION_PENDING
-                    // when submitCancellation() last checked and has since
-                    // resolved offline (TripJack's own docs: poll once daily —
-                    // this fires whenever the guest happens to revisit the page).
-                    $this->finalizeCancellation($booking, $details, $razorpay);
-                    $booking->refresh();
-                } elseif (! in_array($booking->status, ['refunded', 'failed_needs_review'], true)) {
-                    $mapped = $this->mapTripjackBookingStatus($liveStatus);
-                    if ($mapped !== $booking->status) {
-                        $booking->update(['status' => $mapped]);
-                    }
-                }
-            } catch (TripJackException $e) {
-                Log::channel('tripjack')->warning('booking_details_failed', ['bookingId' => $booking->tripjack_booking_id, 'message' => $e->getMessage()]);
-            }
-        }
+        $isFinished = $this->isFinishedHotelBooking($booking);
+        $liveStatus = $isFinished ? null : $this->refreshHotelBookingStatus($booking, $client, $razorpay);
 
         $pollingSince = (int) $request->query('polling_since', now()->timestamp);
         // payment_failed/refunded/failed_needs_review/cancelled will never
@@ -1198,7 +1620,8 @@ class FrontendController extends Controller
         // cancellation is explicitly NOT near-real-time (TripJack: poll
         // Booking Details once per day), so it never gets the 5s meta-refresh
         // either — a fresh page load is enough to check in on it.
-        $stillPolling = ! in_array($booking->status, ['payment_failed', 'refunded', 'failed_needs_review', 'cancelled'], true)
+        $stillPolling = ! $isFinished
+            && ! in_array($booking->status, ['payment_failed', 'refunded', 'failed_needs_review', 'cancelled'], true)
             && $booking->cancellation_requested_at === null
             && ! $this->isTerminalTripjackStatus($liveStatus)
             && (now()->timestamp - $pollingSince) < 180;
@@ -1303,6 +1726,25 @@ class FrontendController extends Controller
             return redirect()->route('hotel.booking.confirmation', $booking->reference);
         }
 
+        // The rate was re-confirmed with TripJack when this booking was
+        // created (refreshHotelReview). Past the hold, Book would very likely
+        // fail after the guest pays — so stop taking payment instead of
+        // charging and refunding (30 s margin: a payment started that late
+        // can't finish in time). Never later than TripJack's own deadline.
+        $rateExpiresAt = $booking->created_at->copy()->addSeconds(self::HOTEL_SESSION_SECONDS);
+        if ($booking->tripjack_hold_expires_at && $booking->tripjack_hold_expires_at->lt($rateExpiresAt)) {
+            $rateExpiresAt = $booking->tripjack_hold_expires_at;
+        }
+        if (now()->gte($rateExpiresAt->copy()->subSeconds(30))) {
+            return view('pages.hotel-payment', [
+                'booking' => $booking,
+                'payment' => null,
+                'razorpayKeyId' => null,
+                'rateExpired' => true,
+                'rateExpiresAt' => null,
+            ]);
+        }
+
         $payment = $booking->payments()->where('status', 'created')->latest()->first();
 
         if (! $payment) {
@@ -1320,6 +1762,8 @@ class FrontendController extends Controller
             'booking' => $booking,
             'payment' => $payment,
             'razorpayKeyId' => config('services.razorpay.key_id'),
+            'rateExpired' => false,
+            'rateExpiresAt' => $rateExpiresAt->timestamp,
         ]);
     }
 
@@ -1464,8 +1908,11 @@ class FrontendController extends Controller
 
             $payment->update(['status' => 'captured']);
 
-            $dialCode = '+91';
-            $phoneDigits = preg_replace('/\D/', '', (string) $booking->guest_phone);
+            // The guest's own country code (was hard-coded +91), and the
+            // number without it — also cleans older rows saved as typed.
+            $guestCode = $booking->guest_phone_code ?: '91';
+            $dialCode = '+'.$guestCode;
+            $phoneDigits = $this->localPhoneDigits((string) $booking->guest_phone, $guestCode);
 
             try {
                 $response = $client->book(
@@ -1478,6 +1925,21 @@ class FrontendController extends Controller
                     gstInfo: $booking->tripjack_gst_info,
                 );
             } catch (TripJackException $e) {
+                // Outcome unknown (timeout, or TripJack's side erroring
+                // mid-request): the room may well be booked and paid from
+                // the wallet. Don't refund — Book uses the Review bookingId,
+                // so track it under that id and let Booking Details settle
+                // it (refreshHotelBookingStatus / the background command).
+                if ($this->isUnknownBookOutcome($e)) {
+                    Log::channel('tripjack')->critical('book_outcome_unknown', ['booking_id' => $booking->id, 'bookingId' => $booking->tripjack_hold_id, 'message' => $e->getMessage()]);
+                    $booking->update([
+                        'tripjack_booking_id' => $booking->tripjack_hold_id,
+                        'status' => 'pending_confirmation',
+                    ]);
+
+                    return null;
+                }
+
                 $errorCode = $e instanceof TripJackApiException ? $e->errorCode : null;
                 $described = TripJackErrorCatalog::describe($errorCode);
                 $this->logTripjackFailure($described['logLevel'], 'book_after_payment_failed', ['booking_id' => $booking->id, 'errorCode' => $errorCode, 'message' => $e->getMessage()]);
@@ -1508,6 +1970,9 @@ class FrontendController extends Controller
             }
 
             $booking->update(['tripjack_booking_id' => $response['bookingId']]);
+            if (isset($details)) {
+                $this->storeHotelConfirmationNumber($booking, $details);
+            }
 
             if (in_array($tripjackStatus, ['ABORTED', 'FAILED'], true)) {
                 $this->refundAndMarkFailed($booking, $payment, $razorpay, "TripJack reported this booking as {$tripjackStatus} immediately after confirmation.");
@@ -1592,6 +2057,7 @@ class FrontendController extends Controller
         try {
             $details = $client->bookingDetails($booking->tripjack_booking_id);
             $tripjackStatus = $details['order']['status'] ?? null;
+            $this->storeHotelConfirmationNumber($booking, $details);
         } catch (TripJackException $e) {
             Log::channel('tripjack')->warning('booking_details_failed', ['bookingId' => $booking->tripjack_booking_id, 'message' => $e->getMessage()]);
         }
@@ -1635,6 +2101,29 @@ class FrontendController extends Controller
     }
 
     /**
+     * Saves TripJack's hotelConfirmationNumber (the hotel's own reference,
+     * needed at check-in) the first time a Booking Details read carries it.
+     * Searched for anywhere in the response since its nesting varies.
+     */
+    protected function storeHotelConfirmationNumber(Booking $booking, array $bookingDetails): void
+    {
+        if ($booking->hotel_confirmation_number) {
+            return;
+        }
+
+        $found = null;
+        array_walk_recursive($bookingDetails, function ($value, $key) use (&$found) {
+            if ($found === null && $key === 'hotelConfirmationNumber' && is_scalar($value) && trim((string) $value) !== '') {
+                $found = trim((string) $value);
+            }
+        });
+
+        if ($found !== null) {
+            $booking->update(['hotel_confirmation_number' => mb_substr($found, 0, 100)]);
+        }
+    }
+
+    /**
      * Reads the cancellation-penalty slab that applies right now from a
      * bookingDetails() response's option-level cnp object (same structure
      * Review/Detail expose, embedded here under itemInfos.HOTEL.hInfo.ops[0]).
@@ -1643,31 +2132,9 @@ class FrontendController extends Controller
      *
      * @return array{amount: float, isRefundable: bool}|null
      */
-    protected function currentCancellationPenalty(array $bookingDetails): ?array
+    protected function currentCancellationPenalty(array $bookingDetails, ?\DateTimeInterface $at = null): ?array
     {
-        $op = $bookingDetails['itemInfos']['HOTEL']['hInfo']['ops'][0] ?? null;
-        $slabs = $op['cnp']['pd'] ?? null;
-        if (! is_array($slabs)) {
-            return null;
-        }
-
-        $now = now();
-        foreach ($slabs as $slab) {
-            try {
-                $from = \Illuminate\Support\Carbon::parse($slab['fdt']);
-                $to = \Illuminate\Support\Carbon::parse($slab['tdt']);
-            } catch (\Throwable) {
-                continue;
-            }
-            if ($now->betweenIncluded($from, $to)) {
-                return [
-                    'amount' => (float) ($slab['am'] ?? 0),
-                    'isRefundable' => (bool) ($op['cnp']['ifra'] ?? false),
-                ];
-            }
-        }
-
-        return null;
+        return app(\App\Services\Booking\BookingCancellationService::class)->penaltyFor($bookingDetails, $at);
     }
 
     /**
@@ -1861,12 +2328,9 @@ class FrontendController extends Controller
 
     /**
      * Applies the outcome of a cancellation once bookingDetails() confirms
-     * it: marks the booking cancelled and auto-refunds only when the penalty
-     * is unambiguously zero — a real ₹0-or-not fact from TripJack's own
-     * policy, not a guess. Anything else (a partial penalty, or the penalty
-     * simply being unreadable) is left for manual refund review rather than
-     * this code inventing a split between "TripJack keeps this much, TYTLUXE
-     * keeps this much of its margin" — that's a business call, not a code one.
+     * it: marks the booking cancelled and auto-refunds the guest's payment
+     * scaled by the penalty's share of TripJack's price (in full when the
+     * penalty is zero). An unreadable penalty is left for manual review.
      * Callable from both the immediate post-cancel-request check and the
      * routine bookingConfirmation() poll; guarded so it only ever acts once.
      */
@@ -1877,25 +2341,42 @@ class FrontendController extends Controller
             return;
         }
 
-        $penalty = $this->currentCancellationPenalty($bookingDetails);
+        // The penalty in force when the guest asked to cancel, not when
+        // TripJack finished processing it (CANCELLATION_PENDING can take days).
+        $penalty = $this->currentCancellationPenalty($bookingDetails, $booking->cancellation_requested_at ?? now());
         $payment = $booking->payments()->where('status', 'captured')->latest()->first();
 
-        if ($payment && $penalty !== null && $penalty['amount'] <= 0.0) {
+        // Refund what the guest paid, minus the same share TripJack keeps:
+        // the penalty's fraction of TripJack's price applied to our price.
+        $refundAmount = null;
+        if ($payment && $penalty !== null && (float) $booking->tripjack_total_price > 0) {
+            $penaltyRatio = min(1, max(0, $penalty['amount'] / (float) $booking->tripjack_total_price));
+            $refundAmount = round((float) $payment->amount * (1 - $penaltyRatio), 2);
+        }
+
+        if ($payment && $refundAmount !== null && $refundAmount > 0) {
+            $isFull = $refundAmount >= (float) $payment->amount;
             try {
-                $razorpay->refund($payment->razorpay_payment_id, (float) $payment->amount);
-                $payment->update(['status' => 'refunded', 'refund_amount' => $payment->amount, 'refund_reason' => 'Free cancellation — full refund.']);
+                $razorpay->refund($payment->razorpay_payment_id, $refundAmount);
+                $payment->update([
+                    'status' => $isFull ? 'refunded' : 'partially_refunded',
+                    'refund_amount' => $refundAmount,
+                    'refund_reason' => $isFull ? 'Free cancellation — full refund.' : 'Cancellation — refund after the hotel\'s cancellation penalty.',
+                ]);
                 $booking->update([
                     'status' => 'cancelled',
-                    'cancellation_reason' => 'Cancelled within the free-cancellation window. Refunded in full automatically.',
+                    'cancellation_reason' => $isFull
+                        ? 'Cancelled within the free-cancellation window. Refunded in full automatically.'
+                        : sprintf('Cancelled with a cancellation penalty. Refunded %s %.2f automatically.', $booking->currency, $refundAmount),
                 ]);
-                Log::channel('tripjack')->info('booking_cancelled_and_refunded', ['booking_id' => $booking->id]);
+                Log::channel('tripjack')->info('booking_cancelled_and_refunded', ['booking_id' => $booking->id, 'amount' => $refundAmount, 'penalty' => $penalty]);
 
                 return;
             } catch (\Throwable $e) {
                 Log::channel('tripjack')->critical('cancellation_refund_failed', ['booking_id' => $booking->id, 'error' => $e->getMessage()]);
                 $booking->update([
                     'status' => 'cancelled',
-                    'cancellation_reason' => 'Cancelled — free-cancellation refund failed automatically and needs manual processing: '.$e->getMessage(),
+                    'cancellation_reason' => 'Cancelled — the automatic refund failed and needs manual processing: '.$e->getMessage(),
                 ]);
 
                 return;
@@ -1904,7 +2385,7 @@ class FrontendController extends Controller
 
         $note = $penalty === null
             ? 'Cancelled. Cancellation penalty could not be determined automatically — refund needs manual review.'
-            : sprintf('Cancelled with a cancellation penalty of %s %.2f. Refund needs manual review.', $booking->currency, $penalty['amount']);
+            : sprintf('Cancelled with a cancellation penalty of %s %.2f — no refund due.', $booking->currency, $penalty['amount']);
 
         $booking->update(['status' => 'cancelled', 'cancellation_reason' => $note]);
         Log::channel('tripjack')->warning('booking_cancelled_needs_manual_refund', ['booking_id' => $booking->id, 'penalty' => $penalty]);

@@ -7,6 +7,7 @@
     $travelerNames = $record->travelers->pluck('full_name')->filter()->implode(', ') ?: $record->lead_guest_name;
     $statusMeta = match ($record->status) {
         'confirmed' => ['label' => 'Booking Confirmed', 'color' => '#1a7f4b', 'bg' => '#e7f6ee'],
+        'pending_confirmation' => ['label' => 'Paid - Awaiting Hotel Confirmation', 'color' => '#b3790a', 'bg' => '#fdf3df'],
         'pending_payment' => ['label' => 'Booking Confirmed - Payment Pending', 'color' => '#b3790a', 'bg' => '#fdf3df'],
         'cancelled' => ['label' => 'Booking Cancelled', 'color' => '#9c1c1c', 'bg' => '#fbe9e9'],
         'failed_needs_review' => ['label' => 'Booking Failed - Needs Review', 'color' => '#9c1c1c', 'bg' => '#fbe9e9'],

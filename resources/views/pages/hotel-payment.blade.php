@@ -66,6 +66,10 @@
 @endpush
 
 @section('content')
+@php
+  $rateExpired = $rateExpired ?? false;
+  $rateExpiresAt = $rateExpiresAt ?? null;
+@endphp
 <div class="pay-wrap">
   @if(session('booking_error'))
   <div class="pay-error">⚠️ {{ session('booking_error') }}</div>
@@ -73,37 +77,48 @@
 
   <div class="pay-card">
     <p class="pay-eyebrow">Secure Payment</p>
-    <h1 class="pay-title">Complete Your Booking</h1>
+    <h1 class="pay-title">{{ $rateExpired ? 'Rate Hold Expired' : 'Complete Your Booking' }}</h1>
     <p class="pay-hotel">{{ $booking->hotel->title }}</p>
 
-    <p class="pay-amount">Amount Payable</p>
-    <p class="pay-amount-value">{{ $payment->currency ?? 'INR' }} {{ number_format($payment->amount) }}</p>
+    @if($rateExpired)
+      {{-- Nothing was charged; paying now would only end in a refund. --}}
+      <p class="pay-status" style="margin-bottom:22px;">The hotel only holds a confirmed rate for a short time, and this one ran out before payment. <b style="color:#fff;">You have not been charged.</b> Please select the room again to get the latest price.</p>
+      <a href="{{ route('hotel.details', ['slug' => $booking->hotel->slug, 'check_in' => $booking->check_in?->format('Y-m-d'), 'check_out' => $booking->check_out?->format('Y-m-d')]) }}" class="pay-retry-btn visible" style="text-decoration:none; text-align:center;">Select Room Again</a>
+    @else
+      <p class="pay-amount">Amount Payable</p>
+      <p class="pay-amount-value">&#8377;{{ number_format((float) $payment->amount, 2) }}</p>
 
-    @if($booking->tripjack_hold_expires_at)
-    <p class="pay-deadline" id="payDeadlineNote" data-deadline="{{ $booking->tripjack_hold_expires_at->toIso8601String() }}"></p>
+      @if($rateExpiresAt)
+      {{-- Same limit the server enforces (rate re-confirmed when the
+           booking was created, never past TripJack's own deadline). --}}
+      <p class="pay-deadline" id="payDeadlineNote" data-expires="{{ $rateExpiresAt }}" data-now="{{ now()->timestamp }}"></p>
+      @endif
+
+      <div id="payWaiting">
+        <div class="pay-spinner"></div>
+        <p class="pay-status" id="payStatusText">Opening secure payment window…</p>
+      </div>
+
+      <p class="pay-error" id="payFailedNote" style="display:none; margin-top:16px; margin-bottom:0;"></p>
+
+      <button type="button" class="pay-retry-btn" id="payRetryBtn">Retry Payment</button>
     @endif
-
-    <div id="payWaiting">
-      <div class="pay-spinner"></div>
-      <p class="pay-status" id="payStatusText">Opening secure payment window…</p>
-    </div>
-
-    <p class="pay-error" id="payFailedNote" style="display:none; margin-top:16px; margin-bottom:0;"></p>
-
-    <button type="button" class="pay-retry-btn" id="payRetryBtn">Retry Payment</button>
 
     <p class="pay-secure-note">Payments are processed securely by Razorpay. TYTLUXE never stores your card or bank details.</p>
   </div>
 </div>
 
+@unless($rateExpired)
 <form method="POST" action="{{ route('payment.razorpay.callback') }}" id="payCallbackForm" style="display:none;">
   @csrf
   <input type="hidden" name="razorpay_payment_id" id="payFieldPaymentId">
   <input type="hidden" name="razorpay_order_id" id="payFieldOrderId">
   <input type="hidden" name="razorpay_signature" id="payFieldSignature">
 </form>
+@endunless
 @endsection
 
+@unless($rateExpired)
 @push('scripts')
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>
@@ -112,46 +127,45 @@
     var waiting = document.getElementById('payWaiting');
     var retryBtn = document.getElementById('payRetryBtn');
     var failedNote = document.getElementById('payFailedNote');
+    var rzp = null;
+    var paid = false;
 
-    // The rate is only guaranteed by TripJack until deadlineDateTime — pay
-    // after that and Book can still fail/reprice, triggering the automatic
-    // refund. That real deadline can be many hours out, which isn't how
-    // B2C sites present urgency, so we display a short 15-minute countdown
-    // (like any OTA checkout) capped to whichever comes first — the actual
-    // enforcement on the server still uses TripJack's real deadline, this
-    // is purely what's shown on screen.
+    // Countdown to the same limit the server enforces. With 30 s or less
+    // left, payment is stopped (Razorpay closed, no re-open): a payment
+    // finishing after the hold would fail at Book and need a refund.
     var deadlineNote = document.getElementById('payDeadlineNote');
-    if (deadlineNote && deadlineNote.dataset.deadline) {
-      var DISPLAY_CAP_MS = 15 * 60000;
-      var realDeadline = new Date(deadlineNote.dataset.deadline).getTime();
-      var deadline = Math.min(realDeadline, Date.now() + DISPLAY_CAP_MS);
-      var tick = function () {
-        var remainingMs = deadline - Date.now();
-        if (remainingMs <= 0) {
-          var reallyExpired = Date.now() >= realDeadline;
-          deadlineNote.textContent = reallyExpired
-            ? 'This rate hold has expired — please complete payment now or you may need to select the room again.'
-            : 'Please complete payment as soon as possible to keep this rate held.';
-          deadlineNote.classList.add('pay-deadline-urgent');
-          return;
-        }
-        var mins = Math.floor(remainingMs / 60000);
-        var secs = Math.floor((remainingMs % 60000) / 1000);
-        var label = mins > 0 ? (mins + 'm ' + secs + 's') : (secs + 's');
-        deadlineNote.textContent = 'Complete payment within ' + label + ' to keep this rate held.';
-        deadlineNote.classList.toggle('pay-deadline-urgent', remainingMs < 5 * 60000);
-      };
-      tick();
-      setInterval(tick, 1000);
+    var secsLeftAtLoad = deadlineNote ? parseInt(deadlineNote.dataset.expires, 10) - parseInt(deadlineNote.dataset.now, 10) : null;
+    var loadedAt = Date.now();
+    function secsLeft() { return secsLeftAtLoad === null ? Infinity : secsLeftAtLoad - (Date.now() - loadedAt) / 1000; }
+    function rateRunningOut() { return secsLeft() <= 30; }
+    function stopPayment() {
+      if (paid) return; // already paid — let the confirmation finish
+      if (rzp) { try { rzp.close(); } catch (e) {} }
+      document.querySelectorAll('.razorpay-container, .razorpay-backdrop').forEach(function (el) { el.style.display = 'none'; });
+      waiting.style.display = 'none';
+      retryBtn.classList.remove('visible');
+      failedNote.textContent = '⚠️ The rate hold has run out, so payment was stopped. You have not been charged — please select the room again.';
+      failedNote.style.display = '';
+      if (deadlineNote) { deadlineNote.textContent = 'Rate hold expired.'; deadlineNote.classList.add('pay-deadline-urgent'); }
+    }
+    if (deadlineNote) {
+      (function tick() {
+        if (rateRunningOut()) { stopPayment(); return; }
+        var s = Math.round(secsLeft());
+        deadlineNote.textContent = 'Complete payment within ' + Math.floor(s / 60) + 'm ' + (s % 60) + 's to keep this rate.';
+        deadlineNote.classList.toggle('pay-deadline-urgent', s < 120);
+        setTimeout(tick, 1000);
+      })();
     }
 
     function openCheckout() {
+      if (rateRunningOut()) { stopPayment(); return; }
       waiting.style.display = '';
       retryBtn.classList.remove('visible');
       failedNote.style.display = 'none';
       statusText.textContent = 'Opening secure payment window…';
 
-      var rzp = new Razorpay({
+      rzp = new Razorpay({
         key: @json($razorpayKeyId),
         order_id: @json($payment->razorpay_order_id),
         amount: @json((int) round($payment->amount * 100)),
@@ -165,6 +179,7 @@
         },
         theme: { color: '#c9a84c' },
         handler: function (response) {
+          paid = true;
           statusText.textContent = 'Payment received — confirming your booking…';
           document.getElementById('payFieldPaymentId').value = response.razorpay_payment_id;
           document.getElementById('payFieldOrderId').value = response.razorpay_order_id;
@@ -195,3 +210,4 @@
   })();
 </script>
 @endpush
+@endunless

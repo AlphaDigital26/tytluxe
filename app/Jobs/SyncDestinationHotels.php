@@ -33,7 +33,14 @@ class SyncDestinationHotels implements ShouldQueue
         $destination->update(['hotel_sync_status' => 'syncing']);
 
         try {
-            $stats = $sync->syncCity($destination->name, (string) $destination->country, $this->limit);
+            $stats = $sync->syncCity($destination->name, (string) $destination->country, $this->limit, into: $destination);
+
+            if (isset($stats['error'])) {
+                Log::channel('tripjack')->warning('destination_hotel_sync_bad_country', ['destination_id' => $this->destinationId, 'message' => $stats['error']]);
+                $destination->update(['hotel_sync_status' => 'failed']);
+
+                return;
+            }
 
             $destination->update([
                 'hotel_sync_status' => 'done',

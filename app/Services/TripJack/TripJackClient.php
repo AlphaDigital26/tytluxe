@@ -22,6 +22,9 @@ class TripJackClient
     protected int $retryTimes;
     protected int $retrySleepMs;
 
+    /** TripJack's reason for the first failed batch of the last listingBatches() call. */
+    public ?array $lastBatchError = null;
+
     public function __construct()
     {
         $this->apiKey = (string) config('services.tripjack.api_key');
@@ -38,6 +41,16 @@ class TripJackClient
     public static function newCorrelationId(): string
     {
         return (string) Str::ulid();
+    }
+
+    /**
+     * timeoutMs for Listing/Detail: a few seconds under our own HTTP timeout,
+     * so TripJack answers (with whatever it found) before our connection
+     * gives up — equal values raced, and a slow batch was lost entirely.
+     */
+    protected function searchTimeoutMs(): int
+    {
+        return max(5, $this->timeout - 5) * 1000;
     }
 
     /**
@@ -62,7 +75,7 @@ class TripJackClient
             'currency' => $currency,
             'correlationId' => $correlationId,
             'nationality' => $nationality,
-            'timeoutMs' => $this->timeout * 1000,
+            'timeoutMs' => $this->searchTimeoutMs(),
             'hids' => $hids,
         ]);
     }
@@ -87,6 +100,7 @@ class TripJackClient
         int $concurrency = 10,
     ): array {
         $url = $this->hmsBaseUrl.'/hotel/listing';
+        $this->lastBatchError = null;
         $payloads = array_map(fn (array $hids) => [
             'checkIn' => $checkIn,
             'checkOut' => $checkOut,
@@ -94,7 +108,7 @@ class TripJackClient
             'currency' => $currency,
             'correlationId' => $correlationId,
             'nationality' => $nationality,
-            'timeoutMs' => $this->timeout * 1000,
+            'timeoutMs' => $this->searchTimeoutMs(),
             'hids' => array_values($hids),
         ], array_values($hidBatches));
 
@@ -123,6 +137,16 @@ class TripJackClient
             $failed = $response->failed() || (array_key_exists('status', $body) && ! ($body['status']['success'] ?? true));
             $this->log('POST', $url, $response->status(), $startedAt, $payload, $body, $failed);
             $results[$i] = $failed ? null : $body;
+            // Keep TripJack's reason for the first failed batch, so a search
+            // it rejected outright (all batches 400) can say why instead of
+            // looking like an outage.
+            if ($failed && $this->lastBatchError === null) {
+                $this->lastBatchError = [
+                    'status' => (int) ($body['status']['httpStatus'] ?? $response->status()),
+                    'errorCode' => $body['errors'][0]['errCode'] ?? $body['error']['code'] ?? null,
+                    'message' => $body['errors'][0]['message'] ?? $body['error']['message'] ?? 'Listing request failed',
+                ];
+            }
         }
 
         return $results;
@@ -276,7 +300,7 @@ class TripJackClient
             'rooms' => $rooms,
             'currency' => $currency,
             'nationality' => $nationality,
-            'timeoutMs' => $this->timeout * 1000,
+            'timeoutMs' => $this->searchTimeoutMs(),
         ]);
     }
 
@@ -370,20 +394,55 @@ class TripJackClient
      */
     public function cancelBooking(string $bookingId): array
     {
-        return $this->request('booker', 'POST', '/hotel/cancel-booking/'.$bookingId, []);
+        return $this->request('booker', 'POST', '/hotel/cancel-booking/'.$bookingId, [], 'none');
     }
 
+    /** TripJack's Booking List limits: at most 7 days per call, at most 15 days back. */
+    public const BOOKING_LIST_MAX_RANGE_DAYS = 7;
+
+    public const BOOKING_LIST_MAX_LOOKBACK_DAYS = 15;
+
     /**
-     * Booking List — POST /hotel/bookings. Lives on the booker host's v1
-     * path (not v3, unlike every other booker-host endpoint here) —
-     * confirmed from TripJack's own docs sample URL.
+     * Booking List — POST /oms/v3/hotel/bookings. Dates are IST
+     * (Y-m-d\TH:i:s, no offset); the range may span at most 7 days and start
+     * at most 15 days ago — see bookingListRange().
      */
     public function bookingList(string $startDate, string $endDate): array
     {
-        return $this->request('booker_v1', 'POST', '/hotel/bookings', [
+        return $this->request('booker', 'POST', '/hotel/bookings', [
             'startDate' => $startDate,
             'endDate' => $endDate,
         ]);
+    }
+
+    /**
+     * Converts a requested date range into the IST strings Booking List
+     * expects, enforcing its limits. Returns [start, end] or throws
+     * \InvalidArgumentException with a message fit to show the user.
+     *
+     * @return array{0: string, 1: string}
+     */
+    public static function bookingListRange(\DateTimeInterface|string $start, \DateTimeInterface|string $end): array
+    {
+        $tz = 'Asia/Kolkata';
+        $start = \Carbon\Carbon::parse($start, $tz)->setTimezone($tz);
+        $end = \Carbon\Carbon::parse($end, $tz)->setTimezone($tz);
+        $nowIst = now($tz);
+
+        if ($end->greaterThan($nowIst)) {
+            $end = $nowIst->copy();
+        }
+        if ($start->greaterThan($end)) {
+            throw new \InvalidArgumentException('Start date must be before end date.');
+        }
+        if ($start->lessThan($nowIst->copy()->subDays(self::BOOKING_LIST_MAX_LOOKBACK_DAYS)->startOfDay())) {
+            throw new \InvalidArgumentException('TripJack only lists bookings from the last '.self::BOOKING_LIST_MAX_LOOKBACK_DAYS.' days.');
+        }
+        if ($start->diffInSeconds($end) > self::BOOKING_LIST_MAX_RANGE_DAYS * 86400) {
+            throw new \InvalidArgumentException('TripJack allows at most '.self::BOOKING_LIST_MAX_RANGE_DAYS.' days per request.');
+        }
+
+        return [$start->format('Y-m-d\TH:i:s'), $end->format('Y-m-d\TH:i:s')];
     }
 
     /**
@@ -445,15 +504,26 @@ class TripJackClient
         $url = $baseUrl.$path;
         $startedAt = microtime(true);
 
+        // Only reads are retried: a timed-out Book/confirm-book/cancel may
+        // still have gone through, and repeating it could double-book or
+        // double-deduct the wallet.
+        $isWrite = (bool) preg_match('#^/hotel/(book|confirm-book|cancel-booking)(/|$)#', $path);
+        $tries = $isWrite ? 1 : max(1, $this->retryTimes);
+
+        // Cancellation must be sent with no body at all (not even "[]").
+        $options = $mode === 'none' ? [] : [$mode === 'query' ? 'query' : 'json' => $payload];
+
         try {
-            $response = Http::withHeaders([
-                'Content-Type' => 'application/json',
+            // No Content-Type on a bodyless call: TripJack's cancel-booking
+            // answers 403 when the header is present (confirmed on sandbox).
+            $response = Http::withHeaders(array_filter([
+                'Content-Type' => $mode === 'none' ? null : 'application/json',
                 'Accept' => 'application/json',
                 'apikey' => $this->apiKey,
-            ])
+            ]))
                 ->timeout($this->timeout)
                 ->connectTimeout($this->connectTimeout)
-                ->retry($this->retryTimes, function (int $attempt, \Exception $exception) {
+                ->retry($tries, function (int $attempt, \Exception $exception) {
                     // Rate-limit responses (429) tell us exactly how long to wait via
                     // Retry-After — honor it instead of guessing.
                     if ($exception instanceof \Illuminate\Http\Client\RequestException
@@ -472,7 +542,7 @@ class TripJackClient
                         || ($exception instanceof \Illuminate\Http\Client\RequestException
                             && ($exception->response->status() >= 500 || $exception->response->status() === 429));
                 }, throw: false)
-                ->send($method, $url, [$mode === 'query' ? 'query' : 'json' => $payload]);
+                ->send($method, $url, $options);
         } catch (ConnectionException $e) {
             $this->log($method, $url, null, $startedAt, $payload, ['exception' => $e->getMessage()]);
             throw new TripJackTimeoutException("TripJack request timed out: {$path}", previous: $e);

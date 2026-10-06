@@ -887,7 +887,9 @@ class FlightController extends Controller
             }
             if ($panRequired && $paxType === 'ADULT') {
                 // Lead traveller's PAN is required; other adults may add theirs.
-                $rules["travellers.{$i}.pan"] = [$i === 0 ? 'required' : 'nullable', 'string', 'regex:/^[A-Za-z]{5}[0-9]{4}[A-Za-z]$/'];
+                // 4th letter = holder type (same check as hotels — TripJack
+                // rejects shape-only-valid PANs like ABCDE1234F with 1092).
+                $rules["travellers.{$i}.pan"] = [$i === 0 ? 'required' : 'nullable', 'string', \App\Http\Controllers\FrontendController::PAN_REGEX];
             }
             $rules["travellers.{$i}.frequent_flyer"] = ['nullable', 'string', 'max:20', 'regex:/^[A-Za-z0-9]+$/'];
         }
@@ -902,7 +904,7 @@ class FlightController extends Controller
         $rules['gst_registered_name'] = [$gstMandatory ? 'required' : 'nullable', 'required_with:gst_number', 'string', 'max:35'];
         $validated = $request->validate($rules, [
             'gst_number.regex' => 'Please enter a valid 15-character GSTIN.',
-            'travellers.*.pan.regex' => 'Please enter a valid 10-character PAN (e.g. ABCDE1234F).',
+            'travellers.*.pan.regex' => 'Please enter a valid PAN, e.g. ABCPE1234F — the 4th letter is the holder type (P for an individual).',
             'travellers.*.document_id.required' => 'Please enter the ID number for this '.strtolower(str_replace('_', ' ', $context['fareType'] ?? '')).' fare.',
             'travellers.*.passport_issue_date.before_or_equal' => 'The passport issue date can’t be in the future.',
         ]);
