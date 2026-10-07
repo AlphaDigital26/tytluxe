@@ -99,6 +99,50 @@ class FlightBookingRulesTest extends TestCase
         $this->assertSame(0, Booking::count());
     }
 
+    protected function submitWithChild(array $travellers)
+    {
+        $draft = $this->draft();
+        $draft['context']['children'] = 1;
+        session(['flight_booking_draft' => $draft]);
+
+        return $this->post(route('flights.book'), [
+            'review_booking_id' => 'TJS200000000001',
+            'intent' => 'review',
+            'contact_email' => 'guest@example.com',
+            'contact_phone' => '9876543210',
+            'travellers' => $travellers,
+        ]);
+    }
+
+    public function test_titles_follow_the_doc_per_passenger_type(): void
+    {
+        // Adult can't be Master; child can't be Mr.
+        $this->submitWithChild([
+            ['title' => 'Master', 'first_name' => 'Rahul', 'last_name' => 'Probe'],
+            ['title' => 'Mr', 'first_name' => 'Asha', 'last_name' => 'Probe'],
+        ])->assertSessionHasErrors(['travellers.0.title', 'travellers.1.title']);
+
+        // A child "Miss" (label, or details entered earlier) goes to TripJack as Ms.
+        $this->submitWithChild([
+            ['title' => 'Mr', 'first_name' => 'Rahul', 'last_name' => 'Probe'],
+            ['title' => 'Miss', 'first_name' => 'Asha', 'last_name' => 'Probe'],
+        ])->assertRedirect(route('flights.confirm.show'));
+
+        $this->assertSame(['Mr', 'Ms'], array_column(session('flight_booking_draft.passengerReview.travellerInfo'), 'ti'));
+    }
+
+    public function test_child_title_choices_send_ms_under_the_miss_label(): void
+    {
+        $draft = $this->draft();
+        $draft['context']['children'] = 1;
+        session(['flight_booking_draft' => $draft]);
+
+        $this->get(route('flights.passengers.show', ['booking' => 'TJS200000000001']))
+            ->assertOk()
+            ->assertSee('<option value="Ms" >Miss</option>', false)
+            ->assertDontSee('value="Miss"', false);
+    }
+
     public function test_fare_validate_sold_out_still_returns_to_results(): void
     {
         Http::fake(['*/air/book/fare-validate' => Http::response($this->tjError('1071'), 400)]);

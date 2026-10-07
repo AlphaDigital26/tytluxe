@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Jobs\PollFlightBookingStatusJob;
 use App\Models\Booking;
 use App\Models\Payment;
 use App\Services\Payment\RazorpayService;
@@ -322,15 +323,6 @@ class FlightReissueService
             }
 
             $newBookingId = $pending['newBookingId'];
-            $pnr = $booking->tripjack_flight_pnr;
-            $ticketNumbers = null;
-            try {
-                $bd = $client->bookingDetails($newBookingId);
-                $pnr = $bd['itemInfos']['AIR']['travellerInfos'][0]['pnrDetails'] ?? $pnr;
-                $ticketNumbers = $bd['itemInfos']['AIR']['travellerInfos'][0]['ticketNumberDetails'] ?? null;
-            } catch (TripJackException $e) {
-                Log::channel('tripjack')->warning('flight_reissue_details_failed', ['bookingId' => $newBookingId, 'message' => $e->getMessage()]);
-            }
 
             $history = $booking->flight_reissue_history ?? [];
             $history[] = [
@@ -347,10 +339,15 @@ class FlightReissueService
                 $legs[$pending['legIndex']]['departureDate'] = substr($pending['newDepartureDate'], 0, 10);
             }
 
+            // The old PNR/tickets no longer apply; the new ones come from
+            // Booking Details, which (as after Book) TripJack's doc says to
+            // call only after 5 seconds — PollFlightBookingStatusJob fills
+            // them in (FlightBookingService::applyReissueDetails()).
             $booking->update([
                 'tripjack_booking_id' => $newBookingId,
-                'tripjack_flight_pnr' => $pnr,
-                'tripjack_flight_ticket_numbers' => $ticketNumbers,
+                'tripjack_flight_pnr' => null,
+                'tripjack_flight_ticket_numbers' => null,
+                'tripjack_confirm_attempted_at' => now(),
                 'flight_departure_date' => $pending['legIndex'] === 0 ? substr($pending['newDepartureDate'], 0, 10) : $booking->flight_departure_date,
                 'flight_reissued_at' => now(),
                 'flight_reissue_history' => $history,
@@ -359,6 +356,8 @@ class FlightReissueService
             ]);
 
             Log::channel('tripjack')->info('flight_reissue_confirmed', ['booking_id' => $booking->id, 'newBookingId' => $newBookingId]);
+
+            PollFlightBookingStatusJob::dispatch($booking->id)->delay(now()->addSeconds(5))->afterCommit();
         });
     }
 

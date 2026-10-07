@@ -272,6 +272,28 @@ class FlightBookingService
     }
 
     /**
+     * Every traveller's ticket numbers — ticketNumberDetails is per
+     * traveller, keyed by sector ("DEL-BOM"), so reading only the first
+     * traveller dropped everyone else's tickets. Null when none are issued
+     * yet, so a caller can keep what it already has.
+     *
+     * @return array<int, array{name: string, tickets: array<string, string>}>|null
+     */
+    public static function ticketsByTraveller(array $details): ?array
+    {
+        $tickets = collect(self::airTravellers($details))
+            ->filter(fn ($t) => ! empty($t['ticketNumberDetails']) && is_array($t['ticketNumberDetails']))
+            ->map(fn ($t) => [
+                'name' => trim(preg_replace('/\s+/', ' ', ($t['ti'] ?? '').' '.($t['fN'] ?? '').' '.($t['lN'] ?? ''))),
+                'tickets' => $t['ticketNumberDetails'],
+            ])
+            ->values()
+            ->all();
+
+        return $tickets ?: null;
+    }
+
+    /**
      * Acts on a Booking Details response for a booking we've asked TripJack
      * to ticket — shared by PollFlightBookingStatusJob and the confirmation
      * page's own polling. SUCCESS saves the PNR/ticket numbers (and, when
@@ -291,12 +313,19 @@ class FlightBookingService
             return $this->isTerminal($status);
         }
 
+        // A rescheduled booking now points at the reissue's bookingId — its
+        // ticket payment was for the ORIGINAL ticket, so this booking's
+        // outcome must never refund that.
+        if ($booking->flight_reissued_at !== null && ! $resolvingUncertain) {
+            return $this->applyReissueDetails($booking, $details);
+        }
+
         if ($status === 'SUCCESS') {
             $traveller = self::airTravellers($details)[0] ?? [];
             $booking->update([
                 'status' => 'confirmed',
                 'tripjack_flight_pnr' => $traveller['pnrDetails'] ?? $booking->tripjack_flight_pnr,
-                'tripjack_flight_ticket_numbers' => $traveller['ticketNumberDetails'] ?? $booking->tripjack_flight_ticket_numbers,
+                'tripjack_flight_ticket_numbers' => self::ticketsByTraveller($details) ?? $booking->tripjack_flight_ticket_numbers,
             ]);
             if ($resolvingUncertain) {
                 Log::channel('tripjack')->info('flight_booking_confirmed_after_timeout', ['booking_id' => $booking->id]);
@@ -321,56 +350,44 @@ class FlightBookingService
     }
 
     /**
-     * Saves airline, flight number and times per segment from a Booking
-     * Details response, for the admin booking page (which never calls
-     * TripJack on load). Segments sit under itemInfos.AIR.tripInfos[].sI[],
-     * next to travellerInfos — see airTravellers().
-     */
-    public function storeItinerary(Booking $booking, array $details): void
-    {
-        $itinerary = self::itinerarySummary($details);
-        if ($itinerary && $itinerary !== $booking->flight_itinerary) {
-            $booking->update(['flight_itinerary' => $itinerary]);
-        }
-    }
-
-    /**
-     * Segments plus every traveller's ticket numbers (tripjack_flight_ticket_numbers
-     * only keeps the first traveller's). Empty when the response has no segments.
+     * Booking Details for a reissue's new bookingId (Auto Reissue, like
+     * Book, only confirms the request — PNR and tickets follow via Booking
+     * Details after 5s). SUCCESS saves the new PNR/tickets; a failed reissue
+     * is flagged for staff rather than refunded automatically, since what
+     * happened to the original ticket has to be checked with TripJack.
      *
-     * @return array{segments?: array<int, array{airline: string, airlineCode: string, flightNo: string, from: string, fromCity: string, to: string, toCity: string, departs: ?string, arrives: ?string}>, tickets?: array<string, array>}
+     * @return bool true once TripJack's status is final
      */
-    public static function itinerarySummary(array $details): array
+    protected function applyReissueDetails(Booking $booking, array $details): bool
     {
-        $tripInfos = $details['itemInfos']['AIR']['tripInfos'] ?? $details['tripInfos'] ?? [];
+        $status = $details['order']['status'] ?? null;
 
-        $segments = collect($tripInfos)
-            ->flatMap(fn ($trip) => $trip['sI'] ?? [])
-            ->map(fn (array $seg) => [
-                'airline' => (string) ($seg['fD']['aI']['name'] ?? ''),
-                'airlineCode' => (string) ($seg['fD']['aI']['code'] ?? ''),
-                'flightNo' => (string) ($seg['fD']['fN'] ?? ''),
-                'from' => (string) ($seg['da']['code'] ?? ''),
-                'fromCity' => (string) ($seg['da']['city'] ?? ''),
-                'to' => (string) ($seg['aa']['code'] ?? ''),
-                'toCity' => (string) ($seg['aa']['city'] ?? ''),
-                'departs' => $seg['dt'] ?? null,
-                'arrives' => $seg['at'] ?? null,
-            ])
-            ->filter(fn (array $seg) => $seg['from'] !== '' && $seg['to'] !== '')
-            ->values()
-            ->all();
+        if ($status === 'SUCCESS') {
+            $booking->update([
+                'tripjack_flight_pnr' => self::airTravellers($details)[0]['pnrDetails'] ?? $booking->tripjack_flight_pnr,
+                'tripjack_flight_ticket_numbers' => self::ticketsByTraveller($details) ?? $booking->tripjack_flight_ticket_numbers,
+            ]);
 
-        if (! $segments) {
-            return [];
+            return true;
         }
 
-        $tickets = collect(self::airTravellers($details))
-            ->mapWithKeys(fn (array $t) => [strtoupper(trim(($t['fN'] ?? '').' '.($t['lN'] ?? ''))) => $t['ticketNumberDetails'] ?? []])
-            ->filter()
-            ->all();
+        if ($status === 'CANCELLED') {
+            $booking->update(['status' => 'cancelled']);
 
-        return ['segments' => $segments, 'tickets' => $tickets];
+            return true;
+        }
+
+        if (in_array($status, ['FAILED', 'ABORTED', 'UNCONFIRMED'], true)) {
+            $note = "Reschedule to TripJack booking {$booking->tripjack_booking_id} ended {$status} — check the original and new booking with TripJack, then fix the booking/refund the reschedule payment manually.";
+            if (! str_contains((string) $booking->admin_note, $note)) {
+                $booking->update(['admin_note' => trim(($booking->admin_note ? $booking->admin_note.' ' : '').$note)]);
+                Log::channel('tripjack')->critical('flight_reissue_not_ticketed', ['booking_id' => $booking->id, 'tripjack_booking_id' => $booking->tripjack_booking_id, 'status' => $status]);
+            }
+
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -765,6 +782,13 @@ class FlightBookingService
      */
     public function cancellationQuote(Booking $booking, array $trips, array $paxCounts): ?array
     {
+        // After a reschedule the guest has paid across two payments and the
+        // stored fare is the original one, so the ratio below would be
+        // wrong — the refund is worked out by staff (finalizeCancellation()).
+        if ($booking->flight_reissued_at !== null) {
+            return null;
+        }
+
         $cacheKey = 'flight_cancel_quote:'.$booking->id.':'.md5(json_encode([$trips, $paxCounts]));
 
         $airline = Cache::remember($cacheKey, now()->addMinutes(3), function () use ($booking, $trips, $paxCounts) {
@@ -925,8 +949,24 @@ class FlightBookingService
     }
 
     /**
+     * TripJack's Auto Full Refund remarks checklist (doc, "Remarks
+     * Checklist") — these exact strings trigger their automated refund
+     * processing; "Refund under DGCA policy" drives the DGCA automation.
+     */
+    public const FULL_REFUND_REMARKS = [
+        'Flight Cancelled by Airline',
+        'Airline rescheduled flight, revised timings are not suitable',
+        'Already cancelled by directly contacting airline customer support team',
+        'Airline confirmed, refund is already processed',
+        'Refund under DGCA policy',
+        'Personal loss or bereavement',
+        'Passenger is medically unfit for travel',
+        'Refund under empowerment policy',
+    ];
+
+    /**
      * Full Refund (staff-triggered, Filament admin only — see
-     * BookingsTable's "Process Full Refund" action) — always full-booking
+     * BookingsTable's "TripJack Full Refund" action) — always full-booking
      * scope, using TripJack's FULL_REFUND amendment type and one of their
      * documented remarks-checklist strings (e.g. the exact string "Refund
      * under DGCA policy" to trigger their DGCA automation).
@@ -976,7 +1016,13 @@ class FlightBookingService
 
         $paymentHasBalance = $payment && (float) $payment->amount - (float) ($payment->refund_amount ?? 0) > 0.01;
 
-        if ($paymentHasBalance && $refundableAmount > 0 && (float) $booking->tripjack_total_price > 0) {
+        // Rescheduled: refundableAmount is against the reissued booking,
+        // while tripjack_total_price and the fare payment are the original
+        // ones — the ratio would over- or under-refund. Falls through to the
+        // manual-review outcome below.
+        $reissued = $booking->flight_reissued_at !== null;
+
+        if (! $reissued && $paymentHasBalance && $refundableAmount > 0 && (float) $booking->tripjack_total_price > 0) {
             // Scale TripJack's raw-price refund against what the guest
             // actually paid us, same ratio technique as the hotel flow. For
             // a partial amendment this refundableAmount already reflects
@@ -1016,7 +1062,12 @@ class FlightBookingService
         }
 
         if ($isFullBooking) {
-            $booking->update(['status' => 'cancelled', 'cancellation_reason' => 'Cancelled. No automatic refund applied — needs manual review.']);
+            $booking->update(array_filter([
+                'status' => 'cancelled',
+                'cancellation_reason' => 'Cancelled. No automatic refund applied — needs manual review.',
+                'admin_note' => $reissued && $refundableAmount > 0 ? trim(($booking->admin_note ? $booking->admin_note.' ' : '')
+                    ."Rescheduled booking cancelled — TripJack refundable amount {$refundableAmount}. Refund the guest manually across the original fare and reschedule payments.") : null,
+            ], fn ($v) => $v !== null));
         } else {
             $this->appendPartialAmendment($booking, $amendmentDetails, $type, 'SUCCESS_NO_REFUND', 0);
         }
