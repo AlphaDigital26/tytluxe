@@ -115,12 +115,7 @@ class FlightController extends Controller
         // Sending pfts as a string 400s with "Expected BEGIN_ARRAY but was
         // STRING". Always sent (not just for non-REGULAR) since TripJack
         // itself always echoes a `pfts` array back in its own response.
-        // TODO(future): send the Search API's own `isDirectFlight: true` (and
-        // offer `isConnectingFlight`) in searchModifiers instead of only
-        // filtering direct flights out ourselves below — same results, but
-        // smaller/faster responses. Confirm the exact key live first (an
-        // earlier unverified modifier guess here was wrong).
-        $searchModifiers = ['pfts' => [$fareType]];
+        $searchModifiers = self::searchModifiers($fareType, $directFlightOnly);
         // TODO(future): TripJack accepts up to 10 preferred airlines
         // (preferredAirline[].code); the search box currently offers one.
         // The client already sends this as a list of {code} objects.
@@ -139,11 +134,9 @@ class FlightController extends Controller
             } else {
                 $results = $response['searchResult'] ?? null;
 
-                // Direct-flight filtering is done here rather than via a
-                // TripJack search-modifier key (unconfirmed against the
-                // doc) — segment stop counts are already present on every
-                // option, so filtering client-side is guaranteed correct
-                // regardless of what TripJack's own param is actually called.
+                // TripJack already filters on isDirectFlight; this also drops
+                // anything with a technical stop, which the doc's "direct"
+                // doesn't promise to exclude.
                 if ($directFlightOnly && $results) {
                     $results = $this->filterDirectFlightsOnly($results);
                 }
@@ -205,6 +198,17 @@ class FlightController extends Controller
         }
 
         return $results;
+    }
+
+    /**
+     * Search API searchModifiers. Doc: isDirectFlight (Boolean) "Return only
+     * direct flights" — sent only when asked for, so a normal search is
+     * unchanged and TripJack does the filtering for a direct-only one
+     * (smaller, faster responses).
+     */
+    private static function searchModifiers(string $fareType, bool $directOnly): array
+    {
+        return ['pfts' => [$fareType]] + ($directOnly ? ['isDirectFlight' => true] : []);
     }
 
     /**
@@ -272,9 +276,9 @@ class FlightController extends Controller
             'INFANT' => min($adults, (int) ($validated['infants'] ?? 0)) ?: null,
         ]);
         $cabinClass = $validated['cabin_class'] ?? 'ECONOMY';
-        $modifiers = ['pfts' => [$validated['fare_type'] ?? 'REGULAR']];
         $airline = strtoupper((string) ($validated['preferred_airline'] ?? ''));
         $directOnly = (bool) ($validated['direct_flight'] ?? false);
+        $modifiers = self::searchModifiers($validated['fare_type'] ?? 'REGULAR', $directOnly);
 
         $cacheKey = 'flight_fare_calendar:'.md5(json_encode([$paxInfo, $routeInfos, $cabinClass, $modifiers, $airline, $directOnly]));
         $cached = Cache::get($cacheKey);
@@ -701,6 +705,43 @@ class FlightController extends Controller
     }
 
     /**
+     * First departure and last flight's departure date of the journey.
+     *
+     * @return array{0: \Carbon\Carbon, 1: \Carbon\Carbon}|null
+     */
+    public static function travelDates(array $tripInfos): ?array
+    {
+        $segments = collect($tripInfos)->flatMap(fn ($trip) => $trip['sI'] ?? [])->filter(fn ($s) => ! empty($s['dt']));
+        if ($segments->isEmpty()) {
+            return null;
+        }
+
+        return [
+            \Carbon\Carbon::parse($segments->first()['dt'])->startOfDay(),
+            \Carbon\Carbon::parse($segments->last()['dt'])->startOfDay(),
+        ];
+    }
+
+    /**
+     * Doc (Booking API errors): adult 12–100 at departure, child 2–12,
+     * infant 0–2, senior citizen over 60 at departure (2569); live FAQ:
+     * senior fares are ADULT-only, minimum age 60. An infant travels on a
+     * lap, so must still be under 2 on the last flight of the trip.
+     *
+     * @return array{min: string, max: string} Allowed date-of-birth range
+     */
+    public static function dobRange(string $paxType, \Carbon\Carbon $departure, \Carbon\Carbon $lastFlight, ?string $fareType = null): array
+    {
+        [$min, $max] = match ($paxType) {
+            'INFANT' => [$lastFlight->copy()->subYears(2)->addDay(), now()->subDay()],
+            'CHILD' => [$departure->copy()->subYears(12)->addDay(), $departure->copy()->subYears(2)],
+            default => [$departure->copy()->subYears(101)->addDay(), $departure->copy()->subYears($fareType === 'SENIOR_CITIZEN' ? 60 : 12)],
+        };
+
+        return ['min' => $min->toDateString(), 'max' => min($max, now()->subDay())->toDateString()];
+    }
+
+    /**
      * Fare Validate (pre-book) — confirms the reviewed fare and booking class
      * are still available, using the same traveller/SSR payload as Book.
      * Confirmed live: a valid fare returns status.success with the
@@ -848,9 +889,10 @@ class FlightController extends Controller
         $panRequired = (bool) ($conditions['gst']['ipa'] ?? $conditions['ipa'] ?? false);
         $passportRequired = (bool) ($conditions['pcs']['pm'] ?? $conditions['pm'] ?? false);
         // Per passenger type (adult / child / infant) — e.g. IndiGo requires
-        // DOB for infants only.
+        // DOB for infants only. A senior citizen fare always needs it — the
+        // age is checked at Book (doc error 2569).
         $dobFlags = [
-            'ADULT' => (bool) ($conditions['dob']['adobr'] ?? false),
+            'ADULT' => (bool) ($conditions['dob']['adobr'] ?? false) || ($context['fareType'] ?? null) === 'SENIOR_CITIZEN',
             'CHILD' => (bool) ($conditions['dob']['cdobr'] ?? false),
             'INFANT' => true,
         ];
@@ -891,6 +933,8 @@ class FlightController extends Controller
             'special_requests' => 'nullable|string|max:500',
             'travellers' => 'required|array|size:'.$totalPax,
         ];
+        $travelDates = self::travelDates($response['tripInfos'] ?? []);
+        $ageMessages = [];
         for ($i = 0; $i < $totalPax; $i++) {
             $paxType = $i < $context['adults'] ? 'ADULT' : ($i < $context['adults'] + $context['children'] ? 'CHILD' : 'INFANT');
             // Doc titles: Mr/Mrs/Ms (adult), Master/Ms (child/infant). "Miss"
@@ -905,7 +949,23 @@ class FlightController extends Controller
                 $rules["travellers.{$i}.{$addon}.*"] = 'nullable|string|max:20';
             }
             if ($dobFlags[$paxType]) {
-                $rules["travellers.{$i}.dob"] = 'required|date|before:today';
+                $rules["travellers.{$i}.dob"] = ['required', 'date', 'before:today'];
+                if ($travelDates) {
+                    $range = self::dobRange($paxType, $travelDates[0], $travelDates[1], $context['fareType'] ?? null);
+                    $rules["travellers.{$i}.dob"][] = 'after_or_equal:'.$range['min'];
+                    $rules["travellers.{$i}.dob"][] = 'before_or_equal:'.$range['max'];
+                    $ageMessages["travellers.{$i}.dob.after_or_equal"] = match ($paxType) {
+                        'INFANT' => 'Infants must be under 2 years old for the whole trip. Please book this traveller as a child.',
+                        'CHILD' => 'Children must be under 12 years old on the travel date. Please book this traveller as an adult.',
+                        default => 'Please check the date of birth — adults must be 100 or younger on the travel date.',
+                    };
+                    $ageMessages["travellers.{$i}.dob.before_or_equal"] = match (true) {
+                        $paxType === 'CHILD' => 'Children must be at least 2 years old on the travel date. Please book this traveller as an infant.',
+                        $paxType === 'ADULT' && ($context['fareType'] ?? null) === 'SENIOR_CITIZEN' => 'Senior citizen fares are only for travellers aged 60 or over on the travel date.',
+                        $paxType === 'ADULT' => 'Adults must be at least 12 years old on the travel date. Please book this traveller as a child.',
+                        default => 'The date of birth must be in the past.',
+                    };
+                }
             }
             if ($passportRequired) {
                 $rules["travellers.{$i}.passport_number"] = ['required', 'string', 'regex:/^[A-Za-z0-9]{6,20}$/'];
@@ -941,7 +1001,7 @@ class FlightController extends Controller
             'travellers.*.pan.regex' => 'Please enter a valid PAN, e.g. ABCPE1234F — the 4th letter is the holder type (P for an individual).',
             'travellers.*.document_id.required' => 'Please enter the ID number for this '.strtolower(str_replace('_', ' ', $context['fareType'] ?? '')).' fare.',
             'travellers.*.passport_issue_date.before_or_equal' => 'The passport issue date can’t be in the future.',
-        ]);
+        ] + $ageMessages);
 
         $contactPhone = FlightBookingService::phoneFromInput($validated['contact_dial_code'] ?? null, $validated['contact_phone']);
 

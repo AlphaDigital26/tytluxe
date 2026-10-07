@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Services\TripJack\TripJackFlightClient;
+use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -62,6 +63,28 @@ class FlightResultsMergeTest extends TestCase
         ]);
 
         $this->assertCount(4, $merged);
+    }
+
+    public function test_direct_only_search_asks_tripjack_for_direct_flights(): void
+    {
+        // DEL→HYD→BOM: the second segment continues the same leg (sN 1).
+        $connecting = ['sI' => [$this->segment('1056', '2026-11-06T06:00', 'DEL', 'HYD'), ['sN' => 1] + $this->segment('2001', '2026-11-06T10:00', 'HYD', 'BOM')], 'totalPriceList' => [$this->fare('C1', 'PUBLISHED', 4000)]];
+        Http::fake(['*/air-search-all' => Http::response([
+            'searchResult' => ['tripInfos' => ['ONWARD' => [...$this->itineraries(), $connecting]]],
+            'status' => ['success' => true],
+        ])]);
+        $params = ['from' => 'DEL', 'to' => 'BOM', 'depart_date' => '2026-11-06', 'adults' => 1, 'trip_type' => 'oneway'];
+
+        $html = $this->get(route('flights.search', $params + ['direct_flight' => 1]))->assertOk()->getContent();
+
+        Http::assertSent(fn (Request $r) => $r['searchQuery']['searchModifiers'] === ['pfts' => ['REGULAR'], 'isDirectFlight' => true]);
+        // Our own check still drops anything that isn't non-stop.
+        $this->assertStringNotContainsString('value="C1"', $html);
+        $this->assertStringContainsString('value="Q1"', $html);
+
+        // A normal search doesn't send the modifier.
+        $this->get(route('flights.search', $params))->assertOk();
+        Http::assertSent(fn (Request $r) => $r['searchQuery']['searchModifiers'] === ['pfts' => ['REGULAR']]);
     }
 
     public function test_results_page_shows_one_card_per_flight_with_all_fares(): void

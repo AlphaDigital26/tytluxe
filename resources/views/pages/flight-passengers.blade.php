@@ -148,6 +148,7 @@
   $primaryAirlineName = $tripInfos[0]['sI'][0]['fD']['aI']['name'] ?? $primaryAirlineCode;
   $oldTravellers = old('travellers', []);
 
+  $travelDates = \App\Http\Controllers\FlightController::travelDates($tripInfos);
   $travellers = [];
   $typeCounters = ['ADULT' => 0, 'CHILD' => 0, 'INFANT' => 0];
   for ($i = 0; $i < $totalPax; $i++) {
@@ -160,7 +161,11 @@
           'chip' => $type.'-'.$n,
           'age' => ['ADULT' => '12+ yrs', 'CHILD' => '2–12 yrs', 'INFANT' => 'Under 2 yrs'][$type],
           'eligible' => $type !== 'INFANT',
-          'dobRequired' => $type === 'INFANT' || (bool) ($conditions['dob'][['ADULT' => 'adobr', 'CHILD' => 'cdobr', 'INFANT' => 'idobr'][$type]] ?? false),
+          'dobRequired' => $type === 'INFANT' || (bool) ($conditions['dob'][['ADULT' => 'adobr', 'CHILD' => 'cdobr', 'INFANT' => 'idobr'][$type]] ?? false)
+              || ($type === 'ADULT' && ($context['fareType'] ?? null) === 'SENIOR_CITIZEN'),
+          'dobRange' => $travelDates
+              ? \App\Http\Controllers\FlightController::dobRange($type, $travelDates[0], $travelDates[1], $context['fareType'] ?? null)
+              : ['min' => null, 'max' => now()->subDay()->format('Y-m-d')],
       ];
   }
 
@@ -330,7 +335,7 @@
               @if($t['dobRequired'])
               <div class="flr-field" style="max-width:260px;">
                 <label for="flpDob{{ $i }}">Date of Birth</label>
-                <input type="date" name="travellers[{{ $i }}][dob]" id="flpDob{{ $i }}" value="{{ $old['dob'] ?? '' }}" max="{{ now()->subDay()->format('Y-m-d') }}" required>
+                <input type="date" name="travellers[{{ $i }}][dob]" id="flpDob{{ $i }}" value="{{ $old['dob'] ?? '' }}" min="{{ $t['dobRange']['min'] }}" max="{{ $t['dobRange']['max'] }}" required>
               </div>
               @endif
 
