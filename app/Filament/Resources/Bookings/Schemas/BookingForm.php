@@ -2,96 +2,47 @@
 
 namespace App\Filament\Resources\Bookings\Schemas;
 
-use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
+/**
+ * Only the parts of a booking staff may safely change by hand. Amounts,
+ * status, dates and TripJack IDs are driven by TripJack and Razorpay —
+ * editing them here used to be possible and could break refunds, so they
+ * change only through the booking's action buttons.
+ */
 class BookingForm
 {
     public static function configure(Schema $schema): Schema
     {
         return $schema
             ->components([
-                TextInput::make('reference')
-                    ->required(),
-                TextInput::make('user_id')
-                    ->numeric()
-                    ->default(null),
-                TextInput::make('guest_email')
-                    ->email()
-                    ->default(null),
-                TextInput::make('guest_phone')
-                    ->tel()
-                    ->default(null),
-                Select::make('vertical')
-                    ->options(['hotel' => 'Hotel', 'flight' => 'Flight'])
-                    ->required(),
-                TextInput::make('hotel_id')
-                    ->tel()
-                    ->numeric()
-                    ->default(null),
-                TextInput::make('room_type_id')
-                    ->numeric()
-                    ->default(null),
-                TextInput::make('tripjack_booking_id')
-                    ->default(null),
-                TextInput::make('tripjack_hold_id')
-                    ->default(null),
-                DatePicker::make('check_in'),
-                DatePicker::make('check_out'),
-                TextInput::make('flight_route')
-                    ->default(null),
-                TextInput::make('pax_adults')
-                    ->required()
-                    ->numeric()
-                    ->default(1),
-                TextInput::make('pax_children')
-                    ->required()
-                    ->numeric()
-                    ->default(0),
-                TextInput::make('lead_guest_name')
-                    ->label('Primary Guest Name')
-                    ->helperText('Taken from the first traveler on the booking.')
-                    ->required(),
-                TextInput::make('special_requests')
-                    ->default(null),
-                TextInput::make('base_amount')
-                    ->required()
-                    ->numeric(),
-                TextInput::make('tax_amount')
-                    ->required()
-                    ->numeric()
-                    ->default(0.0),
-                TextInput::make('discount_amount')
-                    ->required()
-                    ->numeric()
-                    ->default(0.0),
-                TextInput::make('total_amount')
-                    ->required()
-                    ->numeric(),
-                TextInput::make('currency')
-                    ->required()
-                    ->default('INR'),
-                TextInput::make('offer_id')
-                    ->numeric()
-                    ->default(null),
-                Select::make('status')
-                    ->options([
-            'pending_payment' => 'Pending payment',
-            'pending_confirmation' => 'Paid, awaiting hotel confirmation',
-            'confirmed' => 'Confirmed',
-            'cancelled' => 'Cancelled',
-            'failed_needs_review' => 'Failed needs review',
-        ])
-                    ->default('pending_payment')
-                    ->required(),
-                TextInput::make('cancellation_reason')
-                    ->default(null),
-                Textarea::make('admin_note')
-                    ->default(null)
-                    ->columnSpanFull(),
+                Section::make('Guest contact details')
+                    ->description('Correct a typo in the guest\'s name, email or phone. This does not change anything with the hotel or the payment.')
+                    ->columns(3)
+                    ->schema([
+                        TextInput::make('lead_guest_name')
+                            ->label('Guest name')
+                            ->required()
+                            ->maxLength(255),
+                        TextInput::make('guest_email')
+                            ->label('Email')
+                            ->email()
+                            ->required(),
+                        TextInput::make('guest_phone')
+                            ->label('Phone')
+                            ->tel()
+                            ->required(),
+                    ]),
+                Section::make('Internal notes')
+                    ->schema([
+                        Textarea::make('admin_note')
+                            ->label('Notes (only your team sees these)')
+                            ->rows(5)
+                            ->columnSpanFull(),
+                    ]),
             ]);
     }
 }

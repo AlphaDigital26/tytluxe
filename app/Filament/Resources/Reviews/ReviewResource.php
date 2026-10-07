@@ -18,9 +18,26 @@ class ReviewResource extends Resource
 {
     protected static ?string $model = Review::class;
 
-    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-star';
+    protected static string|\UnitEnum|null $navigationGroup = 'Website Content';
 
-    protected static ?int $navigationSort = 70;
+    protected static ?int $navigationSort = 2;
+
+    protected static ?string $navigationLabel = 'Guest Reviews';
+
+    /** Badge: guest reviews waiting to be approved for the website. */
+    public static function getNavigationBadge(): ?string
+    {
+        $count = static::getModel()::where('is_published', false)->count();
+
+        return $count > 0 ? (string) $count : null;
+    }
+
+    public static function getNavigationBadgeTooltip(): ?string
+    {
+        return 'Reviews waiting for your approval';
+    }
+
+    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-star';
 
     protected static ?string $recordTitleAttribute = 'id';
 

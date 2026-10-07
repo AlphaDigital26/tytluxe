@@ -19,13 +19,13 @@ class CruiseResource extends Resource
 {
     protected static ?string $model = Cruise::class;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Cruise Catalog';
+    protected static string|\UnitEnum|null $navigationGroup = 'Cruises';
 
-    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-paper-airplane';
-
-    protected static ?int $navigationSort = 50;
+    protected static ?int $navigationSort = 1;
 
     protected static ?string $navigationLabel = 'Cruises';
+
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-paper-airplane';
 
     protected static ?string $recordTitleAttribute = 'title';
 

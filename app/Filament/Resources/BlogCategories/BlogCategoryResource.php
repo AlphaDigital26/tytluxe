@@ -17,13 +17,13 @@ class BlogCategoryResource extends Resource
 {
     protected static ?string $model = BlogCategory::class;
 
-    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-tag';
-
     protected static string|\UnitEnum|null $navigationGroup = 'Travel Journal';
+
+    protected static ?int $navigationSort = 2;
 
     protected static ?string $navigationLabel = 'Blog Categories';
 
-    protected static ?int $navigationSort = 120;
+    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-tag';
 
     protected static ?string $recordTitleAttribute = 'name';
 

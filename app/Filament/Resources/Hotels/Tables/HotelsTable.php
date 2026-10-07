@@ -177,7 +177,21 @@ class HotelsTable
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->before(function (DeleteBulkAction $action, \Illuminate\Support\Collection $records) {
+                            $booked = $records->filter(fn ($hotel) => $hotel->bookings()->exists());
+                            if ($booked->isEmpty()) {
+                                return;
+                            }
+
+                            \Filament\Notifications\Notification::make()
+                                ->title('Some hotels can\'t be deleted')
+                                ->body($booked->pluck('title')->implode(', ').' already have bookings. To take them off the website, switch off "Visible" instead.')
+                                ->danger()
+                                ->send();
+
+                            $action->halt();
+                        }),
                 ]),
             ])
             ->defaultSort('created_at', 'desc')

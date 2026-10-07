@@ -20,10 +20,14 @@ class AdminResource extends Resource
 {
     protected static ?string $model = Admin::class;
 
+    protected static string|\UnitEnum|null $navigationGroup = 'Customers & Team';
+
+    protected static ?int $navigationSort = 2;
+
+    protected static ?string $navigationLabel = 'Team Members';
+
     protected static ?string $modelLabel = 'Admin';
     protected static ?string $pluralModelLabel = 'Admins';
-    protected static ?string $navigationLabel = 'Admins';
-    protected static ?int $navigationSort = 100;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 

@@ -16,6 +16,9 @@
   $terminalBad = in_array($booking->status, ['refunded', 'failed_needs_review', 'cancelled'], true);
   $canRequestCancellation = $booking->status === 'confirmed' && ! $cancellationPending
       && $booking->check_in && \Illuminate\Support\Carbon::parse($booking->check_in)->isFuture();
+  // Hotel Settings → "Guests can cancel online" off: point the guest to support instead.
+  $cancelViaSupport = $canRequestCancellation && ! \App\Support\HotelSettings::allowGuestCancel();
+  $canRequestCancellation = $canRequestCancellation && ! $cancelViaSupport;
 @endphp
 
 @if($stillPolling)
@@ -438,6 +441,10 @@
           Cancel Booking
         </a>
       </div>
+      @endif
+
+      @if($cancelViaSupport)
+      <p style="margin-top:16px; text-align:center; font-family:'Jost',sans-serif; font-size:13px; color:rgba(255,255,255,0.6);">{{ \App\Support\HotelSettings::contactUsMessage() }}</p>
       @endif
 
       @if($paymentFailed)
