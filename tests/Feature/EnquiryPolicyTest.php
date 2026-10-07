@@ -2,38 +2,46 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithFaker;
-use Tests\TestCase;
-use App\Models\User;
+use App\Models\Admin;
 use App\Models\Enquiry;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
+/** EnquiryPolicy: staff edit enquiries assigned to them; Super Admin edits any. */
 class EnquiryPolicyTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_agent_can_update_assigned_enquiry(): void
+    protected function admin(string $role): Admin
     {
-        $agent = User::factory()->create(['role' => 'agent']);
+        return Admin::create([
+            'name' => $role, 'email' => uniqid('staff').'@example.com', 'password' => 'secret-pass',
+            'role' => $role, 'status' => 'Active',
+        ]);
+    }
+
+    public function test_staff_can_update_assigned_enquiry(): void
+    {
+        $agent = $this->admin('Support');
         $enquiry = Enquiry::factory()->create(['assigned_agent_id' => $agent->id]);
-        
+
         $this->assertTrue($agent->can('update', $enquiry));
     }
-    
-    public function test_agent_cannot_update_unassigned_enquiry(): void
+
+    public function test_staff_cannot_update_enquiry_assigned_to_someone_else(): void
     {
-        $agent1 = User::factory()->create(['role' => 'agent']);
-        $agent2 = User::factory()->create(['role' => 'agent']);
+        $agent1 = $this->admin('Support');
+        $agent2 = $this->admin('Support');
         $enquiry = Enquiry::factory()->create(['assigned_agent_id' => $agent2->id]);
-        
+
         $this->assertFalse($agent1->can('update', $enquiry));
     }
-    
-    public function test_admin_can_update_any_enquiry(): void
+
+    public function test_super_admin_can_update_any_enquiry(): void
     {
-        $admin = User::factory()->create(['role' => 'admin']);
+        $admin = $this->admin('Super Admin');
         $enquiry = Enquiry::factory()->create(['assigned_agent_id' => null]);
-        
+
         $this->assertTrue($admin->can('update', $enquiry));
     }
 }

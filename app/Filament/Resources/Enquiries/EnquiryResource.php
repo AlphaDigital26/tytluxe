@@ -21,11 +21,33 @@ class EnquiryResource extends Resource
 {
     protected static ?string $model = Enquiry::class;
 
+    protected static string|\UnitEnum|null $navigationGroup = 'Bookings & Leads';
+
+    protected static ?int $navigationSort = 1;
+
+    protected static ?string $navigationLabel = 'Enquiries';
+
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-chat-bubble-left-ellipsis';
 
-    protected static ?int $navigationSort = 10;
-
     protected static ?string $recordTitleAttribute = 'name';
+
+    /** Red badge on the menu item: enquiries nobody has contacted yet. */
+    public static function getNavigationBadge(): ?string
+    {
+        $count = static::getModel()::where('status', 'new')->count();
+
+        return $count > 0 ? (string) $count : null;
+    }
+
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return 'danger';
+    }
+
+    public static function getNavigationBadgeTooltip(): ?string
+    {
+        return 'New enquiries not contacted yet';
+    }
 
     public static function form(Schema $schema): Schema
     {
@@ -54,7 +76,8 @@ class EnquiryResource extends Resource
                             ->icon('heroicon-m-envelope')
                             ->columnSpanFull(),
                         TextEntry::make('vertical')
-                            ->label('Category')
+                            ->label('Looking for')
+                            ->formatStateUsing(fn ($state) => EnquiriesTable::CATEGORIES[$state] ?? ucfirst((string) $state))
                             ->badge()
                             ->color('info'),
                         TextEntry::make('reference_id')
@@ -131,9 +154,11 @@ class EnquiryResource extends Resource
                 Section::make('Resolution Details')
                     ->schema([
                         TextEntry::make('status')
+                            ->label('Stage')
+                            ->formatStateUsing(fn ($state) => EnquiriesTable::STATUSES[$state] ?? ucfirst((string) $state))
                             ->badge(),
                         TextEntry::make('assignedAgent.name')
-                            ->label('Resolved By')
+                            ->label('Handled By')
                             ->icon('heroicon-m-user-circle')
                             ->default('-'),
                         TextEntry::make('resolved_at')

@@ -17,13 +17,13 @@ class FeaturedBlogDestinationResource extends Resource
 {
     protected static ?string $model = FeaturedBlogDestination::class;
 
-    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-map-pin';
-
     protected static string|\UnitEnum|null $navigationGroup = 'Travel Journal';
+
+    protected static ?int $navigationSort = 3;
 
     protected static ?string $navigationLabel = 'Featured Destinations';
 
-    protected static ?int $navigationSort = 140;
+    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-map-pin';
 
     protected static ?string $recordTitleAttribute = 'name';
 

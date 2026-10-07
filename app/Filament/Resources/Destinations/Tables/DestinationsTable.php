@@ -165,7 +165,7 @@ class DestinationsTable
 
                             Notification::make()
                                 ->title('Cannot delete some destinations')
-                                ->body("{$names} still have hotels, cruises, or packages attached. Remove or reassign them first.")
+                                ->body("{$names} still have hotels, cruises, or packages attached. To take them off the website, switch off 'Visible' instead.")
                                 ->danger()
                                 ->send();
 

@@ -5,14 +5,15 @@
         ? \Illuminate\Support\Carbon::parse($record->check_in)->diffInDays(\Illuminate\Support\Carbon::parse($record->check_out))
         : null;
     $travelerNames = $record->travelers->pluck('full_name')->filter()->implode(', ') ?: $record->lead_guest_name;
-    $statusMeta = match ($record->status) {
-        'confirmed' => ['label' => 'Booking Confirmed', 'color' => '#1a7f4b', 'bg' => '#e7f6ee'],
-        'pending_confirmation' => ['label' => 'Paid - Awaiting Hotel Confirmation', 'color' => '#b3790a', 'bg' => '#fdf3df'],
-        'pending_payment' => ['label' => 'Booking Confirmed - Payment Pending', 'color' => '#b3790a', 'bg' => '#fdf3df'],
-        'cancelled' => ['label' => 'Booking Cancelled', 'color' => '#9c1c1c', 'bg' => '#fbe9e9'],
-        'failed_needs_review' => ['label' => 'Booking Failed - Needs Review', 'color' => '#9c1c1c', 'bg' => '#fbe9e9'],
-        default => ['label' => ucfirst(str_replace('_', ' ', $record->status)), 'color' => '#555', 'bg' => '#f1f1f1'],
+    $plain = \App\Support\HotelBookingStatus::for($record);
+    [$fg, $bg] = match ($plain['color']) {
+        'success' => ['#1a7f4b', '#e7f6ee'],
+        'warning' => ['#b3790a', '#fdf3df'],
+        'danger' => ['#9c1c1c', '#fbe9e9'],
+        'info' => ['#1d4ed8', '#e8efff'],
+        default => ['#555', '#f1f1f1'],
     };
+    $statusMeta = ['label' => $plain['label'], 'color' => $fg, 'bg' => $bg];
 @endphp
 
 <x-filament-panels::page>
@@ -20,9 +21,10 @@
         {{-- Status banner --}}
         <div class="tyt-bkv-banner" style="background: {{ $statusMeta['bg'] }}; border-color: {{ $statusMeta['color'] }}22;">
             <div class="tyt-bkv-banner-left">
-                <span class="tyt-bkv-check" style="background: {{ $statusMeta['color'] }};">✓</span>
+                <span class="tyt-bkv-check" style="background: {{ $statusMeta['color'] }};">{{ $plain['color'] === 'success' ? '✓' : ($plain['color'] === 'danger' ? '!' : 'i') }}</span>
                 <div>
                     <h2 style="color: {{ $statusMeta['color'] }};">{{ $statusMeta['label'] }}</h2>
+                    <p class="tyt-bkv-banner-note">{{ $plain['help'] }}</p>
                     @if($record->status === 'pending_payment' && $record->tripjack_hold_expires_at)
                         <p class="tyt-bkv-banner-note">Complete payment before <strong>{{ $record->tripjack_hold_expires_at->format('j F') }}</strong> by <strong>{{ $record->tripjack_hold_expires_at->format('g:i A') }}</strong> to avoid automatic cancellation.</p>
                     @endif
@@ -43,6 +45,13 @@
                     <div><strong data-unit="minutes">--</strong><span>Minutes</span></div>
                     <div><strong data-unit="seconds">--</strong><span>Seconds</span></div>
                 </div>
+            </div>
+        @endif
+
+        @if($record->admin_note)
+            <div class="tyt-bkv-card" style="border-left: 4px solid var(--tyt-gold);">
+                <h3 class="tyt-bkv-card-title">Notes</h3>
+                <p style="white-space: pre-line; margin: 0; font-size: 13.5px;">{{ $record->admin_note }}</p>
             </div>
         @endif
 
@@ -133,7 +142,7 @@
                                 @endforeach
                             </tbody>
                         </table>
-                        <p class="tyt-bkv-fineprint">Live from TripJack as of {{ now()->format('M j, Y g:i A') }}. Charges shown are calculated per the schedule above and may include non-refundable taxes/fees per the property's own policy.</p>
+                        <p class="tyt-bkv-fineprint">From TripJack, last checked {{ $this->penaltyFetchedAt }}. Charges shown are calculated per the schedule above and may include non-refundable taxes/fees per the property's own policy.</p>
                     @else
                         <p class="tyt-bkv-fineprint">{{ $this->penaltyError ?? 'No cancellation schedule available.' }}</p>
                     @endif
@@ -200,6 +209,32 @@
                 </div>
 
                 <div class="tyt-bkv-card">
+                    <h3 class="tyt-bkv-card-title">Payments &amp; Refunds</h3>
+                    @forelse($record->payments->sortBy('created_at') as $payment)
+                        <div class="tyt-bkv-fare-row" style="align-items: flex-start;">
+                            <span>
+                                {{ $payment->created_at->format('j M Y, g:i A') }}<br>
+                                <small style="color:#888;">
+                                    {{ match ($payment->status) {
+                                        'captured' => 'Paid',
+                                        'refunded' => 'Refunded in full',
+                                        'partially_refunded' => 'Partly refunded',
+                                        'failed' => 'Failed',
+                                        default => 'Not completed',
+                                    } }}
+                                    @if((float) $payment->refund_amount > 0) · {{ $record->currency }} {{ number_format($payment->refund_amount, 2) }} back to guest @endif
+                                </small>
+                            </span>
+                            <strong>{{ $record->currency }} {{ number_format($payment->amount, 2) }}</strong>
+                        </div>
+                    @empty
+                        <p class="tyt-bkv-fineprint">No payment has been made for this booking.</p>
+                    @endforelse
+                    @if($record->payments->contains(fn ($p) => $p->refund_reason))
+                        <p class="tyt-bkv-fineprint" style="margin-top: 8px;">Refund note: {{ $record->payments->pluck('refund_reason')->filter()->last() }}</p>
+                    @endif
+                </div>
+                <div class="tyt-bkv-card">
                     <h3 class="tyt-bkv-card-title">Booking Status</h3>
                     <div class="tyt-bkv-fare-row">
                         <span>Reference</span>
@@ -207,7 +242,7 @@
                     </div>
                     <div class="tyt-bkv-fare-row">
                         <span>Status</span>
-                        <strong>{{ ucfirst(str_replace('_', ' ', $record->status)) }}</strong>
+                        <strong>{{ $plain['label'] }}</strong>
                     </div>
                     <div class="tyt-bkv-fare-row">
                         <span>Booked On</span>

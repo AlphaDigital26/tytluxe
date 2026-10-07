@@ -79,12 +79,16 @@ class OtpController extends Controller
         }
 
         // OTP is valid — create the user
-        $user = User::create([
+        // forceFill: email_verified_at isn't mass-assignable on User, so
+        // passing it to create() was silently dropped and every OTP-verified
+        // account was stored as unverified.
+        $user = (new User)->forceFill([
             'name'     => $pending['name'],
             'email'    => $pending['email'],
             'password' => $pending['password'], // already hashed
             'email_verified_at' => now(),
         ]);
+        $user->save();
 
         // Subscribe to newsletter if requested
         if (! empty($pending['subscribe_newsletter'])) {

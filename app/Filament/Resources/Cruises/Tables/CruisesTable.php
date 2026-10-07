@@ -5,7 +5,7 @@ namespace App\Filament\Resources\Cruises\Tables;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
-use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
@@ -16,31 +16,27 @@ class CruisesTable
         return $table
             ->columns([
                 TextColumn::make('title')
-                    ->searchable(),
-                TextColumn::make('slug')
-                    ->searchable(),
-                TextColumn::make('cruise_line')
-                    ->searchable(),
+                    ->label('Cruise')
+                    ->description(fn ($record) => $record->cruise_line)
+                    ->searchable(['title', 'cruise_line'])
+                    ->weight('semibold'),
                 TextColumn::make('category')
+                    ->label('Type')
+                    ->formatStateUsing(fn ($state) => ucwords(str_replace('_', ' ', (string) $state)))
                     ->badge(),
                 TextColumn::make('duration_nights')
-                    ->numeric()
+                    ->label('Nights')
                     ->sortable(),
                 TextColumn::make('price_from')
-                    ->numeric()
+                    ->label('Price from')
+                    ->money('INR')
                     ->sortable(),
-                IconColumn::make('is_active')
-                    ->boolean(),
-                TextColumn::make('created_at')
-                    ->dateTime('M j, Y h:i A')
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                ToggleColumn::make('is_active')
+                    ->label('On website')
+                    ->disabled(fn ($record) => ! auth('admin')->user()?->can('update', $record)),
                 TextColumn::make('updated_at')
-                    ->dateTime('M j, Y h:i A')
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('deleted_at')
-                    ->dateTime('M j, Y h:i A')
+                    ->label('Last updated')
+                    ->dateTime('j M Y')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
@@ -48,7 +44,7 @@ class CruisesTable
                 //
             ])
             ->recordActions([
-                EditAction::make(),
+                EditAction::make()->label('Edit'),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

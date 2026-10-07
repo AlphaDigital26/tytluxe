@@ -12,6 +12,9 @@
   $holdAlreadyExpired = $onHold && $holdExpiresAt && $holdExpiresAt->isPast();
   $canRequestCancellation = $booking->status === 'confirmed' && ! $cancellationPending
       && $booking->flight_departure_date && \Illuminate\Support\Carbon::parse($booking->flight_departure_date)->isFuture();
+  // Flight Settings → "Guests can cancel online" off: the guest is pointed to support instead.
+  $cancelViaSupport = $canRequestCancellation && ! \App\Support\FlightSettings::allowGuestCancel();
+  $canRequestCancellation = $canRequestCancellation && ! $cancelViaSupport;
   $pnr = $booking->tripjack_flight_pnr ?? [];
   $ticketNumbers = $booking->tripjack_flight_ticket_numbers ?? [];
 @endphp
@@ -271,7 +274,7 @@
   </div>
   @endif
 
-  @if($booking->vertical === 'flight' && $terminalGood)
+  @if($booking->vertical === 'flight' && $terminalGood && \App\Support\FlightSettings::allowGuestExtras())
   <div style="margin-top:16px;">
     <a href="{{ route('flights.extras.show', $booking->reference) }}"
        style="display:flex; align-items:center; justify-content:center; gap:8px; padding:13px 24px; border-radius:100px;
@@ -283,7 +286,7 @@
   </div>
   @endif
 
-  @if($booking->vertical === 'flight' && $terminalGood && $booking->flight_reissued_at === null)
+  @if($booking->vertical === 'flight' && $terminalGood && $booking->flight_reissued_at === null && \App\Support\FlightSettings::allowGuestReschedule())
   <div style="margin-top:16px;">
     <a href="{{ route('flights.reissue.show', $booking->reference) }}"
        style="display:flex; align-items:center; justify-content:center; gap:8px; padding:13px 24px; border-radius:100px;
@@ -317,6 +320,12 @@
       Cancel Booking
     </a>
   </div>
+  @endif
+
+  @if($cancelViaSupport)
+  <p style="margin-top:16px; text-align:center; font-family:'Jost',sans-serif; font-size:13px; color:rgba(255,255,255,0.6);">
+    Need to cancel or change this booking? {{ \App\Support\FlightSettings::contactUsMessage() }}
+  </p>
   @endif
 
   @if($paymentFailed)

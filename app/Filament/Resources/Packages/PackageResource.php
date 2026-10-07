@@ -17,13 +17,15 @@ class PackageResource extends Resource
 {
     protected static ?string $model = Package::class;
 
-    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-gift';
+    protected static string|\UnitEnum|null $navigationGroup = 'Packages & Offers';
 
-    protected static ?int $navigationSort = 30;
-
-    protected static ?string $recordTitleAttribute = 'title';
+    protected static ?int $navigationSort = 1;
 
     protected static ?string $navigationLabel = 'Packages';
+
+    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-gift';
+
+    protected static ?string $recordTitleAttribute = 'title';
 
     public static function form(Schema $schema): Schema
     {

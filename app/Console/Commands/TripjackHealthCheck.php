@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\Admin;
 use App\Models\Setting;
+use App\Support\FlightSettings;
 use App\Notifications\TripJackLowBalanceAlert;
 use App\Services\FlightBookingService;
 use App\Services\TripJack\Exceptions\TripJackApiException;
@@ -95,7 +96,8 @@ class TripjackHealthCheck extends Command
 
     /**
      * Reads the TripJack balance and alerts active admins (mail + panel)
-     * when it's below services.tripjack.flight.low_balance_alert.
+     * when it's below the alert level set on the admin's Flight Settings page.
+     * The reading is kept in Settings for the dashboard's Flights widget.
      *
      * @return string table detail
      */
@@ -106,7 +108,8 @@ class TripjackHealthCheck extends Command
         if ($total === null) {
             throw new TripJackApiException('user-detail response has no balance fields: '.implode(', ', array_keys($detail)), status: 200, body: $detail);
         }
-        $threshold = (float) config('services.tripjack.flight.low_balance_alert');
+        $threshold = FlightSettings::lowBalanceAlert();
+        Setting::setJson('tripjack_alert.last_balance', ['amount' => $total, 'checked_at' => Carbon::now()->toIso8601String()]);
 
         if ($total >= $threshold) {
             return 'balance ₹'.number_format($total, 2);

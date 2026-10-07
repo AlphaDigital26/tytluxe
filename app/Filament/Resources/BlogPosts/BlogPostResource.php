@@ -17,13 +17,13 @@ class BlogPostResource extends Resource
 {
     protected static ?string $model = BlogPost::class;
 
-    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-newspaper';
-
     protected static string|\UnitEnum|null $navigationGroup = 'Travel Journal';
+
+    protected static ?int $navigationSort = 1;
 
     protected static ?string $navigationLabel = 'Blog Posts';
 
-    protected static ?int $navigationSort = 130;
+    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-newspaper';
 
     protected static ?string $recordTitleAttribute = 'title';
 

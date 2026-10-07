@@ -9,8 +9,11 @@ use Filament\Widgets\TableWidget as BaseWidget;
 
 class LatestEnquiriesWidget extends BaseWidget
 {
-    protected static ?int $sort = 4;
-    protected static ?string $heading = 'Latest Enquiries (Quick Action)';
+    protected static ?int $sort = 9;
+
+    /** Load with the page (one request) instead of one request per widget. */
+    protected static bool $isLazy = false;
+    protected static ?string $heading = 'Latest enquiries';
     protected int | string | array $columnSpan = 'full';
 
     public function table(Table $table): Table
@@ -26,7 +29,7 @@ class LatestEnquiriesWidget extends BaseWidget
                     ->label('Contact')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('vertical')
-                    ->label('Category')
+                    ->label('Looking for')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'flight' => 'info',
@@ -35,7 +38,7 @@ class LatestEnquiriesWidget extends BaseWidget
                         'cruise' => 'primary',
                         default => 'gray',
                     })
-                    ->formatStateUsing(fn (string $state): string => ucfirst($state)),
+                    ->formatStateUsing(fn (string $state): string => \App\Filament\Resources\Enquiries\Tables\EnquiriesTable::CATEGORIES[$state] ?? ucfirst($state)),
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
@@ -45,7 +48,8 @@ class LatestEnquiriesWidget extends BaseWidget
                         'converted' => 'success',
                         default => 'gray',
                     })
-                    ->formatStateUsing(fn (string $state): string => ucfirst($state)),
+                    ->label('Stage')
+                    ->formatStateUsing(fn (string $state): string => \App\Filament\Resources\Enquiries\Tables\EnquiriesTable::STATUSES[$state] ?? ucfirst($state)),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Received')
                     ->dateTime('M j, Y h:i A')
@@ -53,6 +57,7 @@ class LatestEnquiriesWidget extends BaseWidget
             ])
             ->actions([
                 \Filament\Actions\Action::make('view')
+                    ->label('Open')
                     ->url(fn (Enquiry $record): string => \App\Filament\Resources\Enquiries\EnquiryResource::getUrl('index') . '?tableFilters[name][value]=' . urlencode($record->name))
                     ->icon('heroicon-m-eye')
             ])

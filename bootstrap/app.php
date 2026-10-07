@@ -23,6 +23,12 @@ return Application::configure(basePath: dirname(__DIR__))
         // middleware, so the execution-time bump has to be registered here
         // to cover admin form saves that process several uploads/repeaters
         // in one request.
+        // On/off switches from the admin's Flight Settings / Hotel Settings pages.
+        $middleware->alias([
+            'flight.enabled' => \App\Http\Middleware\EnsureFlightFeatureEnabled::class,
+            'hotel.enabled' => \App\Http\Middleware\EnsureHotelBookingEnabled::class,
+        ]);
+
         $middleware->web(append: [
             \App\Http\Middleware\IncreaseAdminExecutionLimits::class,
         ]);

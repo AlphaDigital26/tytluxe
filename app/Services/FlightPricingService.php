@@ -2,18 +2,19 @@
 
 namespace App\Services;
 
+use App\Support\FlightSettings;
+
 /**
  * TYTLUXE's flight markup formula — identical philosophy to
  * HotelPricingService, applied to TripJack's TF (Total Fare) instead of a
  * hotel's totalPrice. Kept as a separate class (not a shared base) since the
  * two verticals' commission/GST rules could diverge later — see that
  * class's docblock for the full reasoning behind the margin/GST/Razorpay
- * gross-up order of operations, which is identical here.
+ * gross-up order of operations, which is identical here. The markup % itself
+ * is the client's to set, in the admin's Flights → Flight Settings page.
  */
 class FlightPricingService
 {
-    protected const MARGIN_RATE = 0.10;
-
     protected const GST_RATE_BELOW_THRESHOLD = 0.05;
 
     protected const GST_RATE_AT_OR_ABOVE_THRESHOLD = 0.18;
@@ -31,7 +32,7 @@ class FlightPricingService
     public static function formula(): array
     {
         return [
-            'marginRate' => self::MARGIN_RATE,
+            'marginRate' => FlightSettings::marginRate(),
             'gstLow' => self::GST_RATE_BELOW_THRESHOLD,
             'gstHigh' => self::GST_RATE_AT_OR_ABOVE_THRESHOLD,
             'gstThreshold' => self::GST_THRESHOLD,
@@ -59,7 +60,7 @@ class FlightPricingService
             ? self::GST_RATE_BELOW_THRESHOLD
             : self::GST_RATE_AT_OR_ABOVE_THRESHOLD;
 
-        $marginAmount = $totalFare * self::MARGIN_RATE;
+        $marginAmount = $totalFare * FlightSettings::marginRate();
         $gstOnMargin = $marginAmount * $gstSlab;
         $preRazorpayAmount = $totalFare + $marginAmount + $gstOnMargin;
 

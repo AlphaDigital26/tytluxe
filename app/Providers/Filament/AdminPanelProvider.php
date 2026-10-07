@@ -6,7 +6,7 @@ use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
-use Filament\Pages\Dashboard;
+use App\Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
@@ -44,15 +44,14 @@ class AdminPanelProvider extends PanelProvider
             ->sidebarWidth('15rem')
             ->sidebarCollapsibleOnDesktop()
             ->navigationGroups([
-                \Filament\Navigation\NavigationGroup::make()
-                     ->label('Operations')
-                     ->icon('heroicon-o-briefcase'),
-                \Filament\Navigation\NavigationGroup::make()
-                     ->label('Cruise Catalog'),
-                \Filament\Navigation\NavigationGroup::make()
-                     ->label('System')
-                     ->icon('heroicon-o-cog-6-tooth')
-                     ->collapsed(),
+                \Filament\Navigation\NavigationGroup::make()->label('Bookings & Leads'),
+                \Filament\Navigation\NavigationGroup::make()->label('Hotels'),
+                \Filament\Navigation\NavigationGroup::make()->label('Flights'),
+                \Filament\Navigation\NavigationGroup::make()->label('Packages & Offers'),
+                \Filament\Navigation\NavigationGroup::make()->label('Cruises'),
+                \Filament\Navigation\NavigationGroup::make()->label('Website Content'),
+                \Filament\Navigation\NavigationGroup::make()->label('Travel Journal')->collapsed(),
+                \Filament\Navigation\NavigationGroup::make()->label('Customers & Team')->collapsed(),
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
@@ -60,11 +59,18 @@ class AdminPanelProvider extends PanelProvider
                 Dashboard::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
+            // Home screen, top to bottom (each widget's $sort sets the order).
             ->widgets([
-                \App\Filament\Widgets\DashboardStatsOverview::class,
+                \App\Filament\Widgets\WelcomeBanner::class,
+                \App\Filament\Widgets\TodoList::class,
+                \App\Filament\Widgets\BusinessSnapshot::class,
+                \App\Filament\Widgets\HotelsOverview::class,
+                \App\Filament\Widgets\FlightsOverview::class,
+                \App\Filament\Widgets\SalesChart::class,
+                \App\Filament\Widgets\UpcomingTrips::class,
                 \App\Filament\Widgets\EnquiriesByCategoryChart::class,
-                \App\Filament\Widgets\EnquiriesOverTimeChart::class,
                 \App\Filament\Widgets\LatestEnquiriesWidget::class,
+                \App\Filament\Widgets\DashboardStatsOverview::class,
             ])
             ->middleware([
                 EncryptCookies::class,

@@ -121,7 +121,13 @@ input[type="date"].tyt-finput::-webkit-calendar-picker-indicator{filter:invert(0
 
   <!-- LIVE FLIGHT SEARCH (shared partial — also used as "Modify Search" on the results page) -->
   <div class="tyt-sb-outer">
-    @include('partials.flight-search-widget')
+    @if(\App\Support\FlightSettings::bookingEnabled())
+      @include('partials.flight-search-widget')
+    @else
+      <div style="max-width:760px; margin:0 auto; padding:22px 26px; border-radius:14px; background:rgba(201,168,76,0.1); border:1px solid rgba(201,168,76,0.4); color:#f3e6c2; font-family:'Jost',sans-serif; font-size:15px; text-align:center;">
+        {{ \App\Support\FlightSettings::disabledMessage() }}
+      </div>
+    @endif
   </div>
 
   <!-- FLIGHT CATEGORIES -->

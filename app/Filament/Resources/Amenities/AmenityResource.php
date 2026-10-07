@@ -18,11 +18,13 @@ class AmenityResource extends Resource
 {
     protected static ?string $model = Amenity::class;
 
-    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-check-badge';
+    protected static string|\UnitEnum|null $navigationGroup = 'Hotels';
 
-    protected static ?int $navigationSort = 80;
+    protected static ?int $navigationSort = 2;
 
     protected static ?string $navigationLabel = 'Amenities';
+
+    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-check-badge';
 
     protected static ?string $modelLabel = 'Amenity';
 

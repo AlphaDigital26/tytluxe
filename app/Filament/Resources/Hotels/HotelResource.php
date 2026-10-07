@@ -18,13 +18,13 @@ class HotelResource extends Resource
 {
     protected static ?string $model = Hotel::class;
 
-    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-building-office-2';
-
     protected static string|\UnitEnum|null $navigationGroup = 'Hotels';
+
+    protected static ?int $navigationSort = 1;
 
     protected static ?string $navigationLabel = 'All Hotels';
 
-    protected static ?int $navigationSort = 40;
+    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-building-office-2';
 
     protected static ?string $recordTitleAttribute = 'title';
 

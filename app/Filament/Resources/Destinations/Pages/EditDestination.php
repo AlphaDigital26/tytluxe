@@ -35,7 +35,7 @@ class EditDestination extends EditRecord
 
                     Notification::make()
                         ->title('Cannot delete destination')
-                        ->body("This destination still has {$summary} attached to it. Remove or reassign them first.")
+                        ->body("This destination still has {$summary} attached to it. To take it off the website, switch off 'Visible' instead.")
                         ->danger()
                         ->send();
 

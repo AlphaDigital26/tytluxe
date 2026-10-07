@@ -6,6 +6,7 @@ use App\Models\Booking;
 use App\Models\Payment;
 use App\Services\FlightBookingService;
 use App\Services\FlightPricingService;
+use App\Support\FlightSettings;
 use App\Services\Payment\RazorpayService;
 use App\Services\TripJack\Exceptions\TripJackApiException;
 use App\Services\TripJack\Exceptions\TripJackException;
@@ -581,7 +582,7 @@ class FlightController extends Controller
 
         // Hold blocks the PNR without payment, so it's only offered when the
         // airline allows it (isBA) and nothing paid was added.
-        $canHold = (bool) ($conditions['isBA'] ?? false) && $addonsTotal <= 0;
+        $canHold = (bool) ($conditions['isBA'] ?? false) && $addonsTotal <= 0 && FlightSettings::allowHold();
         $resultsUrl = $draft['resultsUrl'] ?? route('flights.search');
         $sessionExpiresAt = $draft['expiresAt'] ?? null;
         $bookingId = $draft['bookingId'];
@@ -1067,7 +1068,7 @@ class FlightController extends Controller
         // Doc (Booking API, Hold): "Check conditions.isBA = true in Review
         // before attempting" — the Review page hides Block otherwise, but a
         // crafted/stale post must not reach TripJack either.
-        if ($intent === 'hold' && ! ($conditions['isBA'] ?? false)) {
+        if ($intent === 'hold' && (! ($conditions['isBA'] ?? false) || ! FlightSettings::allowHold())) {
             return back()->withInput()->withErrors(['intent' => 'This fare can’t be held — the airline requires payment to book it. Please choose Proceed to Pay.']);
         }
 

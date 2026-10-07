@@ -22,17 +22,28 @@ use Filament\Schemas\Schema;
  */
 class TripjackBookingReconciliation extends Page
 {
+
+    protected static string|\UnitEnum|null $navigationGroup = 'Bookings & Leads';
+
+    protected static ?int $navigationSort = 5;
+
+    protected static ?string $navigationLabel = 'Check Bookings with TripJack';
     protected string $view = 'filament.pages.tripjack-booking-reconciliation';
-
-    protected static string|\UnitEnum|null $navigationGroup = 'Hotels';
-
-    protected static ?string $navigationLabel = 'TripJack Reconciliation';
-
-    protected static ?int $navigationSort = 42;
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-clipboard-document-check';
 
-    protected static ?string $title = 'TripJack Booking Reconciliation';
+    protected static ?string $title = 'Check Bookings with TripJack';
+
+    public function getSubheading(): ?string
+    {
+        return 'Compares the hotel bookings TripJack has on record with the ones on your website, so you can spot any booking that is missing or has a different status. Pick a date range (up to 7 days, within the last 15 days) and click "Fetch from TripJack".';
+    }
+
+    /** Compares bookings with TripJack — for the team that handles bookings and money. */
+    public static function canAccess(): bool
+    {
+        return in_array(auth('admin')->user()?->role, ['Super Admin', 'Operations', 'Finance'], true);
+    }
 
     public array $data = [];
 

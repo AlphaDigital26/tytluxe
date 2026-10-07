@@ -8,8 +8,15 @@ use Illuminate\Support\Facades\DB;
 
 class EnquiriesByCategoryChart extends ChartWidget
 {
-    protected static ?int $sort = 2;
-    protected ?string $heading = 'Enquiries by Category';
+    protected static ?int $sort = 7;
+
+    /** Load with the page (one request) instead of one request per widget. */
+    protected static bool $isLazy = false;
+    protected ?string $heading = 'What guests are asking about';
+
+    protected ?string $description = 'All enquiries so far, by type of trip.';
+
+    protected ?string $maxHeight = '260px';
 
     protected function getData(): array
     {
@@ -18,7 +25,7 @@ class EnquiriesByCategoryChart extends ChartWidget
             ->pluck('total', 'vertical')
             ->toArray();
 
-        $labels = array_map('ucfirst', array_keys($data));
+        $labels = array_map(fn ($key) => \App\Filament\Resources\Enquiries\Tables\EnquiriesTable::CATEGORIES[$key] ?? ucfirst((string) $key), array_keys($data));
         $values = array_values($data);
 
         return [
@@ -39,6 +46,11 @@ class EnquiriesByCategoryChart extends ChartWidget
             ],
             'labels' => $labels,
         ];
+    }
+
+    protected function getOptions(): array
+    {
+        return ['plugins' => ['legend' => ['position' => 'bottom']], 'scales' => ['x' => ['display' => false], 'y' => ['display' => false]]];
     }
 
     protected function getType(): string

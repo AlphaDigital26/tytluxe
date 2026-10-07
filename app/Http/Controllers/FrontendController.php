@@ -2154,6 +2154,9 @@ class FrontendController extends Controller
             if ($booking->cancellation_requested_at !== null || $booking->status !== 'confirmed' || ! $booking->tripjack_booking_id) {
                 return redirect()->route('hotel.booking.confirmation', $booking->reference);
             }
+            if (! \App\Support\FlightSettings::allowGuestCancel()) {
+                return redirect()->route('hotel.booking.confirmation', $booking->reference)->with('booking_error', \App\Support\FlightSettings::contactUsMessage());
+            }
 
             // No pre-cancel charge quote for a normal cancellation (optional
             // per TripJack's docs) — the guest sees the actual charge/refund
@@ -2178,6 +2181,9 @@ class FrontendController extends Controller
 
         if ($booking->cancellation_requested_at !== null || $booking->status !== 'confirmed' || ! $booking->tripjack_booking_id) {
             return redirect()->route('hotel.booking.confirmation', $booking->reference);
+        }
+        if (! \App\Support\HotelSettings::allowGuestCancel()) {
+            return redirect()->route('hotel.booking.confirmation', $booking->reference)->with('booking_error', \App\Support\HotelSettings::contactUsMessage());
         }
 
         $penalty = null;
@@ -2216,6 +2222,9 @@ class FrontendController extends Controller
             }
             if ($booking->status !== 'confirmed' || ! $booking->tripjack_booking_id) {
                 return redirect()->route('hotel.booking.confirmation', $booking->reference);
+            }
+            if (! \App\Support\FlightSettings::allowGuestCancel()) {
+                return redirect()->route('hotel.booking.confirmation', $booking->reference)->with('booking_error', \App\Support\FlightSettings::contactUsMessage());
             }
 
             $flights = app(\App\Services\FlightBookingService::class);
@@ -2264,6 +2273,9 @@ class FrontendController extends Controller
 
         if ($booking->status !== 'confirmed' || ! $booking->tripjack_booking_id) {
             return redirect()->route('hotel.booking.confirmation', $booking->reference);
+        }
+        if (! \App\Support\HotelSettings::allowGuestCancel()) {
+            return redirect()->route('hotel.booking.confirmation', $booking->reference)->with('booking_error', \App\Support\HotelSettings::contactUsMessage());
         }
 
         $claimed = DB::transaction(function () use ($booking) {
