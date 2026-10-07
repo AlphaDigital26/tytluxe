@@ -17,13 +17,15 @@ class OfferResource extends Resource
 {
     protected static ?string $model = Offer::class;
 
-    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-tag';
+    protected static string|\UnitEnum|null $navigationGroup = 'Packages & Offers';
+
+    protected static ?int $navigationSort = 2;
 
     protected static ?string $navigationLabel = 'Offers';
 
-    protected static ?string $recordTitleAttribute = 'title';
+    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-tag';
 
-    protected static ?int $navigationSort = 55;
+    protected static ?string $recordTitleAttribute = 'title';
 
     public static function form(Schema $schema): Schema
     {

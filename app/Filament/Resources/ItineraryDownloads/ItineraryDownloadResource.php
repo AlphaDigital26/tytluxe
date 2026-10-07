@@ -20,9 +20,13 @@ class ItineraryDownloadResource extends Resource
 {
     protected static ?string $model = ItineraryDownload::class;
 
-    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-arrow-down-tray';
+    protected static string|\UnitEnum|null $navigationGroup = 'Bookings & Leads';
 
-    protected static ?int $navigationSort = 11;
+    protected static ?int $navigationSort = 2;
+
+    protected static ?string $navigationLabel = 'Itinerary Downloads';
+
+    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-arrow-down-tray';
 
     protected static ?string $recordTitleAttribute = 'name';
 

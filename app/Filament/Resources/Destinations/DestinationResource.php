@@ -18,9 +18,13 @@ class DestinationResource extends Resource
 {
     protected static ?string $model = Destination::class;
 
-    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-map-pin';
+    protected static string|\UnitEnum|null $navigationGroup = 'Website Content';
 
-    protected static ?int $navigationSort = 60;
+    protected static ?int $navigationSort = 1;
+
+    protected static ?string $navigationLabel = 'Destinations';
+
+    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-map-pin';
 
     protected static ?string $recordTitleAttribute = 'name';
 

@@ -80,7 +80,8 @@
                         // cancel page would actually let the guest through.
                         $canCancel = $booking->status === 'confirmed'
                             && filled($booking->tripjack_booking_id)
-                            && $booking->cancellation_requested_at === null;
+                            && $booking->cancellation_requested_at === null
+                            && ($booking->vertical === 'flight' ? \App\Support\FlightSettings::allowGuestCancel() : \App\Support\HotelSettings::allowGuestCancel());
                     @endphp
                     <img src="{{ $imageUrl }}" alt="{{ $title }}" class="journey-img">
                     <div class="journey-content">

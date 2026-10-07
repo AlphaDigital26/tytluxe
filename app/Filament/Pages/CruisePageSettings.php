@@ -18,17 +18,23 @@ use Filament\Support\Icons\Heroicon;
 
 class CruisePageSettings extends Page
 {
-    protected string $view = 'filament.pages.cruise-page-settings';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Cruise Catalog';
+    protected static string|\UnitEnum|null $navigationGroup = 'Cruises';
+
+    protected static ?int $navigationSort = 2;
 
     protected static ?string $navigationLabel = 'Cruise Page Settings';
+    protected string $view = 'filament.pages.cruise-page-settings';
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-adjustments-horizontal';
 
     protected static ?string $title = 'Cruise Page Settings';
 
-    protected static ?int $navigationSort = 2;
+    /** Website cruise page text and images — the Content team's area. */
+    public static function canAccess(): bool
+    {
+        return in_array(auth('admin')->user()?->role, ['Super Admin', 'Content'], true);
+    }
 
     // -----------------------------------------------------------------
     // Form State

@@ -4,7 +4,7 @@
 
         <div class="mt-6 flex justify-end">
             <x-filament::button type="submit" icon="heroicon-o-check-circle">
-                Save Hotel Listing Settings
+                Save Hotel Settings
             </x-filament::button>
         </div>
     </form>

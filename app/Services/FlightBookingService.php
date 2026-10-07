@@ -304,6 +304,8 @@ class FlightBookingService
      */
     public function applyBookingDetails(Booking $booking, array $details, RazorpayService $razorpay, bool $resolvingUncertain = false): bool
     {
+        $this->storeItinerary($booking, $details);
+
         $status = $details['order']['status'] ?? null;
         $expected = $resolvingUncertain ? 'failed_needs_review' : 'confirmed';
 

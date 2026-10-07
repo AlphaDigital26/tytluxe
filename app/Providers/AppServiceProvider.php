@@ -11,7 +11,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->scoped(\App\Support\FlightSettings::class);
+        $this->app->scoped(\App\Support\HotelSettings::class);
     }
 
     /**

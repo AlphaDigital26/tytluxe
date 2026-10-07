@@ -2,12 +2,15 @@
 
 namespace App\Services;
 
+use App\Support\HotelSettings;
+
 /**
  * TYTLUXE's hotel markup formula — founder-defined, do not reinterpret.
  *
  * TripJack's pricing.totalPrice (already inclusive of TripJack's own hotel
  * taxes) is treated as our supplier cost. On top of it we recover, in order:
- *   1. A 10% margin.
+ *   1. The client's margin — 10% unless changed in the admin's Hotels →
+ *      Hotel Settings page (HotelSettings::markupPercent()).
  *   2. GST on that margin only (5% below ₹7,500, 18% at/above ₹7,500 —
  *      checked against the raw TripJack price, before any markup).
  *   3. Razorpay's effective 2.36% (2% fee + 18% GST on that fee), which
@@ -27,8 +30,6 @@ namespace App\Services;
  */
 class HotelPricingService
 {
-    protected const MARGIN_RATE = 0.10;
-
     protected const GST_RATE_BELOW_THRESHOLD = 0.05;
 
     protected const GST_RATE_AT_OR_ABOVE_THRESHOLD = 0.18;
@@ -37,6 +38,21 @@ class HotelPricingService
 
     protected const RAZORPAY_EFFECTIVE_RATE = 0.0236;
 
+    /**
+     * The formula's fixed rates, for the admin's Hotel Settings price
+     * example (which previews a markup before it is saved).
+     *
+     * @return array{gstLow: float, gstHigh: float, gstThreshold: float, razorpayRate: float}
+     */
+    public static function formula(): array
+    {
+        return [
+            'gstLow' => self::GST_RATE_BELOW_THRESHOLD,
+            'gstHigh' => self::GST_RATE_AT_OR_ABOVE_THRESHOLD,
+            'gstThreshold' => self::GST_THRESHOLD,
+            'razorpayRate' => self::RAZORPAY_EFFECTIVE_RATE,
+        ];
+    }
     /**
      * Computes the customer-facing price from TripJack's raw totalPrice,
      * with the full breakdown kept traceable for auditing.
@@ -59,7 +75,7 @@ class HotelPricingService
             ? self::GST_RATE_BELOW_THRESHOLD
             : self::GST_RATE_AT_OR_ABOVE_THRESHOLD;
 
-        $marginAmount = $tripjackTotalPrice * self::MARGIN_RATE;
+        $marginAmount = $tripjackTotalPrice * HotelSettings::marginRate();
         $gstOnMargin = $marginAmount * $gstSlab;
         $preRazorpayAmount = $tripjackTotalPrice + $marginAmount + $gstOnMargin;
 

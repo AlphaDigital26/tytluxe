@@ -36,7 +36,23 @@ class EditHotel extends EditRecord
                 ->url(fn () => route('hotel.details', ['slug' => $this->record->slug]))
                 ->openUrlInNewTab()
                 ->visible(fn () => ! empty($this->record?->slug)),
-            DeleteAction::make(),
+            DeleteAction::make()
+                // Bookings keep a link to their hotel (and the database
+                // refuses to delete it), so a booked hotel is hidden, not deleted.
+                ->before(function (DeleteAction $action) {
+                    $count = $this->getRecord()->bookings()->count();
+                    if ($count === 0) {
+                        return;
+                    }
+
+                    Notification::make()
+                        ->title('This hotel can\'t be deleted')
+                        ->body("It has {$count} ".\Illuminate\Support\Str::plural('booking', $count).'. To take it off the website, switch off "Visible on Website" instead.')
+                        ->danger()
+                        ->send();
+
+                    $action->halt();
+                }),
         ];
     }
 }

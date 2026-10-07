@@ -59,8 +59,9 @@ class PasswordResetTest extends TestCase
             $response = $this->post('/reset-password', [
                 'token' => $notification->token,
                 'email' => $user->email,
-                'password' => 'password',
-                'password_confirmation' => 'password',
+                // The reset form requires a strong password (NewPasswordController).
+                'password' => 'N3w-Passw0rd!',
+                'password_confirmation' => 'N3w-Passw0rd!',
             ]);
 
             $response

@@ -14,17 +14,24 @@ use Illuminate\Support\Facades\Auth;
 
 class TripJackNotifications extends Page implements HasTable
 {
+
+    protected static string|\UnitEnum|null $navigationGroup = 'Customers & Team';
+
+    protected static ?int $navigationSort = 3;
+
+    protected static ?string $navigationLabel = 'Alerts';
     use InteractsWithTable;
 
     protected string $view = 'filament.pages.tripjack-notifications';
 
-    protected static ?string $navigationLabel = 'System Notification';
-
-    protected static ?int $navigationSort = 111;
-
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-bell-alert';
 
-    protected static ?string $title = 'System Notification';
+    protected static ?string $title = 'Alerts';
+
+    public function getSubheading(): ?string
+    {
+        return 'Automatic warnings from the website — for example when the TripJack wallet is running low or TripJack is limiting requests. Mark an alert as read once you have dealt with it.';
+    }
 
     public static function getNavigationBadge(): ?string
     {
@@ -73,7 +80,7 @@ class TripJackNotifications extends Page implements HasTable
                     ->action(fn () => Auth::guard('admin')->user()->unreadNotifications()->update(['read_at' => now()])),
             ])
             ->emptyStateHeading('No alerts yet')
-            ->emptyStateDescription('TripJack rate-limit alerts will show up here.')
+            ->emptyStateDescription('Warnings such as a low TripJack wallet balance will show up here.')
             ->emptyStateIcon('heroicon-o-bell-slash');
     }
 }
