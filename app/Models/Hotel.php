@@ -45,7 +45,9 @@ class Hotel extends Model
      */
     public function scopeVisibleOnWebsite($query)
     {
-        return $query->where('is_active', true)->whereIn('star_rating', static::allowedStarRatings());
+        // Unrated (null star_rating) hotels are not excluded by the star filter.
+        return $query->where('is_active', true)
+            ->where(fn ($q) => $q->whereIn('star_rating', static::allowedStarRatings())->orWhereNull('star_rating'));
     }
 
     /**

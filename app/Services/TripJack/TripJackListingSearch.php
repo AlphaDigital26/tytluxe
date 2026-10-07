@@ -67,7 +67,7 @@ class TripJackListingSearch
      *
      * @param  array<int>  $hids
      * @param  array<int, array{adults:int, children?:int, childAge?:int[]}>  $rooms
-     * @return array{correlationId: string, options: Collection<string, array>, batches: int, failedBatches: int}
+     * @return array{correlationId: string, options: Collection<string, array>, batches: int, failedBatches: int, firstError: ?array}
      */
     public function searchCity(array $hids, string $checkIn, string $checkOut, array $rooms, string $currency = 'INR', string $nationality = '106'): array
     {
@@ -75,7 +75,7 @@ class TripJackListingSearch
         $batches = array_chunk(array_values(array_unique($hids)), self::MAX_HIDS);
 
         if (empty($batches)) {
-            return ['correlationId' => $correlationId, 'options' => collect(), 'batches' => 0, 'failedBatches' => 0];
+            return ['correlationId' => $correlationId, 'options' => collect(), 'batches' => 0, 'failedBatches' => 0, 'firstError' => null];
         }
 
         $responses = $this->client->listingBatches($batches, $checkIn, $checkOut, $rooms, $correlationId, $currency, $nationality);
@@ -91,7 +91,7 @@ class TripJackListingSearch
             $options = $options->union($this->mapOptions($response['hotels'] ?? [], $currency));
         }
 
-        return ['correlationId' => $correlationId, 'options' => $options, 'batches' => count($batches), 'failedBatches' => $failed];
+        return ['correlationId' => $correlationId, 'options' => $options, 'batches' => count($batches), 'failedBatches' => $failed, 'firstError' => $this->client->lastBatchError];
     }
 
     /**

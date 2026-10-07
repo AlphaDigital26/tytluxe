@@ -17,12 +17,18 @@ use Illuminate\Support\Facades\Log;
  * FrontendController (showCancellation/submitCancellation/finalizeCancellation)
  * — same TripJack cancel-booking -> booking-details -> Razorpay refund
  * sequence, but driven by a staff action instead of the guest's own click,
- * and letting staff specify an exact refund amount for the partial-penalty
- * cases the guest flow deliberately leaves for manual review.
+ * and letting staff override the automatic (penalty-scaled) refund amount.
  */
 class BookingCancellationService
 {
-    public function penaltyFor(array $bookingDetails): ?array
+    /**
+     * The penalty slab in force at $at (default now). Slab times are IST
+     * with no offset, so they're parsed as Asia/Kolkata — parsing them in
+     * the app's UTC put every boundary 5½ hours late. Callers finalizing a
+     * cancellation pass the time it was *requested*, not when TripJack
+     * finished processing it (which can be days later, in a dearer slab).
+     */
+    public function penaltyFor(array $bookingDetails, ?\DateTimeInterface $at = null): ?array
     {
         $op = $bookingDetails['itemInfos']['HOTEL']['hInfo']['ops'][0] ?? null;
         $slabs = $op['cnp']['pd'] ?? null;
@@ -30,11 +36,11 @@ class BookingCancellationService
             return null;
         }
 
-        $now = now();
+        $now = Carbon::instance($at ?? now());
         foreach ($slabs as $slab) {
             try {
-                $from = Carbon::parse($slab['fdt']);
-                $to = Carbon::parse($slab['tdt']);
+                $from = Carbon::parse($slab['fdt'], 'Asia/Kolkata');
+                $to = Carbon::parse($slab['tdt'], 'Asia/Kolkata');
             } catch (\Throwable) {
                 continue;
             }
@@ -153,21 +159,24 @@ class BookingCancellationService
      */
     protected function finalize(Booking $booking, array $bookingDetails, RazorpayService $razorpay, ?float $refundOverride): array
     {
-        $penalty = $this->penaltyFor($bookingDetails);
+        $penalty = $this->penaltyFor($bookingDetails, $booking->cancellation_requested_at ?? now());
         $payment = $booking->payments()->where('status', 'captured')->latest()->first();
 
+        // Default: what the guest paid, minus the penalty's share of
+        // TripJack's price (full refund when the penalty is zero).
         $refundAmount = $refundOverride;
-        if ($refundAmount === null && $penalty !== null && $penalty['amount'] <= 0.0) {
-            $refundAmount = (float) ($payment->amount ?? 0);
+        if ($refundAmount === null && $penalty !== null && $payment && (float) $booking->tripjack_total_price > 0) {
+            $penaltyRatio = min(1, max(0, $penalty['amount'] / (float) $booking->tripjack_total_price));
+            $refundAmount = round((float) $payment->amount * (1 - $penaltyRatio), 2);
         }
 
         if ($payment && $refundAmount !== null && $refundAmount > 0) {
             try {
                 $razorpay->refund($payment->razorpay_payment_id, $refundAmount);
                 $payment->update([
-                    'status' => 'refunded',
+                    'status' => $refundAmount >= (float) $payment->amount ? 'refunded' : 'partially_refunded',
                     'refund_amount' => $refundAmount,
-                    'refund_reason' => $refundOverride !== null ? 'Manually refunded by admin.' : 'Free cancellation — full refund.',
+                    'refund_reason' => $refundOverride !== null ? 'Manually refunded by admin.' : 'Cancellation — refund after the hotel\'s cancellation penalty.',
                 ]);
                 $booking->update([
                     'status' => 'cancelled',

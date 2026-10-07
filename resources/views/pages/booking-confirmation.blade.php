@@ -190,6 +190,10 @@
     <div class="bc-icon-ring pending">⏳</div>
     <h1 class="bc-title">Cancellation In Progress</h1>
     <p class="bc-sub">We've submitted your cancellation request to the hotel. Some cancellations are processed offline and can take a little while to finalise — this page will show "Booking Cancelled" once it's done. No need to keep refreshing.</p>
+  @elseif($booking->status === 'pending_confirmation')
+    <div class="bc-icon-ring pending">⏳</div>
+    <h1 class="bc-title">Awaiting Hotel Confirmation</h1>
+    <p class="bc-sub">Your payment was successful and the booking has been sent to the hotel, which hasn't confirmed it yet. We keep checking automatically and will email you once it's confirmed — if the hotel can't confirm, you'll be refunded in full.</p>
   @elseif($terminalGood)
     <div class="bc-icon-ring good">✅</div>
     <h1 class="bc-title">Booking Confirmed!</h1>
@@ -388,6 +392,9 @@
           Booking Details
         </div>
         <div class="bc-line"><span>Reference</span><span>{{ $booking->reference }}</span></div>
+        @if($booking->hotel_confirmation_number)
+        <div class="bc-line"><span>Hotel Confirmation No.</span><span>{{ $booking->hotel_confirmation_number }}</span></div>
+        @endif
         <div class="bc-line"><span>Booked On</span><span>{{ $booking->created_at->format('d M Y') }}</span></div>
         @if($booking->tripjack_hold_expires_at)
         <div class="bc-line"><span>Hold Expires</span><span>{{ \Illuminate\Support\Carbon::parse($booking->tripjack_hold_expires_at)->format('d M Y, h:i A') }}</span></div>

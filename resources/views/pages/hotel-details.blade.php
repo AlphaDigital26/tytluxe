@@ -2738,7 +2738,7 @@ html { scroll-behavior: smooth; }
   $destination  = $hotel->destination?->name ?? 'Unknown Location';
   $images       = $hotel->images ?? collect();
   $imageCount   = $images->count();
-  $stars        = min((int) ($hotel->star_rating ?? 3), 5);
+  $stars        = min((int) ($hotel->star_rating ?? 0), 5); // 0 = unrated
 
   $amenities    = $hotel->amenities ?? collect();
   // "Rooms" and "Business Amenities" description sections read as facility
@@ -2978,9 +2978,11 @@ html { scroll-behavior: smooth; }
       <div class="hd-header-info">
         <div class="hd-title-stars-wrap">
           <h1 class="hd-hotel-title">{{ $hotel->title }}</h1>
+          @if($stars > 0)
           <div class="hd-hotel-stars" aria-label="{{ $stars }} out of 5 stars">
             @for($i = 0; $i < $stars; $i++) ★ @endfor
           </div>
+          @endif
         </div>
         <div class="hd-hotel-location">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
@@ -3522,13 +3524,20 @@ html { scroll-behavior: smooth; }
       <div class="hd-qf-div"></div>
       <div class="hd-qf-col">
         <div class="hd-qf-label">CHECK-OUT</div>
-        <div class="hd-qf-val">{{ $hotel->check_out_time ?? '11:00 AM' }}</div>
+        <div class="hd-qf-val">{{ $hotel->check_out_time ?? '11:00 AM' }}@if($hotel->checkout_till) <small>(till {{ $hotel->checkout_till }})</small>@endif</div>
       </div>
       <div class="hd-qf-div"></div>
       <div class="hd-qf-col">
         <div class="hd-qf-label">STAR RATING</div>
-        <div class="hd-qf-val hd-qf-stars">{{ $stars }}-Star Hotel</div>
+        <div class="hd-qf-val hd-qf-stars">{{ $stars > 0 ? $stars.'-Star Hotel' : 'Unrated' }}</div>
       </div>
+      @if($hotel->checkin_min_age)
+      <div class="hd-qf-div"></div>
+      <div class="hd-qf-col">
+        <div class="hd-qf-label">MIN. CHECK-IN AGE</div>
+        <div class="hd-qf-val">{{ $hotel->checkin_min_age }} years</div>
+      </div>
+      @endif
     </div>
 
     <!-- Card 2: About This Hotel -->
@@ -3798,7 +3807,7 @@ html { scroll-behavior: smooth; }
         $cheapestLive = ($liveOptions ?? collect())->isNotEmpty()
           ? ($liveOptions ?? collect())->sortBy('pricing.customerPrice')->first()
           : null;
-        $cheapestRoomName = $cheapestLive ? collect($cheapestLive['roomInfo'] ?? [])->pluck('name')->unique()->implode(' + ') : 'Deluxe Room';
+        $cheapestRoomName = $cheapestLive ? \App\Support\RoomLabel::forOption($cheapestLive) : 'Deluxe Room';
         $calcNights = max(1, \Illuminate\Support\Carbon::parse($checkIn)->diffInDays(\Illuminate\Support\Carbon::parse($checkOut)));
       @endphp
 
@@ -3940,7 +3949,7 @@ html { scroll-behavior: smooth; }
     <div class="hd-room-list">
       @php
         $groupedOptions = collect($liveOptions)->groupBy(function($option) {
-            return collect($option['roomInfo'] ?? [])->pluck('name')->unique()->implode(' + ') ?: 'Standard Room';
+            return \App\Support\RoomLabel::forOption($option, 'Standard Room');
         });
         $nights = max(1, \Illuminate\Support\Carbon::parse($checkIn)->diffInDays(\Illuminate\Support\Carbon::parse($checkOut)));
       @endphp
@@ -4065,7 +4074,8 @@ html { scroll-behavior: smooth; }
                   $cancellation = $option['cancellation'] ?? [];
                   $compliance = $option['compliance'] ?? [];
                   $isRefundable = $cancellation['isRefundable'] ?? false;
-                  $freeUntil = collect($cancellation['penalties'] ?? [])->firstWhere('amount', 0);
+                  // Zero-penalty slab still open now, parsed as IST by the controller.
+                  $freeUntil = !empty($cancellation['freeCancelUntil']) ? \Illuminate\Support\Carbon::parse($cancellation['freeCancelUntil'])->setTimezone('Asia/Kolkata') : null;
                   $mealBasis = $option['mealBasis'] ?? 'Room Only';
                   // Customer-facing price (TripJack's raw price + TYTLUXE markup) — never
                   // display pricing['totalPrice'] directly, that's TripJack's raw cost.
@@ -4129,7 +4139,7 @@ html { scroll-behavior: smooth; }
                          data-price="{{ $customerPrice ?? 0 }}"
                          title="Click to view detailed cancellation policy">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
-                      <span>Free Cancellation @if($freeUntil) before {{ \Illuminate\Support\Carbon::parse($freeUntil['to'])->format('jS F Y') }} @endif</span>
+                      <span>@if($freeUntil) Free Cancellation before {{ $freeUntil->format('jS M Y, g:i A') }} IST @else Refundable (penalty applies) @endif</span>
                       <span style="font-size: 11px; opacity: 0.8; text-decoration: underline; text-underline-offset: 2px; margin-left: 2px;">View Policy</span>
                     </div>
                     @else
@@ -4165,6 +4175,17 @@ html { scroll-behavior: smooth; }
                     </div>
                     @endif
 
+                    @php
+                      $optNotes = collect((array) ($option['bookingNotes'] ?? []))->flatten()->filter(fn ($n) => is_string($n) && trim($n) !== '');
+                    @endphp
+                    @if($optNotes->isNotEmpty())
+                    {{-- TripJack: booking notes must be shown before booking. --}}
+                    <details style="font-family:'Jost',sans-serif; font-size:11.5px; color:rgba(255,255,255,0.6); margin-top:8px;">
+                      <summary style="cursor:pointer; color:var(--gold);">Important notes</summary>
+                      @foreach($optNotes as $note)<p style="margin:6px 0 0;">{!! nl2br(e(strip_tags($note))) !!}</p>@endforeach
+                    </details>
+                    @endif
+
                     @if($localRoom && $localRoom->description)
                     <a class="hd-rate-more" data-toggle="{{ $rateId }}">View more</a>
                     <div id="{{ $rateId }}" class="hd-desc" style="display:none; margin-top:10px; font-size:13px;">{!! strip_tags($localRoom->description) !!}</div>
@@ -4173,8 +4194,8 @@ html { scroll-behavior: smooth; }
 
                   <!-- Pricing & Select (Right Column) -->
                   <div class="hd-rate-price">
-                    @if(($pricing['strikethrough'] ?? null) > ($pricing['totalPrice'] ?? 0))
-                    <div style="font-family:'Jost',sans-serif; font-size:12px; color:rgba(255,255,255,0.35); text-decoration:line-through;">{{ $pricing['currency'] ?? 'INR' }} {{ number_format($pricing['strikethrough']) }}</div>
+                    @if(($pricing['customerStrikethrough'] ?? 0) > $customerPrice)
+                    <div style="font-family:'Jost',sans-serif; font-size:12px; color:rgba(255,255,255,0.35); text-decoration:line-through;">{{ $pricing['currency'] ?? 'INR' }} {{ number_format($pricing['customerStrikethrough']) }}</div>
                     @endif
                     <div class="hd-rate-price-per-night">{{ $pricing['currency'] ?? 'INR' }} {{ number_format($perNight) }}/night</div>
                     <div class="hd-rate-price-total">{{ $pricing['currency'] ?? 'INR' }} {{ number_format($customerPrice) }}</div>
@@ -5624,10 +5645,10 @@ html { scroll-behavior: smooth; }
     });
 
     /* ===== PRICE FRESHNESS AUTO-RELOAD (silent — no visible countdown) ===== */
-    // TripJack's search/pricing session is valid for ~15 minutes (per their
-    // own API docs). Reload once past that expiry to pull fresh prices
-    // rather than let a guest book off a price TripJack would reject as
-    // stale at Review time anyway. No on-page timer — just fires once.
+    // TripJack's search/pricing session is valid for ~15 minutes; their best
+    // practice is to prompt a re-search at ~12 ($pricingExpiresAt, set in
+    // FrontendController::hotelDetails). Reload then to pull fresh prices
+    // rather than let a guest pick a rate that expires at Review.
     @if(! empty($pricingExpiresAt))
     (function () {
       const remainingMs = ({{ (int) $pricingExpiresAt }} * 1000) - Date.now();
