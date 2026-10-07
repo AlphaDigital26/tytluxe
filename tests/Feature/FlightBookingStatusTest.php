@@ -74,11 +74,18 @@ class FlightBookingStatusTest extends TestCase
     {
         return [
             'order' => ['bookingId' => 'TJS100000000001', 'status' => $status],
-            'itemInfos' => ['AIR' => ['travellerInfos' => [[
-                'fN' => 'Rahul', 'lN' => 'Probe',
-                'pnrDetails' => ['DEL-BOM' => 'ABC123'],
-                'ticketNumberDetails' => ['DEL-BOM' => '0981234567890'],
-            ]]]],
+            'itemInfos' => ['AIR' => ['travellerInfos' => [
+                [
+                    'ti' => 'Mr', 'fN' => 'Rahul', 'lN' => 'Probe',
+                    'pnrDetails' => ['DEL-BOM' => 'ABC123'],
+                    'ticketNumberDetails' => ['DEL-BOM' => '0981234567890'],
+                ],
+                [
+                    'ti' => 'Ms', 'fN' => 'Asha', 'lN' => 'Probe',
+                    'pnrDetails' => ['DEL-BOM' => 'ABC123'],
+                    'ticketNumberDetails' => ['DEL-BOM' => '0981234567891'],
+                ],
+            ]]],
             'status' => ['success' => true, 'httpStatus' => 200],
         ];
     }
@@ -102,7 +109,38 @@ class FlightBookingStatusTest extends TestCase
 
         $booking->refresh();
         $this->assertSame(['DEL-BOM' => 'ABC123'], $booking->tripjack_flight_pnr);
-        $this->assertSame(['DEL-BOM' => '0981234567890'], $booking->tripjack_flight_ticket_numbers);
+        $this->assertSame([
+            ['name' => 'Mr Rahul Probe', 'tickets' => ['DEL-BOM' => '0981234567890']],
+            ['name' => 'Ms Asha Probe', 'tickets' => ['DEL-BOM' => '0981234567891']],
+        ], $booking->tripjack_flight_ticket_numbers);
+    }
+
+    public function test_confirmation_page_lists_every_travellers_ticket(): void
+    {
+        Http::fake(['*/booking-details' => Http::response($this->details('SUCCESS'))]);
+        $booking = $this->pendingBooking(['status' => 'confirmed', 'tripjack_booking_id' => 'TJS100000000001']);
+
+        $this->get(route('hotel.booking.confirmation', $booking->reference))
+            ->assertOk()
+            ->assertSee('Ticket — Mr Rahul Probe')
+            ->assertSee('0981234567890')
+            ->assertSee('Ticket — Ms Asha Probe')
+            ->assertSee('0981234567891');
+    }
+
+    public function test_confirmation_page_still_shows_tickets_stored_in_the_old_format(): void
+    {
+        Http::fake(['*/booking-details' => Http::response(['order' => ['status' => 'SUCCESS'], 'status' => ['success' => true]])]);
+        $booking = $this->pendingBooking([
+            'status' => 'confirmed',
+            'tripjack_booking_id' => 'TJS100000000001',
+            'tripjack_flight_ticket_numbers' => ['DEL-BOM' => '0981234567890'],
+        ]);
+
+        $this->get(route('hotel.booking.confirmation', $booking->reference))
+            ->assertOk()
+            ->assertSee('Ticket (DEL-BOM)')
+            ->assertSee('0981234567890');
     }
 
     public function test_job_keeps_polling_while_pending_and_refunds_when_failed(): void

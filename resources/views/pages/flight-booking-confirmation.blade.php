@@ -181,8 +181,17 @@
     @foreach($pnr as $segmentKey => $pnrNumber)
     <div class="bc-line"><span>PNR ({{ $segmentKey }})</span><span>{{ $pnrNumber }}</span></div>
     @endforeach
-    @foreach($ticketNumbers as $paxName => $ticketNumber)
-    <div class="bc-line"><span>Ticket — {{ $paxName }}</span><span>{{ $ticketNumber }}</span></div>
+    {{-- Per traveller: [{name, tickets: {"DEL-BOM": "098…"}}]. Bookings
+         ticketed before that was stored hold one traveller's
+         {"DEL-BOM": "098…"} map — still shown, keyed by sector. --}}
+    @foreach($ticketNumbers as $key => $entry)
+      @if(is_array($entry))
+        @foreach(($entry['tickets'] ?? []) as $sector => $ticketNumber)
+        <div class="bc-line"><span>Ticket — {{ $entry['name'] ?? 'Traveller' }}{{ count($entry['tickets']) > 1 ? ' ('.$sector.')' : '' }}</span><span>{{ $ticketNumber }}</span></div>
+        @endforeach
+      @else
+        <div class="bc-line"><span>Ticket ({{ $key }})</span><span>{{ $entry }}</span></div>
+      @endif
     @endforeach
   </div>
   @endif

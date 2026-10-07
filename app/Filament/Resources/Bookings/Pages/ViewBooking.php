@@ -36,7 +36,8 @@ class ViewBooking extends ViewRecord
     {
         parent::mount($record);
 
-        if (blank($this->record->tripjack_booking_id)) {
+        // The hotel cancellation schedule below doesn't apply to flights.
+        if (blank($this->record->tripjack_booking_id) || $this->record->vertical === 'flight') {
             return;
         }
 

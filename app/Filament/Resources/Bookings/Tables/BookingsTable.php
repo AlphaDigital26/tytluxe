@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Bookings\Tables;
 
 use App\Models\Booking;
 use App\Services\Booking\BookingCancellationService;
+use App\Services\FlightBookingService;
 use App\Services\Payment\RazorpayService;
 use App\Services\TripJack\TripJackClient;
 use Filament\Actions\Action;
@@ -12,6 +13,7 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
@@ -121,6 +123,8 @@ class BookingsTable
                 ViewAction::make(),
                 EditAction::make(),
                 static::cancelAndRefundAction(),
+                static::cancelFlightAction(),
+                static::flightFullRefundAction(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
@@ -143,7 +147,9 @@ class BookingsTable
             ->icon('heroicon-o-x-circle')
             ->color('danger')
             ->visible(function (Booking $record): bool {
-                return $record->status === 'confirmed'
+                // Hotel API only — flights have their own actions below.
+                return $record->vertical !== 'flight'
+                    && $record->status === 'confirmed'
                     && filled($record->tripjack_booking_id)
                     && (bool) (auth('admin')->user()?->can('update', $record));
             })
@@ -191,5 +197,89 @@ class BookingsTable
                     ->color($result['success'] ? 'success' : 'danger')
                     ->send();
             });
+    }
+
+    /**
+     * A flight booking TripJack ticketed, with no full cancellation already
+     * in progress, that this admin may update.
+     */
+    protected static function canAmendFlight(Booking $record): bool
+    {
+        return $record->vertical === 'flight'
+            && $record->status === 'confirmed'
+            && filled($record->tripjack_booking_id)
+            && $record->cancellation_requested_at === null
+            && (bool) (auth('admin')->user()?->can('update', $record));
+    }
+
+    /**
+     * Staff-triggered full flight cancellation — the same Submit Amendment
+     * (CANCELLATION) → amendment-details poll → automatic refund flow the
+     * guest's own cancel page uses (FlightBookingService::submitCancellation()).
+     */
+    protected static function cancelFlightAction(): Action
+    {
+        return Action::make('cancelFlight')
+            ->label('Cancel Flight')
+            ->icon('heroicon-o-x-circle')
+            ->color('danger')
+            ->visible(fn (Booking $record): bool => static::canAmendFlight($record))
+            ->schema([
+                TextInput::make('remarks')
+                    ->label('Reason (sent to TripJack)')
+                    ->required()
+                    ->maxLength(200)
+                    ->default('Cancelled by TYTLUXE support on guest request.'),
+            ])
+            ->modalHeading('Cancel flight booking')
+            ->modalDescription('Raises a full cancellation with TripJack for every traveller and flight. The airline\'s cancellation charges apply; the refund is calculated and issued automatically once TripJack confirms. This cannot be undone.')
+            ->modalSubmitActionLabel('Submit cancellation')
+            ->action(function (array $data, Booking $record): void {
+                $result = app(FlightBookingService::class)->submitCancellation($record, remarks: $data['remarks']);
+                static::notifyAmendment($result, 'Cancellation submitted to TripJack');
+            });
+    }
+
+    /**
+     * TripJack's Auto Full Refund (doc: Submit Amendment, type FULL_REFUND)
+     * — for when the airline owes a full refund (flight cancelled or
+     * rescheduled by the airline, DGCA policy, etc.). The remarks must be
+     * one of TripJack's checklist strings to trigger their automation.
+     */
+    protected static function flightFullRefundAction(): Action
+    {
+        return Action::make('flightFullRefund')
+            ->label('TripJack Full Refund')
+            ->icon('heroicon-o-receipt-refund')
+            ->color('warning')
+            ->visible(fn (Booking $record): bool => static::canAmendFlight($record))
+            ->schema([
+                Select::make('remarks')
+                    ->label('Reason')
+                    ->options(array_combine(FlightBookingService::FULL_REFUND_REMARKS, FlightBookingService::FULL_REFUND_REMARKS))
+                    ->required()
+                    ->helperText('Sent to TripJack exactly as shown — these reasons trigger their automatic full-refund processing.'),
+            ])
+            ->modalHeading('Request a full refund from TripJack')
+            ->modalDescription('Use only when the airline owes a full refund. TripJack reviews the request; once it is approved the guest is refunded automatically.')
+            ->modalSubmitActionLabel('Submit full refund')
+            ->action(function (array $data, Booking $record): void {
+                $result = app(FlightBookingService::class)->submitFullRefund($record, $data['remarks']);
+                static::notifyAmendment($result, 'Full refund requested from TripJack');
+            });
+    }
+
+    /**
+     * @param  array{success: bool, message: ?string}  $result
+     */
+    protected static function notifyAmendment(array $result, string $successTitle): void
+    {
+        Notification::make()
+            ->title($result['success'] ? $successTitle : 'Request not submitted')
+            ->body($result['success']
+                ? 'The site is checking TripJack for the result and will update the booking and refund the guest automatically.'
+                : ($result['message'] ?? 'A request for this booking is already in progress.'))
+            ->color($result['success'] ? 'success' : 'danger')
+            ->send();
     }
 }

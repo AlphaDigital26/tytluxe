@@ -153,6 +153,79 @@ class FlightPostBookingTest extends TestCase
         $this->assertNull($built, 'second seat for the same traveller/segment is not sent');
     }
 
+    protected function reissueDetails(string $status): array
+    {
+        return [
+            'order' => ['status' => $status],
+            'itemInfos' => ['AIR' => ['travellerInfos' => [
+                ['ti' => 'Mr', 'fN' => 'Rahul', 'lN' => 'Probe', 'pnrDetails' => ['DEL-COK' => 'NEW123'], 'ticketNumberDetails' => ['DEL-COK' => '0981111111111']],
+                ['ti' => 'Ms', 'fN' => 'Priya', 'lN' => 'Probe', 'pnrDetails' => ['DEL-COK' => 'NEW123'], 'ticketNumberDetails' => ['DEL-COK' => '0982222222222']],
+            ]]],
+            'status' => ['success' => true],
+        ];
+    }
+
+    public function test_reschedule_reads_new_pnr_only_after_the_five_second_wait(): void
+    {
+        \Illuminate\Support\Facades\Queue::fake();
+        Http::fake(['*/amendment/auto-reissue' => Http::response(['bookingId' => 'TJSNEW1', 'status' => ['success' => true]])]);
+        $booking = $this->booking([
+            'tripjack_flight_pnr' => ['DEL-COK' => 'OLD123'],
+            'flight_reissue_pending' => [
+                'newBookingId' => 'TJSNEW1', 'oldBookingId' => 'TJSOLD1', 'legIndex' => 0,
+                'newDepartureDate' => '2026-10-25T06:00', 'amount' => 1500, 'travellerInfo' => [],
+            ],
+        ]);
+        $payment = Payment::create([
+            'booking_id' => $booking->id, 'razorpay_order_id' => 'order_r', 'razorpay_payment_id' => 'pay_r',
+            'amount' => 1500, 'currency' => 'INR', 'status' => 'created', 'purpose' => 'flight_reissue',
+        ]);
+
+        app(\App\Services\FlightReissueService::class)->confirmAfterPayment($payment, $this->razorpay);
+
+        $booking->refresh();
+        $this->assertSame('TJSNEW1', $booking->tripjack_booking_id);
+        $this->assertNull($booking->tripjack_flight_pnr); // old PNR no longer shown
+        Http::assertNotSent(fn ($r) => str_contains($r->url(), 'booking-details'));
+        \Illuminate\Support\Facades\Queue::assertPushed(\App\Jobs\PollFlightBookingStatusJob::class, fn ($job) => $job->delay !== null);
+
+        Http::fake(['*/booking-details' => Http::response($this->reissueDetails('SUCCESS'))]);
+        (new \App\Jobs\PollFlightBookingStatusJob($booking->id))->handle(app(\App\Services\TripJack\TripJackFlightClient::class), app(FlightBookingService::class), $this->razorpay);
+
+        $booking->refresh();
+        $this->assertSame(['DEL-COK' => 'NEW123'], $booking->tripjack_flight_pnr);
+        $this->assertCount(2, $booking->tripjack_flight_ticket_numbers);
+        $this->assertSame('confirmed', $booking->status);
+    }
+
+    public function test_failed_reissue_never_refunds_the_original_ticket_payment(): void
+    {
+        $booking = $this->booking(['flight_reissued_at' => now(), 'tripjack_confirm_attempted_at' => now()->subMinute()]);
+        $this->payment($booking, 11000, 'booking', 'pay_fare');
+        Http::fake(['*/booking-details' => Http::response($this->reissueDetails('FAILED'))]);
+
+        $this->get(route('hotel.booking.confirmation', $booking->reference))->assertOk();
+
+        $booking->refresh();
+        $this->assertSame([], $this->razorpay->refunds);
+        $this->assertSame('confirmed', $booking->status);
+        $this->assertStringContainsString('ended FAILED', $booking->admin_note);
+    }
+
+    public function test_cancelling_a_rescheduled_booking_goes_to_manual_refund(): void
+    {
+        $booking = $this->booking(['flight_reissued_at' => now(), 'cancellation_requested_at' => now()]);
+        $this->payment($booking, 11000, 'booking', 'pay_fare');
+
+        app(FlightBookingService::class)->finalizeCancellation($booking, ['amendmentStatus' => 'SUCCESS', 'refundableAmount' => 9000]);
+
+        $booking->refresh();
+        $this->assertSame([], $this->razorpay->refunds);
+        $this->assertSame('cancelled', $booking->status);
+        $this->assertStringContainsString('refundable amount 9000', $booking->admin_note);
+        $this->assertNull(app(FlightBookingService::class)->cancellationQuote($booking, [], ['ADULT' => 2]));
+    }
+
     public function test_infant_is_cancelled_with_its_adult_and_never_alone(): void
     {
         $booking = $this->booking();

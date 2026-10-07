@@ -95,6 +95,9 @@
           if (! $itineraries || ! is_array($itineraries)) {
               continue;
           }
+          // One card per flight: TripJack sends some flights twice (regular
+          // fares + NDC fares) — see TripJackFlightClient::mergeSameFlights().
+          $itineraries = \App\Services\TripJack\TripJackFlightClient::mergeSameFlights($itineraries);
 
           $flights = [];
           foreach ($itineraries as $itinerary) {
