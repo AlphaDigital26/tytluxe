@@ -60,4 +60,31 @@ class Booking extends Model
     public function package() { return $this->belongsTo(Package::class); }
     public function hotel() { return $this->belongsTo(Hotel::class); }
     public function roomType() { return $this->belongsTo(RoomType::class); }
+
+    /**
+     * What the guest is told about a cancellation. cancellation_reason is
+     * written for staff (it can hold "needs manual review" or a raw Razorpay
+     * error), so guests get this plain wording instead. Null when the
+     * booking isn't cancelled or being cancelled.
+     */
+    public function guestCancellationMessage(): ?string
+    {
+        if ($this->status === 'confirmed' && $this->cancellation_requested_at !== null) {
+            return 'Your cancellation request is being processed. Once it is complete, any refund due goes back to your original payment method.';
+        }
+        if ($this->status !== 'cancelled') {
+            return null;
+        }
+
+        $reason = strtolower((string) $this->cancellation_reason);
+        $refunded = (float) $this->payments()->sum('refund_amount');
+
+        return match (true) {
+            str_starts_with($reason, 'hold released') => 'You released this held fare before paying, so no payment was taken.',
+            str_contains($reason, 'manual') => 'This booking has been cancelled. Our team is processing your refund and it will be paid back to your original payment method. We will contact you if we need anything.',
+            $refunded > 0 => sprintf('This booking has been cancelled and %s %s has been refunded to your original payment method. It can take 5–7 business days to show in your account.', $this->currency ?: 'INR', number_format($refunded, 2)),
+            str_contains($reason, 'no refund') => 'This booking has been cancelled. Under the cancellation policy for this booking, no refund is due.',
+            default => 'This booking has been cancelled. If a refund is due, it will be paid back to your original payment method.',
+        };
+    }
 }

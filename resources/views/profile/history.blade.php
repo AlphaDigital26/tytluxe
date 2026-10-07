@@ -71,7 +71,7 @@
                             'guestEmail' => $booking->guest_email,
                             'guestPhone' => $booking->guest_phone,
                             'specialRequests' => $booking->special_requests,
-                            'cancellationReason' => $booking->cancellation_reason,
+                            'cancellationReason' => $booking->guestCancellationMessage(),
                             'invoiceUrl' => ! in_array($booking->status, ['pending_payment', 'payment_failed'], true) ? route('hotel.booking.invoice', $booking->reference) : null,
                         ];
 
@@ -190,7 +190,7 @@
                                 'guestEmail' => $booking->guest_email,
                                 'guestPhone' => $booking->guest_phone,
                                 'specialRequests' => $booking->special_requests,
-                                'cancellationReason' => $booking->cancellation_reason,
+                                'cancellationReason' => $booking->guestCancellationMessage(),
                                 'invoiceUrl' => ! in_array($booking->status, ['pending_payment', 'payment_failed'], true) ? route('hotel.booking.invoice', $booking->reference) : null,
                             ];
                         @endphp

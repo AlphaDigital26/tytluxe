@@ -115,7 +115,7 @@
   @elseif($booking->status === 'cancelled')
     <div class="bc-icon-ring bad">⚠️</div>
     <h1 class="bc-title">Booking Cancelled</h1>
-    <p class="bc-sub">{{ $booking->cancellation_reason ?: 'This booking has been cancelled. If a refund is due, it will be processed back to your original payment method.' }}</p>
+    <p class="bc-sub">{{ $booking->guestCancellationMessage() }}</p>
   @elseif($cancellationPending)
     <div class="bc-icon-ring pending">⏳</div>
     <h1 class="bc-title">Cancellation In Progress</h1>
