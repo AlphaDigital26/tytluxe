@@ -30,10 +30,23 @@
 
         return implode(' · ', $parts) ?: '—';
     };
-    $ticketsFor = function (array $t) use ($ticketsByName) {
+    // Saved ticket numbers: one entry per traveller ({name, tickets}), or the
+    // older single-traveller {"DEL-BOM": "…"} shape.
+    $storedTickets = $record->tripjack_flight_ticket_numbers ?? [];
+    $storedPerTraveller = is_array(reset($storedTickets) ?: null);
+    $ticketsFor = function (array $t, int $i) use ($ticketsByName, $storedTickets, $storedPerTraveller) {
         $key = strtoupper(trim(($t['fN'] ?? '').' '.($t['lN'] ?? '')));
+        if ($tickets = collect($ticketsByName[$key] ?? [])->unique()->implode(', ')) {
+            return $tickets;
+        }
+        if ($storedPerTraveller) {
+            $name = strtoupper(trim(preg_replace('/\s+/', ' ', ($t['ti'] ?? '').' '.($t['fN'] ?? '').' '.($t['lN'] ?? ''))));
+            $entry = collect($storedTickets)->first(fn ($e) => strtoupper($e['name'] ?? '') === $name);
 
-        return collect($ticketsByName[$key] ?? [])->unique()->implode(', ');
+            return collect($entry['tickets'] ?? [])->unique()->implode(', ');
+        }
+
+        return $i === 0 ? collect($storedTickets)->unique()->implode(', ') : '';
     };
 
     $paymentPurpose = fn (?string $p) => match ($p) {
@@ -143,12 +156,7 @@
                         <thead><tr><th>Name</th><th>Type</th><th>Ticket number</th><th>Seat / meal / baggage</th></tr></thead>
                         <tbody>
                             @forelse($travellers as $i => $t)
-                                @php
-                                    $tickets = $ticketsFor($t);
-                                    if (! $tickets && $i === 0) {
-                                        $tickets = collect($record->tripjack_flight_ticket_numbers ?? [])->unique()->implode(', ');
-                                    }
-                                @endphp
+                                @php $tickets = $ticketsFor($t, $i); @endphp
                                 <tr>
                                     <td><strong>{{ trim(($t['ti'] ?? '').' '.($t['fN'] ?? '').' '.($t['lN'] ?? '')) }}</strong></td>
                                     <td>{{ $paxType($t) }}</td>

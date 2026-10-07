@@ -391,6 +391,59 @@ class FlightBookingService
     }
 
     /**
+     * Saves airline, flight number and times per segment from a Booking
+     * Details response, for the admin booking page (which never calls
+     * TripJack on load). Segments sit under itemInfos.AIR.tripInfos[].sI[],
+     * next to travellerInfos — see airTravellers().
+     */
+    public function storeItinerary(Booking $booking, array $details): void
+    {
+        $itinerary = self::itinerarySummary($details);
+        if ($itinerary && $itinerary !== $booking->flight_itinerary) {
+            $booking->update(['flight_itinerary' => $itinerary]);
+        }
+    }
+
+    /**
+     * Segments plus every traveller's ticket numbers, keyed by name, for the
+     * admin booking page. Empty when the response has no segments.
+     *
+     * @return array{segments?: array<int, array{airline: string, airlineCode: string, flightNo: string, from: string, fromCity: string, to: string, toCity: string, departs: ?string, arrives: ?string}>, tickets?: array<string, array>}
+     */
+    public static function itinerarySummary(array $details): array
+    {
+        $tripInfos = $details['itemInfos']['AIR']['tripInfos'] ?? $details['tripInfos'] ?? [];
+
+        $segments = collect($tripInfos)
+            ->flatMap(fn ($trip) => $trip['sI'] ?? [])
+            ->map(fn (array $seg) => [
+                'airline' => (string) ($seg['fD']['aI']['name'] ?? ''),
+                'airlineCode' => (string) ($seg['fD']['aI']['code'] ?? ''),
+                'flightNo' => (string) ($seg['fD']['fN'] ?? ''),
+                'from' => (string) ($seg['da']['code'] ?? ''),
+                'fromCity' => (string) ($seg['da']['city'] ?? ''),
+                'to' => (string) ($seg['aa']['code'] ?? ''),
+                'toCity' => (string) ($seg['aa']['city'] ?? ''),
+                'departs' => $seg['dt'] ?? null,
+                'arrives' => $seg['at'] ?? null,
+            ])
+            ->filter(fn (array $seg) => $seg['from'] !== '' && $seg['to'] !== '')
+            ->values()
+            ->all();
+
+        if (! $segments) {
+            return [];
+        }
+
+        $tickets = collect(self::airTravellers($details))
+            ->mapWithKeys(fn (array $t) => [strtoupper(trim(($t['fN'] ?? '').' '.($t['lN'] ?? ''))) => $t['ticketNumberDetails'] ?? []])
+            ->filter()
+            ->all();
+
+        return ['segments' => $segments, 'tickets' => $tickets];
+    }
+
+    /**
      * Refunds the ticket payment of a booking TripJack never ticketed.
      */
     public function refundUnconfirmedBooking(Booking $booking, RazorpayService $razorpay, string $reason): void

@@ -48,6 +48,18 @@ class ViewBooking extends ViewRecord
     {
         parent::mount($record);
 
+        $this->loadPenaltySchedule(fresh: false);
+    }
+
+    protected function cacheKey(): string
+    {
+        return 'admin_hotel_penalty_schedule:'.$this->record->id;
+    }
+
+    protected function loadPenaltySchedule(bool $fresh): void
+    {
+        $this->penaltyError = null;
+
         // The hotel cancellation schedule below doesn't apply to flights.
         if (blank($this->record->tripjack_booking_id) || $this->record->vertical === 'flight') {
             return;
