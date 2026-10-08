@@ -355,7 +355,16 @@
               </div>
               <div class="flr-row" style="grid-template-columns:1fr 1fr;">
                 <div class="flr-field"><label for="flpPassIss{{ $i }}">Passport Issue Date</label><input type="date" name="travellers[{{ $i }}][passport_issue_date]" id="flpPassIss{{ $i }}" value="{{ $old['passport_issue_date'] ?? '' }}" max="{{ now()->format('Y-m-d') }}" required></div>
-                <div class="flr-field"><label for="flpPassExp{{ $i }}">Passport Expiry</label><input type="date" name="travellers[{{ $i }}][passport_expiry]" id="flpPassExp{{ $i }}" value="{{ $old['passport_expiry'] ?? '' }}" min="{{ now()->addDay()->format('Y-m-d') }}" required></div>
+                <div class="flr-field">
+                  <label for="flpPassExp{{ $i }}">Passport Expiry</label>
+                  {{-- Must last the whole trip (server-checked); under 6 months
+                       from departure only warns — see passportValidityWarning(). --}}
+                  <input type="date" name="travellers[{{ $i }}][passport_expiry]" id="flpPassExp{{ $i }}" class="flp-pass-exp" value="{{ $old['passport_expiry'] ?? '' }}"
+                         min="{{ $travelDates ? $travelDates[1]->format('Y-m-d') : now()->addDay()->format('Y-m-d') }}"
+                         @if($travelDates) data-warn-before="{{ $travelDates[0]->copy()->addMonths(\App\Http\Controllers\FlightController::PASSPORT_VALIDITY_MONTHS)->format('Y-m-d') }}" @endif
+                         aria-describedby="flpPassExpWarn{{ $i }}" required>
+                  <p class="flr-note flp-pass-warn" id="flpPassExpWarn{{ $i }}" style="color:#e0b34a; margin-top:6px;" hidden>⚠️ Less than 6 months left from your departure date. Many countries require at least 6 months of passport validity on arrival and the airline can refuse boarding — please check your destination's entry rules.</p>
+                </div>
               </div>
               @endif
 
@@ -938,6 +947,18 @@
   });
 
   refresh();
+})();
+
+// Passport under 6 months from departure: a warning, not a block (the
+// server only refuses one that expires before the trip ends).
+(function () {
+  document.querySelectorAll('.flp-pass-exp[data-warn-before]').forEach(function (input) {
+    var warn = document.getElementById(input.getAttribute('aria-describedby'));
+    function check() { warn.hidden = !(input.value && input.value < input.dataset.warnBefore); }
+    input.addEventListener('input', check);
+    input.addEventListener('change', check);
+    check();
+  });
 })();
 </script>
 @endpush

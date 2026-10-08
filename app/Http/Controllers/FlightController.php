@@ -575,13 +575,15 @@ class FlightController extends Controller
             'total' => $priced['customer_price'],
         ];
 
-        $travellers = collect($reviewed['travellerInfo'])->map(function ($t, $i) use ($input, $reviewed) {
+        $departure = self::travelDates($tripInfos)[0] ?? null;
+        $travellers = collect($reviewed['travellerInfo'])->map(function ($t, $i) use ($input, $reviewed, $departure) {
             return [
                 'name' => trim(($t['ti'] ?? '').' '.($t['fN'] ?? '').' '.($t['lN'] ?? '')),
                 'type' => $t['pt'] ?? 'ADULT',
                 'dob' => $t['dob'] ?? null,
                 'passport' => $t['pNum'] ?? null,
                 'passportExpiry' => $t['eD'] ?? null,
+                'passportWarning' => self::passportValidityWarning($t['eD'] ?? null, $departure),
                 'frequentFlyer' => $input['travellers'][$i]['frequent_flyer'] ?? null,
                 'seats' => $reviewed['addonLines'][$i]['seats'] ?? [],
                 'extras' => $reviewed['addonLines'][$i]['extras'] ?? [],
@@ -745,6 +747,33 @@ class FlightController extends Controller
         };
 
         return ['min' => $min->toDateString(), 'max' => min($max, now()->subDay())->toDateString()];
+    }
+
+    /** Most countries want a passport valid this long after arrival. */
+    public const PASSPORT_VALIDITY_MONTHS = 6;
+
+    /**
+     * A passport that lasts the trip but has under 6 months left from the
+     * first departure. Not a block: entry rules belong to the destination
+     * (UAE/Thailand: 6 months from arrival; Schengen: 3 months after leaving;
+     * some only the stay) and the airline checks them at check-in — a hard
+     * stop would turn away travellers who'd be allowed in.
+     */
+    public static function passportValidityWarning(?string $expiry, ?\Carbon\Carbon $departure): ?string
+    {
+        if (! $expiry || ! $departure) {
+            return null;
+        }
+        try {
+            $expires = \Carbon\Carbon::parse($expiry)->startOfDay();
+        } catch (\Throwable) {
+            return null;
+        }
+        if ($expires->gte($departure->copy()->addMonths(self::PASSPORT_VALIDITY_MONTHS))) {
+            return null;
+        }
+
+        return 'This passport has less than '.self::PASSPORT_VALIDITY_MONTHS.' months left from your departure date. Many countries require at least 6 months of validity on arrival and the airline can refuse boarding — please check the entry rules for your destination before you pay.';
     }
 
     /**
@@ -975,7 +1004,12 @@ class FlightController extends Controller
             }
             if ($passportRequired) {
                 $rules["travellers.{$i}.passport_number"] = ['required', 'string', 'regex:/^[A-Za-z0-9]{6,20}$/'];
-                $rules["travellers.{$i}.passport_expiry"] = 'required|date|after:today';
+                // Must not expire before the trip ends — the guest couldn't
+                // finish the journey. (Under 6 months from departure is only
+                // a warning: the real rule depends on the destination, see
+                // passportValidityWarning().)
+                $rules["travellers.{$i}.passport_expiry"] = array_filter(['required', 'date', 'after:today',
+                    $travelDates ? 'after_or_equal:'.$travelDates[1]->toDateString() : null]);
                 // Sent as pNat (2-letter code) and pid — both confirmed
                 // accepted and stored by a live sandbox hold.
                 $rules["travellers.{$i}.passport_nationality"] = ['required', 'string', 'size:2', \Illuminate\Validation\Rule::in(array_keys(require resource_path('data/countries.php')))];
@@ -1007,6 +1041,7 @@ class FlightController extends Controller
             'travellers.*.pan.regex' => 'Please enter a valid PAN, e.g. ABCPE1234F — the 4th letter is the holder type (P for an individual).',
             'travellers.*.document_id.required' => 'Please enter the ID number for this '.strtolower(str_replace('_', ' ', $context['fareType'] ?? '')).' fare.',
             'travellers.*.passport_issue_date.before_or_equal' => 'The passport issue date can’t be in the future.',
+            'travellers.*.passport_expiry.after_or_equal' => 'This passport expires before your trip ends. Please use a passport that is valid for the whole journey.',
         ] + $ageMessages);
 
         $contactPhone = FlightBookingService::phoneFromInput($validated['contact_dial_code'] ?? null, $validated['contact_phone']);
