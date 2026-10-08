@@ -412,7 +412,7 @@
 
       @if($terminalGood)
       <div class="bc-next">
-        <strong>What happens next:</strong> you'll receive a confirmation email with your booking details and the hotel's contact information. No further action is needed from you.
+        <strong>What happens next:</strong> we've emailed your booking details and invoice to {{ $booking->guest_email }}. No further action is needed from you.
       </div>
       @endif
 

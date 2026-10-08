@@ -244,7 +244,7 @@
 
   @if($terminalGood)
   <div class="bc-next">
-    <strong>What happens next:</strong> you'll receive a confirmation email with your e-ticket and booking details. No further action is needed from you.
+    <strong>What happens next:</strong> we'll email you your airline PNR, each passenger's ticket number and your invoice as soon as the airline issues the tickets (usually within minutes). No further action is needed from you.
   </div>
   @endif
 

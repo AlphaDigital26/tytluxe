@@ -29,13 +29,19 @@ class ExpireFlightHolds extends Command
 
     public function handle(TripJackFlightClient $client): int
     {
-        $expired = Booking::query()
+        // One by one (not a bulk update) so BookingObserver emails each guest.
+        $expired = 0;
+        Booking::query()
             ->where('vertical', 'flight')
             ->where('status', 'on_hold')
             ->whereNull('tripjack_confirm_attempted_at')
             ->whereNotNull('tripjack_hold_expires_at')
             ->where('tripjack_hold_expires_at', '<=', now())
-            ->update(['status' => 'hold_expired']);
+            ->orderBy('id')
+            ->each(function (Booking $booking) use (&$expired) {
+                $booking->update(['status' => 'hold_expired']);
+                $expired++;
+            });
 
         $looked = 0;
         Booking::query()
