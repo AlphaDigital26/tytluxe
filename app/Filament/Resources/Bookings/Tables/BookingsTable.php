@@ -136,7 +136,7 @@ class BookingsTable
     protected static function cancelAndRefundAction(): Action
     {
         return Action::make('cancelAndRefund')
-            ->label('Cancel & Refund')
+            ->label(fn (Booking $record) => $record->cancellation_requested_at ? 'Finish cancellation & refund' : 'Cancel & Refund')
             ->icon('heroicon-o-x-circle')
             ->color('danger')
             ->visible(function (Booking $record): bool {
@@ -147,6 +147,27 @@ class BookingsTable
                     && (bool) (auth('admin')->user()?->can('update', $record));
             })
             ->schema(function (Booking $record) {
+                $refundable = BookingCancellationService::refundableAmount($record);
+
+                if ($record->cancellation_requested_at) {
+                    $saved = $record->admin_refund_amount !== null
+                        ? sprintf('%s %.2f (chosen by staff)', $record->currency, $record->admin_refund_amount)
+                        : "Automatic — based on the hotel's cancellation penalty";
+
+                    return [
+                        Placeholder::make('pending')
+                            ->label('Cancellation already sent to TripJack')
+                            ->content('Sent on '.$record->cancellation_requested_at->format('j M Y, g:i A').'. Refund to pay when TripJack confirms: '.$saved.'.'),
+                        TextInput::make('refund_amount')
+                            ->label('Change the refund amount (optional)')
+                            ->numeric()
+                            ->minValue(0)
+                            ->maxValue($refundable)
+                            ->prefix($record->currency)
+                            ->helperText(sprintf('Leave empty to keep the amount above. 0 = no refund. Most you can refund: %s %.2f.', $record->currency, $refundable)),
+                    ];
+                }
+
                 $preview = app(BookingCancellationService::class)->previewPenalty($record, app(TripJackClient::class));
                 $penalty = $preview['penalty'];
 
@@ -164,14 +185,17 @@ class BookingsTable
                         ->label('Refund amount to issue')
                         ->numeric()
                         ->minValue(0)
+                        ->maxValue($refundable)
                         ->prefix($record->currency)
-                        ->default($preview['estimatedRefund'])
-                        ->helperText('Pre-filled using TripJack\'s penalty above. Adjust for a partial refund, or clear it to cancel without issuing any refund.'),
+                        ->default($preview['estimatedRefund'] !== null ? min($preview['estimatedRefund'], $refundable) : null)
+                        ->helperText(sprintf("Pre-filled using TripJack's penalty above. Enter 0 to cancel without a refund, or leave empty to use the automatic amount once TripJack confirms. Most you can refund: %s %.2f.", $record->currency, $refundable)),
                 ];
             })
-            ->modalHeading('Cancel booking & process refund')
-            ->modalDescription('This calls TripJack to cancel the reservation, then refunds the guest via Razorpay for the amount entered. This cannot be undone.')
-            ->modalSubmitActionLabel('Confirm cancellation')
+            ->modalHeading(fn (Booking $record) => $record->cancellation_requested_at ? 'Finish this cancellation' : 'Cancel booking & process refund')
+            ->modalDescription(fn (Booking $record) => $record->cancellation_requested_at
+                ? 'Checks TripJack again. If the hotel has confirmed the cancellation, the guest is refunded now; if not, it finishes by itself once TripJack confirms.'
+                : 'This calls TripJack to cancel the reservation, then refunds the guest via Razorpay for the amount entered. This cannot be undone.')
+            ->modalSubmitActionLabel(fn (Booking $record) => $record->cancellation_requested_at ? 'Check & finish' : 'Confirm cancellation')
             ->action(function (array $data, Booking $record): void {
                 $refundAmount = ($data['refund_amount'] ?? null) !== null && $data['refund_amount'] !== ''
                     ? (float) $data['refund_amount']
@@ -185,7 +209,7 @@ class BookingsTable
                 );
 
                 Notification::make()
-                    ->title($result['success'] ? 'Cancellation processed' : 'Cancellation failed')
+                    ->title($result['success'] ? 'Cancellation updated' : 'Cancellation failed')
                     ->body($result['message'])
                     ->color($result['success'] ? 'success' : 'danger')
                     ->send();

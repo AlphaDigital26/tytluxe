@@ -29,7 +29,7 @@ class Booking extends Model
         'tripjack_total_price', 'gst_slab', 'margin_amount', 'gst_on_margin', 'razorpay_recovery',
         'tripjack_mf', 'tripjack_mft',
         'currency', 'offer_id', 'status', 'cancellation_reason', 'cancellation_requested_at', 'admin_note',
-        'manual_refund_due_at',
+        'manual_refund_due_at', 'admin_refund_amount',
     ];
 
     protected $casts = [

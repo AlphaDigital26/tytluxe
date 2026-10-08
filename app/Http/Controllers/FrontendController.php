@@ -2354,10 +2354,32 @@ class FrontendController extends Controller
      */
     protected function finalizeCancellation(Booking $booking, array $bookingDetails, RazorpayService $razorpay): void
     {
-        $liveStatus = $bookingDetails['order']['status'] ?? null;
-        if ($liveStatus !== 'CANCELLED' || $booking->status === 'cancelled') {
+        if (($bookingDetails['order']['status'] ?? null) !== 'CANCELLED') {
             return;
         }
+
+        // The guest page, the scheduler and the admin can all finish the
+        // same cancellation — lock the row so only one of them refunds.
+        DB::transaction(function () use ($booking, $bookingDetails, $razorpay) {
+            $locked = Booking::whereKey($booking->id)->lockForUpdate()->first();
+            if ($locked->status === 'cancelled') {
+                return;
+            }
+
+            // Staff chose the refund in the admin "Cancel & Refund" action.
+            if ($locked->admin_refund_amount !== null) {
+                app(\App\Services\Booking\BookingCancellationService::class)->finalize($locked, $bookingDetails, $razorpay);
+
+                return;
+            }
+
+            $this->finalizeLockedCancellation($locked, $bookingDetails, $razorpay);
+        });
+        $booking->refresh();
+    }
+
+    protected function finalizeLockedCancellation(Booking $booking, array $bookingDetails, RazorpayService $razorpay): void
+    {
 
         // The penalty in force when the guest asked to cancel, not when
         // TripJack finished processing it (CANCELLATION_PENDING can take days).
