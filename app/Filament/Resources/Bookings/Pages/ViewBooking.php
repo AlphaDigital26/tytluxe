@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Bookings\Pages;
 
+use App\Filament\Actions\RecordManualRefundAction;
 use App\Filament\Resources\Bookings\BookingResource;
 use App\Filament\Resources\Bookings\HotelBookingActions;
 use App\Models\Booking;
@@ -30,6 +31,7 @@ class ViewBooking extends ViewRecord
             HotelBookingActions::checkStatus(fn (Booking $record) => $this->loadPenaltySchedule(fresh: true)),
             HotelBookingActions::downloadInvoice(),
             HotelBookingActions::addNote(),
+            RecordManualRefundAction::make(),
             EditAction::make()->label('Edit contact details'),
         ];
     }
@@ -47,6 +49,18 @@ class ViewBooking extends ViewRecord
     public function mount(int|string $record): void
     {
         parent::mount($record);
+
+        $this->loadPenaltySchedule(fresh: false);
+    }
+
+    protected function cacheKey(): string
+    {
+        return 'admin_hotel_penalty_schedule:'.$this->record->id;
+    }
+
+    protected function loadPenaltySchedule(bool $fresh): void
+    {
+        $this->penaltyError = null;
 
         // The hotel cancellation schedule below doesn't apply to flights.
         if (blank($this->record->tripjack_booking_id) || $this->record->vertical === 'flight') {

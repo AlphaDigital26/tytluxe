@@ -91,6 +91,19 @@
         ? max(1, (int) \Illuminate\Support\Carbon::parse($booking->check_in)->diffInDays(\Illuminate\Support\Carbon::parse($booking->check_out)))
         : 1;
     $guestsCount = $booking->pax_adults + ($booking->pax_children ?? 0);
+    $isFlight = $booking->vertical === 'flight';
+    if ($isFlight) {
+        $guestsCount += (int) $booking->pax_infants;
+    }
+    $totals = $booking->invoiceTotals();
+    // Flights keep their travellers on the booking (Book's travellerInfo),
+    // not as booking_travelers rows.
+    $invoiceGuests = $isFlight
+        ? collect($booking->flight_segments_payload['travellerInfo'] ?? [])->map(fn ($t) => [
+            'name' => trim(preg_replace('/\s+/', ' ', ($t['ti'] ?? '').' '.($t['fN'] ?? '').' '.($t['lN'] ?? ''))),
+            'type' => ucfirst(strtolower($t['pt'] ?? 'adult')),
+        ])
+        : $booking->travelers->map(fn ($t) => ['name' => $t->full_name, 'type' => ucfirst($t->traveler_type)]);
   @endphp
 
   <table class="inv-header">
@@ -136,7 +149,7 @@
       @if($booking->guest_phone)
         <div class="inv-party-line">{{ $booking->guest_phone }}</div>
       @endif
-      <span class="inv-status-badge {{ $statusClass }}">{{ ucfirst(str_replace('_', ' ', $booking->status)) }}</span>
+      <span class="inv-status-badge {{ $statusClass }}">{{ $booking->guestStatusLabel() }}</span>
     </td>
     </tr>
   </table>
@@ -226,10 +239,10 @@
       <tr><th>Name</th><th class="right">Type</th></tr>
     </thead>
     <tbody>
-      @foreach($booking->travelers as $traveler)
+      @foreach($invoiceGuests as $guest)
         <tr>
-          <td>{{ $traveler->full_name }}</td>
-          <td class="right">{{ ucfirst($traveler->traveler_type) }}</td>
+          <td>{{ $guest['name'] }}</td>
+          <td class="right">{{ $guest['type'] }}</td>
         </tr>
       @endforeach
     </tbody>
@@ -238,12 +251,12 @@
   <div class="inv-summary-wrap">
     <table class="inv-price-table">
       <tr>
-        <td>Room Charges</td>
+        <td>{{ $isFlight ? 'Air Fare (incl. airline taxes)' : 'Room Charges' }}</td>
         <td class="right">{{ $booking->currency }} {{ number_format($booking->base_amount, 2) }}</td>
       </tr>
       @if($booking->tax_amount > 0)
       <tr>
-        <td>Taxes &amp; Fees</td>
+        <td>{{ $isFlight ? 'Service & Convenience Fee' : 'Taxes & Fees' }}</td>
         <td class="right">{{ $booking->currency }} {{ number_format($booking->tax_amount, 2) }}</td>
       </tr>
       @endif
@@ -270,20 +283,43 @@
       </tr>
       @endif
       <tr class="gross">
-        <td>Gross Amount</td>
+        <td>{{ $totals['extras'] ? 'Booking Amount' : 'Gross Amount' }}</td>
         <td class="right">{{ $booking->currency }} {{ number_format($booking->total_amount, 2) }}</td>
       </tr>
+      @foreach($totals['extras'] as $label => $amount)
+      <tr>
+        <td>{{ $label }}</td>
+        <td class="right">{{ $booking->currency }} {{ number_format($amount, 2) }}</td>
+      </tr>
+      @endforeach
+      @if($totals['extras'] || $totals['refunded'] > 0)
+      <tr class="gross">
+        <td>Total Paid</td>
+        <td class="right">{{ $booking->currency }} {{ number_format($totals['paid'], 2) }}</td>
+      </tr>
+      @endif
+      @if($totals['refunded'] > 0)
+      <tr class="discount">
+        <td>Refunded</td>
+        <td class="right">&minus; {{ $booking->currency }} {{ number_format($totals['refunded'], 2) }}</td>
+      </tr>
+      @endif
       <tr class="total">
-        <td>{{ in_array($booking->status, ['refunded'], true) ? 'Total Refunded' : 'Net Amount Paid' }}</td>
-        <td class="right">{{ $booking->currency }} {{ number_format($booking->total_amount, 2) }}</td>
+        <td>Net Amount Paid</td>
+        <td class="right">{{ $booking->currency }} {{ number_format($totals['net'], 2) }}</td>
       </tr>
     </table>
   </div>
 
   <div class="inv-terms-title">Terms &amp; Conditions</div>
   <ol class="inv-terms">
+    @if($isFlight)
+    <li>This booking is fulfilled through TYT Luxe's airline supply partners and is governed by the operating airline's fare rules, including its cancellation, change and baggage policies.</li>
+    <li>TYT Luxe acts as a booking facilitator; the airline remains the carrier responsible for the flight, check-in and boarding.</li>
+    @else
     <li>This booking is fulfilled through TYT Luxe's hotel supply partners and is governed by the respective property's cancellation and check-in policies.</li>
     <li>TYT Luxe acts as a booking facilitator; the hotel remains the principal service provider for stay-related services.</li>
+    @endif
     <li>Refunds, where applicable, are processed to the original payment method and may take 5-7 business days to reflect.</li>
     <li>Any discrepancy in this invoice must be reported within 7 days of the invoice date.</li>
     <li>This is a computer-generated invoice and does not require a physical signature.</li>

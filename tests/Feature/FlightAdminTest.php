@@ -80,6 +80,19 @@ class FlightAdminTest extends TestCase
         $this->get('/tyt-console')->assertOk();
     }
 
+    public function test_booking_page_shows_saved_tickets_in_either_stored_shape(): void
+    {
+        $this->actingAs($this->admin, 'admin');
+
+        // One entry per traveller (current shape), with no saved itinerary.
+        $perTraveller = $this->flightBooking(['tripjack_flight_ticket_numbers' => [['name' => 'Ms Asha Rao', 'tickets' => ['BOM-DEL' => '0981111111111']]]]);
+        $this->get(FlightBookingResource::getUrl('view', ['record' => $perTraveller]))->assertOk()->assertSee('0981111111111');
+
+        // Older single-traveller {"sector": "ticket"} shape.
+        $old = $this->flightBooking(['tripjack_flight_ticket_numbers' => ['BOM-DEL' => '0982222222222']]);
+        $this->get(FlightBookingResource::getUrl('view', ['record' => $old]))->assertOk()->assertSee('0982222222222');
+    }
+
     public function test_needs_attention_tab_lists_only_problem_bookings(): void
     {
         $this->flightBooking(['reference' => 'TYT-OK']);

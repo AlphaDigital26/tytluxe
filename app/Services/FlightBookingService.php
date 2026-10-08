@@ -391,6 +391,59 @@ class FlightBookingService
     }
 
     /**
+     * Saves airline, flight number and times per segment from a Booking
+     * Details response, for the admin booking page (which never calls
+     * TripJack on load). Segments sit under itemInfos.AIR.tripInfos[].sI[],
+     * next to travellerInfos — see airTravellers().
+     */
+    public function storeItinerary(Booking $booking, array $details): void
+    {
+        $itinerary = self::itinerarySummary($details);
+        if ($itinerary && $itinerary !== $booking->flight_itinerary) {
+            $booking->update(['flight_itinerary' => $itinerary]);
+        }
+    }
+
+    /**
+     * Segments plus every traveller's ticket numbers, keyed by name, for the
+     * admin booking page. Empty when the response has no segments.
+     *
+     * @return array{segments?: array<int, array{airline: string, airlineCode: string, flightNo: string, from: string, fromCity: string, to: string, toCity: string, departs: ?string, arrives: ?string}>, tickets?: array<string, array>}
+     */
+    public static function itinerarySummary(array $details): array
+    {
+        $tripInfos = $details['itemInfos']['AIR']['tripInfos'] ?? $details['tripInfos'] ?? [];
+
+        $segments = collect($tripInfos)
+            ->flatMap(fn ($trip) => $trip['sI'] ?? [])
+            ->map(fn (array $seg) => [
+                'airline' => (string) ($seg['fD']['aI']['name'] ?? ''),
+                'airlineCode' => (string) ($seg['fD']['aI']['code'] ?? ''),
+                'flightNo' => (string) ($seg['fD']['fN'] ?? ''),
+                'from' => (string) ($seg['da']['code'] ?? ''),
+                'fromCity' => (string) ($seg['da']['city'] ?? ''),
+                'to' => (string) ($seg['aa']['code'] ?? ''),
+                'toCity' => (string) ($seg['aa']['city'] ?? ''),
+                'departs' => $seg['dt'] ?? null,
+                'arrives' => $seg['at'] ?? null,
+            ])
+            ->filter(fn (array $seg) => $seg['from'] !== '' && $seg['to'] !== '')
+            ->values()
+            ->all();
+
+        if (! $segments) {
+            return [];
+        }
+
+        $tickets = collect(self::airTravellers($details))
+            ->mapWithKeys(fn (array $t) => [strtoupper(trim(($t['fN'] ?? '').' '.($t['lN'] ?? ''))) => $t['ticketNumberDetails'] ?? []])
+            ->filter()
+            ->all();
+
+        return ['segments' => $segments, 'tickets' => $tickets];
+    }
+
+    /**
      * Refunds the ticket payment of a booking TripJack never ticketed.
      */
     public function refundUnconfirmedBooking(Booking $booking, RazorpayService $razorpay, string $reason): void
@@ -487,11 +540,12 @@ class FlightBookingService
     }
 
     /**
-     * Releases a held (unpaid) PNR at the guest's request — POST /air/unhold.
-     * Doesn't touch payments (Hold never captured any), just the booking
-     * status and the supplier-side PNR.
+     * Releases a held (unpaid) PNR — POST /air/unhold — at the guest's
+     * request, or a staff member's ($releasedBy = their name). Doesn't touch
+     * payments (Hold never captured any), just the booking status and the
+     * supplier-side PNR.
      */
-    public function releaseHold(Booking $booking): void
+    public function releaseHold(Booking $booking, ?string $releasedBy = null): void
     {
         $client = app(TripJackFlightClient::class);
         $pnrs = array_values(array_unique((array) ($booking->tripjack_flight_pnr ?? [])));
@@ -513,13 +567,15 @@ class FlightBookingService
             $this->logFailure($described['logLevel'], 'flight_unhold_failed', ['booking_id' => $booking->id, 'errorCode' => $errorCode, 'message' => $e->getMessage()]);
         }
 
-        // Still cancelled on our side either way — the guest asked to walk
+        // Still cancelled on our side either way — someone asked to walk
         // away, no payment was ever taken, and an unreleased hold expires
         // with the supplier at its timeLimit. Staff get a note if TripJack
         // didn't confirm the release.
         $booking->update(array_filter([
             'status' => 'cancelled',
-            'cancellation_reason' => 'Hold released by guest before payment.',
+            'cancellation_reason' => $releasedBy !== null
+                ? "Hold released by the TYT Luxe team ({$releasedBy}) before payment."
+                : 'Hold released by guest before payment.',
             'admin_note' => $released ? null : trim(($booking->admin_note ? $booking->admin_note.' ' : '')
                 .'Release PNR was not confirmed by TripJack (status not UNCONFIRMED) — check the hold in TripJack; it will otherwise lapse at its time limit.'),
         ], fn ($v) => $v !== null));
@@ -606,8 +662,14 @@ class FlightBookingService
                 'booking_id' => $booking->id, 'payment_id' => $payment->id, 'reason' => $reason,
             ]);
         } catch (\Throwable $e) {
-            $payment->update(['status' => 'failed', 'refund_reason' => $reason]);
-            $booking->update(['status' => 'failed_needs_review']);
+            // The money was taken and is still with us — the payment stays
+            // captured (not "failed") until staff refund it by hand.
+            $payment->update(['refund_reason' => $reason]);
+            $booking->update([
+                'status' => 'failed_needs_review',
+                'manual_refund_due_at' => now(),
+                'admin_note' => $booking->adminNoteWith("The ticket could not be issued ({$reason}) and the automatic refund of {$booking->currency} {$payment->amount} also failed ({$e->getMessage()}). Refund the guest in Razorpay, then click \"Record manual refund\"."),
+            ]);
             Log::channel('tripjack')->critical('flight_refund_after_booking_failure_errored', [
                 'booking_id' => $booking->id, 'payment_id' => $payment->id, 'reason' => $reason, 'refund_error' => $e->getMessage(),
             ]);
@@ -997,7 +1059,7 @@ class FlightBookingService
                 $booking->update([
                     'status' => 'confirmed', // cancellation didn't go through — booking is still live
                     'cancellation_requested_at' => null,
-                    'admin_note' => 'Flight amendment was rejected by the airline/TripJack. Needs manual review if the guest still wants to proceed.',
+                    'admin_note' => $booking->adminNoteWith('Flight amendment was rejected by the airline/TripJack. Needs manual review if the guest still wants to proceed.'),
                 ]);
             } else {
                 $this->appendPartialAmendment($booking, $amendmentDetails, $type, 'REJECTED', 0);

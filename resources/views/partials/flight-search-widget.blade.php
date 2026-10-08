@@ -703,6 +703,7 @@
     cabinClass: document.getElementById('tytSbClassInput').value || 'ECONOMY'
   };
   var panel = document.getElementById('tytSbPaxPanel');
+  var PAX_SEATED_MAX = 9;
 
   function updatePaxSummary() {
     var total = paxState.adults + paxState.children + paxState.infants;
@@ -731,11 +732,16 @@
       var key = btn.dataset.pax;
       var dir = parseInt(btn.dataset.dir, 10);
       var next = paxState[key] + dir;
-      var max = key === 'adults' ? 9 : (key === 'infants' ? paxState.adults : 9);
+      // TripJack: adults + children together at most 9; one infant per adult.
+      var max = key === 'infants' ? paxState.adults
+        : PAX_SEATED_MAX - (key === 'adults' ? paxState.children : paxState.adults);
       var min = key === 'adults' ? 1 : 0;
       if (next < min || next > max) return;
       paxState[key] = next;
-      document.getElementById('tytSb' + key.charAt(0).toUpperCase() + key.slice(1) + 'Val').textContent = next;
+      if (paxState.infants > paxState.adults) paxState.infants = paxState.adults;
+      ['adults', 'children', 'infants'].forEach(function (k) {
+        document.getElementById('tytSb' + k.charAt(0).toUpperCase() + k.slice(1) + 'Val').textContent = paxState[k];
+      });
       updatePaxSummary();
     });
   });

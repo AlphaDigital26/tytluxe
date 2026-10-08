@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Filament\Resources\Bookings\Pages\ListBookings;
+use App\Filament\Resources\FlightBookings\Pages\ListFlightBookings;
 use App\Jobs\PollFlightAmendmentJob;
 use App\Models\Admin;
 use App\Models\Booking;
@@ -16,9 +17,9 @@ use Livewire\Livewire;
 use Tests\TestCase;
 
 /**
- * Admin actions on flight bookings: TripJack's Auto Full Refund (doc:
- * Submit Amendment, type FULL_REFUND, checklist remarks) and a full
- * cancellation — both through the flight API, never the hotel one.
+ * Flight Bookings → "Cancel & refund": a normal cancellation or TripJack's
+ * Auto Full Refund (doc: Submit Amendment, type FULL_REFUND, checklist
+ * remarks) — both through the flight API, never the hotel one.
  */
 class FlightAdminAmendmentTest extends TestCase
 {
@@ -60,6 +61,7 @@ class FlightAdminAmendmentTest extends TestCase
         Http::fake([
             '*/booking-details' => Http::response(['order' => ['status' => 'SUCCESS'], 'status' => ['success' => true]]),
             '*/submit-amendment' => Http::response(['bookingId' => 'TJS100000000009', 'amendmentId' => 'AMD1', 'status' => ['success' => true]]),
+            '*' => Http::response(['status' => ['success' => false]], 400),
         ]);
     }
 
@@ -69,8 +71,8 @@ class FlightAdminAmendmentTest extends TestCase
         $this->fakeTripJack();
         $booking = $this->flightBooking();
 
-        Livewire::test(ListBookings::class)
-            ->callTableAction('flightFullRefund', $booking, ['remarks' => 'Refund under DGCA policy'])
+        Livewire::test(ListFlightBookings::class)
+            ->callTableAction('cancelFlight', $booking, ['kind' => 'full_refund', 'full_refund_reason' => 'Refund under DGCA policy'])
             ->assertHasNoTableActionErrors();
 
         Http::assertSent(fn (Request $r) => str_contains($r->url(), 'submit-amendment')
@@ -81,26 +83,26 @@ class FlightAdminAmendmentTest extends TestCase
         $this->assertNotNull($booking->fresh()->cancellation_requested_at);
     }
 
-    public function test_full_refund_rejects_remarks_outside_the_checklist(): void
+    public function test_full_refund_rejects_reasons_outside_the_checklist(): void
     {
         $this->fakeTripJack();
         $booking = $this->flightBooking();
 
-        Livewire::test(ListBookings::class)
-            ->callTableAction('flightFullRefund', $booking, ['remarks' => 'Guest changed their mind'])
-            ->assertHasTableActionErrors(['remarks']);
+        Livewire::test(ListFlightBookings::class)
+            ->callTableAction('cancelFlight', $booking, ['kind' => 'full_refund', 'full_refund_reason' => 'Guest changed their mind'])
+            ->assertHasTableActionErrors(['full_refund_reason']);
 
         Http::assertNotSent(fn (Request $r) => str_contains($r->url(), 'submit-amendment'));
     }
 
-    public function test_cancel_flight_uses_the_flight_amendment_api(): void
+    public function test_normal_cancel_uses_the_flight_amendment_api(): void
     {
         Queue::fake();
         $this->fakeTripJack();
         $booking = $this->flightBooking();
 
-        Livewire::test(ListBookings::class)
-            ->callTableAction('cancelFlight', $booking, ['remarks' => 'Guest asked support to cancel.'])
+        Livewire::test(ListFlightBookings::class)
+            ->callTableAction('cancelFlight', $booking, ['kind' => 'normal'])
             ->assertHasNoTableActionErrors();
 
         Http::assertSent(fn (Request $r) => str_contains($r->url(), '/oms/v1/air/amendment/submit-amendment')
@@ -108,25 +110,20 @@ class FlightAdminAmendmentTest extends TestCase
         Queue::assertPushed(PollFlightAmendmentJob::class);
     }
 
-    public function test_flight_bookings_get_flight_actions_not_the_hotel_cancel(): void
+    public function test_hotel_screen_never_offers_its_cancel_on_a_flight(): void
     {
-        $flight = $this->flightBooking();
         $hotel = $this->flightBooking(['vertical' => 'hotel', 'reference' => 'TYTHOTEL01', 'tripjack_booking_id' => 'TJH1']);
 
         Livewire::test(ListBookings::class)
-            ->assertTableActionHidden('cancelAndRefund', $flight)
-            ->assertTableActionVisible('cancelFlight', $flight)
-            ->assertTableActionVisible('flightFullRefund', $flight)
-            ->assertTableActionVisible('cancelAndRefund', $hotel)
-            ->assertTableActionHidden('flightFullRefund', $hotel);
+            ->assertTableActionVisible('cancelAndRefund', $hotel);
+        $this->assertFalse(Booking::query()->whereKey($this->flightBooking()->id)->whereIn('id', \App\Filament\Resources\Bookings\BookingResource::getEloquentQuery()->select('id'))->exists());
     }
 
-    public function test_flight_actions_hidden_while_a_cancellation_is_in_progress(): void
+    public function test_cancel_is_hidden_while_a_cancellation_is_in_progress(): void
     {
         $booking = $this->flightBooking(['cancellation_requested_at' => now()]);
 
-        Livewire::test(ListBookings::class)
-            ->assertTableActionHidden('cancelFlight', $booking)
-            ->assertTableActionHidden('flightFullRefund', $booking);
+        Livewire::test(ListFlightBookings::class)
+            ->assertTableActionHidden('cancelFlight', $booking);
     }
 }

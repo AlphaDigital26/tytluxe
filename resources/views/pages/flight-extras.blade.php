@@ -85,7 +85,7 @@
   @endphp
 
   @if(! $hasAnyOption)
-    <div class="fx-empty">No add-ons are available for this booking right now.</div>
+    <div class="fx-empty">There's nothing more to add online for this booking — the airline either doesn't offer it here or it has already been added. If you need a seat, meal or extra baggage, please contact us and we'll arrange it with the airline.</div>
   @else
     <form method="POST" action="{{ route('flights.extras.submit', $booking->reference) }}" id="fxForm">
       @csrf

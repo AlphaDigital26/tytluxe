@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\FlightBookings\Pages;
 
+use App\Filament\Actions\RecordManualRefundAction;
 use App\Filament\Resources\FlightBookings\FlightBookingActions;
 use App\Filament\Resources\FlightBookings\FlightBookingResource;
 use App\Models\Booking;
@@ -36,6 +37,7 @@ class ViewFlightBooking extends ViewRecord
             FlightBookingActions::checkStatus(),
             FlightBookingActions::downloadInvoice(),
             FlightBookingActions::addNote(),
+            RecordManualRefundAction::make(),
             ActionGroup::make([
                 FlightBookingActions::releaseReservation(),
                 FlightBookingActions::cancelAndRefund(),

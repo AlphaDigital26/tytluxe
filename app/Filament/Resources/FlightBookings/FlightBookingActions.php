@@ -50,7 +50,9 @@ class FlightBookingActions
             ->label('Check status with airline')
             ->icon('heroicon-o-arrow-path')
             ->color('gray')
-            ->visible(fn (Booking $record) => filled($record->tripjack_booking_id))
+            // Can confirm, cancel or refund the booking as a side effect, so
+            // it needs the same permission as the other booking actions.
+            ->visible(fn (Booking $record) => filled($record->tripjack_booking_id) && static::canManage($record))
             ->action(function (Booking $record): void {
                 try {
                     $details = app(TripJackFlightClient::class)->bookingDetails($record->tripjack_booking_id);
@@ -167,7 +169,7 @@ class FlightBookingActions
             ->modalDescription('The guest has not paid for this reservation. Releasing it frees the seat with the airline and cancels the booking. No money is involved.')
             ->modalSubmitActionLabel('Release reservation')
             ->action(function (Booking $record): void {
-                app(FlightBookingService::class)->releaseHold($record);
+                app(FlightBookingService::class)->releaseHold($record, auth('admin')->user()?->name ?? 'admin');
 
                 Notification::make()->title('Reservation released')->success()->send();
             });
@@ -179,7 +181,7 @@ class FlightBookingActions
             ->label('Download invoice')
             ->icon('heroicon-o-document-arrow-down')
             ->color('gray')
-            ->visible(fn (Booking $record) => ! in_array($record->status, ['pending_payment', 'payment_failed'], true))
+            ->visible(fn (Booking $record) => $record->hasInvoice())
             ->action(function (Booking $record) {
                 $booking = $record->loadMissing('travelers');
                 $pdf = Pdf::loadView('pdf.invoice', compact('booking'))->setPaper('a4', 'portrait');
@@ -206,7 +208,9 @@ class FlightBookingActions
             ])
             ->action(function (array $data, Booking $record): void {
                 $stamp = Carbon::now()->format('j M Y, g:i A').' — '.(auth('admin')->user()?->name ?? 'admin').': ';
-                $record->update(['admin_note' => trim(($record->admin_note ? $record->admin_note."\n" : '').$stamp.trim($data['note']))]);
+                // A note isn't booking activity — updated_at drives the
+                // "taking too long" warnings, which a note must not reset.
+                Booking::withoutTimestamps(fn () => $record->update(['admin_note' => $record->adminNoteWith($stamp.trim($data['note']))]));
 
                 Notification::make()->title('Note added')->success()->send();
             });
