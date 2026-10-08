@@ -540,11 +540,12 @@ class FlightBookingService
     }
 
     /**
-     * Releases a held (unpaid) PNR at the guest's request — POST /air/unhold.
-     * Doesn't touch payments (Hold never captured any), just the booking
-     * status and the supplier-side PNR.
+     * Releases a held (unpaid) PNR — POST /air/unhold — at the guest's
+     * request, or a staff member's ($releasedBy = their name). Doesn't touch
+     * payments (Hold never captured any), just the booking status and the
+     * supplier-side PNR.
      */
-    public function releaseHold(Booking $booking): void
+    public function releaseHold(Booking $booking, ?string $releasedBy = null): void
     {
         $client = app(TripJackFlightClient::class);
         $pnrs = array_values(array_unique((array) ($booking->tripjack_flight_pnr ?? [])));
@@ -566,13 +567,15 @@ class FlightBookingService
             $this->logFailure($described['logLevel'], 'flight_unhold_failed', ['booking_id' => $booking->id, 'errorCode' => $errorCode, 'message' => $e->getMessage()]);
         }
 
-        // Still cancelled on our side either way — the guest asked to walk
+        // Still cancelled on our side either way — someone asked to walk
         // away, no payment was ever taken, and an unreleased hold expires
         // with the supplier at its timeLimit. Staff get a note if TripJack
         // didn't confirm the release.
         $booking->update(array_filter([
             'status' => 'cancelled',
-            'cancellation_reason' => 'Hold released by guest before payment.',
+            'cancellation_reason' => $releasedBy !== null
+                ? "Hold released by the TYT Luxe team ({$releasedBy}) before payment."
+                : 'Hold released by guest before payment.',
             'admin_note' => $released ? null : trim(($booking->admin_note ? $booking->admin_note.' ' : '')
                 .'Release PNR was not confirmed by TripJack (status not UNCONFIRMED) — check the hold in TripJack; it will otherwise lapse at its time limit.'),
         ], fn ($v) => $v !== null));

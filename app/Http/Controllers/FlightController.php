@@ -44,7 +44,8 @@ class FlightController extends Controller
         $departDate = (string) $request->query('depart_date', '');
         $returnDate = (string) $request->query('return_date', '');
         $adults = max(1, min(9, (int) $request->query('adults', 1)));
-        $children = max(0, min(9, (int) $request->query('children', 0)));
+        // TripJack FAQ: adults + children together at most 9 (infants extra, one per adult).
+        $children = max(0, min(9 - $adults, (int) $request->query('children', 0)));
         $infants = max(0, min($adults, (int) $request->query('infants', 0)));
         $cabinClass = in_array($request->query('cabin_class'), ['ECONOMY', 'PREMIUM_ECONOMY', 'BUSINESS', 'FIRST'], true)
             ? $request->query('cabin_class')
@@ -247,7 +248,7 @@ class FlightController extends Controller
             'depart_date' => 'required|date_format:Y-m-d|after_or_equal:today',
             'return_date' => 'nullable|date_format:Y-m-d|after_or_equal:depart_date',
             'adults' => 'required|integer|min:1|max:9',
-            'children' => 'nullable|integer|min:0|max:9',
+            'children' => 'nullable|integer|min:0|max:'.(9 - min(9, max(1, (int) $request->input('adults', 1)))),
             'infants' => 'nullable|integer|min:0|max:9',
             'cabin_class' => 'nullable|in:ECONOMY,PREMIUM_ECONOMY,BUSINESS,FIRST',
             'preferred_airline' => 'nullable|string|max:3',
@@ -416,6 +417,9 @@ class FlightController extends Controller
             // our own clock from now, rather than parsing TripJack's sct
             // timestamp (whose timezone isn't stated).
             'expiresAt' => ! empty($response['conditions']['st']) ? now()->addSeconds((int) $response['conditions']['st'])->timestamp : null,
+            // Markup fixed for this booking, so a Flight Settings change
+            // mid-booking doesn't change the price the guest already saw.
+            'marginRate' => FlightSettings::marginRate(),
         ]]);
 
         return redirect()->route('flights.review.show');
@@ -453,7 +457,7 @@ class FlightController extends Controller
         // list) — unlike Search's tripInfos, it is NOT keyed ONWARD/RETURN.
         $tripInfos = $response['tripInfos'] ?? [];
         $conditions = $response['conditions'] ?? [];
-        $breakdown = $this->reviewBreakdown($response);
+        $breakdown = $this->reviewBreakdown($response, $draft['marginRate'] ?? null);
 
         // Best-effort, display-only — never block the page if it fails.
         // flowType=REVIEW with the Review bookingId (confirmed live).
@@ -495,7 +499,7 @@ class FlightController extends Controller
         $context = $draft['context'];
         $tripInfos = $response['tripInfos'] ?? [];
         $conditions = $response['conditions'] ?? [];
-        $breakdown = $this->reviewBreakdown($response);
+        $breakdown = $this->reviewBreakdown($response, $draft['marginRate'] ?? null);
         $addonTrips = $this->addonOptions($response);
 
         // Live seat maps keyed by segment id — best-effort; without one the
@@ -551,8 +555,8 @@ class FlightController extends Controller
 
         // Same formula the Passenger Details page shows live and that
         // submitBooking() charges: add-ons fold into the marked-up total.
-        $fareBreakdown = $this->reviewBreakdown($response);
-        $priced = FlightPricingService::price($fareBreakdown['tripjack_total_price'] + $addonsTotal);
+        $fareBreakdown = $this->reviewBreakdown($response, $draft['marginRate'] ?? null);
+        $priced = FlightPricingService::price($fareBreakdown['tripjack_total_price'] + $addonsTotal, $draft['marginRate'] ?? null);
         $summary = [
             'base_fare' => $fareBreakdown['base_fare'],
             'airline_taxes' => $fareBreakdown['airline_taxes'],
@@ -599,11 +603,12 @@ class FlightController extends Controller
      * freshly re-validated TF (never a figure from the Search step).
      * Confirmed: the total fare lives at totalPriceInfo.totalFareDetail.fC.
      */
-    private function reviewBreakdown(array $response): array
+    private function reviewBreakdown(array $response, ?float $marginRate = null): array
     {
         $fc = $response['totalPriceInfo']['totalFareDetail']['fC'] ?? [];
         $afc = $response['totalPriceInfo']['totalFareDetail']['afC']['TAF'] ?? [];
-        $breakdown = FlightPricingService::price((float) ($fc['TF'] ?? 0));
+        $breakdown = FlightPricingService::price((float) ($fc['TF'] ?? 0), $marginRate);
+        $breakdown['margin_rate'] = $marginRate;
         $breakdown['base_fare'] = round((float) ($fc['BF'] ?? 0), 2);
         $breakdown['airline_taxes'] = round((float) ($fc['TAF'] ?? 0), 2);
         $breakdown['tripjack_mf'] = round((float) ($afc['MF'] ?? 0), 2);
@@ -825,8 +830,8 @@ class FlightController extends Controller
         // submit) use it, and ask the guest to confirm before paying.
         $draft['response']['totalPriceInfo'] = $result['totalPriceInfo'] ?? $draft['response']['totalPriceInfo'];
         session(['flight_booking_draft' => $draft]);
-        $oldPrice = FlightPricingService::price($oldFare + $addonsTotal)['customer_price'];
-        $newPrice = FlightPricingService::price($newFare + $addonsTotal)['customer_price'];
+        $oldPrice = FlightPricingService::price($oldFare + $addonsTotal, $draft['marginRate'] ?? null)['customer_price'];
+        $newPrice = FlightPricingService::price($newFare + $addonsTotal, $draft['marginRate'] ?? null)['customer_price'];
         Log::channel('tripjack')->info('flight_fare_validate_changed', ['bookingId' => $draft['bookingId'], 'old' => $oldFare, 'new' => $newFare]);
 
         return back()->withInput()->withErrors([
@@ -1182,7 +1187,7 @@ class FlightController extends Controller
         // equal TF + add-ons exactly (confirmed live), and that amount is
         // read straight from this breakdown by
         // FlightBookingService::confirmAfterPayment().
-        $breakdown = FlightPricingService::price($totalFare + $addonsTotal);
+        $breakdown = FlightPricingService::price($totalFare + $addonsTotal, $draft['marginRate'] ?? null);
         $customerPrice = $breakdown['customer_price'];
 
         $leadGuestName = trim(($validated['travellers'][0]['first_name'] ?? '').' '.($validated['travellers'][0]['last_name'] ?? ''));

@@ -151,7 +151,8 @@ class Booking extends Model
         $refunded = (float) $this->payments()->sum('refund_amount');
 
         return match (true) {
-            str_starts_with($reason, 'hold released') => 'You released this held fare before paying, so no payment was taken.',
+            str_starts_with($reason, 'hold released by guest') => 'You released this held fare before paying, so no payment was taken.',
+            str_starts_with($reason, 'hold released') => 'This held fare was released before payment, so no payment was taken. Please contact us if you would still like to travel.',
             str_contains($reason, 'manual') => 'This booking has been cancelled. Our team is processing your refund and it will be paid back to your original payment method. We will contact you if we need anything.',
             $refunded > 0 => sprintf('This booking has been cancelled and %s %s has been refunded to your original payment method. It can take 5–7 business days to show in your account.', $this->currency ?: 'INR', number_format($refunded, 2)),
             str_contains($reason, 'no refund') => 'This booking has been cancelled. Under the cancellation policy for this booking, no refund is due.',

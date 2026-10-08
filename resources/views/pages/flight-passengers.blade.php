@@ -241,7 +241,7 @@
   $contactPhone = old('contact_phone', substr(preg_replace('/\D/', '', (string) auth()->user()->phone), -10));
   $convenienceFee = max(0, $breakdown['customer_price'] - $breakdown['tripjack_total_price']);
   $canHold = (bool) ($conditions['isBA'] ?? false) && \App\Support\FlightSettings::allowHold();
-  $pricingJs = ['tf' => $breakdown['tripjack_total_price'], 'taxes' => $breakdown['airline_taxes']] + \App\Services\FlightPricingService::formula();
+  $pricingJs = ['tf' => $breakdown['tripjack_total_price'], 'taxes' => $breakdown['airline_taxes']] + \App\Services\FlightPricingService::formula($breakdown['margin_rate'] ?? null);
 @endphp
 
 @include('partials.flight-booking-steps', ['current' => 2, 'stepOneUrl' => route('flights.review.show')])
