@@ -61,6 +61,66 @@ class Booking extends Model
     public function hotel() { return $this->belongsTo(Hotel::class); }
     public function roomType() { return $this->belongsTo(RoomType::class); }
 
+    /** Payment statuses where the guest's money was actually taken (some may since be refunded). */
+    public const PAID_PAYMENT_STATUSES = ['captured', 'refunded', 'partially_refunded'];
+
+    /**
+     * An invoice exists only once the guest has paid something — never for
+     * an unpaid hold (on_hold, hold_expired, or a hold released before
+     * payment), a pending payment or a failed one.
+     */
+    public function hasInvoice(): bool
+    {
+        return $this->payments()->whereIn('status', self::PAID_PAYMENT_STATUSES)->exists();
+    }
+
+    /**
+     * Money actually paid and refunded on this booking, for the invoice.
+     * total_amount is only the original booking; seats/meals/baggage bought
+     * later (flight_ssr) and reschedule charges (flight_reissue) are their
+     * own payments, and refunds sit on each payment's refund_amount.
+     *
+     * @return array{extras: array<string, float>, paid: float, refunded: float, net: float}
+     */
+    public function invoiceTotals(): array
+    {
+        $paid = $this->payments()->whereIn('status', self::PAID_PAYMENT_STATUSES)->get();
+        $extras = array_filter([
+            'Seats, meals & baggage added later' => round((float) $paid->where('purpose', 'flight_ssr')->sum('amount'), 2),
+            'Reschedule charges' => round((float) $paid->where('purpose', 'flight_reissue')->sum('amount'), 2),
+        ]);
+        $paidTotal = round((float) $paid->sum('amount'), 2);
+        $refunded = round((float) $paid->sum('refund_amount'), 2);
+
+        return [
+            'extras' => $extras,
+            'paid' => $paidTotal,
+            'refunded' => $refunded,
+            'net' => round($paidTotal - $refunded, 2),
+        ];
+    }
+
+    /** Booking status in the guest's words (raw values like "failed_needs_review" are for staff). */
+    public function guestStatusLabel(): string
+    {
+        if ($this->status === 'confirmed' && $this->cancellation_requested_at !== null) {
+            return 'Cancellation in progress';
+        }
+
+        return match ($this->status) {
+            'pending_payment' => 'Awaiting payment',
+            'payment_failed' => 'Payment failed',
+            'pending_confirmation' => 'Awaiting hotel confirmation',
+            'confirmed' => 'Confirmed',
+            'cancelled' => 'Cancelled',
+            'refunded' => 'Not booked — refunded',
+            'failed_needs_review' => 'Under review',
+            'on_hold' => 'Held — payment pending',
+            'hold_expired' => 'Hold expired',
+            default => ucfirst(str_replace('_', ' ', (string) $this->status)),
+        };
+    }
+
     /**
      * What the guest is told about a cancellation. cancellation_reason is
      * written for staff (it can hold "needs manual review" or a raw Razorpay

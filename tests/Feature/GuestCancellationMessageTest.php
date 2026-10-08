@@ -59,6 +59,23 @@ class GuestCancellationMessageTest extends TestCase
             ->assertDontSee('BAD_REQUEST_ERROR');
     }
 
+    public function test_guests_see_status_in_plain_words(): void
+    {
+        $review = $this->booking(['status' => 'failed_needs_review']);
+        $this->booking(['status' => 'hold_expired']);
+
+        $this->actingAs($this->user)->get(route('history'))
+            ->assertOk()
+            ->assertSee('Under review')
+            ->assertSee('Hold expired')
+            ->assertDontSee('Failed needs review');
+
+        $this->actingAs($this->user)->get(route('hotel.booking.confirmation', $review->reference))
+            ->assertOk()
+            ->assertSee('Under review');
+        $this->assertSame('Cancellation in progress', $this->booking(['status' => 'confirmed', 'cancellation_requested_at' => now()])->guestStatusLabel());
+    }
+
     public function test_messages_follow_what_actually_happened(): void
     {
         $refunded = $this->booking(['cancellation_reason' => 'Cancelled. Refunded INR 4200 automatically.']);

@@ -1643,7 +1643,7 @@ class FrontendController extends Controller
             abort(403);
         }
 
-        if (in_array($booking->status, ['pending_payment', 'payment_failed'], true)) {
+        if (! $booking->hasInvoice()) {
             abort(404);
         }
 

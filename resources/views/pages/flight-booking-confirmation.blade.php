@@ -237,7 +237,7 @@
     <div class="bc-line">
       <span>Status</span>
       <span class="bc-status {{ ($terminalBad || $paymentFailed) ? 'bad' : ($terminalGood ? 'good' : 'pending') }}">
-        {{ $cancellationPending ? 'Cancellation Pending' : ($liveStatus ?? ucfirst(str_replace('_',' ',$booking->status))) }}
+        {{ $booking->guestStatusLabel() }}
       </span>
     </div>
   </div>
@@ -248,7 +248,7 @@
   </div>
   @endif
 
-  @if(! in_array($booking->status, ['pending_payment', 'payment_failed', 'on_hold', 'hold_expired'], true))
+  @if($booking->hasInvoice())
   <div style="margin-top:16px;">
     <a href="{{ route('hotel.booking.invoice', $booking->reference) }}"
        style="display:flex; align-items:center; justify-content:center; gap:8px; padding:13px 24px; border-radius:100px;

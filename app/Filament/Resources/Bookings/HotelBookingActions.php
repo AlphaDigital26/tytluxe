@@ -68,7 +68,7 @@ class HotelBookingActions
             ->label('Download invoice')
             ->icon('heroicon-o-document-arrow-down')
             ->color('gray')
-            ->visible(fn (Booking $record) => ! in_array($record->status, ['pending_payment', 'payment_failed'], true))
+            ->visible(fn (Booking $record) => $record->hasInvoice())
             ->action(function (Booking $record) {
                 $booking = $record->loadMissing(['hotel.destination', 'roomType', 'travelers']);
                 $pdf = Pdf::loadView('pdf.invoice', compact('booking'))->setPaper('a4', 'portrait');
