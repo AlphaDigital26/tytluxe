@@ -26,13 +26,14 @@ class FlightPricingService
     /**
      * The formula's constants, for pages that must recompute price() live
      * in the browser (e.g. as add-ons are picked) and match it exactly.
+     * $marginRate: see price().
      *
      * @return array{marginRate: float, gstLow: float, gstHigh: float, gstThreshold: float, razorpayRate: float}
      */
-    public static function formula(): array
+    public static function formula(?float $marginRate = null): array
     {
         return [
-            'marginRate' => FlightSettings::marginRate(),
+            'marginRate' => $marginRate ?? FlightSettings::marginRate(),
             'gstLow' => self::GST_RATE_BELOW_THRESHOLD,
             'gstHigh' => self::GST_RATE_AT_OR_ABOVE_THRESHOLD,
             'gstThreshold' => self::GST_THRESHOLD,
@@ -44,6 +45,10 @@ class FlightPricingService
      * Computes the customer-facing price from TripJack's raw TF (Total
      * Fare), with the full breakdown kept traceable for auditing.
      *
+     * $marginRate: the markup fixed when the guest picked the fare (saved in
+     * the booking draft), so a change in Flight Settings mid-booking doesn't
+     * change the price they already saw. Null = today's setting.
+     *
      * @return array{
      *   tripjack_total_price: float,
      *   gst_slab: float,
@@ -54,13 +59,13 @@ class FlightPricingService
      *   customer_price: float,
      * }
      */
-    public static function price(float $totalFare): array
+    public static function price(float $totalFare, ?float $marginRate = null): array
     {
         $gstSlab = $totalFare < self::GST_THRESHOLD
             ? self::GST_RATE_BELOW_THRESHOLD
             : self::GST_RATE_AT_OR_ABOVE_THRESHOLD;
 
-        $marginAmount = $totalFare * FlightSettings::marginRate();
+        $marginAmount = $totalFare * ($marginRate ?? FlightSettings::marginRate());
         $gstOnMargin = $marginAmount * $gstSlab;
         $preRazorpayAmount = $totalFare + $marginAmount + $gstOnMargin;
 

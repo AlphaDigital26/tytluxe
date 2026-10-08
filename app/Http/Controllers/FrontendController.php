@@ -1643,7 +1643,7 @@ class FrontendController extends Controller
             abort(403);
         }
 
-        if (in_array($booking->status, ['pending_payment', 'payment_failed'], true)) {
+        if (! $booking->hasInvoice()) {
             abort(404);
         }
 
@@ -2092,8 +2092,14 @@ class FrontendController extends Controller
                 'booking_id' => $booking->id, 'payment_id' => $payment->id, 'reason' => $reason,
             ]);
         } catch (\Throwable $e) {
-            $payment->update(['status' => 'failed', 'refund_reason' => $reason]);
-            $booking->update(['status' => 'failed_needs_review']);
+            // The money was taken and is still with us — the payment stays
+            // captured (not "failed") until staff refund it by hand.
+            $payment->update(['refund_reason' => $reason]);
+            $booking->update([
+                'status' => 'failed_needs_review',
+                'manual_refund_due_at' => now(),
+                'admin_note' => $booking->adminNoteWith("The booking failed ({$reason}) and the automatic refund of {$booking->currency} {$payment->amount} also failed ({$e->getMessage()}). Refund the guest in Razorpay, then click \"Record manual refund\"."),
+            ]);
             Log::channel('tripjack')->critical('refund_after_booking_failure_errored', [
                 'booking_id' => $booking->id, 'payment_id' => $payment->id, 'reason' => $reason, 'refund_error' => $e->getMessage(),
             ]);
@@ -2348,10 +2354,32 @@ class FrontendController extends Controller
      */
     protected function finalizeCancellation(Booking $booking, array $bookingDetails, RazorpayService $razorpay): void
     {
-        $liveStatus = $bookingDetails['order']['status'] ?? null;
-        if ($liveStatus !== 'CANCELLED' || $booking->status === 'cancelled') {
+        if (($bookingDetails['order']['status'] ?? null) !== 'CANCELLED') {
             return;
         }
+
+        // The guest page, the scheduler and the admin can all finish the
+        // same cancellation — lock the row so only one of them refunds.
+        DB::transaction(function () use ($booking, $bookingDetails, $razorpay) {
+            $locked = Booking::whereKey($booking->id)->lockForUpdate()->first();
+            if ($locked->status === 'cancelled') {
+                return;
+            }
+
+            // Staff chose the refund in the admin "Cancel & Refund" action.
+            if ($locked->admin_refund_amount !== null) {
+                app(\App\Services\Booking\BookingCancellationService::class)->finalize($locked, $bookingDetails, $razorpay);
+
+                return;
+            }
+
+            $this->finalizeLockedCancellation($locked, $bookingDetails, $razorpay);
+        });
+        $booking->refresh();
+    }
+
+    protected function finalizeLockedCancellation(Booking $booking, array $bookingDetails, RazorpayService $razorpay): void
+    {
 
         // The penalty in force when the guest asked to cancel, not when
         // TripJack finished processing it (CANCELLATION_PENDING can take days).

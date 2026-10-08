@@ -25,7 +25,10 @@ class HotelBookingActions
             ->label('Check status with TripJack')
             ->icon('heroicon-o-arrow-path')
             ->color('gray')
-            ->visible(fn (Booking $record) => filled($record->tripjack_booking_id))
+            // Can confirm, cancel or refund the booking as a side effect, so
+            // it needs the same permission as the other booking actions.
+            ->visible(fn (Booking $record) => filled($record->tripjack_booking_id)
+                && (bool) auth('admin')->user()?->can('update', $record))
             ->action(function (Booking $record) use ($after): void {
                 $live = app(FrontendController::class)->refreshHotelBookingStatus($record, app(TripJackClient::class), app(RazorpayService::class));
                 $record->refresh();
@@ -68,7 +71,7 @@ class HotelBookingActions
             ->label('Download invoice')
             ->icon('heroicon-o-document-arrow-down')
             ->color('gray')
-            ->visible(fn (Booking $record) => ! in_array($record->status, ['pending_payment', 'payment_failed'], true))
+            ->visible(fn (Booking $record) => $record->hasInvoice())
             ->action(function (Booking $record) {
                 $booking = $record->loadMissing(['hotel.destination', 'roomType', 'travelers']);
                 $pdf = Pdf::loadView('pdf.invoice', compact('booking'))->setPaper('a4', 'portrait');
@@ -91,7 +94,9 @@ class HotelBookingActions
             ])
             ->action(function (array $data, Booking $record): void {
                 $stamp = Carbon::now()->format('j M Y, g:i A').' — '.(auth('admin')->user()?->name ?? 'admin').': ';
-                $record->update(['admin_note' => trim(($record->admin_note ? $record->admin_note."\n" : '').$stamp.trim($data['note']))]);
+                // A note isn't booking activity — updated_at drives the
+                // "taking too long" warning, which a note must not reset.
+                Booking::withoutTimestamps(fn () => $record->update(['admin_note' => $record->adminNoteWith($stamp.trim($data['note']))]));
 
                 Notification::make()->title('Note added')->success()->send();
             });

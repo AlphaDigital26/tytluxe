@@ -56,7 +56,7 @@
                             'title' => $title,
                             'location' => $location,
                             'imageUrl' => $imageUrl,
-                            'status' => ucfirst(str_replace('_', ' ', $booking->status)),
+                            'status' => $booking->guestStatusLabel(),
                             'statusRaw' => $booking->status,
                             'checkIn' => $booking->check_in ? \Carbon\Carbon::parse($booking->check_in)->format('d M Y') : null,
                             'checkOut' => $booking->check_out ? \Carbon\Carbon::parse($booking->check_out)->format('d M Y') : null,
@@ -71,8 +71,8 @@
                             'guestEmail' => $booking->guest_email,
                             'guestPhone' => $booking->guest_phone,
                             'specialRequests' => $booking->special_requests,
-                            'cancellationReason' => $booking->cancellation_reason,
-                            'invoiceUrl' => ! in_array($booking->status, ['pending_payment', 'payment_failed'], true) ? route('hotel.booking.invoice', $booking->reference) : null,
+                            'cancellationReason' => $booking->guestCancellationMessage(),
+                            'invoiceUrl' => $booking->hasInvoice() ? route('hotel.booking.invoice', $booking->reference) : null,
                         ];
 
                         // Same eligibility rule FrontendController@showCancellation enforces
@@ -86,7 +86,7 @@
                     <img src="{{ $imageUrl }}" alt="{{ $title }}" class="journey-img">
                     <div class="journey-content">
                         <div class="journey-header">
-                            <span class="status-badge">{{ ucfirst(str_replace('_', ' ', $booking->status)) }}</span>
+                            <span class="status-badge">{{ $booking->guestStatusLabel() }}</span>
                             <span>
                                 @if($booking->check_in && $booking->check_out)
                                     {{ \Carbon\Carbon::parse($booking->check_in)->format('M d') }} - {{ \Carbon\Carbon::parse($booking->check_out)->format('M d, Y') }}
@@ -175,7 +175,7 @@
                                 'title' => $title,
                                 'location' => $location,
                                 'imageUrl' => $imageUrl,
-                                'status' => ucfirst(str_replace('_', ' ', $booking->status)),
+                                'status' => $booking->guestStatusLabel(),
                                 'statusRaw' => $booking->status,
                                 'checkIn' => $booking->check_in ? \Carbon\Carbon::parse($booking->check_in)->format('d M Y') : null,
                                 'checkOut' => $booking->check_out ? \Carbon\Carbon::parse($booking->check_out)->format('d M Y') : null,
@@ -190,15 +190,15 @@
                                 'guestEmail' => $booking->guest_email,
                                 'guestPhone' => $booking->guest_phone,
                                 'specialRequests' => $booking->special_requests,
-                                'cancellationReason' => $booking->cancellation_reason,
-                                'invoiceUrl' => ! in_array($booking->status, ['pending_payment', 'payment_failed'], true) ? route('hotel.booking.invoice', $booking->reference) : null,
+                                'cancellationReason' => $booking->guestCancellationMessage(),
+                                'invoiceUrl' => $booking->hasInvoice() ? route('hotel.booking.invoice', $booking->reference) : null,
                             ];
                         @endphp
                         <div class="past-card">
                             <img src="{{ $imageUrl }}" alt="{{ $title }}" class="past-img">
                             <div class="past-content">
                                 <div class="journey-header">
-                                    <span class="status-badge" style="background: var(--white-10); color: var(--white-60); border: 1px solid var(--border-color);">{{ ucfirst(str_replace('_', ' ', $booking->status)) }}</span>
+                                    <span class="status-badge" style="background: var(--white-10); color: var(--white-60); border: 1px solid var(--border-color);">{{ $booking->guestStatusLabel() }}</span>
                                     <span>
                                         @if($booking->check_in)
                                             {{ \Carbon\Carbon::parse($booking->check_in)->format('M Y') }}

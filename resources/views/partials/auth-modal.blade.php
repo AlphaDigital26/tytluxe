@@ -93,7 +93,7 @@
                 <div class="auth-terms">
                     <label class="terms-label">
                         <input type="checkbox" required>
-                        <span class="terms-text">I agree to the <a href="#">Terms & Conditions</a> and <a href="#">Privacy Policy</a>.</span>
+                        <span class="terms-text">I agree to the <a href="{{ route('terms') }}" target="_blank" rel="noopener">Terms & Conditions</a> and <a href="{{ route('privacy') }}" target="_blank" rel="noopener">Privacy Policy</a>.</span>
                     </label>
                 </div>
 
