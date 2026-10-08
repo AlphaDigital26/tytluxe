@@ -32,7 +32,8 @@ class HotelBookingStatus
 
         return match (true) {
             $booking->status === 'failed_needs_review' => 'needs_review',
-            $booking->status === 'cancelled' && $manualRefund => 'cancelled_refund_pending',
+            $booking->status === 'cancelled' && ($manualRefund || $booking->manual_refund_due_at !== null) => 'cancelled_refund_pending',
+            $booking->manual_refund_due_at !== null => 'refund_due',
             $booking->status === 'cancelled' => 'cancelled',
             $booking->status === 'confirmed' && $booking->cancellation_requested_at !== null => $stuck($booking->cancellation_requested_at) ? 'cancellation_stuck' : 'cancelling',
             $booking->status === 'confirmed' => 'confirmed',
@@ -52,6 +53,7 @@ class HotelBookingStatus
 
         return $query->where(fn (Builder $q) => $q
             ->where('status', 'failed_needs_review')
+            ->orWhereNotNull('manual_refund_due_at')
             ->orWhere(fn (Builder $q) => $q->where('status', 'cancelled')->where('cancellation_reason', 'like', '%manual%'))
             ->orWhere(fn (Builder $q) => $q->where('status', 'confirmed')->whereNotNull('cancellation_requested_at')->where('cancellation_requested_at', '<', $cutoff))
             ->orWhere(fn (Builder $q) => $q->where('status', 'pending_confirmation')->where('updated_at', '<', $cutoff)));
@@ -107,7 +109,12 @@ class HotelBookingStatus
         'cancelled_refund_pending' => [
             'label' => 'Cancelled, refund needs action',
             'color' => 'danger',
-            'help' => 'The booking was cancelled but the refund could not be paid automatically. Please refund the guest from the Razorpay dashboard and add a note here.',
+            'help' => 'The booking was cancelled but the refund could not be paid automatically. Refund the guest from the Razorpay dashboard, then click "Record manual refund".',
+        ],
+        'refund_due' => [
+            'label' => 'Refund needs action',
+            'color' => 'danger',
+            'help' => 'A payment could not be refunded automatically. Read the notes, refund the guest from the Razorpay dashboard, then click "Record manual refund".',
         ],
         'needs_review' => [
             'label' => 'Needs your attention',

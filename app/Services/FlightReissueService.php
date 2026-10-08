@@ -378,8 +378,14 @@ class FlightReissueService
             $booking->update(['flight_reissue_pending' => null]);
             Log::channel('tripjack')->critical('flight_reissue_refunded_after_failure', ['booking_id' => $booking->id, 'payment_id' => $payment->id, 'reason' => $reason]);
         } catch (\Throwable $e) {
-            $payment->update(['status' => 'failed', 'refund_reason' => $reason]);
-            $booking->update(['flight_reissue_pending' => null, 'admin_note' => 'Reissue payment refund failed automatically — needs manual review: '.$e->getMessage()]);
+            // The money was taken and is still with us — the payment stays
+            // captured (not "failed") until staff refund it by hand.
+            $payment->update(['refund_reason' => $reason]);
+            $booking->update([
+                'flight_reissue_pending' => null,
+                'manual_refund_due_at' => now(),
+                'admin_note' => $booking->adminNoteWith("Reschedule payment of {$booking->currency} {$payment->amount} could not be refunded automatically ({$e->getMessage()}). Refund the guest in Razorpay, then click \"Record manual refund\"."),
+            ]);
             Log::channel('tripjack')->critical('flight_reissue_refund_after_failure_errored', ['booking_id' => $booking->id, 'payment_id' => $payment->id, 'reason' => $reason, 'refund_error' => $e->getMessage()]);
         }
     }

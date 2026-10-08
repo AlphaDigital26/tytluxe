@@ -504,8 +504,15 @@ class FlightAncillaryService
                 'booking_id' => $booking->id, 'payment_id' => $payment->id, 'reason' => $reason,
             ]);
         } catch (\Throwable $e) {
-            $payment->update(['status' => 'failed', 'refund_reason' => $reason]);
-            $booking->update(['flight_ssr_status' => 'failed', 'admin_note' => 'SSR payment refund failed automatically — needs manual review: '.$e->getMessage()]);
+            // The money was taken and is still with us — the payment stays
+            // captured (not "failed") until staff refund it by hand.
+            $payment->update(['refund_reason' => $reason]);
+            $booking->update([
+                'flight_ssr_status' => 'failed',
+                'flight_ssr_pending_selection' => null,
+                'manual_refund_due_at' => now(),
+                'admin_note' => $booking->adminNoteWith("Seat/meal/baggage payment of {$booking->currency} {$payment->amount} could not be refunded automatically ({$e->getMessage()}). Refund the guest in Razorpay, then click \"Record manual refund\"."),
+            ]);
             Log::channel('tripjack')->critical('flight_ssr_refund_after_failure_errored', [
                 'booking_id' => $booking->id, 'payment_id' => $payment->id, 'reason' => $reason, 'refund_error' => $e->getMessage(),
             ]);

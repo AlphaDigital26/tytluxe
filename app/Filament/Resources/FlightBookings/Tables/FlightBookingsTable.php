@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\FlightBookings\Tables;
 
+use App\Filament\Actions\RecordManualRefundAction;
 use App\Filament\Resources\FlightBookings\FlightBookingActions;
 use App\Models\Booking;
 use App\Support\FlightBookingStatus;
@@ -108,6 +109,7 @@ class FlightBookingsTable
                     FlightBookingActions::checkStatus(),
                     FlightBookingActions::downloadInvoice(),
                     FlightBookingActions::addNote(),
+                    RecordManualRefundAction::make(onlyWhenDue: true),
                     FlightBookingActions::releaseReservation(),
                     FlightBookingActions::cancelAndRefund(),
                 ])->label('More')->button()->color('gray'),

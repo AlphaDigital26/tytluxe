@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Bookings\Tables;
 
+use App\Filament\Actions\RecordManualRefundAction;
 use App\Models\Booking;
 use App\Services\Booking\BookingCancellationService;
 use App\Services\Payment\RazorpayService;
@@ -118,6 +119,7 @@ class BookingsTable
                     HotelBookingActions::downloadInvoice(),
                     HotelBookingActions::addNote(),
                     EditAction::make()->label('Edit contact details'),
+                    RecordManualRefundAction::make(onlyWhenDue: true),
                     static::cancelAndRefundAction(),
                 ])->label('More')->button()->color('gray'),
             ])

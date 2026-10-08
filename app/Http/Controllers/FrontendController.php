@@ -2092,8 +2092,14 @@ class FrontendController extends Controller
                 'booking_id' => $booking->id, 'payment_id' => $payment->id, 'reason' => $reason,
             ]);
         } catch (\Throwable $e) {
-            $payment->update(['status' => 'failed', 'refund_reason' => $reason]);
-            $booking->update(['status' => 'failed_needs_review']);
+            // The money was taken and is still with us — the payment stays
+            // captured (not "failed") until staff refund it by hand.
+            $payment->update(['refund_reason' => $reason]);
+            $booking->update([
+                'status' => 'failed_needs_review',
+                'manual_refund_due_at' => now(),
+                'admin_note' => $booking->adminNoteWith("The booking failed ({$reason}) and the automatic refund of {$booking->currency} {$payment->amount} also failed ({$e->getMessage()}). Refund the guest in Razorpay, then click \"Record manual refund\"."),
+            ]);
             Log::channel('tripjack')->critical('refund_after_booking_failure_errored', [
                 'booking_id' => $booking->id, 'payment_id' => $payment->id, 'reason' => $reason, 'refund_error' => $e->getMessage(),
             ]);

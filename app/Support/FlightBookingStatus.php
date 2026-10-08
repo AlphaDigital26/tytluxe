@@ -33,7 +33,8 @@ class FlightBookingStatus
 
         return match (true) {
             $booking->status === 'failed_needs_review' => 'needs_review',
-            $booking->status === 'cancelled' && $manualRefund => 'cancelled_refund_pending',
+            $booking->status === 'cancelled' && ($manualRefund || $booking->manual_refund_due_at !== null) => 'cancelled_refund_pending',
+            $booking->manual_refund_due_at !== null => 'refund_due',
             $booking->status === 'cancelled' => 'cancelled',
             $booking->status === 'confirmed' && $booking->cancellation_requested_at !== null => self::isStuck($booking) ? 'cancellation_stuck' : 'cancelling',
             $booking->status === 'confirmed' && blank($booking->tripjack_flight_pnr) => 'ticketing',
@@ -48,7 +49,7 @@ class FlightBookingStatus
 
     public static function needsAttention(Booking $booking): bool
     {
-        return in_array(self::key($booking), ['needs_review', 'cancelled_refund_pending', 'cancellation_stuck'], true)
+        return in_array(self::key($booking), ['needs_review', 'cancelled_refund_pending', 'cancellation_stuck', 'refund_due'], true)
             || $booking->flight_ssr_status === 'needs_review';
     }
 
@@ -57,6 +58,7 @@ class FlightBookingStatus
     {
         return $query->where(fn (Builder $q) => $q
             ->where('status', 'failed_needs_review')
+            ->orWhereNotNull('manual_refund_due_at')
             ->orWhere('flight_ssr_status', 'needs_review')
             ->orWhere(fn (Builder $q) => $q->where('status', 'cancelled')->where('cancellation_reason', 'like', '%manual%'))
             ->orWhere(fn (Builder $q) => $q->where('status', 'confirmed')
@@ -117,7 +119,12 @@ class FlightBookingStatus
         'cancelled_refund_pending' => [
             'label' => 'Cancelled, refund needs action',
             'color' => 'danger',
-            'help' => 'The ticket was cancelled but the refund could not be paid automatically. Please refund the guest from the Razorpay dashboard and add a note here.',
+            'help' => 'The ticket was cancelled but the refund could not be paid automatically. Refund the guest from the Razorpay dashboard, then click "Record manual refund".',
+        ],
+        'refund_due' => [
+            'label' => 'Refund needs action',
+            'color' => 'danger',
+            'help' => 'A payment (for example for extra seats/meals or a reschedule) could not be refunded automatically. Read the notes, refund the guest from the Razorpay dashboard, then click "Record manual refund".',
         ],
         'needs_review' => [
             'label' => 'Needs your attention',

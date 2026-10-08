@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Bookings\Pages;
 
+use App\Filament\Actions\RecordManualRefundAction;
 use App\Filament\Resources\Bookings\BookingResource;
 use App\Filament\Resources\Bookings\HotelBookingActions;
 use App\Models\Booking;
@@ -30,6 +31,7 @@ class ViewBooking extends ViewRecord
             HotelBookingActions::checkStatus(fn (Booking $record) => $this->loadPenaltySchedule(fresh: true)),
             HotelBookingActions::downloadInvoice(),
             HotelBookingActions::addNote(),
+            RecordManualRefundAction::make(),
             EditAction::make()->label('Edit contact details'),
         ];
     }

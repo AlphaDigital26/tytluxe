@@ -29,9 +29,11 @@ class Booking extends Model
         'tripjack_total_price', 'gst_slab', 'margin_amount', 'gst_on_margin', 'razorpay_recovery',
         'tripjack_mf', 'tripjack_mft',
         'currency', 'offer_id', 'status', 'cancellation_reason', 'cancellation_requested_at', 'admin_note',
+        'manual_refund_due_at',
     ];
 
     protected $casts = [
+        'manual_refund_due_at' => 'datetime',
         'tripjack_room_traveller_payload' => 'array',
         'tripjack_gst_info' => 'array',
         'flight_segments_payload' => 'array',
@@ -60,6 +62,15 @@ class Booking extends Model
     public function package() { return $this->belongsTo(Package::class); }
     public function hotel() { return $this->belongsTo(Hotel::class); }
     public function roomType() { return $this->belongsTo(RoomType::class); }
+
+    /**
+     * admin_note with $note added on the end — staff add their own notes
+     * here, so automatic notes must never replace what is already there.
+     */
+    public function adminNoteWith(string $note): string
+    {
+        return trim(($this->admin_note ? $this->admin_note."\n" : '').$note);
+    }
 
     /** Payment statuses where the guest's money was actually taken (some may since be refunded). */
     public const PAID_PAYMENT_STATUSES = ['captured', 'refunded', 'partially_refunded'];

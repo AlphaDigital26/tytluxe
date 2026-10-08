@@ -659,8 +659,14 @@ class FlightBookingService
                 'booking_id' => $booking->id, 'payment_id' => $payment->id, 'reason' => $reason,
             ]);
         } catch (\Throwable $e) {
-            $payment->update(['status' => 'failed', 'refund_reason' => $reason]);
-            $booking->update(['status' => 'failed_needs_review']);
+            // The money was taken and is still with us — the payment stays
+            // captured (not "failed") until staff refund it by hand.
+            $payment->update(['refund_reason' => $reason]);
+            $booking->update([
+                'status' => 'failed_needs_review',
+                'manual_refund_due_at' => now(),
+                'admin_note' => $booking->adminNoteWith("The ticket could not be issued ({$reason}) and the automatic refund of {$booking->currency} {$payment->amount} also failed ({$e->getMessage()}). Refund the guest in Razorpay, then click \"Record manual refund\"."),
+            ]);
             Log::channel('tripjack')->critical('flight_refund_after_booking_failure_errored', [
                 'booking_id' => $booking->id, 'payment_id' => $payment->id, 'reason' => $reason, 'refund_error' => $e->getMessage(),
             ]);
@@ -1050,7 +1056,7 @@ class FlightBookingService
                 $booking->update([
                     'status' => 'confirmed', // cancellation didn't go through — booking is still live
                     'cancellation_requested_at' => null,
-                    'admin_note' => 'Flight amendment was rejected by the airline/TripJack. Needs manual review if the guest still wants to proceed.',
+                    'admin_note' => $booking->adminNoteWith('Flight amendment was rejected by the airline/TripJack. Needs manual review if the guest still wants to proceed.'),
                 ]);
             } else {
                 $this->appendPartialAmendment($booking, $amendmentDetails, $type, 'REJECTED', 0);
