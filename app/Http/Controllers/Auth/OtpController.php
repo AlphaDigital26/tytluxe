@@ -127,15 +127,22 @@ class OtpController extends Controller
         EmailOtp::where('email', $email)->delete();
 
         // Generate and send a new OTP
-        $otp = $this->generateAndSendOtp($email, $pending['name']);
+        if ($this->generateAndSendOtp($email, $pending['name']) === null) {
+            return back()->withErrors(['otp' => self::EMAIL_FAILED_MESSAGE]);
+        }
 
         return back()->with('success', 'A new verification code has been sent to your email.');
     }
 
+    public const EMAIL_FAILED_MESSAGE = 'We couldn\'t send the verification email just now. Please try again in a few minutes, or contact our support team.';
+
     /**
-     * Generate a 6-digit OTP, persist it and send the email.
+     * Generate a 6-digit OTP, persist it and send the email. Returns null
+     * (and removes the unsent OTP) when the email can't be sent — e.g. the
+     * mail server is unreachable — so the guest sees a friendly message
+     * instead of an error page.
      */
-    public static function generateAndSendOtp(string $email, string $name): string
+    public static function generateAndSendOtp(string $email, string $name): ?string
     {
         // Remove any existing OTPs for this email
         EmailOtp::where('email', $email)->delete();
@@ -148,7 +155,14 @@ class OtpController extends Controller
             'expires_at' => now()->addYears(1),
         ]);
 
-        Mail::to($email)->send(new OtpVerificationMail($otp, $name));
+        try {
+            Mail::to($email)->send(new OtpVerificationMail($otp, $name));
+        } catch (\Throwable $e) {
+            EmailOtp::where('email', $email)->delete();
+            \Illuminate\Support\Facades\Log::error('otp_email_send_failed', ['email' => $email, 'error' => $e->getMessage()]);
+
+            return null;
+        }
 
         return $otp;
     }
