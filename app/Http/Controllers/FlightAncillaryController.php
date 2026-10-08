@@ -6,6 +6,7 @@ use App\Models\Booking;
 use App\Models\Payment;
 use App\Services\FlightAncillaryService;
 use App\Services\Payment\RazorpayService;
+use App\Services\TripJack\Exceptions\TripJackApiException;
 use App\Services\TripJack\Exceptions\TripJackException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -19,6 +20,8 @@ use Illuminate\Support\Facades\Log;
  */
 class FlightAncillaryController extends Controller
 {
+    public const NOT_OFFERED_MESSAGE = 'The airline doesn\'t let us add seats, meals or extra baggage online for this booking. Please contact us and we\'ll arrange it with the airline for you.';
+
     public function show(string $reference, FlightAncillaryService $ancillaries)
     {
         $booking = $this->guardBooking($reference);
@@ -28,8 +31,15 @@ class FlightAncillaryController extends Controller
         } catch (TripJackException $e) {
             Log::channel('tripjack')->warning('flight_ssr_fetch_failed', ['booking_id' => $booking->id, 'message' => $e->getMessage()]);
 
+            // A definite refusal (4xx) won't change on a retry — TripJack's
+            // FAQ: add-ons are LCC-only, and its airline matrix lists several
+            // carriers with none. Only an outage is worth retrying.
+            $refused = $e instanceof TripJackApiException && $e->status < 500;
+
             return redirect()->route('hotel.booking.confirmation', $booking->reference)
-                ->with('booking_error', 'Seat, meal and baggage options aren\'t available for this booking right now. Please try again shortly.');
+                ->with('booking_error', $refused
+                    ? self::NOT_OFFERED_MESSAGE
+                    : 'Seat, meal and baggage options aren\'t available for this booking right now. Please try again shortly.');
         }
 
         // Cached so submit() validates against exactly what was shown,

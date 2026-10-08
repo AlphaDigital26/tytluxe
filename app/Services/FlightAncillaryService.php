@@ -38,8 +38,15 @@ class FlightAncillaryService
         $client = app(TripJackFlightClient::class);
 
         $ssr = $client->fetchAncillarySsr($booking->tripjack_booking_id);
-        $seat = $client->fetchAncillarySeatMap($booking->tripjack_booking_id);
-        $tripSeats = $seat['tripSeatMap']['tripSeat'] ?? [];
+
+        // Seats are optional: an airline without seat selection must not
+        // hide the meals and baggage it does sell.
+        try {
+            $tripSeats = $client->fetchAncillarySeatMap($booking->tripjack_booking_id)['tripSeatMap']['tripSeat'] ?? [];
+        } catch (TripJackException $e) {
+            Log::channel('tripjack')->info('flight_ssr_seatmap_unavailable', ['booking_id' => $booking->id, 'message' => $e->getMessage()]);
+            $tripSeats = [];
+        }
         $ownConfirmed = $this->confirmedExtrasBySegment($booking);
         $fromDetails = $this->extrasFromBookingDetails($client, $booking);
 

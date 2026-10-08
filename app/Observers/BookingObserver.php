@@ -41,6 +41,13 @@ class BookingObserver
             return $booking->flight_reissued_at !== null ? BookingUpdateMail::RESCHEDULED : BookingUpdateMail::CONFIRMED;
         }
 
+        // Seats/meals/baggage bought after booking, once the airline has
+        // answered (needs_review is for staff, not the guest).
+        if ($flight && $booking->wasChanged('flight_ssr_status')
+            && in_array($booking->flight_ssr_status, ['confirmed', 'partially_confirmed', 'refunded', 'failed'], true)) {
+            return BookingUpdateMail::EXTRAS;
+        }
+
         if (! $booking->wasChanged('status')) {
             return null;
         }

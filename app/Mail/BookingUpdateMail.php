@@ -34,8 +34,15 @@ class BookingUpdateMail extends Mailable implements ShouldQueue
 
     public const FAILED_REFUNDED = 'failed_refunded';
 
+    /** Seats/meals/baggage bought after booking — wording follows flight_ssr_status. */
+    public const EXTRAS = 'extras';
+
+    /** flight_ssr_status when the event happened — the model is re-read when the queued mail is sent. */
+    public ?string $ssrStatus;
+
     public function __construct(public Booking $booking, public string $kind)
     {
+        $this->ssrStatus = $booking->flight_ssr_status;
         $this->afterCommit();
     }
 
@@ -51,6 +58,11 @@ class BookingUpdateMail extends Mailable implements ShouldQueue
             self::HOLD_EXPIRED => "Your held fare has expired — {$ref}",
             self::CANCELLED => "Your booking has been cancelled — {$ref}",
             self::FAILED_REFUNDED => "We couldn't confirm your booking — {$ref}",
+            self::EXTRAS => match ($this->ssrStatus) {
+                'confirmed' => "Your seats, meals & baggage are confirmed — {$ref}",
+                'partially_confirmed' => "Some of your extras couldn't be added — {$ref}",
+                default => "We couldn't add your extras — {$ref}",
+            },
             default => "Update on your booking — {$ref}",
         });
     }

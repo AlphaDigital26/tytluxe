@@ -16,6 +16,13 @@
       M::HELD => ['Your fare is on hold', 'We have reserved this fare with the airline. No payment has been taken yet — confirm and pay before the deadline below, or the seats will be released.'],
       M::HOLD_EXPIRED => ['Your held fare has expired', 'The fare was not confirmed before the airline\'s deadline, so the seats have been released. No payment was taken. You are welcome to search again for current fares.'],
       M::CANCELLED => ['Your booking has been cancelled', $booking->guestCancellationMessage()],
+      M::EXTRAS => match ($ssrStatus) {
+          'confirmed' => ['Your extras are confirmed', 'The airline has confirmed the seats, meals and baggage you added. You can see them on your booking page.'],
+          'partially_confirmed' => ['Some of your extras couldn\'t be added', 'The airline confirmed part of what you added, but not everything. We have refunded what couldn\'t be added — it can take 5–7 business days to show in your account.'],
+          default => $booking->manual_refund_due_at
+              ? ['We couldn\'t add your extras', 'The airline couldn\'t add the seats, meals or baggage you chose. Our team is processing your refund and will contact you if we need anything.']
+              : ['We couldn\'t add your extras', 'The airline couldn\'t add the seats, meals or baggage you chose, so we have refunded you in full. It can take 5–7 business days to show in your account.'],
+      },
       M::FAILED_REFUNDED => ['We couldn\'t confirm your booking', 'Unfortunately the '.($isFlight ? 'airline' : 'hotel').' could not confirm this booking after your payment, so we have refunded you in full. It can take 5–7 business days to show in your account. We are sorry for the trouble.'],
       default => ['Update on your booking', ''],
   };
@@ -35,6 +42,9 @@
   $segments = $booking->flight_itinerary['segments'] ?? [];
   $pnrs = collect($booking->tripjack_flight_pnr ?? [])->unique()->implode(', ');
   $totals = $booking->hasInvoice() ? $booking->invoiceTotals() : null;
+  $extrasPayment = $kind === M::EXTRAS
+      ? $booking->payments()->where('purpose', 'flight_ssr')->whereIn('status', \App\Models\Booking::PAID_PAYMENT_STATUSES)->latest()->first()
+      : null;
 @endphp
 <!DOCTYPE html>
 <html lang="en">
@@ -145,7 +155,15 @@
         </table>
       @endif
 
-      @if($totals && in_array($kind, [M::CONFIRMED, M::RESCHEDULED, M::CANCELLED, M::FAILED_REFUNDED], true))
+      @if($extrasPayment)
+        <div class="section-title">Payment for extras</div>
+        <table class="rows">
+          <tr><td class="label">Paid</td><td class="value">{{ $money($extrasPayment->amount) }}</td></tr>
+          @if((float) $extrasPayment->refund_amount > 0)
+          <tr><td class="label">Refunded</td><td class="value">− {{ $money($extrasPayment->refund_amount) }}</td></tr>
+          @endif
+        </table>
+      @elseif($totals && in_array($kind, [M::CONFIRMED, M::RESCHEDULED, M::CANCELLED, M::FAILED_REFUNDED], true))
         <div class="section-title">Payment</div>
         <table class="rows">
           <tr><td class="label">Total paid</td><td class="value">{{ $money($totals['paid']) }}</td></tr>
