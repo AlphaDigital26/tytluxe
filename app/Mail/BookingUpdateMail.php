@@ -7,6 +7,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
@@ -51,7 +52,9 @@ class BookingUpdateMail extends Mailable implements ShouldQueue
         $flight = $this->booking->vertical === 'flight';
         $ref = $this->booking->reference;
 
-        return new Envelope(subject: match ($this->kind) {
+        $replyTo = config('services.booking_emails.reply_to');
+
+        return new Envelope(replyTo: filled($replyTo) ? [new Address($replyTo, 'TYT Luxe')] : [], subject: match ($this->kind) {
             self::CONFIRMED => ($flight ? 'Your flight is booked' : 'Your booking is confirmed')." — {$ref}",
             self::RESCHEDULED => "Your new flight details — {$ref}",
             self::HELD => "Your fare is on hold — {$ref}",

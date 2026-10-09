@@ -98,4 +98,14 @@ return [
         'webhook_secret' => env('RAZORPAY_WEBHOOK_SECRET'),
     ],
 
+    // Every guest booking email (BookingUpdateMail) is also sent here as a
+    // hidden copy, so the team sees each confirmation, cancellation and
+    // refund as it happens. Empty = no copy.
+    // reply_to: where a guest's "Reply" goes — the emails are sent from a
+    // noreply address, so replies would otherwise be lost. Empty = none.
+    'booking_emails' => [
+        'team_copy' => env('BOOKING_TEAM_EMAIL', 'takeyourtrip7@gmail.com'),
+        'reply_to' => env('BOOKING_REPLY_TO', 'takeyourtrip7@gmail.com'),
+    ],
+
 ];
