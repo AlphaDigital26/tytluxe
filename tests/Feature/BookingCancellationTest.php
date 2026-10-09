@@ -144,12 +144,13 @@ class BookingCancellationTest extends TestCase
 
         $this->assertSame('cancelled', $booking->status);
         $this->assertNotNull($booking->cancellation_requested_at);
-        $this->assertSame('refunded', $payment->status);
-        $this->assertSame((float) $payment->amount, (float) $payment->refund_amount);
+        // Free cancellation: everything paid back less the flat fee (RefundPolicy).
+        $this->assertSame('partially_refunded', $payment->status);
+        $this->assertEqualsWithDelta((float) $payment->amount - 100, (float) $payment->refund_amount, 0.01);
         $this->assertCount(1, $this->razorpay->refunds);
     }
 
-    public function test_cancellation_with_penalty_refunds_the_scaled_remainder(): void
+    public function test_cancellation_with_penalty_refunds_what_tripjack_refunds(): void
     {
         $tjId = 'TJ-CX-999000002';
 
@@ -171,9 +172,9 @@ class BookingCancellationTest extends TestCase
 
         $this->assertSame('cancelled', $booking->status);
         $this->assertStringContainsString('penalty', strtolower($booking->cancellation_reason));
-        // Penalty 5000 of TripJack's 25000 = 20% kept; the guest gets 80%
-        // of what they actually paid back automatically.
-        $expected = round((float) $payment->amount * 0.8, 2);
+        // Penalty 5000 of TripJack's 25000: TripJack refunds us 20000, and
+        // that is exactly what the guest gets — our markup isn't refunded.
+        $expected = 20000.0;
         $this->assertSame('partially_refunded', $payment->status);
         $this->assertEqualsWithDelta($expected, (float) $payment->refund_amount, 0.01);
         $this->assertCount(1, $this->razorpay->refunds);

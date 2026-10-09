@@ -12,6 +12,7 @@ use App\Services\TripJack\Exceptions\TripJackException;
 use App\Services\TripJack\Exceptions\TripJackTimeoutException;
 use App\Services\TripJack\TripJackFlightClient;
 use App\Services\TripJack\TripJackFlightErrorCatalog;
+use App\Support\RefundPolicy;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -836,21 +837,14 @@ class FlightBookingService
      * amendmentCharges / refundAmount / totalFare, which per the doc are
      * per pax of that type — so each is multiplied by the pax count.
      *
-     * Converted into the guest's terms with the same ratio
-     * finalizeCancellation() uses to refund, so the estimate shown matches
+     * Converted into the guest's terms with the same RefundPolicy rule
+     * finalizeCancellation() refunds with, so the estimate shown matches
      * what is actually refunded. Null when TripJack won't quote.
      *
      * @return array{charges: float, refund: float, currency: string}|null
      */
     public function cancellationQuote(Booking $booking, array $trips, array $paxCounts): ?array
     {
-        // After a reschedule the guest has paid across two payments and the
-        // stored fare is the original one, so the ratio below would be
-        // wrong — the refund is worked out by staff (finalizeCancellation()).
-        if ($booking->flight_reissued_at !== null) {
-            return null;
-        }
-
         $cacheKey = 'flight_cancel_quote:'.$booking->id.':'.md5(json_encode([$trips, $paxCounts]));
 
         $airline = Cache::remember($cacheKey, now()->addMinutes(3), function () use ($booking, $trips, $paxCounts) {
@@ -869,28 +863,43 @@ class FlightBookingService
 
             $charges = 0.0;
             $refund = 0.0;
+            $fare = 0.0;
             foreach ($response['trips'] as $trip) {
                 foreach (($trip['amendmentInfo'] ?? []) as $paxType => $info) {
                     $count = max(1, (int) ($paxCounts[strtoupper($paxType)] ?? 1));
                     $charges += (float) ($info['amendmentCharges'] ?? 0) * $count;
                     $refund += (float) ($info['refundAmount'] ?? 0) * $count;
+                    $fare += (float) ($info['totalFare'] ?? 0) * $count;
                 }
             }
 
-            return ['charges' => $charges, 'refund' => $refund];
+            return ['charges' => $charges, 'refund' => $refund, 'fare' => $fare];
         });
 
-        $supplierTotal = (float) $booking->tripjack_total_price;
+        // Same payments and TripJack cost finalizeCancellation() uses: the
+        // fare payment plus any reschedule payment (taken at TripJack's price).
+        $payments = $booking->payments()
+            ->whereIn('purpose', ['booking', 'flight_confirm_book', 'flight_reissue'])
+            ->whereIn('status', ['captured', 'partially_refunded'])
+            ->get();
+        $supplierTotal = (float) $booking->tripjack_total_price + (float) $payments->where('purpose', 'flight_reissue')->sum('amount');
         if (! $airline || $supplierTotal <= 0) {
             return null;
         }
+        $paid = $payments->isNotEmpty() ? (float) $payments->sum('amount') : (float) $booking->total_amount;
+        $stillRefundable = max(0, round($paid - (float) $payments->sum('refund_amount'), 2));
 
-        $payment = $this->farePayment($booking);
-        $paid = $payment ? (float) $payment->amount : (float) $booking->total_amount;
-        $stillRefundable = max(0, $paid - (float) ($payment->refund_amount ?? 0));
-
-        $refund = min($stillRefundable, round($paid * min(1, $airline['refund'] / $supplierTotal), 2));
-        $charges = round($paid * min(1, $airline['charges'] / $supplierTotal), 2);
+        // RefundPolicy, exactly as finalizeCancellation() refunds: the whole
+        // booking → TripJack's refund, or everything paid less the flat fee
+        // when free; part of it → TripJack's refund as is. Charges = what the
+        // guest paid for that part (their payment in proportion to TripJack's
+        // fare for it) minus the refund.
+        $isFull = $trips === [];
+        $refund = $isFull
+            ? RefundPolicy::cancellationRefund($stillRefundable, $supplierTotal, $airline['refund'])
+            : round(min($stillRefundable, $airline['refund']), 2);
+        $supplierPart = ! $isFull && (float) ($airline['fare'] ?? 0) > 0 ? min($supplierTotal, (float) $airline['fare']) : $supplierTotal;
+        $charges = round(max(0, $paid * $supplierPart / $supplierTotal - $refund), 2);
 
         return ['charges' => $charges, 'refund' => $refund, 'currency' => $booking->currency ?? 'INR'];
     }
@@ -1074,49 +1083,72 @@ class FlightBookingService
         }
 
         $refundableAmount = (float) ($amendmentDetails['refundableAmount'] ?? 0);
-        $payment = $this->farePayment($booking);
 
-        $paymentHasBalance = $payment && (float) $payment->amount - (float) ($payment->refund_amount ?? 0) > 0.01;
+        // Everything the guest paid for the flight itself, newest first: a
+        // reschedule payment (taken at TripJack's own price) before the
+        // original fare payment. Razorpay refunds each payment separately.
+        $payments = $booking->payments()
+            ->whereIn('purpose', ['booking', 'flight_confirm_book', 'flight_reissue'])
+            ->whereIn('status', ['captured', 'partially_refunded'])
+            ->where('amount', '>', 0)
+            ->orderByDesc('id')
+            ->get();
+        $remaining = round((float) $payments->sum(fn (Payment $p) => (float) $p->amount - (float) ($p->refund_amount ?? 0)), 2);
+        $supplierCost = (float) $booking->tripjack_total_price
+            + (float) $payments->where('purpose', 'flight_reissue')->sum('amount');
 
-        // Rescheduled: refundableAmount is against the reissued booking,
-        // while tripjack_total_price and the fare payment are the original
-        // ones — the ratio would over- or under-refund. Falls through to the
-        // manual-review outcome below.
-        $reissued = $booking->flight_reissued_at !== null;
+        // RefundPolicy (business rule, 2026-10-08): TripJack's own refund —
+        // our markup isn't refunded — or, when TripJack refunds its whole
+        // price, everything paid less the flat cancellation fee. An airline-
+        // caused Full Refund (flight cancelled, DGCA, …) gives back everything,
+        // like a booking that failed. A partial cancellation gets TripJack's
+        // refund as is: amendment-details doesn't give that part's fare.
+        $refundToGuest = match (true) {
+            $type === 'FULL_REFUND' && $isFullBooking => $remaining,
+            $isFullBooking => RefundPolicy::cancellationRefund($remaining, $supplierCost, $refundableAmount),
+            default => round(min($remaining, $refundableAmount), 2),
+        };
 
-        if (! $reissued && $paymentHasBalance && $refundableAmount > 0 && (float) $booking->tripjack_total_price > 0) {
-            // Scale TripJack's raw-price refund against what the guest
-            // actually paid us, same ratio technique as the hotel flow. For
-            // a partial amendment this refundableAmount already reflects
-            // only the cancelled trip/travellers (confirmed live), so the
-            // same ratio math is correct for a partial refund too.
-            $refundRatio = min(1, $refundableAmount / (float) $booking->tripjack_total_price);
-            $alreadyRefunded = (float) ($payment->refund_amount ?? 0);
-            $refundToGuest = min(round((float) $payment->amount - $alreadyRefunded, 2), round((float) $payment->amount * $refundRatio, 2));
-
+        if ($refundToGuest > 0 && $refundableAmount > 0) {
+            $refunded = 0.0;
             try {
-                $razorpay->refund($payment->razorpay_payment_id, $refundToGuest);
-                $newTotalRefunded = round($alreadyRefunded + $refundToGuest, 2);
-                $payment->update([
-                    'status' => $newTotalRefunded >= (float) $payment->amount - 0.01 ? 'refunded' : 'partially_refunded',
-                    'refund_amount' => $newTotalRefunded,
-                    'refund_reason' => $isFullBooking ? 'Flight cancellation refund.' : "Partial flight amendment refund ({$type}).",
-                ]);
+                foreach ($payments as $payment) {
+                    $take = round(min($refundToGuest - $refunded, (float) $payment->amount - (float) ($payment->refund_amount ?? 0)), 2);
+                    if ($take <= 0) {
+                        continue;
+                    }
+                    $razorpay->refund($payment->razorpay_payment_id, $take);
+                    $newTotalRefunded = round((float) ($payment->refund_amount ?? 0) + $take, 2);
+                    $payment->update([
+                        'status' => $newTotalRefunded >= (float) $payment->amount - 0.01 ? 'refunded' : 'partially_refunded',
+                        'refund_amount' => $newTotalRefunded,
+                        'refund_reason' => $isFullBooking ? 'Flight cancellation refund.' : "Partial flight amendment refund ({$type}).",
+                    ]);
+                    $refunded = round($refunded + $take, 2);
+                }
 
                 if ($isFullBooking) {
-                    $booking->update(['status' => 'cancelled', 'cancellation_reason' => "Cancelled. Refunded {$booking->currency} {$refundToGuest} automatically."]);
+                    $booking->update(['status' => 'cancelled', 'cancellation_reason' => "Cancelled. Refunded {$booking->currency} {$refunded} automatically."]);
                 } else {
-                    $this->appendPartialAmendment($booking, $amendmentDetails, $type, 'SUCCESS', $refundToGuest);
+                    $this->appendPartialAmendment($booking, $amendmentDetails, $type, 'SUCCESS', $refunded);
                 }
-                Log::channel('tripjack')->info('flight_amendment_refunded', ['booking_id' => $booking->id, 'isFullBooking' => $isFullBooking, 'refund' => $refundToGuest]);
+                Log::channel('tripjack')->info('flight_amendment_refunded', ['booking_id' => $booking->id, 'isFullBooking' => $isFullBooking, 'refund' => $refunded, 'tripjackRefund' => $refundableAmount]);
 
                 return;
             } catch (\Throwable $e) {
-                Log::channel('tripjack')->critical('flight_cancellation_refund_failed', ['booking_id' => $booking->id, 'error' => $e->getMessage()]);
+                Log::channel('tripjack')->critical('flight_cancellation_refund_failed', ['booking_id' => $booking->id, 'refunded_before_error' => $refunded, 'error' => $e->getMessage()]);
+                $owed = round($refundToGuest - $refunded, 2);
+                $note = "Flight cancelled — the automatic refund of {$booking->currency} {$refundToGuest} failed after {$booking->currency} {$refunded} ({$e->getMessage()}). Refund the remaining {$booking->currency} {$owed} in Razorpay, then click \"Record manual refund\".";
                 if ($isFullBooking) {
-                    $booking->update(['status' => 'cancelled', 'cancellation_reason' => 'Cancelled — refund failed automatically and needs manual processing: '.$e->getMessage()]);
+                    $booking->update([
+                        'status' => 'cancelled',
+                        'cancellation_reason' => 'Cancelled — refund failed automatically and needs manual processing: '.$e->getMessage(),
+                        'manual_refund_due_at' => now(),
+                        'admin_note' => $booking->adminNoteWith($note),
+                    ]);
                 } else {
-                    $this->appendPartialAmendment($booking, $amendmentDetails, $type, 'SUCCESS_REFUND_FAILED', 0);
+                    $this->appendPartialAmendment($booking, $amendmentDetails, $type, 'SUCCESS_REFUND_FAILED', $refunded);
+                    $booking->update(['manual_refund_due_at' => now(), 'admin_note' => $booking->adminNoteWith($note)]);
                 }
 
                 return;
@@ -1124,12 +1156,12 @@ class FlightBookingService
         }
 
         if ($isFullBooking) {
-            $booking->update(array_filter([
+            $booking->update([
                 'status' => 'cancelled',
-                'cancellation_reason' => 'Cancelled. No automatic refund applied — needs manual review.',
-                'admin_note' => $reissued && $refundableAmount > 0 ? trim(($booking->admin_note ? $booking->admin_note.' ' : '')
-                    ."Rescheduled booking cancelled — TripJack refundable amount {$refundableAmount}. Refund the guest manually across the original fare and reschedule payments.") : null,
-            ], fn ($v) => $v !== null));
+                'cancellation_reason' => $refundableAmount > 0
+                    ? 'Cancelled. No automatic refund applied — needs manual review.'
+                    : 'Cancelled. TripJack reported no refundable amount — no refund due.',
+            ]);
         } else {
             $this->appendPartialAmendment($booking, $amendmentDetails, $type, 'SUCCESS_NO_REFUND', 0);
         }
