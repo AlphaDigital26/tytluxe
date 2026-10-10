@@ -12,6 +12,10 @@ class EnquiriesByCategoryChart extends ChartWidget
 
     /** Load with the page (one request) instead of one request per widget. */
     protected static bool $isLazy = false;
+
+    /** No auto-refresh (Filament's default is every 5s). */
+    protected ?string $pollingInterval = null;
+
     protected ?string $heading = 'What guests are asking about';
 
     protected ?string $description = 'All enquiries so far, by type of trip.';

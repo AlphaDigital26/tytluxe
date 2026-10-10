@@ -44,6 +44,17 @@ class DashboardTest extends TestCase
         Setting::setJson('tripjack_alert.last_balance', ['amount' => 1500, 'checked_at' => now()->toIso8601String()]);
     }
 
+    public function test_home_screen_does_not_reload_itself_every_few_seconds(): void
+    {
+        Http::fake();
+        $this->seedActivity();
+        $this->actingAs($this->admin(), 'admin');
+
+        // Filament's stats and chart widgets poll every 5s by default; with
+        // several on the dashboard that kept the browser and server busy.
+        $this->get('/tyt-console')->assertOk()->assertDontSee('wire:poll', false);
+    }
+
     public function test_home_screen_shows_greeting_todo_numbers_and_upcoming_trips(): void
     {
         Http::fake();

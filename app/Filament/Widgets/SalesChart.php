@@ -13,6 +13,9 @@ class SalesChart extends ChartWidget
     /** Load with the page (one request) instead of one request per widget. */
     protected static bool $isLazy = false;
 
+    /** No auto-refresh (Filament's default is every 5s). */
+    protected ?string $pollingInterval = null;
+
     protected ?string $heading = 'Sales over the last 6 months';
 
     protected ?string $description = 'Money guests paid for bookings that went ahead.';
