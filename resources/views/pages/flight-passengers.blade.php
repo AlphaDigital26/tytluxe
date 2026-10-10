@@ -457,6 +457,7 @@
 
       <div class="flr-section" id="flpGst" @unless($gstMandatory || old('gst_number')) hidden @endunless>
         <h2>GST Details {{ $gstMandatory ? '(Required)' : '(Optional)' }}</h2>
+        <p style="font-size:12px; color:rgba(255,255,255,0.6); margin:-8px 0 16px;">Booking for work? Add your company's GST details. The airline's GST invoice and ours will carry them, so you can claim the GST.</p>
         <div class="flr-row" style="grid-template-columns:1fr 1fr;">
           <div class="flr-field" style="margin-bottom:0;"><label for="flpGstNo">GSTIN</label><input type="text" name="gst_number" id="flpGstNo" value="{{ old('gst_number') }}" maxlength="15" style="text-transform:uppercase;" @if($gstMandatory) required @endif></div>
           <div class="flr-field" style="margin-bottom:0;"><label for="flpGstName">Registered Company Name</label><input type="text" name="gst_registered_name" id="flpGstName" value="{{ old('gst_registered_name') }}" maxlength="35" @if($gstMandatory) required @endif></div>
@@ -618,9 +619,8 @@
   // Mirrors FlightPricingService::price() exactly, so the total shown here
   // is the amount charged.
   function customerPrice(tf) {
-    var gst = tf < PRICING.gstThreshold ? PRICING.gstLow : PRICING.gstHigh;
     var margin = tf * PRICING.marginRate;
-    var pre = tf + margin + margin * gst;
+    var pre = tf + margin + margin * PRICING.gstRate;
     return Math.round(pre / (1 - PRICING.razorpayRate) * 100) / 100;
   }
 

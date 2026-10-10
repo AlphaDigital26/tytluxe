@@ -328,8 +328,8 @@ class FlightController extends Controller
                 }
                 // Marked up per adult, exactly as the results page shows it.
                 foreach ($itinerary['totalPriceList'] ?? [] as $option) {
-                    $fd = $option['fd'] ?? $option['fD'] ?? [];
-                    $price = FlightPricingService::perAdult(array_map(fn ($paxFd) => (float) ($paxFd['fC']['TF'] ?? 0), $fd), $paxInfo);
+                    $tf = (float) (($option['fd'] ?? $option['fD'] ?? [])['ADULT']['fC']['TF'] ?? 0);
+                    $price = $tf > 0 ? FlightPricingService::price($tf)['customer_price'] : 0;
                     if ($price > 0 && ($legMin === null || $price < $legMin)) {
                         $legMin = $price;
                     }

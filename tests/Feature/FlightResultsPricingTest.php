@@ -29,17 +29,25 @@ class FlightResultsPricingTest extends TestCase
         ])]);
     }
 
-    public function test_per_adult_price_matches_what_the_review_page_charges(): void
+    public function test_flights_charge_a_flat_18_percent_gst_on_our_markup_at_any_fare(): void
     {
         FlightSettings::save(['markup_percent' => 10]);
 
-        // One adult: exactly the booking total.
-        $this->assertSame(FlightPricingService::price(5000)['customer_price'], FlightPricingService::perAdult(['ADULT' => 5000], ['ADULT' => 1]));
+        // ₹5,000 fare: markup ₹500, GST ₹90 (18%, not the hotels' 5% below
+        // ₹7,500), then the payment-gateway gross-up.
+        $cheap = FlightPricingService::price(5000);
+        $this->assertSame(0.18, $cheap['gst_slab']);
+        $this->assertSame(90.0, $cheap['gst_on_margin']);
+        $this->assertEqualsWithDelta(5590 / (1 - 0.0236), $cheap['customer_price'], 0.01);
+        $this->assertSame(0.18, FlightPricingService::price(20000)['gst_slab']);
 
-        // Two adults: ₹10,000 together crosses the GST slab, so each adult's
-        // share is half of that total, not the price of ₹5,000 alone.
-        $this->assertEqualsWithDelta(FlightPricingService::price(10000)['customer_price'] / 2, FlightPricingService::perAdult(['ADULT' => 5000], ['ADULT' => 2]), 0.01);
-        $this->assertGreaterThan(FlightPricingService::price(5000)['customer_price'], FlightPricingService::perAdult(['ADULT' => 5000], ['ADULT' => 2]));
+        // One rate at every fare: a domestic return's two legs priced on
+        // their own add up to the two together, so results match review.
+        $this->assertEqualsWithDelta(
+            FlightPricingService::price(8000)['customer_price'],
+            FlightPricingService::price(4000)['customer_price'] * 2,
+            0.02,
+        );
     }
 
     public function test_results_show_the_marked_up_fare(): void

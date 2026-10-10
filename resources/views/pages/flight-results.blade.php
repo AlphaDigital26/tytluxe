@@ -90,8 +90,6 @@
   // within its row, matching the reference layout.
   // Prices are shown marked up (FlightPricingService), per adult, so the
   // fare a guest clicks matches the total on the review page.
-  $paxCounts = array_filter(['ADULT' => (int) ($searchParams['adults'] ?? 1), 'CHILD' => (int) ($searchParams['children'] ?? 0), 'INFANT' => (int) ($searchParams['infants'] ?? 0)]);
-
   $cardGroups = [];
   if ($results) {
       foreach ($groupMeta as $key => $meta) {
@@ -158,10 +156,7 @@
                   $fd = $fdAll['ADULT'] ?? [];
                   $fc = $fd['fC'] ?? [];
                   $bf = (float) ($fc['BF'] ?? 0);
-                  $price = \App\Services\FlightPricingService::perAdult(
-                      array_map(fn ($paxFd) => (float) ($paxFd['fC']['TF'] ?? 0), $fdAll),
-                      $paxCounts,
-                  );
+                  $price = \App\Services\FlightPricingService::price((float) ($fc['TF'] ?? 0))['customer_price'];
 
                   $options[] = [
                       'id' => $option['id'],

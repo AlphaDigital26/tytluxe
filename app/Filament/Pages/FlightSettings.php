@@ -165,7 +165,7 @@ class FlightSettings extends Page
         $f = FlightPricingService::formula();
         $airline = 5000.0;
         $earning = $airline * max(0, $markupPercent) / 100;
-        $gst = $earning * ($airline < $f['gstThreshold'] ? $f['gstLow'] : $f['gstHigh']);
+        $gst = $earning * $f['gstRate'];
         $guestPays = ($airline + $earning + $gst) / (1 - $f['razorpayRate']);
         $paymentCharge = $guestPays - ($airline + $earning + $gst);
 
