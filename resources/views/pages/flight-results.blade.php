@@ -6,7 +6,7 @@
   $airlineNames = [
     '6E' => 'IndiGo', 'AI' => 'Air India', 'SG' => 'SpiceJet', 'UK' => 'Vistara',
     'G8' => 'Go First', 'I5' => 'AirAsia India', 'IX' => 'Air India Express',
-    'EK' => 'Emirates', 'QR' => 'Qatar Airways', 'LH' => 'Lufthansa', 'BA' => 'British Airways',
+    'QP' => 'Akasa Air', 'EK' => 'Emirates', 'QR' => 'Qatar Airways', 'LH' => 'Lufthansa', 'BA' => 'British Airways',
     'EY' => 'Etihad Airways', 'SQ' => 'Singapore Airlines', 'CX' => 'Cathay Pacific',
   ];
 
@@ -88,6 +88,10 @@
   // list), not by fare — each flight can have several selectable fare
   // options (Published/Lite/Flex/etc.) shown together in a compact list
   // within its row, matching the reference layout.
+  // Prices are shown marked up (FlightPricingService), per adult, so the
+  // fare a guest clicks matches the total on the review page.
+  $paxCounts = array_filter(['ADULT' => (int) ($searchParams['adults'] ?? 1), 'CHILD' => (int) ($searchParams['children'] ?? 0), 'INFANT' => (int) ($searchParams['infants'] ?? 0)]);
+
   $cardGroups = [];
   if ($results) {
       foreach ($groupMeta as $key => $meta) {
@@ -153,15 +157,18 @@
                   $fdAll = $option['fd'] ?? $option['fD'] ?? [];
                   $fd = $fdAll['ADULT'] ?? [];
                   $fc = $fd['fC'] ?? [];
-                  $tf = (float) ($fc['TF'] ?? 0);
                   $bf = (float) ($fc['BF'] ?? 0);
-                  $taf = (float) ($fc['TAF'] ?? max(0, $tf - $bf));
+                  $price = \App\Services\FlightPricingService::perAdult(
+                      array_map(fn ($paxFd) => (float) ($paxFd['fC']['TF'] ?? 0), $fdAll),
+                      $paxCounts,
+                  );
 
                   $options[] = [
                       'id' => $option['id'],
-                      'price' => $tf,
+                      'price' => $price,
                       'baseFare' => $bf,
-                      'taxes' => $taf,
+                      // Airline taxes plus our service fee — whatever isn't base fare.
+                      'taxes' => max(0, $price - $bf),
                       'refundable' => ($fd['rT'] ?? 0) >= 1,
                       // Search doc: rT 0 = Non-Refundable, 1 = Refundable,
                       // 2 = Partially Refundable — kept distinct so a partial
@@ -962,7 +969,9 @@
             $searchParams['infants'] ? $searchParams['infants'].' Infant'.($searchParams['infants'] > 1 ? 's' : '') : null,
         ]);
         $prefCode = $searchParams['preferredAirline'] ?? '';
-        $prefName = $prefCode === '' ? 'None' : ($airlineNames[$prefCode] ?? optional($airlineFacets->firstWhere('code', $prefCode))['name'] ?? $prefCode);
+        $prefName = $prefCode === '' ? 'None' : collect(explode(',', $prefCode))
+            ->map(fn ($code) => $airlineNames[$code] ?? optional($airlineFacets->firstWhere('code', $code))['name'] ?? $code)
+            ->implode(', ');
       @endphp
       <div class="frx-tb-divider"></div>
       <div>
@@ -2564,7 +2573,7 @@
       + '<table class="frx-fare-table"><thead><tr><th>Fare Type</th><th>Base Fare</th><th>Taxes &amp; Fees</th><th>Total</th></tr></thead><tbody>'
       + d.fares.map(function (f) { return '<tr class="total-row"><td>' + esc(f[0]) + '</td><td>&#8377;' + esc(f[1]) + '</td><td>&#8377;' + esc(f[2]) + '</td><td>&#8377;' + esc(f[3]) + '</td></tr>'; }).join('')
       + '</tbody></table>'
-      + '<p class="frx-detail-line" style="border:none;margin-top:8px;"><span></span><span style="color:var(--white-30);font-size:11px;">Per adult. GST/RAF and any applicable charges are included in Total.</span></p>'
+      + '<p class="frx-detail-line" style="border:none;margin-top:8px;"><span></span><span style="color:var(--white-30);font-size:11px;">Per adult. Taxes, service fee and any applicable charges are included in Total.</span></p>'
       + '</div>'
       + '<div class="frx-tab-panel" data-panel="rules"><div class="frx-rules-content"><p class="frx-rules-loading">Click to load cancellation &amp; date-change fees…</p></div></div>';
     bindDetailTabs(details);

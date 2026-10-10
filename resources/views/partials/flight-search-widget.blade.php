@@ -118,21 +118,29 @@
 
   <div class="tyt-sb-row2">
     @php
+      // Airlines flying today (Vistara merged into Air India, AirAsia India
+      // into Air India Express; Go First is grounded).
       $sbAirlines = [
-        '6E' => 'IndiGo', 'AI' => 'Air India', 'SG' => 'SpiceJet', 'UK' => 'Vistara',
-        'G8' => 'Go First', 'I5' => 'AirAsia India', 'EK' => 'Emirates', 'QR' => 'Qatar Airways',
-        'LH' => 'Lufthansa', 'BA' => 'British Airways', 'EY' => 'Etihad Airways',
-        'SQ' => 'Singapore Airlines', 'CX' => 'Cathay Pacific',
+        '6E' => 'IndiGo', 'AI' => 'Air India', 'IX' => 'Air India Express', 'QP' => 'Akasa Air', 'SG' => 'SpiceJet',
+        'EK' => 'Emirates', 'QR' => 'Qatar Airways', 'EY' => 'Etihad Airways', 'SQ' => 'Singapore Airlines',
+        'LH' => 'Lufthansa', 'BA' => 'British Airways', 'CX' => 'Cathay Pacific',
       ];
+      $sbPickedAirlines = \App\Http\Controllers\FlightController::preferredAirlines($sbPreferredAirline);
     @endphp
-    {{-- TODO(future): allow choosing up to 10 preferred airlines (TripJack's
-         limit) — see FlightController::search(). --}}
-    <select class="tyt-sb-airline-select" name="preferred_airline">
-      <option value="">Select Preferred Airline</option>
-      @foreach($sbAirlines as $code => $name)
-        <option value="{{ $code }}" {{ $sbPreferredAirline === $code ? 'selected' : '' }}>{{ $name }}</option>
-      @endforeach
-    </select>
+    {{-- Several airlines (up to FlightController::MAX_PREFERRED_AIRLINES,
+         TripJack's limit), sent as one comma-separated value. --}}
+    <div class="tyt-sb-airlines" id="tytSbAirlines">
+      <button type="button" class="tyt-sb-airline-select" id="tytSbAirlinesToggle" aria-expanded="false" aria-controls="tytSbAirlinesPanel">
+        <span id="tytSbAirlinesSummary">Preferred Airlines</span> <span aria-hidden="true">&#9662;</span>
+      </button>
+      <div class="tyt-sb-airlines-panel" id="tytSbAirlinesPanel" data-max="{{ \App\Http\Controllers\FlightController::MAX_PREFERRED_AIRLINES }}">
+        @foreach($sbAirlines as $code => $name)
+          <label class="tyt-sb-check"><input type="checkbox" class="tyt-sb-airline-opt" value="{{ $code }}" data-name="{{ $name }}" {{ in_array($code, $sbPickedAirlines, true) ? 'checked' : '' }}> {{ $name }}</label>
+        @endforeach
+        <button type="button" class="tyt-sb-airlines-clear" id="tytSbAirlinesClear">Any airline</button>
+      </div>
+      <input type="hidden" name="preferred_airline" id="tytSbAirlinesInput" value="{{ implode(',', $sbPickedAirlines) }}">
+    </div>
 
     <span class="tyt-sb-farelabel">Select Fare Type:</span>
     <div class="tyt-sb-check-group" id="tytSbFareTypeGroup">
@@ -233,7 +241,12 @@
 .tyt-sb-multi-add:disabled{opacity:0.35;cursor:not-allowed}
 
 .tyt-sb-row2{display:flex;align-items:center;flex-wrap:wrap;gap:18px;margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.06)}
-.tyt-sb-airline-select{background:#0d0d0d;border:1px solid rgba(255,255,255,0.12);color:#ccc;font-family:'Poppins',sans-serif;font-size:11.5px;padding:9px 14px;border-radius:8px;outline:none}
+.tyt-sb-airline-select{background:#0d0d0d;border:1px solid rgba(255,255,255,0.12);color:#ccc;font-family:'Poppins',sans-serif;font-size:11.5px;padding:9px 14px;border-radius:8px;outline:none;cursor:pointer;max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tyt-sb-airlines{position:relative}
+.tyt-sb-airlines-panel{display:none;position:absolute;top:calc(100% + 8px);left:0;width:230px;max-height:300px;overflow-y:auto;background:#1a1a1a;border:1px solid rgba(201,168,76,0.3);border-radius:12px;box-shadow:0 20px 50px rgba(0,0,0,0.5);padding:12px 14px;z-index:40;flex-direction:column;gap:9px}
+.tyt-sb-airlines-panel.open{display:flex}
+.tyt-sb-airlines-panel .tyt-sb-check input:disabled+*{opacity:.4}
+.tyt-sb-airlines-clear{margin-top:4px;padding:7px;border:1px solid rgba(201,168,76,0.4);border-radius:8px;background:transparent;color:#C9A84C;font-family:'Poppins',sans-serif;font-size:11px;font-weight:600;cursor:pointer}
 .tyt-sb-farelabel{font-family:'Poppins',sans-serif;font-size:11px;color:#777}
 .tyt-sb-check-group{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .tyt-sb-check{display:flex;align-items:center;gap:6px;font-family:'Poppins',sans-serif;font-size:11.5px;color:#bbb;cursor:pointer}
@@ -756,6 +769,41 @@
   });
 
   updatePaxSummary();
+
+  // Preferred airlines: ticked boxes → one comma-separated hidden value.
+  (function () {
+    var wrap = document.getElementById('tytSbAirlines');
+    var panel = document.getElementById('tytSbAirlinesPanel');
+    var toggle = document.getElementById('tytSbAirlinesToggle');
+    var summary = document.getElementById('tytSbAirlinesSummary');
+    var input = document.getElementById('tytSbAirlinesInput');
+    var opts = panel.querySelectorAll('.tyt-sb-airline-opt');
+    var max = parseInt(panel.dataset.max, 10) || 10;
+
+    function sync() {
+      var picked = Array.prototype.filter.call(opts, function (o) { return o.checked; });
+      input.value = picked.map(function (o) { return o.value; }).join(',');
+      summary.textContent = picked.length === 0 ? 'Preferred Airlines'
+        : picked.length <= 2 ? picked.map(function (o) { return o.dataset.name; }).join(', ')
+        : picked.length + ' airlines';
+      opts.forEach(function (o) { o.disabled = !o.checked && picked.length >= max; });
+    }
+
+    toggle.addEventListener('click', function () {
+      var open = panel.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    document.addEventListener('click', function (e) {
+      if (!wrap.contains(e.target)) { panel.classList.remove('open'); toggle.setAttribute('aria-expanded', 'false'); }
+    });
+    opts.forEach(function (o) { o.addEventListener('change', sync); });
+    document.getElementById('tytSbAirlinesClear').addEventListener('click', function () {
+      opts.forEach(function (o) { o.checked = false; });
+      sync();
+      panel.classList.remove('open');
+    });
+    sync();
+  })();
 
   document.getElementById('tytSbForm').addEventListener('submit', function (e) {
     document.getElementById('tytSbFrom').value = document.getElementById('tytSbFrom').value.trim().toUpperCase();
