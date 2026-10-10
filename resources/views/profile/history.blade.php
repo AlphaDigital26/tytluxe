@@ -73,6 +73,7 @@
                             'specialRequests' => $booking->special_requests,
                             'cancellationReason' => $booking->guestCancellationMessage(),
                             'invoiceUrl' => $booking->hasInvoice() ? route('hotel.booking.invoice', $booking->reference) : null,
+                            'eticketUrl' => $booking->hasETicket() ? route('flight.booking.eticket', $booking->reference) : null,
                         ];
 
                         // Same eligibility rule FrontendController@showCancellation enforces
@@ -192,6 +193,7 @@
                                 'specialRequests' => $booking->special_requests,
                                 'cancellationReason' => $booking->guestCancellationMessage(),
                                 'invoiceUrl' => $booking->hasInvoice() ? route('hotel.booking.invoice', $booking->reference) : null,
+                                'eticketUrl' => $booking->hasETicket() ? route('flight.booking.eticket', $booking->reference) : null,
                             ];
                         @endphp
                         <div class="past-card">
@@ -316,6 +318,10 @@
           <div class="bd-modal-label" id="bdModalTotalLabel">Total Paid</div>
           <div class="bd-modal-total" id="bdModalTotal">—</div>
         </div>
+        <a href="#" id="bdModalETicketLink" class="bd-modal-btn" hidden>
+          Download E-Ticket
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 19h16"/></svg>
+        </a>
         <a href="#" id="bdModalInvoiceLink" class="bd-modal-btn" hidden>
           Download Invoice
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 19h16"/></svg>
@@ -510,6 +516,10 @@
     } else {
       totalWrap.hidden = true;
     }
+
+    const eticketLink = document.getElementById('bdModalETicketLink');
+    eticketLink.hidden = ! data.eticketUrl;
+    eticketLink.href = data.eticketUrl || '#';
 
     const invoiceLink = document.getElementById('bdModalInvoiceLink');
     if (data.invoiceUrl) {

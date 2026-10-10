@@ -9,11 +9,12 @@ use App\Models\Admin;
 class UserPolicy
 {
     /**
-     * Determine whether the user can view any models.
+     * Customers' names, emails and phone numbers — the same roles that can
+     * see bookings (BookingPolicy); Content and Analyst have no use for them.
      */
     public function viewAny(Admin $user): bool
     {
-        return in_array($user->role, ['Super Admin', 'Operations', 'Support', 'Finance', 'Content', 'Analyst']);
+        return in_array($user->role, BookingPolicy::VIEW_ROLES, true);
     }
 
     /**
@@ -22,7 +23,7 @@ class UserPolicy
     public function view(Admin $user, User $model): bool
     {
         if ($user->role === 'Super Admin') return true;
-        return $model->role === 'customer';
+        return $this->viewAny($user) && $model->role === 'customer';
     }
 
     /**

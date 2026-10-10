@@ -68,16 +68,17 @@ class AuditFollowUpTest extends TestCase
         Http::assertSent(fn (Request $r) => $r['searchQuery']['paxInfo']['ADULT'] === 5 && $r['searchQuery']['paxInfo']['CHILD'] === 4);
     }
 
-    public function test_view_only_roles_cannot_press_check_status(): void
+    public function test_roles_without_booking_access_cannot_reach_check_status(): void
     {
         $flight = $this->booking();
-        $hotel = $this->booking(['vertical' => 'hotel']);
         Filament::setCurrentPanel(Filament::getPanel('admin'));
 
+        // Analyst has no booking access at all now (BookingPolicy), so the
+        // screens holding the button are refused outright.
         $this->actingAs($this->admin('Analyst'), 'admin');
-        Livewire::test(ListFlightBookings::class)->assertTableActionHidden('checkStatus', $flight);
-        Livewire::test(ListBookings::class)->assertTableActionHidden('checkStatus', $hotel);
+        $this->get(\App\Filament\Resources\FlightBookings\FlightBookingResource::getUrl('index'))->assertForbidden();
 
+        $this->flushSession();
         $this->actingAs($this->admin('Super Admin'), 'admin');
         Livewire::test(ListFlightBookings::class)->assertTableActionVisible('checkStatus', $flight);
     }

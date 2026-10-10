@@ -39,9 +39,10 @@ class FlightBookingActions
         'Refund under empowerment policy' => 'Refund under the airline\'s empowerment policy',
     ];
 
-    protected static function canManage(Booking $record): bool
+    /** $ability: a BookingPolicy ability — checkStatus, addNote, cancel, … */
+    protected static function canManage(Booking $record, string $ability): bool
     {
-        return (bool) auth('admin')->user()?->can('update', $record);
+        return (bool) auth('admin')->user()?->can($ability, $record);
     }
 
     public static function checkStatus(): Action
@@ -52,7 +53,7 @@ class FlightBookingActions
             ->color('gray')
             // Can confirm, cancel or refund the booking as a side effect, so
             // it needs the same permission as the other booking actions.
-            ->visible(fn (Booking $record) => filled($record->tripjack_booking_id) && static::canManage($record))
+            ->visible(fn (Booking $record) => filled($record->tripjack_booking_id) && static::canManage($record, 'checkStatus'))
             ->action(function (Booking $record): void {
                 try {
                     $details = app(TripJackFlightClient::class)->bookingDetails($record->tripjack_booking_id);
@@ -101,7 +102,7 @@ class FlightBookingActions
             ->visible(fn (Booking $record) => $record->status === 'confirmed'
                 && $record->cancellation_requested_at === null
                 && filled($record->tripjack_booking_id)
-                && static::canManage($record))
+                && static::canManage($record, 'cancel'))
             ->modalHeading('Cancel this flight booking')
             ->modalDescription('This cancels the whole booking (all passengers and all flights) with the airline. The refund is paid back to the guest\'s card automatically once the airline confirms — usually within a few minutes. This cannot be undone.')
             ->modalSubmitActionLabel('Yes, cancel this booking')
@@ -163,7 +164,7 @@ class FlightBookingActions
             ->label('Release reservation')
             ->icon('heroicon-o-lock-open')
             ->color('warning')
-            ->visible(fn (Booking $record) => $record->status === 'on_hold' && static::canManage($record))
+            ->visible(fn (Booking $record) => $record->status === 'on_hold' && static::canManage($record, 'cancel'))
             ->requiresConfirmation()
             ->modalHeading('Release this reserved seat?')
             ->modalDescription('The guest has not paid for this reservation. Releasing it frees the seat with the airline and cancels the booking. No money is involved.')
@@ -190,13 +191,27 @@ class FlightBookingActions
             });
     }
 
+    public static function downloadETicket(): Action
+    {
+        return Action::make('downloadETicket')
+            ->label('Download e-ticket')
+            ->icon('heroicon-o-ticket')
+            ->color('gray')
+            ->visible(fn (Booking $record) => $record->hasETicket())
+            ->action(function (Booking $record) {
+                $pdf = Pdf::loadView('pdf.e-ticket', ['booking' => $record])->setPaper('a4', 'portrait');
+
+                return response()->streamDownload(fn () => print($pdf->output()), "e-ticket-{$record->reference}.pdf");
+            });
+    }
+
     public static function addNote(): Action
     {
         return Action::make('addNote')
             ->label('Add note')
             ->icon('heroicon-o-pencil-square')
             ->color('gray')
-            ->visible(fn (Booking $record) => static::canManage($record))
+            ->visible(fn (Booking $record) => static::canManage($record, 'addNote'))
             ->modalHeading('Add an internal note')
             ->modalDescription('Notes are only visible to your team, never to the guest.')
             ->schema([

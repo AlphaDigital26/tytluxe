@@ -45,6 +45,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/booking/{reference}/cancel', [FrontendController::class, 'showCancellation'])->name('hotel.booking.cancel.show');
     Route::post('/booking/{reference}/cancel', [FrontendController::class, 'submitCancellation'])->name('hotel.booking.cancel')->middleware('throttle:5,1');
     Route::get('/booking/{reference}/invoice', [FrontendController::class, 'downloadInvoice'])->name('hotel.booking.invoice')->middleware('throttle:20,1');
+    Route::get('/booking/{reference}/e-ticket', [FrontendController::class, 'downloadETicket'])->name('flight.booking.eticket')->middleware('throttle:20,1');
 
     // Flights: search→review→book only — payment/confirmation/cancellation
     // reuse the /booking/{reference}/* routes above (FrontendController

@@ -29,7 +29,7 @@ class RecordManualRefundAction
             ->label('Record manual refund')
             ->icon('heroicon-o-banknotes')
             ->color('warning')
-            ->visible(fn (Booking $record) => (bool) auth('admin')->user()?->can('update', $record)
+            ->visible(fn (Booking $record) => (bool) auth('admin')->user()?->can('recordRefund', $record)
                 && (! $onlyWhenDue || self::refundDue($record))
                 && ManualRefundService::refundablePayments($record)->isNotEmpty())
             ->modalHeading('Record a refund you made in Razorpay')

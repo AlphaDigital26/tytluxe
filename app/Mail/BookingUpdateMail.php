@@ -7,6 +7,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
@@ -51,7 +52,9 @@ class BookingUpdateMail extends Mailable implements ShouldQueue
         $flight = $this->booking->vertical === 'flight';
         $ref = $this->booking->reference;
 
-        return new Envelope(subject: match ($this->kind) {
+        $replyTo = config('services.booking_emails.reply_to');
+
+        return new Envelope(replyTo: filled($replyTo) ? [new Address($replyTo, 'TYT Luxe')] : [], subject: match ($this->kind) {
             self::CONFIRMED => ($flight ? 'Your flight is booked' : 'Your booking is confirmed')." — {$ref}",
             self::RESCHEDULED => "Your new flight details — {$ref}",
             self::HELD => "Your fare is on hold — {$ref}",
@@ -72,18 +75,28 @@ class BookingUpdateMail extends Mailable implements ShouldQueue
         return new Content(view: 'emails.booking_update');
     }
 
-    /** @return array<int, Attachment> */
+    /**
+     * The e-ticket for a ticketed (or rescheduled) flight, and the invoice
+     * for confirmed, rescheduled and cancelled bookings.
+     *
+     * @return array<int, Attachment>
+     */
     public function attachments(): array
     {
-        if (! in_array($this->kind, [self::CONFIRMED, self::RESCHEDULED, self::CANCELLED], true) || ! $this->booking->hasInvoice()) {
-            return [];
+        $booking = $this->booking;
+        $attachments = [];
+
+        if (in_array($this->kind, [self::CONFIRMED, self::RESCHEDULED], true) && $booking->hasETicket()) {
+            $attachments[] = Attachment::fromData(fn () => Pdf::loadView('pdf.e-ticket', ['booking' => $booking])->setPaper('a4', 'portrait')->output(), "e-ticket-{$booking->reference}.pdf")
+                ->withMime('application/pdf');
         }
 
-        $booking = $this->booking->loadMissing(['hotel.destination', 'roomType', 'travelers']);
+        if (in_array($this->kind, [self::CONFIRMED, self::RESCHEDULED, self::CANCELLED], true) && $booking->hasInvoice()) {
+            $booking->loadMissing(['hotel.destination', 'roomType', 'travelers']);
+            $attachments[] = Attachment::fromData(fn () => Pdf::loadView('pdf.invoice', ['booking' => $booking])->setPaper('a4', 'portrait')->output(), "invoice-{$booking->reference}.pdf")
+                ->withMime('application/pdf');
+        }
 
-        return [
-            Attachment::fromData(fn () => Pdf::loadView('pdf.invoice', ['booking' => $booking])->setPaper('a4', 'portrait')->output(), "invoice-{$booking->reference}.pdf")
-                ->withMime('application/pdf'),
-        ];
+        return $attachments;
     }
 }

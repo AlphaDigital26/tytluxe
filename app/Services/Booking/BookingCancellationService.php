@@ -61,9 +61,7 @@ class BookingCancellationService
             return null;
         }
 
-        $penaltyRatio = min(1, $penalty['amount'] / (float) $booking->tripjack_total_price);
-
-        return round((float) $booking->total_amount * (1 - $penaltyRatio), 2);
+        return \App\Support\RefundPolicy::hotelRefund((float) $booking->total_amount, (float) $booking->tripjack_total_price, (float) $penalty['amount']);
     }
 
     /**
@@ -212,12 +210,11 @@ class BookingCancellationService
         $penalty = $this->penaltyFor($bookingDetails, $booking->cancellation_requested_at ?? now());
         $payment = $booking->payments()->where('status', 'captured')->latest()->first();
 
-        // Default: what the guest paid, minus the penalty's share of
-        // TripJack's price (full refund when the penalty is zero).
+        // Default (RefundPolicy): TripJack's own refund when a penalty
+        // applies; everything paid less the flat fee when free.
         $refundAmount = $refundOverride;
         if ($refundAmount === null && $penalty !== null && $payment && (float) $booking->tripjack_total_price > 0) {
-            $penaltyRatio = min(1, max(0, $penalty['amount'] / (float) $booking->tripjack_total_price));
-            $refundAmount = round((float) $payment->amount * (1 - $penaltyRatio), 2);
+            $refundAmount = \App\Support\RefundPolicy::hotelRefund((float) $payment->amount, (float) $booking->tripjack_total_price, (float) $penalty['amount']);
         }
 
         if ($payment && $refundAmount !== null && $refundAmount > 0) {

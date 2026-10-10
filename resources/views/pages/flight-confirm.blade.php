@@ -122,6 +122,9 @@
                 @endif
                 @if($t['passport'])
                   <span class="flc-sub">Passport {{ strtoupper($t['passport']) }}@if($t['passportExpiry']) &middot; expires {{ \Carbon\Carbon::parse($t['passportExpiry'])->format('d/m/Y') }}@endif</span>
+                  @if($t['passportWarning'] ?? null)
+                    <span class="flc-sub" style="color:#e0b34a;" role="note">⚠️ {{ $t['passportWarning'] }}</span>
+                  @endif
                 @endif
                 @if($t['frequentFlyer'])
                   <span class="flc-sub">Frequent flyer {{ strtoupper($t['frequentFlyer']) }}</span>

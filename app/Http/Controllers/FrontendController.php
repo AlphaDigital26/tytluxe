@@ -1654,6 +1654,27 @@ class FrontendController extends Controller
     }
 
     /**
+     * Streams the flight e-ticket (PNR, flights, terminals, baggage and each
+     * passenger's ticket number) once the airline has ticketed the booking.
+     */
+    public function downloadETicket($reference)
+    {
+        $booking = Booking::where('reference', $reference)->firstOrFail();
+
+        if ($booking->user_id !== auth()->id()) {
+            abort(403);
+        }
+
+        if (! $booking->hasETicket()) {
+            abort(404);
+        }
+
+        return \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.e-ticket', compact('booking'))
+            ->setPaper('a4', 'portrait')
+            ->download("e-ticket-{$booking->reference}.pdf");
+    }
+
+    /**
      * GET counterpart to submitBooking()'s redirect — renders the Razorpay
      * Checkout page for a booking awaiting payment. Reuses an existing
      * uncaptured order if the guest is retrying (e.g. dismissed the modal),
@@ -2200,13 +2221,11 @@ class FrontendController extends Controller
             Log::channel('tripjack')->warning('cancellation_policy_lookup_failed', ['booking_id' => $booking->id, 'message' => $e->getMessage()]);
         }
 
-        // The penalty TripJack quotes is in their raw price terms — scale it
-        // by the same ratio against what the guest actually paid us, so the
-        // estimate shown here is in the guest's own currency of "what I paid".
+        // Same rule the refund itself uses (RefundPolicy): TripJack's own
+        // refund with a penalty, or everything paid less the flat fee when free.
         $estimatedRefund = null;
         if ($penalty !== null && (float) $booking->tripjack_total_price > 0) {
-            $penaltyRatio = min(1, $penalty['amount'] / (float) $booking->tripjack_total_price);
-            $estimatedRefund = round((float) $booking->total_amount * (1 - $penaltyRatio), 2);
+            $estimatedRefund = \App\Support\RefundPolicy::hotelRefund((float) $booking->total_amount, (float) $booking->tripjack_total_price, (float) $penalty['amount']);
         }
 
         return view('pages.booking-cancel', compact('booking', 'penalty', 'estimatedRefund'));
@@ -2386,27 +2405,28 @@ class FrontendController extends Controller
         $penalty = $this->currentCancellationPenalty($bookingDetails, $booking->cancellation_requested_at ?? now());
         $payment = $booking->payments()->where('status', 'captured')->latest()->first();
 
-        // Refund what the guest paid, minus the same share TripJack keeps:
-        // the penalty's fraction of TripJack's price applied to our price.
+        // RefundPolicy: TripJack's own refund (price − penalty) when a
+        // penalty applies; everything paid less the flat fee when free.
         $refundAmount = null;
+        $free = false;
         if ($payment && $penalty !== null && (float) $booking->tripjack_total_price > 0) {
-            $penaltyRatio = min(1, max(0, $penalty['amount'] / (float) $booking->tripjack_total_price));
-            $refundAmount = round((float) $payment->amount * (1 - $penaltyRatio), 2);
+            $tripjackPrice = (float) $booking->tripjack_total_price;
+            $free = \App\Support\RefundPolicy::isFreeCancellation($tripjackPrice, max(0.0, $tripjackPrice - $penalty['amount']));
+            $refundAmount = \App\Support\RefundPolicy::hotelRefund((float) $payment->amount, $tripjackPrice, (float) $penalty['amount']);
         }
 
         if ($payment && $refundAmount !== null && $refundAmount > 0) {
-            $isFull = $refundAmount >= (float) $payment->amount;
             try {
                 $razorpay->refund($payment->razorpay_payment_id, $refundAmount);
                 $payment->update([
-                    'status' => $isFull ? 'refunded' : 'partially_refunded',
+                    'status' => $refundAmount >= (float) $payment->amount ? 'refunded' : 'partially_refunded',
                     'refund_amount' => $refundAmount,
-                    'refund_reason' => $isFull ? 'Free cancellation — full refund.' : 'Cancellation — refund after the hotel\'s cancellation penalty.',
+                    'refund_reason' => $free ? 'Free cancellation — refund less the cancellation fee.' : 'Cancellation — refund after the hotel\'s cancellation penalty.',
                 ]);
                 $booking->update([
                     'status' => 'cancelled',
-                    'cancellation_reason' => $isFull
-                        ? 'Cancelled within the free-cancellation window. Refunded in full automatically.'
+                    'cancellation_reason' => $free
+                        ? sprintf('Cancelled within the free-cancellation window. Refunded %s %.2f automatically (less the cancellation fee).', $booking->currency, $refundAmount)
                         : sprintf('Cancelled with a cancellation penalty. Refunded %s %.2f automatically.', $booking->currency, $refundAmount),
                 ]);
                 Log::channel('tripjack')->info('booking_cancelled_and_refunded', ['booking_id' => $booking->id, 'amount' => $refundAmount, 'penalty' => $penalty]);

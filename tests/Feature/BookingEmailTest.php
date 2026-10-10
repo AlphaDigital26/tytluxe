@@ -80,7 +80,7 @@ class BookingEmailTest extends TestCase
 
             return $mail->hasTo('guest@example.com') && $mail->kind === BookingUpdateMail::CONFIRMED
                 && str_contains($html, 'ABC123') && str_contains($html, '0981234567890') && str_contains($html, '0981234567891')
-                && count($mail->attachments()) === 1;
+                && count($mail->attachments()) === 2; // e-ticket + invoice
         });
         Mail::assertQueuedCount(1);
     }
@@ -137,6 +137,38 @@ class BookingEmailTest extends TestCase
         $hold->update(['tripjack_hold_expires_at' => now()->subMinute()]);
         $this->artisan('flights:expire-holds');
         Mail::assertQueued(BookingUpdateMail::class, fn ($mail) => $mail->kind === BookingUpdateMail::HOLD_EXPIRED && $mail->booking->is($hold));
+    }
+
+    public function test_team_gets_a_hidden_copy(): void
+    {
+        config(['services.booking_emails.team_copy' => 'team@tytluxe.test']);
+        $booking = $this->booking(['status' => 'confirmed']);
+        $booking->update(['status' => 'cancelled']);
+
+        Mail::assertQueued(BookingUpdateMail::class, fn ($mail) => $mail->hasTo('guest@example.com') && $mail->hasBcc('team@tytluxe.test'));
+
+        // No guest email on file: the team still hears about it.
+        $noEmail = $this->booking(['status' => 'confirmed', 'guest_email' => null]);
+        $noEmail->update(['status' => 'cancelled']);
+        Mail::assertQueued(BookingUpdateMail::class, fn ($mail) => $mail->booking->is($noEmail) && $mail->hasTo('team@tytluxe.test'));
+
+        // Turned off.
+        config(['services.booking_emails.team_copy' => '']);
+        $off = $this->booking(['status' => 'confirmed']);
+        $off->update(['status' => 'cancelled']);
+        Mail::assertQueued(BookingUpdateMail::class, fn ($mail) => $mail->booking->is($off) && ! $mail->hasBcc('team@tytluxe.test'));
+    }
+
+    public function test_guest_replies_go_to_the_team_inbox_not_the_noreply_sender(): void
+    {
+        config(['services.booking_emails.reply_to' => 'help@tytluxe.test']);
+        $booking = $this->booking(['status' => 'confirmed']);
+        $booking->update(['status' => 'cancelled']);
+
+        Mail::assertQueued(BookingUpdateMail::class, fn ($mail) => $mail->hasReplyTo('help@tytluxe.test'));
+
+        config(['services.booking_emails.reply_to' => '']);
+        $this->assertSame([], (new BookingUpdateMail($booking, BookingUpdateMail::CANCELLED))->envelope()->replyTo);
     }
 
     public function test_no_email_for_review_states_or_staff_notes(): void

@@ -464,7 +464,7 @@ class HotelBookingScenariosTest extends TestCase
         return $booking;
     }
 
-    public function test_13_free_cancellation_full_refund_and_cancel_sent_without_body(): void
+    public function test_13_free_cancellation_refund_less_fee_and_cancel_sent_without_body(): void
     {
         $booking = $this->confirmedForCancel('700000013', [
             $this->details('TJ-700000013', 'SUCCESS', 0), // cancel page quote
@@ -477,15 +477,16 @@ class HotelBookingScenariosTest extends TestCase
         $booking->refresh();
         $payment = $booking->payments()->first();
         $this->assertSame('cancelled', $booking->status);
-        $this->assertSame('refunded', $payment->status);
-        $this->assertEqualsWithDelta((float) $payment->amount, (float) $payment->refund_amount, 0.01);
+        // Free cancellation: everything paid less the flat fee (RefundPolicy).
+        $this->assertSame('partially_refunded', $payment->status);
+        $this->assertEqualsWithDelta((float) $payment->amount - 100, (float) $payment->refund_amount, 0.01);
 
         $cancel = $this->sentTo('/hotel/cancel-booking/')->first();
         $this->assertSame('', $cancel->body(), 'Cancellation must be sent with no body');
         $this->assertFalse($cancel->hasHeader('Content-Type'), 'TripJack rejects cancel-booking (403) when Content-Type is sent');
     }
 
-    public function test_14_cancellation_with_penalty_auto_refunds_scaled_remainder(): void
+    public function test_14_cancellation_with_penalty_refunds_what_tripjack_refunds(): void
     {
         $booking = $this->confirmedForCancel('700000014', [
             $this->details('TJ-700000014', 'SUCCESS', 10000),
@@ -498,8 +499,9 @@ class HotelBookingScenariosTest extends TestCase
         $payment = $booking->payments()->first();
         $this->assertSame('cancelled', $booking->fresh()->status);
         $this->assertSame('partially_refunded', $payment->status);
-        // 10000 of 25000 = 40% kept → 60% of what the guest paid comes back.
-        $this->assertEqualsWithDelta(round((float) $payment->amount * 0.6, 2), (float) $payment->refund_amount, 0.01);
+        // TripJack keeps 10000 of its 25000 and refunds us 15000 — exactly
+        // what the guest gets back; our markup isn't refunded.
+        $this->assertEqualsWithDelta(self::TJ_PRICE - 10000, (float) $payment->refund_amount, 0.01);
     }
 
     public function test_15_pending_cancellation_resolved_later_uses_penalty_at_request_time(): void
@@ -525,7 +527,7 @@ class HotelBookingScenariosTest extends TestCase
 
         $payment = $booking->payments()->first();
         $this->assertSame('cancelled', $booking->fresh()->status);
-        $this->assertSame('refunded', $payment->status, 'Asked within the free window → full refund, even though TripJack finished later');
+        $this->assertEqualsWithDelta((float) $payment->amount - 100, (float) $payment->refund_amount, 0.01, 'Asked within the free window → free-cancellation refund, even though TripJack finished later');
     }
 
     // ── 5. Access, display, resilience ─────────────────────────────────

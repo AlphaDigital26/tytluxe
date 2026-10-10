@@ -212,18 +212,34 @@ class FlightPostBookingTest extends TestCase
         $this->assertStringContainsString('ended FAILED', $booking->admin_note);
     }
 
-    public function test_cancelling_a_rescheduled_booking_goes_to_manual_refund(): void
+    public function test_cancelling_a_rescheduled_booking_refunds_tripjacks_amount_newest_payment_first(): void
     {
         $booking = $this->booking(['flight_reissued_at' => now(), 'cancellation_requested_at' => now()]);
         $this->payment($booking, 11000, 'booking', 'pay_fare');
+        $this->travel(1)->minutes();
+        $this->payment($booking, 2000, 'flight_reissue', 'pay_reissue'); // taken at TripJack's own price
 
+        // TripJack refunds 9000 of its 12000 (10000 fare + 2000 reschedule):
+        // the guest gets exactly 9000 — the reschedule payment first, then
+        // the rest from the original fare payment.
         app(FlightBookingService::class)->finalizeCancellation($booking, ['amendmentStatus' => 'SUCCESS', 'refundableAmount' => 9000]);
 
-        $booking->refresh();
-        $this->assertSame([], $this->razorpay->refunds);
-        $this->assertSame('cancelled', $booking->status);
-        $this->assertStringContainsString('refundable amount 9000', $booking->admin_note);
-        $this->assertNull(app(FlightBookingService::class)->cancellationQuote($booking, [], ['ADULT' => 2]));
+        $this->assertSame([['pay_reissue', 200000], ['pay_fare', 700000]], array_map(fn ($r) => [$r['payment_id'], $r['amount']], $this->razorpay->refunds));
+        $this->assertSame('cancelled', $booking->fresh()->status);
+        $this->assertNull($booking->fresh()->manual_refund_due_at);
+    }
+
+    public function test_free_flight_cancellation_refunds_everything_less_the_fee_and_airline_full_refund_everything(): void
+    {
+        $free = $this->booking(['cancellation_requested_at' => now()]);
+        $this->payment($free, 11000, 'booking', 'pay_free');
+        app(FlightBookingService::class)->finalizeCancellation($free, ['amendmentStatus' => 'SUCCESS', 'refundableAmount' => 10000]);
+        $this->assertSame(1090000, $this->razorpay->refunds[0]['amount']); // 11000 − 100
+
+        $airline = $this->booking(['cancellation_requested_at' => now()]);
+        $this->payment($airline, 11000, 'booking', 'pay_airline');
+        app(FlightBookingService::class)->finalizeCancellation($airline, ['amendmentStatus' => 'SUCCESS', 'refundableAmount' => 10000], type: 'FULL_REFUND');
+        $this->assertSame(1100000, $this->razorpay->refunds[1]['amount']); // airline's fault: everything back
     }
 
     public function test_infant_is_cancelled_with_its_adult_and_never_alone(): void
@@ -305,7 +321,7 @@ class FlightPostBookingTest extends TestCase
         $this->assertSame('refunded', $pay->fresh()->status);
     }
 
-    public function test_cancel_quote_endpoint_scales_per_pax_charges_to_what_guest_paid(): void
+    public function test_cancel_quote_endpoint_shows_tripjacks_refund(): void
     {
         $booking = $this->booking();
         $this->payment($booking, 11000, 'booking', 'pay_fare_q');
@@ -314,10 +330,10 @@ class FlightPostBookingTest extends TestCase
         ]], 'status' => ['success' => true]])]);
 
         $this->postJson(route('flights.cancel.quote', $booking->reference), ['cancel_scope' => 'full'])
-            ->assertOk()->assertJson(['quote' => ['charges' => 3300, 'refund' => 7700, 'currency' => 'INR']]);
+            ->assertOk()->assertJson(['quote' => ['charges' => 4000, 'refund' => 7000, 'currency' => 'INR']]);
 
         $this->postJson(route('flights.cancel.quote', $booking->reference), ['cancel_scope' => 'travellers', 'traveller_indexes' => [1]])
-            ->assertOk()->assertJson(['quote' => ['refund' => 3850]]);
+            ->assertOk()->assertJson(['quote' => ['charges' => 2000, 'refund' => 3500]]);
 
         $this->postJson(route('flights.cancel.quote', $booking->reference), ['cancel_scope' => 'travellers'])
             ->assertOk()->assertJson(['quote' => null, 'empty' => true]);
@@ -354,7 +370,7 @@ class FlightPostBookingTest extends TestCase
         app(FlightBookingService::class)->finalizeCancellation($booking, ['amendmentStatus' => 'SUCCESS', 'refundableAmount' => 7000]);
 
         $this->assertSame('pay_fare_c', $this->razorpay->refunds[0]['payment_id']);
-        $this->assertSame(770000, $this->razorpay->refunds[0]['amount']);
+        $this->assertSame(700000, $this->razorpay->refunds[0]['amount']); // TripJack's refund, not scaled up
         $this->assertSame('cancelled', $booking->fresh()->status);
     }
 
@@ -475,7 +491,7 @@ class FlightPostBookingTest extends TestCase
 
         app(FlightBookingService::class)->finalizeCancellation($booking, ['amendmentStatus' => 'SUCCESS', 'refundableAmount' => 3500], isFullBooking: false);
 
-        $this->assertSame(385000, $this->razorpay->refunds[0]['amount']);
-        $this->assertEquals(7700, $pay->fresh()->refund_amount);
+        $this->assertSame(350000, $this->razorpay->refunds[0]['amount']);
+        $this->assertEquals(7350, $pay->fresh()->refund_amount);
     }
 }

@@ -131,7 +131,7 @@ class BookingsTable
      * Razorpay refund flow, but staff-triggered — see
      * App\Services\Booking\BookingCancellationService. Only shown for
      * confirmed bookings TripJack actually booked, and only to admins the
-     * BookingPolicy already allows to update this record (Super Admin).
+     * BookingPolicy allows to cancel (Super Admin, Operations).
      */
     protected static function cancelAndRefundAction(): Action
     {
@@ -144,7 +144,7 @@ class BookingsTable
                 return $record->vertical !== 'flight'
                     && $record->status === 'confirmed'
                     && filled($record->tripjack_booking_id)
-                    && (bool) (auth('admin')->user()?->can('update', $record));
+                    && (bool) (auth('admin')->user()?->can('cancel', $record));
             })
             ->schema(function (Booking $record) {
                 $refundable = BookingCancellationService::refundableAmount($record);

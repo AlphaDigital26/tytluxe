@@ -178,7 +178,9 @@
         </table>
       @endif
 
-      @if(in_array($kind, [M::CONFIRMED, M::RESCHEDULED, M::CANCELLED], true) && $totals)
+      @if(in_array($kind, [M::CONFIRMED, M::RESCHEDULED], true) && $booking->hasETicket())
+      <div class="info-box"><p>Your e-ticket{{ $totals ? ' and invoice are' : ' is' }} attached to this email. Please carry the e-ticket (printed or on your phone) with a photo ID to the airport. You can also download {{ $totals ? 'both' : 'it' }} any time from your booking page.</p></div>
+      @elseif(in_array($kind, [M::CONFIRMED, M::RESCHEDULED, M::CANCELLED], true) && $totals)
       <div class="info-box"><p>Your invoice is attached to this email. You can also download it any time from your booking page.</p></div>
       @endif
 
