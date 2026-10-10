@@ -1211,14 +1211,22 @@ class FrontendController extends Controller
             }
         };
 
+        // The field only displays in capitals; a GSTIN typed in lower case
+        // is still valid.
+        if (filled($request->input('gst_number'))) {
+            $request->merge(['gst_number' => strtoupper(trim((string) $request->input('gst_number')))]);
+        }
+
         $rules = [
             'contact_email' => 'required|email|max:255',
             'contact_phone' => ['required', 'string', 'max:20', $phoneRule],
             'contact_dial_code' => 'nullable|string|max:6',
             'pan_name' => [$panRequired ? 'required' : 'nullable', 'string', 'max:255', $nameRegex],
             'pan_number' => [$panRequired ? 'required' : 'nullable', 'string', $panRegex],
-            'gst_number' => [$gstRequired ? 'required' : 'nullable', 'string', 'regex:/^[0-9]{2}[A-Za-z]{5}[0-9]{4}[A-Za-z][1-9A-Za-z]Z[0-9A-Za-z]$/'],
-            'gst_registered_name' => [$gstRequired ? 'required' : 'nullable', 'string', 'max:100'],
+            // Optional otherwise (business travel, for our invoice) — but
+            // once started, both fields.
+            'gst_number' => [$gstRequired ? 'required' : 'nullable', 'required_with:gst_registered_name', 'string', 'regex:/^[0-9]{2}[A-Za-z]{5}[0-9]{4}[A-Za-z][1-9A-Za-z]Z[0-9A-Za-z]$/'],
+            'gst_registered_name' => [$gstRequired ? 'required' : 'nullable', 'required_with:gst_number', 'string', 'max:100'],
             'special_requests' => 'nullable|string|max:500',
             'rooms' => 'required|array',
         ];
@@ -1241,7 +1249,9 @@ class FrontendController extends Controller
             'pan_number.regex' => 'Please enter a valid PAN, e.g. ABCPE1234F — the 4th letter is the holder type (P for an individual).',
             'gst_number.regex' => 'Please enter a valid 15-character GSTIN.',
         ]);
-        $gstInfo = $gstRequired ? [
+        // Saved whenever given (it goes on our invoice); sent to TripJack
+        // only for a rate that requires it (see confirmBookingAfterPayment).
+        $gstInfo = ! empty($validated['gst_number']) ? [
             'gstNumber' => strtoupper($validated['gst_number']),
             'registeredName' => $validated['gst_registered_name'],
         ] : null;
@@ -1943,7 +1953,9 @@ class FrontendController extends Controller
                     [$phoneDigits],
                     [$dialCode],
                     amount: (float) $booking->tripjack_total_price, // TripJack's raw price, not the marked-up customer price
-                    gstInfo: $booking->tripjack_gst_info,
+                    // Only a PASSTHROUGH / RESELLER rate takes gstInfo; a
+                    // guest's optional GSTIN is just for our invoice.
+                    gstInfo: in_array($booking->tripjack_gst_type, ['PASSTHROUGH', 'RESELLER'], true) ? $booking->tripjack_gst_info : null,
                 );
             } catch (TripJackException $e) {
                 // Outcome unknown (timeout, or TripJack's side erroring

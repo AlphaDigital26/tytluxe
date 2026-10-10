@@ -142,7 +142,15 @@
     </td>
     <td class="inv-party">
       <div class="inv-party-title">Billed To</div>
-      <div class="inv-party-name">{{ $booking->lead_guest_name }}</div>
+      @if($guestGst = $booking->guestGst())
+        <div class="inv-party-name">{{ $guestGst['name'] }}</div>
+        <div class="inv-party-line">
+          GSTIN: <strong style="color:#1a1a1a;">{{ $guestGst['number'] }}</strong>
+        </div>
+        <div class="inv-party-line">Traveller: {{ $booking->lead_guest_name }}</div>
+      @else
+        <div class="inv-party-name">{{ $booking->lead_guest_name }}</div>
+      @endif
       @if($booking->guest_email)
         <div class="inv-party-line">{{ $booking->guest_email }}</div>
       @endif

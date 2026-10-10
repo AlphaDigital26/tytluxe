@@ -116,6 +116,9 @@
                         <h4>Contact Details</h4>
                         <p>Email: {{ $record->guest_email }}</p>
                         <p>Mobile: {{ $record->guest_phone }}</p>
+                        @if($guestGst = $record->guestGst())
+                        <p>Company GST: {{ $guestGst['name'] }} · {{ $guestGst['number'] }}</p>
+                        @endif
                     </div>
                 </div>
 
