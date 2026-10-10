@@ -14,15 +14,15 @@ class PaymentPolicy
      */
     public function viewAny(Admin $user): bool
     {
-        return in_array($user->role, ['Super Admin', 'Operations', 'Support', 'Finance', 'Content', 'Analyst']);
+        return in_array($user->role, BookingPolicy::VIEW_ROLES, true);
     }
 
     /**
-     * Determine whether the user can view the model.
+     * Payments belong to bookings, so the same roles see both.
      */
     public function view(Admin $user, Payment $model): bool
     {
-        return in_array($user->role, ['Super Admin', 'Operations', 'Support', 'Finance', 'Content', 'Analyst']);
+        return $this->viewAny($user);
     }
 
     /**

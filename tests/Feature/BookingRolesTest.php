@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Filament\Resources\Bookings\BookingResource;
 use App\Filament\Resources\FlightBookings\FlightBookingResource;
 use App\Filament\Resources\FlightBookings\Pages\ListFlightBookings;
+use App\Filament\Resources\Users\UserResource;
 use App\Models\Admin;
 use App\Models\Booking;
 use App\Models\Payment;
@@ -74,6 +75,22 @@ class BookingRolesTest extends TestCase
             $this->as($role);
             $this->get(FlightBookingResource::getUrl('index'))->assertOk();
             $this->get(BookingResource::getUrl('index'))->assertOk();
+        }
+    }
+
+    public function test_customer_list_follows_booking_access(): void
+    {
+        $customer = User::factory()->create();
+
+        foreach (['Content', 'Analyst'] as $role) {
+            $this->as($role);
+            $this->get(UserResource::getUrl('index'))->assertForbidden();
+            $this->get(UserResource::getUrl('view', ['record' => $customer]))->assertForbidden();
+        }
+
+        foreach (['Super Admin', 'Operations', 'Support', 'Finance'] as $role) {
+            $this->as($role);
+            $this->get(UserResource::getUrl('index'))->assertOk();
         }
     }
 
