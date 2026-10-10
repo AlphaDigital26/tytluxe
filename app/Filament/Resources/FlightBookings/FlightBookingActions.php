@@ -112,7 +112,7 @@ class FlightBookingActions
                 $quote = $scope ? $flights->cancellationQuote($record, $scope['trips'], $scope['paxCounts']) : null;
 
                 $quoteText = $quote
-                    ? sprintf('Airline cancellation charges: ₹%s · Guest will get back about ₹%s', number_format($quote['charges'], 2), number_format($quote['refund'], 2))
+                    ? sprintf('Airline cancellation charges: ₹%s · Our service fee kept: ₹%s · Guest will get back about ₹%s', number_format($quote['airline_charges'], 2), number_format($quote['service_fee'], 2), number_format($quote['refund'], 2))
                     : 'The airline didn\'t give an estimate right now. The exact refund is worked out by the airline when you cancel.';
 
                 return [

@@ -64,6 +64,27 @@ class FlightResultsPricingTest extends TestCase
         $this->assertStringNotContainsString('&#8377;5,000.00', $html);
     }
 
+    public function test_flex_fare_shows_its_non_refundable_flex_charge_when_tripjack_sends_it(): void
+    {
+        $date = now()->addDays(30)->toDateString();
+        $segment = ['id' => '1', 'fD' => ['aI' => ['code' => '6E', 'name' => 'IndiGo'], 'fN' => '101'], 'da' => ['code' => 'DEL'], 'aa' => ['code' => 'BOM'],
+            'dt' => $date.'T06:00', 'at' => $date.'T08:10', 'duration' => 130, 'stops' => 0, 'sN' => 0];
+        $fare = fn ($id, $identifier, $fc) => ['id' => $id, 'fareIdentifier' => $identifier, 'fd' => ['ADULT' => ['fC' => $fc, 'rT' => 1, 'cc' => 'ECONOMY']]];
+        Http::fake(['*/air-search-all' => Http::response([
+            'searchResult' => ['tripInfos' => ['ONWARD' => [['sI' => [$segment], 'totalPriceList' => [
+                $fare('F1', 'TJ_FLEX', ['TF' => 5400, 'BF' => 4200, 'TAF' => 1200, 'FTC' => 350]),
+                $fare('P1', 'PUBLISHED', ['TF' => 5000, 'BF' => 4200, 'TAF' => 800]),
+            ]]]]],
+            'status' => ['success' => true],
+        ])]);
+
+        $html = $this->get(route('flights.search', ['from' => 'DEL', 'to' => 'BOM', 'depart_date' => $date, 'adults' => 1, 'trip_type' => 'oneway']))
+            ->assertOk()->getContent();
+
+        $this->assertStringContainsString('Zero Cancellation Fee &middot; 24h+ · ₹350 flex charge non-refundable', $html);
+        $this->assertSame(1, substr_count($html, 'flex charge non-refundable'), 'Only the flex fare carries it');
+    }
+
     public function test_fare_calendar_shows_the_marked_up_fare(): void
     {
         FlightSettings::save(['markup_percent' => 10]);

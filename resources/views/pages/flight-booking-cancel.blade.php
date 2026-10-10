@@ -228,7 +228,9 @@
             return;
           }
           quoteBody.innerHTML =
-            row('charges', 'Cancellation charges &amp; service fee', '− ' + money(q.currency, q.charges)) +
+            (q.airline_charges > 0 ? row('charges', 'Airline cancellation charges', '− ' + money(q.currency, q.airline_charges)) : '') +
+            (q.service_fee > 0 ? row('charges', 'Our service fee (non-refundable)', '− ' + money(q.currency, q.service_fee)) : '') +
+            (q.charges > 0 ? '' : row('charges', 'Cancellation charges', money(q.currency, 0))) +
             row('refund', 'Estimated refund', money(q.currency, q.refund)) +
             '<p class="cx-quote-foot">Live quote from the airline as of now. You get back what the airline refunds; our service fee is not refundable (on a free cancellation you get everything back less a {{ number_format(\App\Support\RefundPolicy::FREE_CANCELLATION_FEE, 0) }} fee). Charges can change closer to departure — the final amount is confirmed when the cancellation completes.</p>';
         })

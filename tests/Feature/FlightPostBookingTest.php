@@ -330,10 +330,12 @@ class FlightPostBookingTest extends TestCase
         ]], 'status' => ['success' => true]])]);
 
         $this->postJson(route('flights.cancel.quote', $booking->reference), ['cancel_scope' => 'full'])
-            ->assertOk()->assertJson(['quote' => ['charges' => 4000, 'refund' => 7000, 'currency' => 'INR']]);
+            // Guest paid 11,000 for a 10,000 fare; the airline keeps 1,500 × 2
+            // and the remaining 1,000 is our service fee.
+            ->assertOk()->assertJson(['quote' => ['charges' => 4000, 'airline_charges' => 3000, 'service_fee' => 1000, 'refund' => 7000, 'currency' => 'INR']]);
 
         $this->postJson(route('flights.cancel.quote', $booking->reference), ['cancel_scope' => 'travellers', 'traveller_indexes' => [1]])
-            ->assertOk()->assertJson(['quote' => ['charges' => 2000, 'refund' => 3500]]);
+            ->assertOk()->assertJson(['quote' => ['charges' => 2000, 'airline_charges' => 1500, 'service_fee' => 500, 'refund' => 3500]]);
 
         $this->postJson(route('flights.cancel.quote', $booking->reference), ['cancel_scope' => 'travellers'])
             ->assertOk()->assertJson(['quote' => null, 'empty' => true]);
