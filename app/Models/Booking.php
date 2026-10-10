@@ -89,6 +89,40 @@ class Booking extends Model
     }
 
     /**
+     * A flight e-ticket exists once the airline has ticketed the booking
+     * (PNR received) and only while it stands — not after cancellation.
+     */
+    public function hasETicket(): bool
+    {
+        return $this->vertical === 'flight' && $this->status === 'confirmed'
+            && $this->cancellation_requested_at === null && filled($this->tripjack_flight_pnr);
+    }
+
+    /**
+     * Flight passengers with their ticket numbers by sector ("DEL-BOM"),
+     * for the e-ticket. Tickets come from tripjack_flight_ticket_numbers
+     * ([{name, tickets}]), else the itinerary's tickets keyed by name.
+     *
+     * @return array<int, array{name: string, type: string, tickets: array<string, string>}>
+     */
+    public function flightPassengers(): array
+    {
+        $stored = collect($this->tripjack_flight_ticket_numbers ?? []);
+        $byName = $this->flight_itinerary['tickets'] ?? [];
+
+        return collect($this->flight_segments_payload['travellerInfo'] ?? [])->map(function (array $t) use ($stored, $byName) {
+            $name = trim(preg_replace('/\s+/', ' ', ($t['ti'] ?? '').' '.($t['fN'] ?? '').' '.($t['lN'] ?? '')));
+            $entry = $stored->first(fn ($e) => is_array($e) && strcasecmp($e['name'] ?? '', $name) === 0);
+
+            return [
+                'name' => $name,
+                'type' => ucfirst(strtolower($t['pt'] ?? 'adult')),
+                'tickets' => (array) ($entry['tickets'] ?? $byName[strtoupper(trim(($t['fN'] ?? '').' '.($t['lN'] ?? '')))] ?? []),
+            ];
+        })->all();
+    }
+
+    /**
      * Money actually paid and refunded on this booking, for the invoice.
      * total_amount is only the original booking; seats/meals/baggage bought
      * later (flight_ssr) and reschedule charges (flight_reissue) are their

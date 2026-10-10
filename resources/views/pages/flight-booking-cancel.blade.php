@@ -228,9 +228,9 @@
             return;
           }
           quoteBody.innerHTML =
-            row('charges', 'Cancellation charges', '− ' + money(q.currency, q.charges)) +
+            row('charges', 'Cancellation charges &amp; service fee', '− ' + money(q.currency, q.charges)) +
             row('refund', 'Estimated refund', money(q.currency, q.refund)) +
-            '<p class="cx-quote-foot">Live quote from the airline as of now. Charges can change closer to departure — the final amount is confirmed when the cancellation completes.</p>';
+            '<p class="cx-quote-foot">Live quote from the airline as of now. You get back what the airline refunds; our service fee is not refundable (on a free cancellation you get everything back less a {{ number_format(\App\Support\RefundPolicy::FREE_CANCELLATION_FEE, 0) }} fee). Charges can change closer to departure — the final amount is confirmed when the cancellation completes.</p>';
         })
         .catch(function () {
           if (seq === quoteSeq) showMsg('We couldn\'t fetch the airline\'s current charges right now. Your exact refund will be confirmed once the cancellation is processed.');

@@ -21,9 +21,23 @@ class BookingObserver
     public function updated(Booking $booking): void
     {
         $kind = $this->kindFor($booking);
+        if (! $kind) {
+            return;
+        }
 
-        if ($kind && filled($booking->guest_email)) {
-            Mail::to($booking->guest_email)->queue(new BookingUpdateMail($booking, $kind));
+        // The team gets a hidden copy (config services.booking_emails) — or
+        // the only copy when the guest left no email address.
+        $team = config('services.booking_emails.team_copy');
+        $guest = $booking->guest_email;
+
+        if (filled($guest)) {
+            $mail = Mail::to($guest);
+            if (filled($team) && strcasecmp($team, $guest) !== 0) {
+                $mail->bcc($team);
+            }
+            $mail->queue(new BookingUpdateMail($booking, $kind));
+        } elseif (filled($team)) {
+            Mail::to($team)->queue(new BookingUpdateMail($booking, $kind));
         }
     }
 

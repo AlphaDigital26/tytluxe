@@ -35,6 +35,7 @@ class ViewFlightBooking extends ViewRecord
     {
         return [
             FlightBookingActions::checkStatus(),
+            FlightBookingActions::downloadETicket(),
             FlightBookingActions::downloadInvoice(),
             FlightBookingActions::addNote(),
             RecordManualRefundAction::make(),

@@ -19,6 +19,9 @@ class BusinessSnapshot extends BaseWidget
     /** Load with the page (one request) instead of one request per widget. */
     protected static bool $isLazy = false;
 
+    /** No auto-refresh (Filament's default is every 5s) — monthly totals don't change by the second. */
+    protected ?string $pollingInterval = null;
+
     protected ?string $heading = 'This month at a glance';
 
     protected ?string $description = 'Compared with last month. The small line shows the last 6 months.';

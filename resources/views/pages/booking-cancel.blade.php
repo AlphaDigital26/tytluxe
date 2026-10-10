@@ -70,13 +70,13 @@
     <div class="cx-refund-box good">
       <p class="cx-refund-label">Estimated Refund</p>
       <p class="cx-refund-amount">{{ $booking->currency }} {{ number_format($estimatedRefund, 2) }}</p>
-      <p class="cx-refund-note">You're within the free-cancellation window — this refund is issued automatically to your original payment method within 5–7 business days.</p>
+      <p class="cx-refund-note">You're within the free-cancellation window — you get back what you paid, less a {{ $booking->currency }} {{ number_format(\App\Support\RefundPolicy::FREE_CANCELLATION_FEE, 0) }} cancellation fee. The refund is issued automatically to your original payment method within 5–7 business days.</p>
     </div>
   @else
     <div class="cx-refund-box bad">
       <p class="cx-refund-label">Estimated Refund</p>
       <p class="cx-refund-amount">{{ $booking->currency }} {{ number_format($estimatedRefund, 2) }}</p>
-      <p class="cx-refund-note">A cancellation charge applies at this stage per the hotel's policy. This is an estimate — our team will confirm the final refund amount and process it manually.</p>
+      <p class="cx-refund-note">A cancellation charge applies at this stage per the hotel's policy. You get back the amount the hotel refunds; our service fee is not refundable. The refund is issued automatically to your original payment method once the hotel confirms the cancellation.</p>
     </div>
   @endif
 

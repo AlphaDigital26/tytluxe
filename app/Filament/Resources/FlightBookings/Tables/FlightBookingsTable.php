@@ -107,6 +107,7 @@ class FlightBookingsTable
                 ViewAction::make()->label('Open'),
                 ActionGroup::make([
                     FlightBookingActions::checkStatus(),
+                    FlightBookingActions::downloadETicket(),
                     FlightBookingActions::downloadInvoice(),
                     FlightBookingActions::addNote(),
                     RecordManualRefundAction::make(onlyWhenDue: true),

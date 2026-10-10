@@ -82,4 +82,30 @@ class FlightPricingService
             'customer_price' => round($customerPrice, 2),
         ];
     }
+
+    /**
+     * The per-adult price a search result shows: one adult's TF marked up
+     * the same way the review page marks up the whole booking. The GST slab
+     * depends on the booking's total fare, so the adult's share is taken
+     * from price() of the party's total rather than of one fare alone.
+     *
+     * $fareByPaxType: TF per pax type (ADULT/CHILD/INFANT) from the fare's
+     * fd; a type with no fare is priced like an adult.
+     * $paxCounts: ADULT/CHILD/INFANT counts searched for.
+     */
+    public static function perAdult(array $fareByPaxType, array $paxCounts, ?float $marginRate = null): float
+    {
+        $adultFare = (float) ($fareByPaxType['ADULT'] ?? 0);
+        if ($adultFare <= 0) {
+            return 0.0;
+        }
+
+        $partyFare = 0.0;
+        foreach ($paxCounts as $type => $count) {
+            $partyFare += (float) ($fareByPaxType[$type] ?? $adultFare) * max(0, (int) $count);
+        }
+        $partyFare = max($partyFare, $adultFare);
+
+        return round($adultFare * self::price($partyFare, $marginRate)['customer_price'] / $partyFare, 2);
+    }
 }

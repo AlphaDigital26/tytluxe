@@ -28,7 +28,7 @@ class HotelBookingActions
             // Can confirm, cancel or refund the booking as a side effect, so
             // it needs the same permission as the other booking actions.
             ->visible(fn (Booking $record) => filled($record->tripjack_booking_id)
-                && (bool) auth('admin')->user()?->can('update', $record))
+                && (bool) auth('admin')->user()?->can('checkStatus', $record))
             ->action(function (Booking $record) use ($after): void {
                 $live = app(FrontendController::class)->refreshHotelBookingStatus($record, app(TripJackClient::class), app(RazorpayService::class));
                 $record->refresh();
@@ -86,7 +86,7 @@ class HotelBookingActions
             ->label('Add note')
             ->icon('heroicon-o-pencil-square')
             ->color('gray')
-            ->visible(fn (Booking $record) => (bool) auth('admin')->user()?->can('update', $record))
+            ->visible(fn (Booking $record) => (bool) auth('admin')->user()?->can('addNote', $record))
             ->modalHeading('Add an internal note')
             ->modalDescription('Notes are only visible to your team, never to the guest.')
             ->schema([
