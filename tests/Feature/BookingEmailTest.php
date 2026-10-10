@@ -80,7 +80,7 @@ class BookingEmailTest extends TestCase
 
             return $mail->hasTo('guest@example.com') && $mail->kind === BookingUpdateMail::CONFIRMED
                 && str_contains($html, 'ABC123') && str_contains($html, '0981234567890') && str_contains($html, '0981234567891')
-                && count($mail->attachments()) === 1;
+                && count($mail->attachments()) === 2; // e-ticket + invoice
         });
         Mail::assertQueuedCount(1);
     }

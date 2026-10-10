@@ -1654,6 +1654,27 @@ class FrontendController extends Controller
     }
 
     /**
+     * Streams the flight e-ticket (PNR, flights, terminals, baggage and each
+     * passenger's ticket number) once the airline has ticketed the booking.
+     */
+    public function downloadETicket($reference)
+    {
+        $booking = Booking::where('reference', $reference)->firstOrFail();
+
+        if ($booking->user_id !== auth()->id()) {
+            abort(403);
+        }
+
+        if (! $booking->hasETicket()) {
+            abort(404);
+        }
+
+        return \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.e-ticket', compact('booking'))
+            ->setPaper('a4', 'portrait')
+            ->download("e-ticket-{$booking->reference}.pdf");
+    }
+
+    /**
      * GET counterpart to submitBooking()'s redirect — renders the Razorpay
      * Checkout page for a booking awaiting payment. Reuses an existing
      * uncaptured order if the guest is retrying (e.g. dismissed the modal),

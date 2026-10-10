@@ -409,24 +409,47 @@ class FlightBookingService
      * Segments plus every traveller's ticket numbers, keyed by name, for the
      * admin booking page. Empty when the response has no segments.
      *
-     * @return array{segments?: array<int, array{airline: string, airlineCode: string, flightNo: string, from: string, fromCity: string, to: string, toCity: string, departs: ?string, arrives: ?string}>, tickets?: array<string, array>}
+     * The airport names, terminals, duration, aircraft, cabin and fare
+     * baggage (per pax type, from the trip's totalPriceList fd.*.bI) are
+     * for the guest's e-ticket.
+     *
+     * @return array{segments?: array<int, array{airline: string, airlineCode: string, flightNo: string, from: string, fromCity: string, fromAirport: string, fromTerminal: string, fromCountry: string, to: string, toCity: string, toAirport: string, toTerminal: string, toCountry: string, departs: ?string, arrives: ?string, duration: ?int, aircraft: string, cabin: string, baggage: array<string, array{checkin: ?string, cabin: ?string}>}>, tickets?: array<string, array>}
      */
     public static function itinerarySummary(array $details): array
     {
         $tripInfos = $details['itemInfos']['AIR']['tripInfos'] ?? $details['tripInfos'] ?? [];
 
         $segments = collect($tripInfos)
-            ->flatMap(fn ($trip) => $trip['sI'] ?? [])
-            ->map(fn (array $seg) => [
-                'airline' => (string) ($seg['fD']['aI']['name'] ?? ''),
-                'airlineCode' => (string) ($seg['fD']['aI']['code'] ?? ''),
-                'flightNo' => (string) ($seg['fD']['fN'] ?? ''),
-                'from' => (string) ($seg['da']['code'] ?? ''),
-                'fromCity' => (string) ($seg['da']['city'] ?? ''),
-                'to' => (string) ($seg['aa']['code'] ?? ''),
-                'toCity' => (string) ($seg['aa']['city'] ?? ''),
-                'departs' => $seg['dt'] ?? null,
-                'arrives' => $seg['at'] ?? null,
+            ->flatMap(function ($trip) {
+                $fd = ($trip['totalPriceList'][0] ?? [])['fd'] ?? ($trip['totalPriceList'][0] ?? [])['fD'] ?? [];
+                $baggage = collect($fd)
+                    ->filter(fn ($paxFd) => ! empty($paxFd['bI']))
+                    ->map(fn ($paxFd) => ['checkin' => $paxFd['bI']['iB'] ?? null, 'cabin' => $paxFd['bI']['cB'] ?? null])
+                    ->all();
+                $cabin = (string) ($fd['ADULT']['cc'] ?? '');
+
+                return collect($trip['sI'] ?? [])->map(fn ($seg) => [$seg, $baggage, $cabin]);
+            })
+            ->map(fn (array $row) => [
+                'airline' => (string) ($row[0]['fD']['aI']['name'] ?? ''),
+                'airlineCode' => (string) ($row[0]['fD']['aI']['code'] ?? ''),
+                'flightNo' => (string) ($row[0]['fD']['fN'] ?? ''),
+                'from' => (string) ($row[0]['da']['code'] ?? ''),
+                'fromCity' => (string) ($row[0]['da']['city'] ?? ''),
+                'fromAirport' => (string) ($row[0]['da']['name'] ?? ''),
+                'fromTerminal' => (string) ($row[0]['da']['terminal'] ?? ''),
+                'fromCountry' => (string) ($row[0]['da']['country'] ?? ''),
+                'to' => (string) ($row[0]['aa']['code'] ?? ''),
+                'toCity' => (string) ($row[0]['aa']['city'] ?? ''),
+                'toAirport' => (string) ($row[0]['aa']['name'] ?? ''),
+                'toTerminal' => (string) ($row[0]['aa']['terminal'] ?? ''),
+                'toCountry' => (string) ($row[0]['aa']['country'] ?? ''),
+                'departs' => $row[0]['dt'] ?? null,
+                'arrives' => $row[0]['at'] ?? null,
+                'duration' => isset($row[0]['duration']) ? (int) $row[0]['duration'] : null,
+                'aircraft' => (string) ($row[0]['fD']['eT'] ?? ''),
+                'cabin' => $row[2],
+                'baggage' => $row[1],
             ])
             ->filter(fn (array $seg) => $seg['from'] !== '' && $seg['to'] !== '')
             ->values()

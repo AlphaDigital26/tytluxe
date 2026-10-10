@@ -248,6 +248,18 @@
   </div>
   @endif
 
+  @if($booking->hasETicket())
+  <div style="margin-top:16px;">
+    <a href="{{ route('flight.booking.eticket', $booking->reference) }}"
+       style="display:flex; align-items:center; justify-content:center; gap:8px; padding:13px 24px; border-radius:100px;
+              background:var(--gold); border:1px solid var(--gold); color:#0d0d0d;
+              font-family:'Jost',sans-serif; font-size:12.5px; font-weight:600; letter-spacing:0.06em;
+              text-transform:uppercase; text-decoration:none;">
+      Download E-Ticket
+    </a>
+  </div>
+  @endif
+
   @if($booking->hasInvoice())
   <div style="margin-top:16px;">
     <a href="{{ route('hotel.booking.invoice', $booking->reference) }}"

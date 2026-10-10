@@ -191,6 +191,20 @@ class FlightBookingActions
             });
     }
 
+    public static function downloadETicket(): Action
+    {
+        return Action::make('downloadETicket')
+            ->label('Download e-ticket')
+            ->icon('heroicon-o-ticket')
+            ->color('gray')
+            ->visible(fn (Booking $record) => $record->hasETicket())
+            ->action(function (Booking $record) {
+                $pdf = Pdf::loadView('pdf.e-ticket', ['booking' => $record])->setPaper('a4', 'portrait');
+
+                return response()->streamDownload(fn () => print($pdf->output()), "e-ticket-{$record->reference}.pdf");
+            });
+    }
+
     public static function addNote(): Action
     {
         return Action::make('addNote')
