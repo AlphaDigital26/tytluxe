@@ -46,7 +46,12 @@ class RegisteredUserController extends Controller
         ]);
 
         // Generate OTP and send verification email
-        OtpController::generateAndSendOtp($request->email, $request->name);
+        if (OtpController::generateAndSendOtp($request->email, $request->name) === null) {
+            $request->session()->forget('pending_registration');
+
+            return back()->withInput($request->except('password', 'password_confirmation'))
+                ->withErrors(['email' => OtpController::EMAIL_FAILED_MESSAGE]);
+        }
 
         return redirect()->route('otp.verify')
             ->with('info', 'A 6-digit verification code has been sent to ' . $request->email);
