@@ -208,7 +208,7 @@
       <span>&#8377;{{ number_format($summary['airline_taxes'] + $summary['convenience_fee'], 2) }}</span>
     </div>
     <div class="flr-sum-sub" id="flcTaxBreakdown" hidden>
-      <div><span>Airline taxes &amp; surcharges</span><span>&#8377;{{ number_format($summary['airline_taxes'], 2) }}</span></div>
+      <div><span>Taxes &amp; surcharges</span><span>&#8377;{{ number_format($summary['airline_taxes'], 2) }}</span></div>
       <div><span>Convenience fee</span><span>&#8377;{{ number_format($summary['convenience_fee'], 2) }}</span></div>
     </div>
     @if($summary['addons'] > 0 || $summary['addon_rows'])

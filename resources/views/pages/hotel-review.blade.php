@@ -46,6 +46,11 @@
     display: flex; align-items: center; gap: 14px;
   }
   .br-section h2::after { content: ''; flex: 1; height: 1px; background: var(--gold-dim); }
+  .br-gst summary { list-style: none; cursor: pointer; }
+  .br-gst summary::-webkit-details-marker { display: none; }
+  .br-gst summary h2 { margin-bottom: 0; }
+  .br-gst summary h2::before { content: '+'; font-family: 'Jost', sans-serif; font-size: 1.1rem; }
+  .br-gst[open] summary h2::before { content: '−'; }
 
   .br-field { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
   .br-field label { font-family: 'Jost', sans-serif; font-size: 10.5px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold); }
@@ -483,24 +488,26 @@
       </div>
       @endif
 
-      @if($gstRequired)
       {{-- PASSTHROUGH / RESELLER GST rate: TripJack requires gstInfo with
-           the booking, and only the guest can supply it. --}}
-      <div class="br-section">
-        <h2>GST Details</h2>
-        <p style="font-family:'Jost',sans-serif; font-size:12px; color:var(--white-60); margin:-14px 0 22px;">This rate is invoiced with GST — please enter the company's GST details.</p>
+           the booking, and only the guest can supply it. Otherwise optional,
+           for business travel: printed on our invoice so the company can
+           claim the GST. --}}
+      <details class="br-section br-gst" @if($gstRequired || old('gst_number') || $errors->has('gst_number') || $errors->has('gst_registered_name')) open @endif>
+        <summary><h2>GST Details {{ $gstRequired ? '' : '(Optional)' }}</h2></summary>
+        <p style="font-family:'Jost',sans-serif; font-size:12px; color:var(--white-60); margin:12px 0 22px;">
+          {{ $gstRequired ? 'This rate is invoiced with GST — please enter the company\'s GST details.' : 'Booking for work? Add your company\'s GST details and we\'ll print them on your invoice so you can claim the GST.' }}
+        </p>
         <div class="br-row">
           <div class="br-field {{ $errors->has('gst_number') ? 'error' : '' }}">
             <label>GSTIN</label>
-            <input type="text" name="gst_number" value="{{ old('gst_number') }}" placeholder="27ABCDE1234F1Z5" maxlength="15" style="text-transform:uppercase;" required>
+            <input type="text" name="gst_number" value="{{ old('gst_number') }}" placeholder="27ABCDE1234F1Z5" maxlength="15" style="text-transform:uppercase;" @if($gstRequired) required @endif>
           </div>
           <div class="br-field {{ $errors->has('gst_registered_name') ? 'error' : '' }}">
             <label>Registered Company Name</label>
-            <input type="text" name="gst_registered_name" value="{{ old('gst_registered_name') }}" maxlength="100" required>
+            <input type="text" name="gst_registered_name" value="{{ old('gst_registered_name') }}" maxlength="100" @if($gstRequired) required @endif>
           </div>
         </div>
-      </div>
-      @endif
+      </details>
 
       <div class="br-section">
         <h2>Traveler Details</h2>

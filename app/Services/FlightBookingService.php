@@ -864,7 +864,7 @@ class FlightBookingService
      * finalizeCancellation() refunds with, so the estimate shown matches
      * what is actually refunded. Null when TripJack won't quote.
      *
-     * @return array{charges: float, refund: float, currency: string}|null
+     * @return array{charges: float, airline_charges: float, service_fee: float, refund: float, currency: string}|null
      */
     public function cancellationQuote(Booking $booking, array $trips, array $paxCounts): ?array
     {
@@ -883,6 +883,14 @@ class FlightBookingService
             if (! ($response['status']['success'] ?? false) || empty($response['trips'])) {
                 return false;
             }
+
+            // Logged in full (no guest details in it) so the airline vs
+            // TripJack split (ACF/CCF) can be shown once a live quote shows
+            // where TripJack puts it — the general log keeps only keys.
+            Log::channel('tripjack')->info('flight_cancel_quote_amendment_info', [
+                'booking_id' => $booking->id,
+                'amendmentInfo' => array_map(fn ($t) => $t['amendmentInfo'] ?? null, $response['trips']),
+            ]);
 
             $charges = 0.0;
             $refund = 0.0;
@@ -924,7 +932,18 @@ class FlightBookingService
         $supplierPart = ! $isFull && (float) ($airline['fare'] ?? 0) > 0 ? min($supplierTotal, (float) $airline['fare']) : $supplierTotal;
         $charges = round(max(0, $paid * $supplierPart / $supplierTotal - $refund), 2);
 
-        return ['charges' => $charges, 'refund' => $refund, 'currency' => $booking->currency ?? 'INR'];
+        // Split for the guest: what the airline/TripJack keep (their
+        // cancellation charges) and the rest — our service fee, which isn't
+        // refunded (or the flat fee on a free cancellation).
+        $airlineCharges = round(min($charges, max(0, (float) $airline['charges'])), 2);
+
+        return [
+            'charges' => $charges,
+            'airline_charges' => $airlineCharges,
+            'service_fee' => round($charges - $airlineCharges, 2),
+            'refund' => $refund,
+            'currency' => $booking->currency ?? 'INR',
+        ];
     }
 
     /**

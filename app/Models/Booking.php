@@ -89,6 +89,21 @@ class Booking extends Model
     }
 
     /**
+     * The guest company's GST details given at checkout (business travel),
+     * for "Billed To" on our invoice. Null when none were given.
+     *
+     * @return array{number: string, name: string}|null
+     */
+    public function guestGst(): ?array
+    {
+        $info = $this->tripjack_gst_info;
+
+        return filled($info['gstNumber'] ?? null)
+            ? ['number' => (string) $info['gstNumber'], 'name' => (string) ($info['registeredName'] ?? '')]
+            : null;
+    }
+
+    /**
      * A flight e-ticket exists once the airline has ticketed the booking
      * (PNR received) and only while it stands — not after cancellation.
      */

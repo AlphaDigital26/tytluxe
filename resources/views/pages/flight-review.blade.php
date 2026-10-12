@@ -239,7 +239,7 @@
       <span>&#8377;{{ number_format($breakdown['airline_taxes'] + $convenienceFee, 2) }}</span>
     </div>
     <div class="flr-sum-sub" id="flrTaxBreakdown" hidden>
-      <div><span>Airline taxes &amp; surcharges</span><span>&#8377;{{ number_format($breakdown['airline_taxes'], 2) }}</span></div>
+      <div><span>Taxes &amp; surcharges</span><span>&#8377;{{ number_format($breakdown['airline_taxes'], 2) }}</span></div>
       <div><span>Convenience fee</span><span>&#8377;{{ number_format($convenienceFee, 2) }}</span></div>
     </div>
     <div class="flr-line total"><span>Amount to Pay</span><span>&#8377;{{ number_format($breakdown['customer_price'], 2) }}</span></div>

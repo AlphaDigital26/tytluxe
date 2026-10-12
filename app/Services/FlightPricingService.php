@@ -12,14 +12,14 @@ use App\Support\FlightSettings;
  * class's docblock for the full reasoning behind the margin/GST/Razorpay
  * gross-up order of operations, which is identical here. The markup % itself
  * is the client's to set, in the admin's Flights → Flight Settings page.
+ *
+ * GST differs from hotels: a flat 18% on our markup (our service fee) at
+ * any fare (client's decision, 2026-10-10). The hotels' 5%/18% split at
+ * ₹7,500 is a hotel-room rule. The airline's own GST is already inside TF.
  */
 class FlightPricingService
 {
-    protected const GST_RATE_BELOW_THRESHOLD = 0.05;
-
-    protected const GST_RATE_AT_OR_ABOVE_THRESHOLD = 0.18;
-
-    protected const GST_THRESHOLD = 7500.0;
+    protected const GST_RATE = 0.18;
 
     protected const RAZORPAY_EFFECTIVE_RATE = 0.0236;
 
@@ -28,15 +28,13 @@ class FlightPricingService
      * in the browser (e.g. as add-ons are picked) and match it exactly.
      * $marginRate: see price().
      *
-     * @return array{marginRate: float, gstLow: float, gstHigh: float, gstThreshold: float, razorpayRate: float}
+     * @return array{marginRate: float, gstRate: float, razorpayRate: float}
      */
     public static function formula(?float $marginRate = null): array
     {
         return [
             'marginRate' => $marginRate ?? FlightSettings::marginRate(),
-            'gstLow' => self::GST_RATE_BELOW_THRESHOLD,
-            'gstHigh' => self::GST_RATE_AT_OR_ABOVE_THRESHOLD,
-            'gstThreshold' => self::GST_THRESHOLD,
+            'gstRate' => self::GST_RATE,
             'razorpayRate' => self::RAZORPAY_EFFECTIVE_RATE,
         ];
     }
@@ -61,9 +59,7 @@ class FlightPricingService
      */
     public static function price(float $totalFare, ?float $marginRate = null): array
     {
-        $gstSlab = $totalFare < self::GST_THRESHOLD
-            ? self::GST_RATE_BELOW_THRESHOLD
-            : self::GST_RATE_AT_OR_ABOVE_THRESHOLD;
+        $gstSlab = self::GST_RATE;
 
         $marginAmount = $totalFare * ($marginRate ?? FlightSettings::marginRate());
         $gstOnMargin = $marginAmount * $gstSlab;
@@ -83,29 +79,4 @@ class FlightPricingService
         ];
     }
 
-    /**
-     * The per-adult price a search result shows: one adult's TF marked up
-     * the same way the review page marks up the whole booking. The GST slab
-     * depends on the booking's total fare, so the adult's share is taken
-     * from price() of the party's total rather than of one fare alone.
-     *
-     * $fareByPaxType: TF per pax type (ADULT/CHILD/INFANT) from the fare's
-     * fd; a type with no fare is priced like an adult.
-     * $paxCounts: ADULT/CHILD/INFANT counts searched for.
-     */
-    public static function perAdult(array $fareByPaxType, array $paxCounts, ?float $marginRate = null): float
-    {
-        $adultFare = (float) ($fareByPaxType['ADULT'] ?? 0);
-        if ($adultFare <= 0) {
-            return 0.0;
-        }
-
-        $partyFare = 0.0;
-        foreach ($paxCounts as $type => $count) {
-            $partyFare += (float) ($fareByPaxType[$type] ?? $adultFare) * max(0, (int) $count);
-        }
-        $partyFare = max($partyFare, $adultFare);
-
-        return round($adultFare * self::price($partyFare, $marginRate)['customer_price'] / $partyFare, 2);
-    }
 }

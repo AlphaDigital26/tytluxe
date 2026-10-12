@@ -241,6 +241,9 @@
                     <div class="tyt-fbv-row"><span>Name</span><strong>{{ $record->lead_guest_name ?: ($record->user?->name ?? '—') }}</strong></div>
                     <div class="tyt-fbv-row"><span>Phone</span><strong><a href="tel:{{ $record->guest_phone }}">{{ $record->guest_phone ?: '—' }}</a></strong></div>
                     <div class="tyt-fbv-row"><span>Email</span><strong><a href="mailto:{{ $record->guest_email }}">{{ $record->guest_email ?: '—' }}</a></strong></div>
+                    @if($guestGst = $record->guestGst())
+                    <div class="tyt-fbv-row"><span>Company GST</span><strong>{{ $guestGst['name'] }} · {{ $guestGst['number'] }}</strong></div>
+                    @endif
                     <div class="tyt-fbv-row"><span>Booked on</span><strong>{{ $record->created_at->format('j M Y, g:i A') }}</strong></div>
                     @if($record->tripjack_booking_id)
                         <div class="tyt-fbv-row"><span>TripJack booking ID<br><small>(quote this to TripJack support)</small></span><strong>{{ $record->tripjack_booking_id }}</strong></div>

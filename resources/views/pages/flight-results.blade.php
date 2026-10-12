@@ -90,8 +90,6 @@
   // within its row, matching the reference layout.
   // Prices are shown marked up (FlightPricingService), per adult, so the
   // fare a guest clicks matches the total on the review page.
-  $paxCounts = array_filter(['ADULT' => (int) ($searchParams['adults'] ?? 1), 'CHILD' => (int) ($searchParams['children'] ?? 0), 'INFANT' => (int) ($searchParams['infants'] ?? 0)]);
-
   $cardGroups = [];
   if ($results) {
       foreach ($groupMeta as $key => $meta) {
@@ -158,10 +156,7 @@
                   $fd = $fdAll['ADULT'] ?? [];
                   $fc = $fd['fC'] ?? [];
                   $bf = (float) ($fc['BF'] ?? 0);
-                  $price = \App\Services\FlightPricingService::perAdult(
-                      array_map(fn ($paxFd) => (float) ($paxFd['fC']['TF'] ?? 0), $fdAll),
-                      $paxCounts,
-                  );
+                  $price = \App\Services\FlightPricingService::price((float) ($fc['TF'] ?? 0))['customer_price'];
 
                   $options[] = [
                       'id' => $option['id'],
@@ -197,6 +192,9 @@
                       // refundable, so this isn't "free cancellation", just
                       // no separate cancellation fee on top of the FTC.
                       'isFlex' => ($option['fareIdentifier'] ?? '') === 'TJ_FLEX',
+                      // FTC (Flex Total Charges) per adult, when TripJack sends
+                      // it — in fC or among the TAF components.
+                      'flexCharge' => (float) ($fc['FTC'] ?? $fd['afC']['TAF']['FTC'] ?? 0),
                       'seatsLeft' => $fd['sR'] ?? null,
                       'baggageCheckin' => $fd['bI']['iB'] ?? null,
                       'baggageCabin' => $fd['bI']['cB'] ?? null,
@@ -1510,7 +1508,7 @@
                             {{-- Search doc: TJ_FLEX has no cancellation fee only if cancelled
                                  at least 24 hours before departure, and the flex charge
                                  itself is non-refundable — say so on the tag. --}}
-                            <span class="frx-opt-flex" title="No airline cancellation fee if you cancel at least 24 hours before departure. The flex charge included in this fare is non-refundable.">Zero Cancellation Fee &middot; 24h+</span>
+                            <span class="frx-opt-flex" title="No airline cancellation fee if you cancel at least 24 hours before departure. The flex charge{{ $opt['flexCharge'] > 0 ? ' of ₹'.number_format($opt['flexCharge']).' per adult' : '' }} included in this fare is non-refundable.">Zero Cancellation Fee &middot; 24h+{{ $opt['flexCharge'] > 0 ? ' · ₹'.number_format($opt['flexCharge']).' flex charge non-refundable' : '' }}</span>
                           @endif
                           @if($opt['baggageCheckin'])<span class="frx-opt-bag" title="Check-in baggage">&#129523;&#xFE0E; {{ $opt['baggageCheckin'] }}</span>@endif
                         </span>

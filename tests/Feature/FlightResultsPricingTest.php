@@ -29,17 +29,25 @@ class FlightResultsPricingTest extends TestCase
         ])]);
     }
 
-    public function test_per_adult_price_matches_what_the_review_page_charges(): void
+    public function test_flights_charge_a_flat_18_percent_gst_on_our_markup_at_any_fare(): void
     {
         FlightSettings::save(['markup_percent' => 10]);
 
-        // One adult: exactly the booking total.
-        $this->assertSame(FlightPricingService::price(5000)['customer_price'], FlightPricingService::perAdult(['ADULT' => 5000], ['ADULT' => 1]));
+        // ₹5,000 fare: markup ₹500, GST ₹90 (18%, not the hotels' 5% below
+        // ₹7,500), then the payment-gateway gross-up.
+        $cheap = FlightPricingService::price(5000);
+        $this->assertSame(0.18, $cheap['gst_slab']);
+        $this->assertSame(90.0, $cheap['gst_on_margin']);
+        $this->assertEqualsWithDelta(5590 / (1 - 0.0236), $cheap['customer_price'], 0.01);
+        $this->assertSame(0.18, FlightPricingService::price(20000)['gst_slab']);
 
-        // Two adults: ₹10,000 together crosses the GST slab, so each adult's
-        // share is half of that total, not the price of ₹5,000 alone.
-        $this->assertEqualsWithDelta(FlightPricingService::price(10000)['customer_price'] / 2, FlightPricingService::perAdult(['ADULT' => 5000], ['ADULT' => 2]), 0.01);
-        $this->assertGreaterThan(FlightPricingService::price(5000)['customer_price'], FlightPricingService::perAdult(['ADULT' => 5000], ['ADULT' => 2]));
+        // One rate at every fare: a domestic return's two legs priced on
+        // their own add up to the two together, so results match review.
+        $this->assertEqualsWithDelta(
+            FlightPricingService::price(8000)['customer_price'],
+            FlightPricingService::price(4000)['customer_price'] * 2,
+            0.02,
+        );
     }
 
     public function test_results_show_the_marked_up_fare(): void
@@ -54,6 +62,27 @@ class FlightResultsPricingTest extends TestCase
         $this->assertStringContainsString('&#8377;'.number_format($marked, 2), $html);
         $this->assertStringContainsString('data-price="'.(int) $marked.'"', $html);
         $this->assertStringNotContainsString('&#8377;5,000.00', $html);
+    }
+
+    public function test_flex_fare_shows_its_non_refundable_flex_charge_when_tripjack_sends_it(): void
+    {
+        $date = now()->addDays(30)->toDateString();
+        $segment = ['id' => '1', 'fD' => ['aI' => ['code' => '6E', 'name' => 'IndiGo'], 'fN' => '101'], 'da' => ['code' => 'DEL'], 'aa' => ['code' => 'BOM'],
+            'dt' => $date.'T06:00', 'at' => $date.'T08:10', 'duration' => 130, 'stops' => 0, 'sN' => 0];
+        $fare = fn ($id, $identifier, $fc) => ['id' => $id, 'fareIdentifier' => $identifier, 'fd' => ['ADULT' => ['fC' => $fc, 'rT' => 1, 'cc' => 'ECONOMY']]];
+        Http::fake(['*/air-search-all' => Http::response([
+            'searchResult' => ['tripInfos' => ['ONWARD' => [['sI' => [$segment], 'totalPriceList' => [
+                $fare('F1', 'TJ_FLEX', ['TF' => 5400, 'BF' => 4200, 'TAF' => 1200, 'FTC' => 350]),
+                $fare('P1', 'PUBLISHED', ['TF' => 5000, 'BF' => 4200, 'TAF' => 800]),
+            ]]]]],
+            'status' => ['success' => true],
+        ])]);
+
+        $html = $this->get(route('flights.search', ['from' => 'DEL', 'to' => 'BOM', 'depart_date' => $date, 'adults' => 1, 'trip_type' => 'oneway']))
+            ->assertOk()->getContent();
+
+        $this->assertStringContainsString('Zero Cancellation Fee &middot; 24h+ · ₹350 flex charge non-refundable', $html);
+        $this->assertSame(1, substr_count($html, 'flex charge non-refundable'), 'Only the flex fare carries it');
     }
 
     public function test_fare_calendar_shows_the_marked_up_fare(): void
