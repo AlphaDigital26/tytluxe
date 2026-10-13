@@ -211,27 +211,66 @@ class FlightPostBookingTest extends TestCase
             '*/amendment/auto-reissue' => Http::response(['bookingId' => 'TJSNEW2', 'status' => ['success' => true]]),
         ]);
 
+        // 4,350 back from TripJack, less our ₹100 service charge + ₹18 GST.
         $this->post(route('flights.reissue.review', $booking->reference), ['price_id' => 'P1', 'leg_index' => 0])
             ->assertRedirect(route('hotel.booking.confirmation', $booking->reference))
-            ->assertSessionHas('booking_success', fn ($m) => str_contains($m, '₹4,350.00'));
+            ->assertSessionHas('booking_success', fn ($m) => str_contains($m, '₹4,232.00'));
 
-        // Booked with TripJack at its (negative) TF, then 4,350 refunded to the guest.
+        // Booked with TripJack at its own (negative) TF, then 4,232 refunded to the guest.
         Http::assertSent(fn ($r) => str_contains($r->url(), 'auto-reissue') && $r['paymentInfos'][0]['amount'] == -4350);
-        $this->assertSame([['pay_fare', 435000]], array_map(fn ($r) => [$r['payment_id'], $r['amount']], $this->razorpay->refunds));
+        $this->assertSame([['pay_fare', 423200]], array_map(fn ($r) => [$r['payment_id'], $r['amount']], $this->razorpay->refunds));
 
         $booking->refresh();
         $this->assertSame('TJSNEW2', $booking->tripjack_booking_id);
-        $this->assertSame(4350.0, $booking->reissueCredit());
-        $this->assertSame(4350.0, (float) collect($booking->flight_reissue_history)->last()['differenceRefunded']);
-        $this->assertSame(4350.0, $booking->invoiceTotals()['refunded']);
+        $this->assertSame(-4350.0, $booking->reissueSupplierCost());
+        $this->assertSame(4232.0, (float) collect($booking->flight_reissue_history)->last()['differenceRefunded']);
+        $this->assertSame(4232.0, $booking->invoiceTotals()['refunded']);
         $this->assertNull($booking->manual_refund_due_at);
 
         // A later cancellation counts TripJack's cost as 10,000 − 4,350.
         $booking->update(['cancellation_requested_at' => now()]);
         app(FlightBookingService::class)->finalizeCancellation($booking, ['amendmentStatus' => 'SUCCESS', 'refundableAmount' => 5650]);
         // TripJack refunds its whole (reduced) price → free cancellation:
-        // everything still held (11,000 − 4,350) less the ₹100 fee.
-        $this->assertSame(655000, $this->razorpay->refunds[1]['amount']);
+        // everything still held (11,000 − 4,232) less the ₹100 fee.
+        $this->assertSame(666800, $this->razorpay->refunds[1]['amount']);
+    }
+
+    public function test_reschedule_charges_tripjacks_price_plus_our_service_charge_gst_and_gateway_fee(): void
+    {
+        $booking = $this->booking();
+        Http::fake([
+            '*/reissue/review' => Http::response(['bookingId' => 'TJSNEW3', 'tripInfos' => [['sI' => [['dt' => '2026-10-25T06:00']]]],
+                'totalPriceInfo' => ['totalFareDetail' => ['fC' => ['TF' => 2000]]], 'status' => ['success' => true]]),
+            '*/user-detail*' => Http::response(['user' => ['bs' => ['balance' => 100000]], 'status' => ['success' => true]]),
+        ]);
+
+        $this->post(route('flights.reissue.review', $booking->reference), ['price_id' => 'P1', 'leg_index' => 0])
+            ->assertOk()
+            ->assertSee('Confirm Your Reschedule')
+            ->assertSee('Reschedule service charge');
+
+        // 2,000 (TripJack) + 100 + 18 GST = 2,118, then the gateway fee.
+        $payment = $booking->payments()->where('purpose', 'flight_reissue')->firstOrFail();
+        $this->assertEqualsWithDelta(round(2118 / (1 - 0.0236), 2), (float) $payment->amount, 0.001);
+        // TripJack is still sent its own 2,000 when the reissue is booked.
+        $this->assertSame(2000.0, (float) $booking->fresh()->flight_reissue_pending['amount']);
+    }
+
+    public function test_extras_added_after_booking_carry_the_gateway_fee_but_tripjack_gets_its_own_price(): void
+    {
+        \Illuminate\Support\Facades\Queue::fake();
+        Http::fake(['*/amendment/add/ssr' => Http::response(['amendmentIds' => ['A9'], 'status' => ['success' => true]])]);
+        $booking = $this->booking(['flight_ssr_pending_selection' => ['segmentInfos' => [['id' => 'S1', 'bI' => ['tI' => [['id' => 't1', 'sbi' => ['code' => 'B15', 'amount' => 900]]]]]], 'tripjackAmount' => 900]]);
+        $payment = Payment::create([
+            'booking_id' => $booking->id, 'razorpay_order_id' => 'order_s', 'razorpay_payment_id' => 'pay_s',
+            'amount' => \App\Services\FlightPricingService::withGatewayFee(900), 'currency' => 'INR', 'status' => 'created', 'purpose' => 'flight_ssr',
+        ]);
+
+        app(FlightAncillaryService::class)->confirmAfterPayment($payment, $this->razorpay);
+
+        $this->assertSame(921.75, (float) $payment->amount);
+        Http::assertSent(fn ($r) => ($r['paymentInfos'][0]['amount'] ?? null) == 900);
+        $this->assertSame('pending', $booking->fresh()->flight_ssr_status);
     }
 
     public function test_failed_reissue_never_refunds_the_original_ticket_payment(): void
@@ -250,7 +289,8 @@ class FlightPostBookingTest extends TestCase
 
     public function test_cancelling_a_rescheduled_booking_refunds_tripjacks_amount_newest_payment_first(): void
     {
-        $booking = $this->booking(['flight_reissued_at' => now(), 'cancellation_requested_at' => now()]);
+        $booking = $this->booking(['flight_reissued_at' => now(), 'cancellation_requested_at' => now(),
+            'flight_reissue_history' => [['amountPaid' => 2000]]]); // TripJack's reissue TF
         $this->payment($booking, 11000, 'booking', 'pay_fare');
         $this->travel(1)->minutes();
         $this->payment($booking, 2000, 'flight_reissue', 'pay_reissue'); // taken at TripJack's own price
@@ -329,8 +369,10 @@ class FlightPostBookingTest extends TestCase
 
     public function test_partly_rejected_extras_refund_the_rejected_part(): void
     {
-        $booking = $this->booking(['flight_ssr_status' => 'pending', 'flight_ssr_amount_paid' => 2100]);
-        $pay = $this->payment($booking, 2100, 'flight_ssr', 'pay_ssr_1');
+        // TripJack's 2,100 plus the gateway fee: the guest paid 2,150.76.
+        $paid = \App\Services\FlightPricingService::withGatewayFee(2100);
+        $booking = $this->booking(['flight_ssr_status' => 'pending', 'flight_ssr_amount_paid' => $paid]);
+        $pay = $this->payment($booking, $paid, 'flight_ssr', 'pay_ssr_1');
         $svc = app(FlightAncillaryService::class);
 
         $svc->finalizeAmendment($booking, 'A1', ['amendmentStatus' => 'SUCCESS', 'totalAmount' => 1200], ['A1', 'A2'], $pay->id);
@@ -338,10 +380,11 @@ class FlightPostBookingTest extends TestCase
         $svc->finalizeAmendment($booking, 'A2', ['amendmentStatus' => 'REJECTED', 'totalAmount' => 900], ['A1', 'A2'], $pay->id);
         $svc->finalizeAmendment($booking, 'A2', ['amendmentStatus' => 'REJECTED', 'totalAmount' => 900], ['A1', 'A2'], $pay->id); // duplicate job
 
+        // The rejected 900, with the gateway fee the guest paid on it.
         $this->assertCount(1, $this->razorpay->refunds);
-        $this->assertSame(90000, $this->razorpay->refunds[0]['amount']);
+        $this->assertSame(92175, $this->razorpay->refunds[0]['amount']);
         $this->assertSame('partially_confirmed', $booking->fresh()->flight_ssr_status);
-        $this->assertEquals(1200, $booking->fresh()->flight_ssr_amount_paid);
+        $this->assertEqualsWithDelta($paid - 921.75, (float) $booking->fresh()->flight_ssr_amount_paid, 0.01);
         $this->assertSame('partially_refunded', $pay->fresh()->status);
     }
 

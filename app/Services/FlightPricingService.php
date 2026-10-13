@@ -23,6 +23,43 @@ class FlightPricingService
 
     protected const RAZORPAY_EFFECTIVE_RATE = 0.0236;
 
+    /** Our service charge per reschedule, before GST (founder's decision, 2026-10-13). */
+    public const RESCHEDULE_SERVICE_FEE = 100.0;
+
+    /**
+     * An amount the guest pays with Razorpay's ~2.36% fee added, so TYT
+     * Luxe isn't left paying it — for charges taken at TripJack's own price
+     * (seats/meals/baggage added after booking, reschedules).
+     */
+    public static function withGatewayFee(float $amount): float
+    {
+        return $amount > 0 ? round($amount / (1 - self::RAZORPAY_EFFECTIVE_RATE), 2) : 0.0;
+    }
+
+    /**
+     * What the guest pays for a reschedule: TripJack's reissue TF (no
+     * markup) + our service charge + 18% GST on it, with the gateway fee
+     * added. A negative total (a much cheaper new flight) is the amount
+     * refunded to the guest instead — no gateway fee on that.
+     *
+     * @return array{tripjack: float, service_fee: float, gst: float, gateway: float, total: float}
+     */
+    public static function reschedule(float $tripjackAmount): array
+    {
+        $fee = self::RESCHEDULE_SERVICE_FEE;
+        $gst = round($fee * self::GST_RATE, 2);
+        $net = round($tripjackAmount + $fee + $gst, 2);
+        $total = $net > 0 ? self::withGatewayFee($net) : $net;
+
+        return [
+            'tripjack' => round($tripjackAmount, 2),
+            'service_fee' => $fee,
+            'gst' => $gst,
+            'gateway' => round(max(0, $total - $net), 2),
+            'total' => $total,
+        ];
+    }
+
     /**
      * The formula's constants, for pages that must recompute price() live
      * in the browser (e.g. as add-ons are picked) and match it exactly.

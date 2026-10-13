@@ -46,11 +46,31 @@
 
   <div class="pay-card">
     <p class="pay-eyebrow">Secure Payment</p>
-    <h1 class="pay-title">Confirm Your Extras</h1>
-    <p class="pay-hotel">{{ $booking->flight_route }} &middot; Seats, Meals &amp; Baggage</p>
+    @php
+      // Shared by extras and reschedules — shows what makes up the amount.
+      $isReschedule = $payment->purpose === 'flight_reissue';
+      $money = fn ($v) => '₹'.number_format($v, 2);
+      $lines = $isReschedule
+          ? (function () use ($booking) {
+              $p = \App\Services\FlightPricingService::reschedule((float) ($booking->flight_reissue_pending['amount'] ?? 0));
+              return [['Airline fare difference & change fees', $p['tripjack']], ['Reschedule service charge', $p['service_fee']], ['GST on service charge (18%)', $p['gst']], ['Online payment charges', $p['gateway']]];
+          })()
+          : [['Seats, meals & baggage', (float) ($booking->flight_ssr_pending_selection['tripjackAmount'] ?? $payment->amount)],
+             ['Online payment charges', round((float) $payment->amount - (float) ($booking->flight_ssr_pending_selection['tripjackAmount'] ?? $payment->amount), 2)]];
+    @endphp
+    <h1 class="pay-title">{{ $isReschedule ? 'Confirm Your Reschedule' : 'Confirm Your Extras' }}</h1>
+    <p class="pay-hotel">{{ $booking->flight_route }} &middot; {{ $isReschedule ? 'New flight date' : 'Seats, Meals & Baggage' }}</p>
+
+    <div style="max-width:360px; margin:0 auto 18px; font-size:13px; color:var(--white-60); text-align:left;">
+      @foreach($lines as [$label, $value])
+        @if($value != 0)
+          <div style="display:flex; justify-content:space-between; gap:16px; padding:4px 0;"><span>{{ $label }}</span><span>{{ $money($value) }}</span></div>
+        @endif
+      @endforeach
+    </div>
 
     <p class="pay-amount">Amount Payable</p>
-    <p class="pay-amount-value">{{ $payment->currency ?? 'INR' }} {{ number_format($payment->amount) }}</p>
+    <p class="pay-amount-value">{{ $payment->currency ?? 'INR' }} {{ number_format($payment->amount, 2) }}</p>
 
     <div id="payWaiting">
       <div class="pay-spinner"></div>

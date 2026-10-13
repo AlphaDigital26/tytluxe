@@ -337,7 +337,8 @@ class FlightAncillaryService
             }
 
             try {
-                $response = $client->addSsr($booking->tripjack_booking_id, (float) $payment->amount, $selection['segmentInfos']);
+                // TripJack's own amount — the guest's payment also holds the gateway fee.
+                $response = $client->addSsr($booking->tripjack_booking_id, (float) ($selection['tripjackAmount'] ?? $payment->amount), $selection['segmentInfos']);
             } catch (TripJackException $e) {
                 // Timed out / 5xx: the extras may have been added (and
                 // charged to the wallet) without us getting the amendment
@@ -439,10 +440,11 @@ class FlightAncillaryService
 
     /**
      * Refunds the rejected part of one Add SSR batch. Extras are charged at
-     * TripJack's own amount, so a rejected amendment's totalAmount is what
-     * the guest paid for it; if the whole batch was rejected, the whole
-     * payment is refunded. Anything it can't work out safely is left for
-     * manual review rather than guessed.
+     * TripJack's own amount plus the gateway fee, so a rejected amendment's
+     * totalAmount, with that fee added back, is what the guest paid for it;
+     * if the whole batch was rejected, the whole payment is refunded.
+     * Anything it can't work out safely is left for manual review rather
+     * than guessed.
      *
      * @return array<string, mixed> booking columns to update
      */
@@ -461,7 +463,7 @@ class FlightAncillaryService
             $refund = $remaining;
         } else {
             $amounts = collect($rejectedIds)->map(fn ($id) => (float) ($confirmed[$id]['amount'] ?? 0));
-            $refund = $amounts->contains(fn ($a) => $a <= 0) ? null : min($remaining, round($amounts->sum(), 2));
+            $refund = $amounts->contains(fn ($a) => $a <= 0) ? null : min($remaining, FlightPricingService::withGatewayFee($amounts->sum()));
         }
 
         $needsReview = fn (string $why) => [

@@ -81,17 +81,17 @@ class FlightAncillaryController extends Controller
             return back()->withErrors(['selections' => \App\Services\FlightBookingService::INSUFFICIENT_FUNDS_MESSAGE]);
         }
 
-        $booking->update(['flight_ssr_pending_selection' => $built['segmentInfos'] ? ['segmentInfos' => $built['segmentInfos']] : null]);
+        // TripJack's own amount (no markup — business decision, 2026-10-01)
+        // plus Razorpay's fee (2026-10-13), so we don't pay it. TripJack is
+        // sent its own amount (tripjackAmount), never what the guest pays.
+        $guestTotal = \App\Services\FlightPricingService::withGatewayFee($built['total']);
+        $booking->update(['flight_ssr_pending_selection' => $built['segmentInfos'] ? ['segmentInfos' => $built['segmentInfos'], 'tripjackAmount' => $built['total']] : null]);
 
-        // Deliberately charged at TripJack's own amount — no margin/GST/
-        // Razorpay gross-up (business decision, 2026-10-01). Refunds of
-        // rejected extras rely on this 1:1 match; see
-        // FlightAncillaryService::refundRejectedExtras().
-        $order = $razorpay->createOrder($built['total'], $booking->reference.'-SSR-'.now()->timestamp);
+        $order = $razorpay->createOrder($guestTotal, $booking->reference.'-SSR-'.now()->timestamp);
         $payment = Payment::create([
             'booking_id' => $booking->id,
             'razorpay_order_id' => $order['id'],
-            'amount' => $built['total'],
+            'amount' => $guestTotal,
             'currency' => $booking->currency ?? 'INR',
             'status' => 'created',
             'purpose' => 'flight_ssr',

@@ -89,14 +89,15 @@ class Booking extends Model
     }
 
     /**
-     * What TripJack's fare dropped by on reschedules that came out negative
-     * (a much cheaper new flight) — the guest got it back, so it's taken off
-     * TripJack's cost when a later cancellation is worked out.
+     * What reschedules changed TripJack's cost by: each one's reissue TF
+     * (negative for a much cheaper new flight). Taken from TripJack's own
+     * amounts, not the guest's payments, which also hold our service
+     * charge, its GST and the gateway fee.
      */
-    public function reissueCredit(): float
+    public function reissueSupplierCost(): float
     {
         return round((float) collect($this->flight_reissue_history ?? [])
-            ->sum(fn ($h) => max(0, -(float) ($h['amountPaid'] ?? 0))), 2);
+            ->sum(fn ($h) => (float) ($h['amountPaid'] ?? 0)), 2);
     }
 
     /**
