@@ -197,8 +197,8 @@
 
       <div class="fx-summary-bar">
         <div>
-          <div class="fx-summary-label">Estimated Total</div>
-          <div class="fx-summary-val" id="fxTotal">&#8377;0</div>
+          <div class="fx-summary-label">Estimated Total <small style="text-transform:none; letter-spacing:0;">(incl. payment charges)</small></div>
+          <div class="fx-summary-val" id="fxTotal" data-gateway-rate="{{ \App\Services\FlightPricingService::formula()['razorpayRate'] }}">&#8377;0</div>
         </div>
         <button type="submit" class="fx-pay-btn">Continue to Pay</button>
       </div>
@@ -255,7 +255,11 @@
     document.querySelectorAll('input[type="hidden"][id^="fxSeatInput_"]').forEach(function (input) {
       if (input.value) total += priceMap[input.name + '::' + input.value] || 0;
     });
-    document.getElementById('fxTotal').innerHTML = '&#8377;' + total.toLocaleString('en-IN');
+    // Same as FlightPricingService::withGatewayFee(): the airline's price
+    // plus the online payment charge.
+    var el = document.getElementById('fxTotal');
+    var withFee = total > 0 ? Math.round(total / (1 - parseFloat(el.dataset.gatewayRate)) * 100) / 100 : 0;
+    el.innerHTML = '&#8377;' + withFee.toLocaleString('en-IN', { minimumFractionDigits: withFee ? 2 : 0, maximumFractionDigits: 2 });
   }
 
   document.querySelectorAll('.fx-field select').forEach(function (sel) {

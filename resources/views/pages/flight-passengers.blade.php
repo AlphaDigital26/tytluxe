@@ -239,7 +239,9 @@
   ])->values();
 
   $contactPhone = old('contact_phone', substr(preg_replace('/\D/', '', (string) auth()->user()->phone), -10));
-  $convenienceFee = max(0, $breakdown['customer_price'] - $breakdown['tripjack_total_price']);
+  $mgmtFee = (float) ($breakdown['management_fee'] ?? 0);
+  $mgmtFeeGst = (float) ($breakdown['management_fee_gst'] ?? 0);
+  $convenienceFee = max(0, $breakdown['customer_price'] - $breakdown['tripjack_total_price'] - $mgmtFee - $mgmtFeeGst);
   $canHold = (bool) ($conditions['isBA'] ?? false) && \App\Support\FlightSettings::allowHold();
   $pricingJs = ['tf' => $breakdown['tripjack_total_price'], 'taxes' => $breakdown['airline_taxes']] + \App\Services\FlightPricingService::formula($breakdown['margin_rate'] ?? null);
 @endphp
@@ -474,11 +476,13 @@
     <div class="flr-sum-row"><span>Base fare</span><span>&#8377;{{ number_format($breakdown['base_fare'], 2) }}</span></div>
     <div class="flr-sum-row">
       <span><button type="button" class="flr-sum-toggle" aria-expanded="false" aria-controls="flrTaxBreakdown">Taxes and fees</button></span>
-      <span id="flpSumTaxes">&#8377;{{ number_format($breakdown['airline_taxes'] + $convenienceFee, 2) }}</span>
+      <span id="flpSumTaxes">&#8377;{{ number_format($breakdown['airline_taxes'] + $convenienceFee + $mgmtFee + $mgmtFeeGst, 2) }}</span>
     </div>
     <div class="flr-sum-sub" id="flrTaxBreakdown" hidden>
       <div><span>Taxes &amp; surcharges</span><span>&#8377;{{ number_format($breakdown['airline_taxes'], 2) }}</span></div>
       <div><span>Convenience fee</span><span id="flpSumConv">&#8377;{{ number_format($convenienceFee, 2) }}</span></div>
+      <div><span>Management fee (non-refundable)</span><span>&#8377;{{ number_format($mgmtFee, 2) }}</span></div>
+      <div><span>Management fee tax</span><span>&#8377;{{ number_format($mgmtFeeGst, 2) }}</span></div>
     </div>
     <div class="flr-sum-row" id="flpSumAddonsRow" hidden>
       <span><button type="button" class="flr-sum-toggle" aria-expanded="false" aria-controls="flpAddonBreakdown">Add-ons</button></span>
@@ -618,10 +622,11 @@
 
   // Mirrors FlightPricingService::price() exactly, so the total shown here
   // is the amount charged.
+  var MGMT = PRICING.managementFee + PRICING.managementFeeGst;
   function customerPrice(tf) {
     var margin = tf * PRICING.marginRate;
     var pre = tf + margin + margin * PRICING.gstRate;
-    return Math.round(pre / (1 - PRICING.razorpayRate) * 100) / 100;
+    return Math.round(pre / (1 - PRICING.razorpayRate) * 100) / 100 + MGMT;
   }
 
   var inputsBox = document.getElementById('flpAddonInputs');
@@ -647,10 +652,10 @@
     var addons = totals.seats + totals.baggage + totals.meals + totals.fastforward;
     var tf = PRICING.tf + addons;
     var cust = customerPrice(tf);
-    var conv = Math.max(0, cust - tf);
+    var conv = Math.max(0, cust - tf - MGMT);
 
     document.getElementById('flpSumConv').textContent = money(conv);
-    document.getElementById('flpSumTaxes').textContent = money(PRICING.taxes + conv);
+    document.getElementById('flpSumTaxes').textContent = money(PRICING.taxes + conv + MGMT);
     document.getElementById('flpSumTotal').textContent = money(cust);
     document.getElementById('flpSumAddonsRow').hidden = addons <= 0;
     document.getElementById('flpSumAddons').textContent = money(addons);

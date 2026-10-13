@@ -205,11 +205,13 @@
     <div class="flr-sum-row"><span>Base fare</span><span>&#8377;{{ number_format($summary['base_fare'], 2) }}</span></div>
     <div class="flr-sum-row">
       <span><button type="button" class="flr-sum-toggle" aria-expanded="false" aria-controls="flcTaxBreakdown">Taxes and fees</button></span>
-      <span>&#8377;{{ number_format($summary['airline_taxes'] + $summary['convenience_fee'], 2) }}</span>
+      <span>&#8377;{{ number_format($summary['airline_taxes'] + $summary['convenience_fee'] + $summary['management_fee'] + $summary['management_fee_gst'], 2) }}</span>
     </div>
     <div class="flr-sum-sub" id="flcTaxBreakdown" hidden>
       <div><span>Taxes &amp; surcharges</span><span>&#8377;{{ number_format($summary['airline_taxes'], 2) }}</span></div>
       <div><span>Convenience fee</span><span>&#8377;{{ number_format($summary['convenience_fee'], 2) }}</span></div>
+      <div><span>Management fee (non-refundable)</span><span>&#8377;{{ number_format($summary['management_fee'], 2) }}</span></div>
+      <div><span>Management fee tax</span><span>&#8377;{{ number_format($summary['management_fee_gst'], 2) }}</span></div>
     </div>
     @if($summary['addons'] > 0 || $summary['addon_rows'])
       <div class="flr-sum-row">

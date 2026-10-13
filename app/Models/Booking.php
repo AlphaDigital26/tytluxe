@@ -30,7 +30,7 @@ class Booking extends Model
         'lead_guest_name', 'special_requests',
         'base_amount', 'tax_amount', 'discount_amount', 'total_amount',
         'tripjack_total_price', 'gst_slab', 'margin_amount', 'gst_on_margin', 'razorpay_recovery',
-        'tripjack_mf', 'tripjack_mft',
+        'tripjack_mf', 'tripjack_mft', 'management_fee', 'management_fee_gst',
         'currency', 'offer_id', 'status', 'cancellation_reason', 'cancellation_requested_at', 'admin_note',
         'manual_refund_due_at', 'admin_refund_amount',
     ];
@@ -89,6 +89,18 @@ class Booking extends Model
     }
 
     /**
+     * What reschedules changed TripJack's cost by: each one's reissue TF
+     * (negative for a much cheaper new flight). Taken from TripJack's own
+     * amounts, not the guest's payments, which also hold our service
+     * charge, its GST and the gateway fee.
+     */
+    public function reissueSupplierCost(): float
+    {
+        return round((float) collect($this->flight_reissue_history ?? [])
+            ->sum(fn ($h) => (float) ($h['amountPaid'] ?? 0)), 2);
+    }
+
+    /**
      * The guest company's GST details given at checkout (business travel),
      * for "Billed To" on our invoice. Null when none were given.
      *
@@ -135,6 +147,26 @@ class Booking extends Model
                 'tickets' => (array) ($entry['tickets'] ?? $byName[strtoupper(trim(($t['fN'] ?? '').' '.($t['lN'] ?? '')))] ?? []),
             ];
         })->all();
+    }
+
+    /**
+     * What a free cancellation keeps (hotels and flights): our management
+     * fee alone — its GST is refunded. Bookings made before the fee existed
+     * keep the old ₹100.
+     */
+    public function freeCancellationFee(): float
+    {
+        return $this->nonRefundableFee() ?? \App\Support\RefundPolicy::FREE_CANCELLATION_FEE;
+    }
+
+    /**
+     * For RefundPolicy: our management fee (without its GST) — never
+     * refunded on any cancellation. Null on bookings made before the fee
+     * existed (they keep the older refund rule).
+     */
+    public function nonRefundableFee(): ?float
+    {
+        return $this->management_fee !== null ? round((float) $this->management_fee, 2) : null;
     }
 
     /**

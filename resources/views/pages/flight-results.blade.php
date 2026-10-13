@@ -156,7 +156,8 @@
                   $fd = $fdAll['ADULT'] ?? [];
                   $fc = $fd['fC'] ?? [];
                   $bf = (float) ($fc['BF'] ?? 0);
-                  $price = \App\Services\FlightPricingService::price((float) ($fc['TF'] ?? 0))['customer_price'];
+                  // Per adult; the once-per-booking management fee is added at review.
+                  $price = \App\Services\FlightPricingService::price((float) ($fc['TF'] ?? 0), null, false)['customer_price'];
 
                   $options[] = [
                       'id' => $option['id'],
@@ -264,6 +265,11 @@
           }
       }
   }
+
+  // Domestic round trip (separate Onward and Return lists): shown side by
+  // side, with the cheapest fare of each picked up front and a bottom bar
+  // holding both picks, the total and Book — like TripJack's own page.
+  $splitReturn = $searchParams['tripType'] === 'return' && ! $isCombo && count($cardGroups) === 2;
 
   $allPrices = collect($cardGroups)->flatMap(fn ($g) => collect($g['flights'])->pluck('minPrice'));
   $minPrice = $allPrices->isNotEmpty() ? (int) floor($allPrices->min()) : 0;
@@ -674,7 +680,55 @@
 
   /* ── Result rows (one per flight, several fare options each) ──────── */
   .frx-group-title { font-size: 13px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold-light); margin: 0 0 14px; }
-  .frx-group-title:not(:first-child) { margin-top: 30px; }
+  .frx-group + .frx-group { margin-top: 30px; }
+
+  /* ── Domestic round trip: Onward | Return side by side ─────────────── */
+  .frx-rt-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+  .frx-rt-grid .frx-group + .frx-group { margin-top: 0; }
+  .frx-rt .frx-group-title { display: flex; align-items: baseline; gap: 10px; padding: 12px 14px; margin-bottom: 12px; border-radius: 10px; background: var(--dark-2); border: 1px solid rgba(201,168,76,0.22); font-size: 14px; }
+  .frx-rt .frx-group-date { font-size: 11.5px; font-weight: 500; letter-spacing: 0.02em; text-transform: none; color: var(--white-60); }
+  /* Compact card: airline + times on top, fares below, no per-card Book. */
+  .frx-rt .frx-flight-main { grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 14px 16px; }
+  .frx-rt .frx-col-airline { flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; }
+  .frx-rt .frx-details-toggle.frx-view-details { padding: 6px 12px; font-size: 10.5px; }
+  .frx-rt .frx-card-time-val { font-size: 18px; }
+  .frx-rt .frx-opt-price { font-size: 16px; }
+  .frx-rt .frx-col-actions { flex-direction: row; justify-content: flex-end; }
+  .frx-rt .frx-col-actions:not(:has(.frx-compare-btn)) { display: none; }
+  .frx-rt .frx-col-actions .frx-row-continue-btn { display: none; }
+  .frx-rt .frx-col-actions .frx-compare-btn { width: auto; padding: 6px 14px; font-size: 10.5px; }
+  .frx-rt .frx-flight-details { overflow-x: auto; }
+  .frx-rt { padding-bottom: 96px; }
+
+  .frx-rt-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 950; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto auto; align-items: center; gap: 14px; padding: 12px max(24px, calc((100vw - 1400px) / 2)); background: rgba(13,13,13,0.97); border-top: 1px solid rgba(201,168,76,0.35); box-shadow: 0 -12px 30px rgba(0,0,0,0.6); backdrop-filter: blur(6px); }
+  .frx-rt-pick { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 8px 12px; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; background: var(--dark-2); color: inherit; font-family: 'Jost', sans-serif; text-align: left; cursor: pointer; transition: border-color var(--tr); }
+  .frx-rt-pick:hover { border-color: rgba(201,168,76,0.45); }
+  .frx-rt-pick img { width: 30px; height: 30px; flex-shrink: 0; object-fit: contain; border-radius: 6px; background: #fff; padding: 2px; }
+  .frx-rt-pick-body { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+  .frx-rt-pick-label { font-size: 9.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold); }
+  .frx-rt-pick-flight { font-size: 13px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .frx-rt-pick-times { font-size: 11.5px; color: var(--white-60); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .frx-rt-pick-price { font-size: 15px; font-weight: 700; color: var(--gold-light); white-space: nowrap; }
+  .frx-rt-total { display: flex; flex-direction: column; align-items: flex-end; }
+  .frx-rt-total-label { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--white-60); }
+  .frx-rt-total-val { font-family: 'Cormorant Garamond', serif; font-size: 26px; font-weight: 600; color: var(--gold-light); line-height: 1.1; white-space: nowrap; }
+  .frx-rt-book { padding: 14px 34px; border: none; border-radius: 10px; background: linear-gradient(90deg, #c9a84c, #e8c96b); color: var(--dark); font-family: 'Jost', sans-serif; font-size: 13px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s; }
+  .frx-rt-book:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(201,168,76,0.35); }
+  .frx-rt-book.frx-rt-book-wait { opacity: 0.55; }
+
+  @media (max-width: 900px) {
+    .frx-rt-grid { grid-template-columns: minmax(0, 1fr); }
+    .frx-rt-grid .frx-group + .frx-group { margin-top: 24px; }
+    .frx-rt-bar { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; padding: 10px 12px; }
+    .frx-rt-pick { padding: 6px 8px; gap: 8px; }
+    .frx-rt-pick img, .frx-rt-pick-times { display: none; }
+    .frx-rt-pick-body { flex: 1 1 auto; }
+    .frx-rt-pick { flex-wrap: wrap; }
+    .frx-rt-total { align-items: flex-start; }
+    .frx-rt-total-val { font-size: 22px; }
+    .frx-rt-book { width: 100%; padding: 13px; }
+    .frx-rt { padding-bottom: 150px; }
+  }
 
   .frx-flight { background: var(--dark-2); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; margin-bottom: 12px; overflow: hidden; transition: border-color var(--tr); }
   .frx-flight:hover { border-color: rgba(201,168,76,0.25); }
@@ -1375,11 +1429,20 @@
               <button type="button" class="frx-sort-btn active" data-sort="price">Price <span class="frx-sort-arrow">&#9650;</span></button>
             </div>        </div>
 
-        <form method="POST" action="{{ route('flights.review') }}" id="frReviewForm" target="_blank">
+        <form method="POST" action="{{ route('flights.review') }}" id="frReviewForm" target="_blank" @class(['frx-rt' => $splitReturn]) data-fares-shown="{{ $splitReturn ? 3 : 4 }}">
           @csrf
 
+          <div @class(['frx-groups', 'frx-rt-grid' => $splitReturn])>
           @foreach($cardGroups as $key => $group)
-            <p class="frx-group-title" id="frxGroupTitle_{{ $key }}">{{ $group['meta']['label'] }} &middot; {{ $group['meta']['from'] }} &rarr; {{ $group['meta']['to'] }}</p>
+            <section class="frx-group">
+            <p class="frx-group-title" id="frxGroupTitle_{{ $key }}">
+              @if($splitReturn)
+                {{ $group['meta']['from'] }} &rarr; {{ $group['meta']['to'] }}
+                <span class="frx-group-date">{{ $group['meta']['date'] ? \Carbon\Carbon::parse($group['meta']['date'])->format('D, M jS') : '' }}</span>
+              @else
+                {{ $group['meta']['label'] }} &middot; {{ $group['meta']['from'] }} &rarr; {{ $group['meta']['to'] }}
+              @endif
+            </p>
 
             <div class="frx-group-list" data-group="{{ $key }}">
             @foreach($group['flights'] as $fIdx => $flight)
@@ -1398,6 +1461,9 @@
                 data-layover="{{ $flight['layoverMax'] }}"
                 data-flight-nos="{{ implode(',', $flight['flightNos']) }}"
                 data-airline="{{ $flight['airlineCode'] }}"
+                data-airline-name="{{ $flight['airlineName'] }}"
+                data-flight-label="{{ implode(', ', $flight['flightNos']) ?: $flight['airlineCode'].'-'.$flight['flightNo'] }}"
+                data-times="{{ $flight['depTime'] }} {{ $flight['depAirport'] }} → {{ $flight['arrTime'] }} {{ $flight['arrAirport'] }}"
                 data-price="{{ (int) $flight['minPrice'] }}"
                 data-duration="{{ (int) $flight['duration'] }}"
                 data-departure="{{ $flight['depSort'] }}"
@@ -1497,7 +1563,7 @@
                         $cabin = $titleCase($opt['cabinClass'] ?? $searchParams['cabinClass']);
                       @endphp
                       <label class="frx-opt-row" data-special-return="{{ $opt['isSpecialReturn'] ? '1' : '0' }}" data-fare-group="{{ $opt['fareGroup'] }}" data-refundable="{{ $opt['refundType'] }}">
-                        <input type="radio" name="price_ids[{{ $key }}]" value="{{ $opt['id'] }}" required class="frx-radio" data-price="{{ (int) $opt['price'] }}" data-special-return="{{ $opt['isSpecialReturn'] ? '1' : '0' }}" @if($opt['isSpecialReturn']) data-sri="{{ $opt['sri'] }}" data-msri="{{ implode(',', $opt['msri']) }}" data-airline="{{ $flight['airlineCode'] }}" @endif>
+                        <input type="radio" name="price_ids[{{ $key }}]" value="{{ $opt['id'] }}" required class="frx-radio" data-price="{{ (int) $opt['price'] }}" data-amount="{{ $opt['price'] }}" data-special-return="{{ $opt['isSpecialReturn'] ? '1' : '0' }}" @if($opt['isSpecialReturn']) data-sri="{{ $opt['sri'] }}" data-msri="{{ implode(',', $opt['msri']) }}" data-airline="{{ $flight['airlineCode'] }}" @endif>
                         {{-- Must stay a direct child of the label: the Special
                              Return script inserts its badge right before it. --}}
                         <span class="frx-opt-price">&#8377;{{ number_format($opt['price'], 2) }}</span>
@@ -1541,7 +1607,31 @@
                 </div>
               @endfor
             </div>
+            </section>
           @endforeach
+          </div>
+
+          @if($splitReturn)
+            {{-- Both picks, the total and Book (filled in by frxRtBar). --}}
+            <div class="frx-rt-bar" id="frxRtBar">
+              @foreach($cardGroups as $key => $group)
+                <button type="button" class="frx-rt-pick" data-group="price_ids[{{ $key }}]" data-title="frxGroupTitle_{{ $key }}" aria-label="{{ $group['meta']['label'] }}: change">
+                  <img alt="" width="30" height="30" hidden>
+                  <span class="frx-rt-pick-body">
+                    <span class="frx-rt-pick-label">{{ $group['meta']['label'] }}</span>
+                    <span class="frx-rt-pick-flight">Select a flight</span>
+                    <span class="frx-rt-pick-times"></span>
+                  </span>
+                  <span class="frx-rt-pick-price"></span>
+                </button>
+              @endforeach
+              <div class="frx-rt-total">
+                <span class="frx-rt-total-label">Total{{ ($searchParams['adults'] + $searchParams['children'] + $searchParams['infants']) > 1 ? ' per adult' : '' }}</span>
+                <span class="frx-rt-total-val" id="frxRtTotal">—</span>
+              </div>
+              <button type="button" class="frx-rt-book" id="frxRtBook">Book</button>
+            </div>
+          @endif
 
           <p class="frx-no-match" id="frxNoMatch" style="display:none;">No fares match the selected filters.</p>
           <p class="frx-no-match" id="frxSpecialReturnWarning" style="display:none;color:#f3a3a3;">⚠️ Special Return fares can only be booked as a matched pair — on the other flight, pick the fare marked “Pairs with your … fare” (shown at the top of that list), or choose regular fares on both flights instead.</p>
@@ -1607,7 +1697,8 @@
   // "+N more fares": a card lists its first 4 visible fares (after the fare
   // filters) and tucks the rest behind this button. Re-run whenever filters
   // or the selected fare change — a selected fare is never tucked away.
-  var FRX_FARES_SHOWN = 4;
+  // 4 per card; 3 on the narrower round-trip columns.
+  var FRX_FARES_SHOWN = parseInt((document.getElementById('frReviewForm') || { dataset: {} }).dataset.faresShown, 10) || 4;
   window.frxSyncMoreFares = function (row) {
     var btn = row.querySelector('.frx-more-fares');
     if (!btn) return;
@@ -2402,6 +2493,7 @@
     specialReturnWarning.style.display = mismatch ? '' : 'none';
 
     canSubmit = allSelected && !mismatch;
+    if (window.frxRtSync) window.frxRtSync();
   }
 
   // ── Special Return pairing (domestic return, two legs) ─────────────
@@ -2522,6 +2614,85 @@
       }
     });
   });
+
+  // ── Round-trip bottom bar (domestic return, side-by-side lists) ─────
+  // Each column starts with its cheapest regular fare picked; the bar shows
+  // both picks and their total, and Book submits once both are set. Prices
+  // are per adult (the same marked-up per-adult fares as the cards).
+  (function () {
+    var bar = document.getElementById('frxRtBar');
+    if (!bar) return;
+    var picks = Array.prototype.slice.call(bar.querySelectorAll('.frx-rt-pick'));
+    var totalEl = document.getElementById('frxRtTotal');
+    var bookBtn = document.getElementById('frxRtBook');
+    var money = function (v) { return '₹' + Number(v).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
+    // Same fallback as the cards: airlines with no logo show their initials.
+    picks.forEach(function (pick) {
+      var img = pick.querySelector('img');
+      img.addEventListener('error', function () {
+        if (img.src.indexOf('ui-avatars.com') !== -1) { img.hidden = true; return; } // the fallback failed too
+        img.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(pick.dataset.airlineName || 'Airline') + '&background=1a1a1a&color=C9A84C&size=64';
+      });
+    });
+
+    window.frxRtSync = function () {
+      var total = 0, complete = true;
+      picks.forEach(function (pick) {
+        var r = document.querySelector('input[name="' + pick.dataset.group + '"]:checked');
+        var img = pick.querySelector('img');
+        if (!r) {
+          complete = false;
+          img.hidden = true;
+          pick.querySelector('.frx-rt-pick-flight').textContent = 'Select a flight';
+          pick.querySelector('.frx-rt-pick-times').textContent = '';
+          pick.querySelector('.frx-rt-pick-price').textContent = '';
+          return;
+        }
+        var row = r.closest('.frx-flight');
+        var logo = row.querySelector('.frx-card-airline img');
+        pick.dataset.airlineName = row.dataset.airlineName;
+        if (logo) {
+          var src = 'https://images.kiwi.com/airlines/64/' + row.dataset.airline + '.png';
+          if (img.dataset.src !== src) { img.dataset.src = src; img.src = src; }
+          img.hidden = false;
+        }
+        pick.querySelector('.frx-rt-pick-flight').textContent = row.dataset.airlineName + ' · ' + row.dataset.flightLabel;
+        pick.querySelector('.frx-rt-pick-times').textContent = row.dataset.times;
+        pick.querySelector('.frx-rt-pick-price').textContent = money(r.dataset.amount);
+        total += parseFloat(r.dataset.amount) || 0;
+      });
+      totalEl.textContent = complete ? money(total) : '—';
+      bookBtn.classList.toggle('frx-rt-book-wait', !canSubmit);
+    };
+
+    // A pick in the bar jumps to its list, to change it.
+    picks.forEach(function (pick) {
+      pick.addEventListener('click', function () {
+        var title = document.getElementById(pick.dataset.title);
+        if (title) title.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+
+    bookBtn.addEventListener('click', function () {
+      if (canSubmit) { frReviewForm.requestSubmit(); return; }
+      var missing = picks.find(function (p) { return !document.querySelector('input[name="' + p.dataset.group + '"]:checked'); });
+      if (missing) { missing.click(); return; }
+      specialReturnWarning.scrollIntoView({ behavior: 'smooth', block: 'center' }); // an unmatched Special Return pair
+    });
+
+    // Cheapest regular fare in each list, picked up front (a Special Return
+    // fare only books as a matched pair, so it's left to the guest).
+    picks.forEach(function (pick) {
+      if (document.querySelector('input[name="' + pick.dataset.group + '"]:checked')) return;
+      var best = null;
+      document.querySelectorAll('input[name="' + pick.dataset.group + '"]').forEach(function (r) {
+        if (r.dataset.specialReturn === '1') return;
+        if (!best || parseFloat(r.dataset.amount) < parseFloat(best.dataset.amount)) best = r;
+      });
+      if (best) { best.checked = true; best.dispatchEvent(new Event('change')); }
+    });
+    window.frxRtSync();
+  })();
 
   // Expandable "View Details" panel (Flight Details / Fare Details / Fare
   // Rules tabs) — Fare Rules is lazy-loaded per row on first open, not

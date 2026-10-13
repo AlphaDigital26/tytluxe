@@ -109,6 +109,9 @@
             $stops = $option['stops'] ?? 0;
             $bd = $option['breakdown'] ?? null;
             $money = fn ($v) => '₹'.number_format($v, 2);
+            // What the guest actually pays (or gets back): TripJack's amount +
+            // our service charge + GST + payment charges.
+            $guest = \App\Services\FlightPricingService::reschedule((float) $option['amountPayable']);
           @endphp
           <label class="rx-option">
             <div class="rx-option-top">
@@ -118,7 +121,11 @@
                 <div class="rx-option-airline">{{ $option['airlineName'] ?? '' ?: $option['airlineCode'] }}</div>
                 <div class="rx-option-sub">{{ $option['flightNos'] ?? ($option['airlineCode'].' '.($option['flightNo'] ?? '')) }}</div>
               </div>
-              <div class="rx-option-price">₹{{ number_format($option['amountPayable']) }}<small>to pay</small></div>
+              @if($guest['total'] < 0)
+                <div class="rx-option-price" style="color:#4ade80;">₹{{ number_format(abs($guest['total'])) }}<small>back to you</small></div>
+              @else
+                <div class="rx-option-price">₹{{ number_format($guest['total']) }}<small>to pay</small></div>
+              @endif
             </div>
             <div class="rx-option-times">
               <span>{{ $dep->format('H:i') }} <small>{{ $option['from'] ?? '' }}</small></span>
@@ -135,16 +142,23 @@
                 <div class="rx-breakdown-rows">
                   <div class="rx-breakdown-row"><span>Fare &amp; tax difference</span><span>{{ $money($bd['fareDifference']) }}</span></div>
                   @if($bd['airlineFee'] > 0)<div class="rx-breakdown-row"><span>Airline reschedule fee</span><span>{{ $money($bd['airlineFee']) }}</span></div>@endif
-                  @if($bd['serviceFee'] > 0)<div class="rx-breakdown-row"><span>Reschedule service fee</span><span>{{ $money($bd['serviceFee']) }}</span></div>@endif
+                  @if($bd['serviceFee'] > 0)<div class="rx-breakdown-row"><span>Supplier reschedule fee</span><span>{{ $money($bd['serviceFee']) }}</span></div>@endif
                   @if($bd['ancillaryRefund'] > 0)<div class="rx-breakdown-row credit"><span>Refund for earlier seats/meals/baggage</span><span>− {{ $money($bd['ancillaryRefund']) }}</span></div>@endif
-                  <div class="rx-breakdown-row total"><span>Total to pay (all travellers)</span><span>{{ $money($option['amountPayable']) }}</span></div>
+                  <div class="rx-breakdown-row"><span>TYT Luxe service charge</span><span>{{ $money($guest['service_fee']) }}</span></div>
+                  <div class="rx-breakdown-row"><span>GST on service charge (18%)</span><span>{{ $money($guest['gst']) }}</span></div>
+                  @if($guest['gateway'] > 0)<div class="rx-breakdown-row"><span>Online payment charges</span><span>{{ $money($guest['gateway']) }}</span></div>@endif
+                  @if($guest['total'] < 0)
+                    <div class="rx-breakdown-row total credit"><span>Refunded to you (all travellers)</span><span>{{ $money(abs($guest['total'])) }}</span></div>
+                  @else
+                    <div class="rx-breakdown-row total"><span>Total to pay (all travellers)</span><span>{{ $money($guest['total']) }}</span></div>
+                  @endif
                 </div>
               </details>
             @endif
           </label>
         @endforeach
-        <p class="rx-note">Prices cover all travellers on this booking. The fare is re-confirmed with the airline when you continue, and the payment page shows the exact amount before you pay.</p>
-        <button type="submit" class="rx-btn">Continue to Pay</button>
+        <p class="rx-note">Prices cover all travellers on this booking. The fare is re-confirmed with the airline when you continue, and the payment page shows the exact amount before you pay. A ₹{{ number_format(\App\Services\FlightPricingService::RESCHEDULE_SERVICE_FEE) }} service charge (+ GST) applies to each reschedule. If the new flight is cheaper than all the charges, there's nothing to pay and the difference is refunded to your original payment method (5–7 business days).</p>
+        <button type="submit" class="rx-btn">Continue</button>
       </form>
     @endif
   @endif

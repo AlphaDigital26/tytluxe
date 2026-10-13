@@ -60,7 +60,12 @@ class HotelAdminSmokeTest extends TestCase
     {
         $admin = Admin::create(['name' => 'Owner', 'email' => 'o@example.com', 'password' => 'secret-pass', 'role' => 'Super Admin', 'status' => 'Active']);
         $this->actingAs($admin, 'admin');
-        $this->assertSame(1000.0, \App\Services\HotelPricingService::price(10000)['margin_amount']);
+        $price = \App\Services\HotelPricingService::price(10000);
+        $this->assertSame(1000.0, $price['margin_amount']);
+        // ₹50 management fee + ₹9 GST, added on top of the final price.
+        $this->assertSame(50.0, $price['management_fee']);
+        $this->assertSame(9.0, $price['management_fee_gst']);
+        $this->assertSame(round((10000 + 1000 + 180) / (1 - 0.0236), 2) + 59, $price['customer_price']);
 
         \Livewire\Livewire::test(\App\Filament\Pages\HotelListingSettings::class)
             ->set('data.markup_percent', 12)

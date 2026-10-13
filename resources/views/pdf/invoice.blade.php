@@ -278,16 +278,21 @@
            be shown as their own line items, not folded silently into Taxes
            & Fees above — both are already included in the totals, so these
            two rows are informational only and don't add to the total. --}}
-      @if($booking->tripjack_mf > 0)
+      {{-- Hotels add our own management fee (+ GST) to TripJack's. --}}
+      @php
+        $invMf = (float) $booking->tripjack_mf + (float) $booking->management_fee;
+        $invMft = (float) $booking->tripjack_mft + (float) $booking->management_fee_gst;
+      @endphp
+      @if($invMf > 0)
       <tr>
         <td>Management Fee <span style="color:#999; font-weight:normal;">(incl. above)</span></td>
-        <td class="right">{{ $booking->currency }} {{ number_format($booking->tripjack_mf, 2) }}</td>
+        <td class="right">{{ $booking->currency }} {{ number_format($invMf, 2) }}</td>
       </tr>
       @endif
-      @if($booking->tripjack_mft > 0)
+      @if($invMft > 0)
       <tr>
         <td>Management Fee Tax <span style="color:#999; font-weight:normal;">(incl. above)</span></td>
-        <td class="right">{{ $booking->currency }} {{ number_format($booking->tripjack_mft, 2) }}</td>
+        <td class="right">{{ $booking->currency }} {{ number_format($invMft, 2) }}</td>
       </tr>
       @endif
       <tr class="gross">

@@ -477,9 +477,9 @@ class HotelBookingScenariosTest extends TestCase
         $booking->refresh();
         $payment = $booking->payments()->first();
         $this->assertSame('cancelled', $booking->status);
-        // Free cancellation: everything paid less the flat fee (RefundPolicy).
+        // Free cancellation: everything paid less our management fee (RefundPolicy).
         $this->assertSame('partially_refunded', $payment->status);
-        $this->assertEqualsWithDelta((float) $payment->amount - 100, (float) $payment->refund_amount, 0.01);
+        $this->assertEqualsWithDelta((float) $payment->amount - \App\Services\HotelPricingService::MANAGEMENT_FEE, (float) $payment->refund_amount, 0.01);
 
         $cancel = $this->sentTo('/hotel/cancel-booking/')->first();
         $this->assertSame('', $cancel->body(), 'Cancellation must be sent with no body');
@@ -527,7 +527,7 @@ class HotelBookingScenariosTest extends TestCase
 
         $payment = $booking->payments()->first();
         $this->assertSame('cancelled', $booking->fresh()->status);
-        $this->assertEqualsWithDelta((float) $payment->amount - 100, (float) $payment->refund_amount, 0.01, 'Asked within the free window → free-cancellation refund, even though TripJack finished later');
+        $this->assertEqualsWithDelta((float) $payment->amount - \App\Services\HotelPricingService::MANAGEMENT_FEE, (float) $payment->refund_amount, 0.01, 'Asked within the free window → free-cancellation refund, even though TripJack finished later');
     }
 
     // ── 5. Access, display, resilience ─────────────────────────────────

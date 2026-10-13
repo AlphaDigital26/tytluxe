@@ -99,6 +99,9 @@
   @if(session('booking_error'))
     <div class="bc-notice" role="alert">⚠️ {{ session('booking_error') }}</div>
   @endif
+  @if(session('booking_success'))
+    <div class="bc-notice" role="status" style="border-color:rgba(74,222,128,0.4); color:#bbf7d0;">✓ {{ session('booking_success') }}</div>
+  @endif
 
   @if($paymentFailed)
     <div class="bc-icon-ring bad">⚠️</div>

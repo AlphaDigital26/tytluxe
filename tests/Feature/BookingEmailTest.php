@@ -94,6 +94,17 @@ class BookingEmailTest extends TestCase
         Mail::assertQueued(BookingUpdateMail::class, fn ($mail) => $mail->kind === BookingUpdateMail::RESCHEDULED && str_contains($mail->render(), 'NEW999'));
     }
 
+    public function test_rescheduled_email_mentions_a_refunded_fare_difference(): void
+    {
+        $booking = $this->booking(['status' => 'confirmed', 'flight_reissued_at' => now(), 'tripjack_flight_pnr' => null,
+            'flight_reissue_history' => [['amountPaid' => -4350, 'differenceRefunded' => 4350]]]);
+
+        $booking->update(['tripjack_flight_pnr' => ['DEL-BOM' => 'NEW999']]);
+
+        Mail::assertQueued(BookingUpdateMail::class, fn ($mail) => $mail->kind === BookingUpdateMail::RESCHEDULED
+            && str_contains($mail->render(), 'refunded the fare difference of INR 4,350.00'));
+    }
+
     public function test_hotel_confirmation_email(): void
     {
         $destination = Destination::create(['name' => 'Dubai', 'slug' => 'dubai-mail', 'country' => 'UAE', 'type' => 'city', 'for' => ['hotel'], 'is_active' => true]);

@@ -361,6 +361,67 @@ class FlightReissueService
         });
     }
 
+    /**
+     * A reschedule to a cheaper flight whose total came out negative (the
+     * fare drop is bigger than the change fees): the guest gets that
+     * difference back (founder's decision, 2026-10-13), refunded to what
+     * they paid for the flight, newest payment first, never more than is
+     * still refundable. A failed refund is flagged for staff, like any
+     * other refund failure.
+     *
+     * @return float the amount actually refunded
+     */
+    public function refundFareDifference(Booking $booking, float $difference, RazorpayService $razorpay): float
+    {
+        $difference = round(abs($difference), 2);
+        if ($difference <= 0) {
+            return 0.0;
+        }
+
+        $payments = $booking->payments()
+            ->whereIn('purpose', ['booking', 'flight_confirm_book', 'flight_reissue'])
+            ->whereIn('status', ['captured', 'partially_refunded'])
+            ->where('amount', '>', 0)
+            ->orderByDesc('id')
+            ->get();
+        $toRefund = round(min($difference, (float) $payments->sum(fn (Payment $p) => (float) $p->amount - (float) ($p->refund_amount ?? 0))), 2);
+
+        $refunded = 0.0;
+        try {
+            foreach ($payments as $payment) {
+                $take = round(min($toRefund - $refunded, (float) $payment->amount - (float) ($payment->refund_amount ?? 0)), 2);
+                if ($take <= 0) {
+                    continue;
+                }
+                $razorpay->refund($payment->razorpay_payment_id, $take);
+                $newTotal = round((float) ($payment->refund_amount ?? 0) + $take, 2);
+                $payment->update([
+                    'status' => $newTotal >= (float) $payment->amount - 0.01 ? 'refunded' : 'partially_refunded',
+                    'refund_amount' => $newTotal,
+                    'refund_reason' => 'Fare difference refunded after rescheduling to a cheaper flight.',
+                ]);
+                $refunded = round($refunded + $take, 2);
+            }
+            Log::channel('tripjack')->info('flight_reissue_difference_refunded', ['booking_id' => $booking->id, 'difference' => $difference, 'refunded' => $refunded]);
+        } catch (\Throwable $e) {
+            $owed = round($toRefund - $refunded, 2);
+            $booking->update([
+                'manual_refund_due_at' => now(),
+                'admin_note' => $booking->adminNoteWith("Rescheduled to a cheaper flight — the fare difference of {$booking->currency} {$toRefund} could not be refunded automatically after {$booking->currency} {$refunded} ({$e->getMessage()}). Refund the remaining {$booking->currency} {$owed} in Razorpay, then click \"Record manual refund\"."),
+            ]);
+            Log::channel('tripjack')->critical('flight_reissue_difference_refund_failed', ['booking_id' => $booking->id, 'refunded_before_error' => $refunded, 'error' => $e->getMessage()]);
+        }
+
+        // Kept on the reschedule's history entry for the guest's email.
+        $history = $booking->flight_reissue_history ?? [];
+        if ($history) {
+            $history[array_key_last($history)]['differenceRefunded'] = $refunded;
+            $booking->update(['flight_reissue_history' => $history]);
+        }
+
+        return $refunded;
+    }
+
     protected function refundAndFail(Booking $booking, Payment $payment, RazorpayService $razorpay, string $reason): void
     {
         // A no-charge reschedule (TF ≤ 0) never went through Razorpay.

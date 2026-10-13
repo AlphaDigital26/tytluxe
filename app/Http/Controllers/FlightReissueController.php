@@ -62,11 +62,16 @@ class FlightReissueController extends Controller
             return redirect()->route('flights.reissue.show', $booking->reference)->with('booking_error', $result['message']);
         }
 
-        // Nothing to pay (new fare + fees ≤ old fare): Razorpay can't take a
-        // ₹0 order, so book the reissue straight away against a zero-amount
-        // payment record — Auto Reissue still gets TF as its amount, per doc.
-        // Any amount owed back to the guest isn't refunded automatically.
-        if ($result['amount'] <= 0) {
+        // TripJack's TF (no markup) + our service charge + GST + gateway fee
+        // (FlightPricingService::reschedule). TripJack is always sent its own
+        // TF (flight_reissue_pending.amount), never what the guest pays.
+        $priced = \App\Services\FlightPricingService::reschedule($result['amount']);
+
+        // Nothing to pay (the new flight is cheaper by more than the fees and
+        // our charge): Razorpay can't take a ₹0 order, so book the reissue
+        // straight away against a zero-amount payment record, then refund
+        // what's left over to the guest once it's confirmed.
+        if ($priced['total'] <= 0) {
             $payment = Payment::create([
                 'booking_id' => $booking->id,
                 'razorpay_order_id' => 'NOCHARGE-'.$booking->reference.'-'.now()->timestamp,
@@ -83,21 +88,27 @@ class FlightReissueController extends Controller
                     ->with('booking_error', 'We couldn\'t confirm this reschedule with the airline. Please try again or contact our support team.');
             }
 
+            if ($priced['total'] < 0) {
+                $refunded = $reissue->refundFareDifference($booking, $priced['total'], $razorpay);
+                if ($refunded > 0) {
+                    return redirect()->route('hotel.booking.confirmation', $booking->reference)
+                        ->with('booking_success', sprintf('Your flight has been rescheduled. The fare difference of ₹%s is being refunded to your original payment method (5–7 business days).', number_format($refunded, 2)));
+                }
+            }
+
             return redirect()->route('hotel.booking.confirmation', $booking->reference);
         }
 
-        if (! app(\App\Services\FlightBookingService::class)->hasTripJackFunds($result['amount'])) {
+        if ($result['amount'] > 0 && ! app(\App\Services\FlightBookingService::class)->hasTripJackFunds($result['amount'])) {
             return redirect()->route('flights.reissue.show', $booking->reference)
                 ->with('booking_error', \App\Services\FlightBookingService::INSUFFICIENT_FUNDS_MESSAGE);
         }
 
-        // Deliberately charged at TripJack's own reissue TF — no margin/
-        // GST/Razorpay gross-up (business decision, 2026-10-01).
-        $order = $razorpay->createOrder($result['amount'], $booking->reference.'-REISSUE-'.now()->timestamp);
+        $order = $razorpay->createOrder($priced['total'], $booking->reference.'-REISSUE-'.now()->timestamp);
         $payment = Payment::create([
             'booking_id' => $booking->id,
             'razorpay_order_id' => $order['id'],
-            'amount' => $result['amount'],
+            'amount' => $priced['total'],
             'currency' => $booking->currency ?? 'INR',
             'status' => 'created',
             'purpose' => 'flight_reissue',

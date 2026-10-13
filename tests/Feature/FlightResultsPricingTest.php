@@ -38,14 +38,17 @@ class FlightResultsPricingTest extends TestCase
         $cheap = FlightPricingService::price(5000);
         $this->assertSame(0.18, $cheap['gst_slab']);
         $this->assertSame(90.0, $cheap['gst_on_margin']);
-        $this->assertEqualsWithDelta(5590 / (1 - 0.0236), $cheap['customer_price'], 0.01);
+        // Plus our ₹100 + ₹18 GST management fee, once per booking.
+        $this->assertSame(118.0, $cheap['management_fee'] + $cheap['management_fee_gst']);
+        $this->assertEqualsWithDelta(5590 / (1 - 0.0236) + 118, $cheap['customer_price'], 0.01);
+        $this->assertEqualsWithDelta(5590 / (1 - 0.0236), FlightPricingService::price(5000, null, false)['customer_price'], 0.01);
         $this->assertSame(0.18, FlightPricingService::price(20000)['gst_slab']);
 
         // One rate at every fare: a domestic return's two legs priced on
         // their own add up to the two together, so results match review.
         $this->assertEqualsWithDelta(
-            FlightPricingService::price(8000)['customer_price'],
-            FlightPricingService::price(4000)['customer_price'] * 2,
+            FlightPricingService::price(8000, null, false)['customer_price'],
+            FlightPricingService::price(4000, null, false)['customer_price'] * 2,
             0.02,
         );
     }
@@ -58,7 +61,7 @@ class FlightResultsPricingTest extends TestCase
         $html = $this->get(route('flights.search', ['from' => 'DEL', 'to' => 'BOM', 'depart_date' => now()->addDays(30)->toDateString(), 'adults' => 1, 'trip_type' => 'oneway']))
             ->assertOk()->getContent();
 
-        $marked = FlightPricingService::price(5000)['customer_price'];
+        $marked = FlightPricingService::price(5000, null, false)['customer_price']; // per person, no booking fee
         $this->assertStringContainsString('&#8377;'.number_format($marked, 2), $html);
         $this->assertStringContainsString('data-price="'.(int) $marked.'"', $html);
         $this->assertStringNotContainsString('&#8377;5,000.00', $html);
@@ -85,6 +88,37 @@ class FlightResultsPricingTest extends TestCase
         $this->assertSame(1, substr_count($html, 'flex charge non-refundable'), 'Only the flex fare carries it');
     }
 
+    public function test_domestic_round_trip_shows_both_lists_side_by_side_with_a_booking_bar(): void
+    {
+        $out = now()->addDays(30)->toDateString();
+        $back = now()->addDays(33)->toDateString();
+        $leg = fn ($id, $from, $to, $date, $no, $tf) => ['sI' => [['id' => $id, 'fD' => ['aI' => ['code' => '6E', 'name' => 'IndiGo'], 'fN' => $no], 'da' => ['code' => $from], 'aa' => ['code' => $to],
+            'dt' => $date.'T06:00', 'at' => $date.'T08:10', 'duration' => 130, 'stops' => 0, 'sN' => 0]],
+            'totalPriceList' => [['id' => 'P'.$id, 'fareIdentifier' => 'PUBLISHED', 'fd' => ['ADULT' => ['fC' => ['TF' => $tf, 'BF' => $tf - 800, 'TAF' => 800], 'rT' => 1, 'cc' => 'ECONOMY']]]]];
+        Http::fake(['*/air-search-all' => Http::response([
+            'searchResult' => ['tripInfos' => [
+                'ONWARD' => [$leg('1', 'DEL', 'BOM', $out, '101', 5000)],
+                'RETURN' => [$leg('2', 'BOM', 'DEL', $back, '202', 4000)],
+            ]],
+            'status' => ['success' => true],
+        ])]);
+        $params = ['from' => 'DEL', 'to' => 'BOM', 'depart_date' => $out, 'adults' => 1, 'trip_type' => 'return', 'return_date' => $back];
+
+        $html = $this->get(route('flights.search', $params))->assertOk()->getContent();
+
+        $this->assertStringContainsString('class="frx-groups frx-rt-grid"', $html);
+        $this->assertStringContainsString('id="frxRtBar"', $html);
+        $this->assertStringContainsString('data-group="price_ids[ONWARD]"', $html);
+        $this->assertStringContainsString('data-group="price_ids[RETURN]"', $html);
+        $this->assertStringContainsString('data-amount="'.FlightPricingService::price(4000, null, false)['customer_price'].'"', $html);
+        $this->assertStringContainsString('data-times="06:00 BOM → 08:10 DEL"', $html);
+
+        // One way keeps the single full-width list, no bar.
+        $oneway = $this->get(route('flights.search', ['trip_type' => 'oneway'] + $params))->assertOk()->getContent();
+        $this->assertStringNotContainsString('id="frxRtBar"', $oneway);
+        $this->assertStringContainsString('class="frx-groups"', $oneway);
+    }
+
     public function test_fare_calendar_shows_the_marked_up_fare(): void
     {
         FlightSettings::save(['markup_percent' => 10]);
@@ -92,6 +126,6 @@ class FlightResultsPricingTest extends TestCase
 
         $this->getJson(route('flights.fare-calendar.ajax', ['from' => 'DEL', 'to' => 'BOM', 'depart_date' => now()->addDays(30)->toDateString(), 'adults' => 1]))
             ->assertOk()
-            ->assertJson(['success' => true, 'minPrice' => (int) round(FlightPricingService::price(5000)['customer_price'])]);
+            ->assertJson(['success' => true, 'minPrice' => (int) round(FlightPricingService::price(5000, null, false)['customer_price'])]);
     }
 }

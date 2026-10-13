@@ -329,7 +329,7 @@ class FlightController extends Controller
                 // Marked up per adult, exactly as the results page shows it.
                 foreach ($itinerary['totalPriceList'] ?? [] as $option) {
                     $tf = (float) (($option['fd'] ?? $option['fD'] ?? [])['ADULT']['fC']['TF'] ?? 0);
-                    $price = $tf > 0 ? FlightPricingService::price($tf)['customer_price'] : 0;
+                    $price = $tf > 0 ? FlightPricingService::price($tf, null, false)['customer_price'] : 0;
                     if ($price > 0 && ($legMin === null || $price < $legMin)) {
                         $legMin = $price;
                     }
@@ -582,7 +582,9 @@ class FlightController extends Controller
         $summary = [
             'base_fare' => $fareBreakdown['base_fare'],
             'airline_taxes' => $fareBreakdown['airline_taxes'],
-            'convenience_fee' => max(0, round($priced['customer_price'] - $priced['tripjack_total_price'], 2)),
+            'convenience_fee' => max(0, round($priced['customer_price'] - $priced['tripjack_total_price'] - $priced['management_fee'] - $priced['management_fee_gst'], 2)),
+            'management_fee' => $priced['management_fee'],
+            'management_fee_gst' => $priced['management_fee_gst'],
             'addons' => $addonsTotal,
             // Same labels as the Passenger Details summary, in a fixed order.
             'addon_rows' => collect(['seats' => 'Seats', 'baggage' => 'Extra baggage', 'meals' => 'Meals', 'fastforward' => 'Other services'])
@@ -1317,6 +1319,8 @@ class FlightController extends Controller
                 // Review page reads them — fC itself never carries them.
                 'tripjack_mf' => round((float) ($afcTaf['MF'] ?? $fc['MF'] ?? 0), 2),
                 'tripjack_mft' => round((float) ($afcTaf['MFT'] ?? $fc['MFT'] ?? 0), 2),
+                'management_fee' => $breakdown['management_fee'],
+                'management_fee_gst' => $breakdown['management_fee_gst'],
                 'currency' => $fc['currency'] ?? 'INR',
                 'status' => 'pending_payment',
             ]);

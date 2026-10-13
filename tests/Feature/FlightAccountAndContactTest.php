@@ -174,7 +174,8 @@ class FlightAccountAndContactTest extends TestCase
         Http::fake([
             '*/reissue/review' => Http::response([
                 'bookingId' => 'TJSNEW000001', 'status' => ['success' => true],
-                'totalPriceInfo' => ['totalFareDetail' => ['fC' => ['TF' => 0]]],
+                // Cheaper by exactly our ₹100 + GST service charge → nothing to pay, nothing back.
+                'totalPriceInfo' => ['totalFareDetail' => ['fC' => ['TF' => -118]]],
                 'tripInfos' => [['sI' => [['dt' => now()->addDays(22)->format('Y-m-d').'T06:00']]]],
                 'travellers' => [['ti' => 'Mr', 'pt' => 'ADULT', 'fN' => 'Rahul', 'lN' => 'Probe']],
             ]),
