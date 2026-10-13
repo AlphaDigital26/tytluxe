@@ -70,7 +70,7 @@
     <div class="cx-refund-box good">
       <p class="cx-refund-label">Estimated Refund</p>
       <p class="cx-refund-amount">{{ $booking->currency }} {{ number_format($estimatedRefund, 2) }}</p>
-      <p class="cx-refund-note">You're within the free-cancellation window — you get back what you paid, less a {{ $booking->currency }} {{ number_format(\App\Support\RefundPolicy::FREE_CANCELLATION_FEE, 0) }} cancellation fee. The refund is issued automatically to your original payment method within 5–7 business days.</p>
+      <p class="cx-refund-note">You're within the free-cancellation window — you get back what you paid, less the non-refundable {{ $booking->management_fee !== null ? 'management fee' : 'cancellation fee' }} of {{ $booking->currency }} {{ number_format($booking->freeCancellationFee(), 2) }}. The refund is issued automatically to your original payment method within 5–7 business days.</p>
     </div>
   @else
     <div class="cx-refund-box bad">

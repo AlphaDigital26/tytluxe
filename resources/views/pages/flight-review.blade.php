@@ -83,7 +83,9 @@
       $h = (int) $h;
       return $h >= 720 ? round($h / 24).' days' : $h.' hrs';
   };
-  $convenienceFee = max(0, $breakdown['customer_price'] - $breakdown['tripjack_total_price']);
+  $mgmtFee = (float) ($breakdown['management_fee'] ?? 0);
+  $mgmtFeeGst = (float) ($breakdown['management_fee_gst'] ?? 0);
+  $convenienceFee = max(0, $breakdown['customer_price'] - $breakdown['tripjack_total_price'] - $mgmtFee - $mgmtFeeGst);
   $policyColumns = [
       'CANCELLATION' => ['Cancellation Fee', null],
       'DATECHANGE' => ['Date Change Fee', null],
@@ -224,6 +226,10 @@
             <span>&#9432;</span>
             <span>The airline fee is indicative and depends on when you cancel or change, as per the airline's fare rules. Fees shown are per passenger, per sector. GST and other applicable charges may be added.</span>
           </div>
+          <div class="flr-rules-notes">
+            <span>&#9432;</span>
+            <span>A management fee of ₹{{ number_format(\App\Services\FlightPricingService::MANAGEMENT_FEE) }} + GST applies to each booking. The ₹{{ number_format(\App\Services\FlightPricingService::MANAGEMENT_FEE) }} management fee is non-refundable in all cases, including free cancellations and flights cancelled by the airline; its GST is refunded.</span>
+          </div>
         </div>
       @endif
     </div>
@@ -236,11 +242,13 @@
     <div class="flr-sum-row"><span>Base fare</span><span>&#8377;{{ number_format($breakdown['base_fare'], 2) }}</span></div>
     <div class="flr-sum-row">
       <span><button type="button" class="flr-sum-toggle" id="flrTaxToggle" aria-expanded="false" aria-controls="flrTaxBreakdown">Taxes and fees</button></span>
-      <span>&#8377;{{ number_format($breakdown['airline_taxes'] + $convenienceFee, 2) }}</span>
+      <span>&#8377;{{ number_format($breakdown['airline_taxes'] + $convenienceFee + $mgmtFee + $mgmtFeeGst, 2) }}</span>
     </div>
     <div class="flr-sum-sub" id="flrTaxBreakdown" hidden>
       <div><span>Taxes &amp; surcharges</span><span>&#8377;{{ number_format($breakdown['airline_taxes'], 2) }}</span></div>
       <div><span>Convenience fee</span><span>&#8377;{{ number_format($convenienceFee, 2) }}</span></div>
+      <div><span>Management fee (non-refundable)</span><span>&#8377;{{ number_format($mgmtFee, 2) }}</span></div>
+      <div><span>Management fee tax</span><span>&#8377;{{ number_format($mgmtFeeGst, 2) }}</span></div>
     </div>
     <div class="flr-line total"><span>Amount to Pay</span><span>&#8377;{{ number_format($breakdown['customer_price'], 2) }}</span></div>
 

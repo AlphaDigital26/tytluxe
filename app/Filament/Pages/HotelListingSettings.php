@@ -176,8 +176,9 @@ class HotelListingSettings extends Page
         $hotel = 10000.0;
         $earning = $hotel * max(0, $markupPercent) / 100;
         $gst = $earning * ($hotel < $f['gstThreshold'] ? $f['gstLow'] : $f['gstHigh']);
-        $guestPays = ($hotel + $earning + $gst) / (1 - $f['razorpayRate']);
-        $paymentCharge = $guestPays - ($hotel + $earning + $gst);
+        $fee = $f['managementFee'] + $f['managementFeeGst'];
+        $paymentCharge = ($hotel + $earning + $gst) / (1 - $f['razorpayRate']) - ($hotel + $earning + $gst);
+        $guestPays = $hotel + $earning + $gst + $paymentCharge + $fee;
 
         $rupees = fn (float $v) => '₹'.number_format($v, 0);
 
@@ -186,6 +187,7 @@ class HotelListingSettings extends Page
             .'hotel price '.$rupees($hotel).' · '
             .'<strong style="color:#16a34a">you earn '.$rupees($earning).'</strong> · '
             .'GST on your earnings '.$rupees($gst).' · '
+            .'management fee ₹'.number_format($f['managementFee'], 0).' + GST ₹'.number_format($f['managementFeeGst'], 0).' · '
             .'online payment charge '.$rupees($paymentCharge)
         );
     }

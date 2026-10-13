@@ -232,7 +232,7 @@
             (q.service_fee > 0 ? row('charges', 'Our service fee (non-refundable)', '− ' + money(q.currency, q.service_fee)) : '') +
             (q.charges > 0 ? '' : row('charges', 'Cancellation charges', money(q.currency, 0))) +
             row('refund', 'Estimated refund', money(q.currency, q.refund)) +
-            '<p class="cx-quote-foot">Live quote from the airline as of now. You get back what the airline refunds; our service fee is not refundable (on a free cancellation you get everything back less a {{ number_format(\App\Support\RefundPolicy::FREE_CANCELLATION_FEE, 0) }} fee). Charges can change closer to departure — the final amount is confirmed when the cancellation completes.</p>';
+            '<p class="cx-quote-foot">Live quote from the airline as of now. You get back what the airline refunds; our service fee is not refundable (on a free cancellation you get everything back less {{ $booking->management_fee !== null ? 'the ₹'.number_format($booking->freeCancellationFee(), 0).' management fee' : 'a ₹'.number_format(\App\Support\RefundPolicy::FREE_CANCELLATION_FEE, 0).' fee' }}). Charges can change closer to departure — the final amount is confirmed when the cancellation completes.</p>';
         })
         .catch(function () {
           if (seq === quoteSeq) showMsg('We couldn\'t fetch the airline\'s current charges right now. Your exact refund will be confirmed once the cancellation is processed.');

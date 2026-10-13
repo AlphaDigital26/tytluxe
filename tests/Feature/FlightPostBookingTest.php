@@ -318,6 +318,29 @@ class FlightPostBookingTest extends TestCase
         $this->assertSame(1100000, $this->razorpay->refunds[1]['amount']); // airline's fault: everything back
     }
 
+    public function test_flight_management_fee_is_never_refunded(): void
+    {
+        $fee = ['management_fee' => 100, 'management_fee_gst' => 18];
+
+        // Free cancellation: everything back except the ₹100 — its ₹18 GST is refunded.
+        $free = $this->booking(['cancellation_requested_at' => now()] + $fee);
+        $this->payment($free, 11000, 'booking', 'pay_free');
+        app(FlightBookingService::class)->finalizeCancellation($free, ['amendmentStatus' => 'SUCCESS', 'refundableAmount' => 10000]);
+        $this->assertSame(1090000, $this->razorpay->refunds[0]['amount']);
+
+        // Flight cancelled by the airline: still keeps the ₹100.
+        $airline = $this->booking(['cancellation_requested_at' => now()] + $fee);
+        $this->payment($airline, 11000, 'booking', 'pay_airline');
+        app(FlightBookingService::class)->finalizeCancellation($airline, ['amendmentStatus' => 'SUCCESS', 'refundableAmount' => 10000], type: 'FULL_REFUND');
+        $this->assertSame(1090000, $this->razorpay->refunds[1]['amount']);
+
+        // With airline charges: exactly what TripJack refunds, as before.
+        $penalty = $this->booking(['cancellation_requested_at' => now()] + $fee);
+        $this->payment($penalty, 11000, 'booking', 'pay_penalty');
+        app(FlightBookingService::class)->finalizeCancellation($penalty, ['amendmentStatus' => 'SUCCESS', 'refundableAmount' => 7000]);
+        $this->assertSame(700000, $this->razorpay->refunds[2]['amount']);
+    }
+
     public function test_infant_is_cancelled_with_its_adult_and_never_alone(): void
     {
         $booking = $this->booking();

@@ -166,8 +166,9 @@ class FlightSettings extends Page
         $airline = 5000.0;
         $earning = $airline * max(0, $markupPercent) / 100;
         $gst = $earning * $f['gstRate'];
-        $guestPays = ($airline + $earning + $gst) / (1 - $f['razorpayRate']);
-        $paymentCharge = $guestPays - ($airline + $earning + $gst);
+        $fee = $f['managementFee'] + $f['managementFeeGst'];
+        $paymentCharge = ($airline + $earning + $gst) / (1 - $f['razorpayRate']) - ($airline + $earning + $gst);
+        $guestPays = $airline + $earning + $gst + $paymentCharge + $fee;
 
         $rupees = fn (float $v) => '₹'.number_format($v, 0);
 
@@ -176,6 +177,7 @@ class FlightSettings extends Page
             .'airline ticket '.$rupees($airline).' · '
             .'<strong style="color:#16a34a">you earn '.$rupees($earning).'</strong> · '
             .'GST on your earnings '.$rupees($gst).' · '
+            .'management fee '.$rupees($f['managementFee']).' + GST '.$rupees($f['managementFeeGst']).' · '
             .'online payment charge '.$rupees($paymentCharge)
         );
     }

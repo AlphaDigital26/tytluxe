@@ -61,7 +61,7 @@ class BookingCancellationService
             return null;
         }
 
-        return \App\Support\RefundPolicy::hotelRefund((float) $booking->total_amount, (float) $booking->tripjack_total_price, (float) $penalty['amount']);
+        return \App\Support\RefundPolicy::hotelRefund((float) $booking->total_amount, (float) $booking->tripjack_total_price, (float) $penalty['amount'], $booking->nonRefundableFee());
     }
 
     /**
@@ -211,10 +211,10 @@ class BookingCancellationService
         $payment = $booking->payments()->where('status', 'captured')->latest()->first();
 
         // Default (RefundPolicy): TripJack's own refund when a penalty
-        // applies; everything paid less the flat fee when free.
+        // applies; everything paid less the management fee when free.
         $refundAmount = $refundOverride;
         if ($refundAmount === null && $penalty !== null && $payment && (float) $booking->tripjack_total_price > 0) {
-            $refundAmount = \App\Support\RefundPolicy::hotelRefund((float) $payment->amount, (float) $booking->tripjack_total_price, (float) $penalty['amount']);
+            $refundAmount = \App\Support\RefundPolicy::hotelRefund((float) $payment->amount, (float) $booking->tripjack_total_price, (float) $penalty['amount'], $booking->nonRefundableFee());
         }
 
         if ($payment && $refundAmount !== null && $refundAmount > 0) {

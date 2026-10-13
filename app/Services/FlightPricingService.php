@@ -27,6 +27,19 @@ class FlightPricingService
     public const RESCHEDULE_SERVICE_FEE = 100.0;
 
     /**
+     * Our management fee per booking, before 18% GST (2026-10-13), added on
+     * top of the final price. The ₹100 is never refunded, not even on a
+     * free or airline-caused cancellation; its GST is.
+     */
+    public const MANAGEMENT_FEE = 100.0;
+
+    /** ₹100 + ₹18 GST. */
+    public static function managementFeeWithGst(): float
+    {
+        return round(self::MANAGEMENT_FEE * (1 + self::GST_RATE), 2);
+    }
+
+    /**
      * An amount the guest pays with Razorpay's ~2.36% fee added, so TYT
      * Luxe isn't left paying it — for charges taken at TripJack's own price
      * (seats/meals/baggage added after booking, reschedules).
@@ -65,7 +78,7 @@ class FlightPricingService
      * in the browser (e.g. as add-ons are picked) and match it exactly.
      * $marginRate: see price().
      *
-     * @return array{marginRate: float, gstRate: float, razorpayRate: float}
+     * @return array{marginRate: float, gstRate: float, razorpayRate: float, managementFee: float, managementFeeGst: float}
      */
     public static function formula(?float $marginRate = null): array
     {
@@ -73,6 +86,8 @@ class FlightPricingService
             'marginRate' => $marginRate ?? FlightSettings::marginRate(),
             'gstRate' => self::GST_RATE,
             'razorpayRate' => self::RAZORPAY_EFFECTIVE_RATE,
+            'managementFee' => self::MANAGEMENT_FEE,
+            'managementFeeGst' => round(self::MANAGEMENT_FEE * self::GST_RATE, 2),
         ];
     }
 
@@ -84,17 +99,22 @@ class FlightPricingService
      * the booking draft), so a change in Flight Settings mid-booking doesn't
      * change the price they already saw. Null = today's setting.
      *
+     * $withManagementFee: false for per-person fares on search results and
+     * the fare calendar — the fee is once per booking, added at review.
+     *
      * @return array{
      *   tripjack_total_price: float,
      *   gst_slab: float,
      *   margin_amount: float,
      *   gst_on_margin: float,
+     *   management_fee: float,
+     *   management_fee_gst: float,
      *   pre_razorpay_amount: float,
      *   razorpay_recovery: float,
      *   customer_price: float,
      * }
      */
-    public static function price(float $totalFare, ?float $marginRate = null): array
+    public static function price(float $totalFare, ?float $marginRate = null, bool $withManagementFee = true): array
     {
         $gstSlab = self::GST_RATE;
 
@@ -102,14 +122,22 @@ class FlightPricingService
         $gstOnMargin = $marginAmount * $gstSlab;
         $preRazorpayAmount = $totalFare + $marginAmount + $gstOnMargin;
 
-        $customerPrice = $preRazorpayAmount / (1 - self::RAZORPAY_EFFECTIVE_RATE);
-        $razorpayRecovery = $customerPrice - $preRazorpayAmount;
+        $grossedUp = $preRazorpayAmount / (1 - self::RAZORPAY_EFFECTIVE_RATE);
+        $razorpayRecovery = $grossedUp - $preRazorpayAmount;
+
+        // Management fee + GST go on top of the final price as they are,
+        // not through the gross-up.
+        $managementFee = $withManagementFee ? self::MANAGEMENT_FEE : 0.0;
+        $managementFeeGst = round($managementFee * self::GST_RATE, 2);
+        $customerPrice = round($grossedUp, 2) + $managementFee + $managementFeeGst;
 
         return [
             'tripjack_total_price' => round($totalFare, 2),
             'gst_slab' => $gstSlab,
             'margin_amount' => round($marginAmount, 2),
             'gst_on_margin' => round($gstOnMargin, 2),
+            'management_fee' => $managementFee,
+            'management_fee_gst' => $managementFeeGst,
             'pre_razorpay_amount' => round($preRazorpayAmount, 2),
             'razorpay_recovery' => round($razorpayRecovery, 2),
             'customer_price' => round($customerPrice, 2),

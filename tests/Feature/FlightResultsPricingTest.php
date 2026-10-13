@@ -38,14 +38,17 @@ class FlightResultsPricingTest extends TestCase
         $cheap = FlightPricingService::price(5000);
         $this->assertSame(0.18, $cheap['gst_slab']);
         $this->assertSame(90.0, $cheap['gst_on_margin']);
-        $this->assertEqualsWithDelta(5590 / (1 - 0.0236), $cheap['customer_price'], 0.01);
+        // Plus our ₹100 + ₹18 GST management fee, once per booking.
+        $this->assertSame(118.0, $cheap['management_fee'] + $cheap['management_fee_gst']);
+        $this->assertEqualsWithDelta(5590 / (1 - 0.0236) + 118, $cheap['customer_price'], 0.01);
+        $this->assertEqualsWithDelta(5590 / (1 - 0.0236), FlightPricingService::price(5000, null, false)['customer_price'], 0.01);
         $this->assertSame(0.18, FlightPricingService::price(20000)['gst_slab']);
 
         // One rate at every fare: a domestic return's two legs priced on
         // their own add up to the two together, so results match review.
         $this->assertEqualsWithDelta(
-            FlightPricingService::price(8000)['customer_price'],
-            FlightPricingService::price(4000)['customer_price'] * 2,
+            FlightPricingService::price(8000, null, false)['customer_price'],
+            FlightPricingService::price(4000, null, false)['customer_price'] * 2,
             0.02,
         );
     }
@@ -58,7 +61,7 @@ class FlightResultsPricingTest extends TestCase
         $html = $this->get(route('flights.search', ['from' => 'DEL', 'to' => 'BOM', 'depart_date' => now()->addDays(30)->toDateString(), 'adults' => 1, 'trip_type' => 'oneway']))
             ->assertOk()->getContent();
 
-        $marked = FlightPricingService::price(5000)['customer_price'];
+        $marked = FlightPricingService::price(5000, null, false)['customer_price']; // per person, no booking fee
         $this->assertStringContainsString('&#8377;'.number_format($marked, 2), $html);
         $this->assertStringContainsString('data-price="'.(int) $marked.'"', $html);
         $this->assertStringNotContainsString('&#8377;5,000.00', $html);
@@ -107,7 +110,7 @@ class FlightResultsPricingTest extends TestCase
         $this->assertStringContainsString('id="frxRtBar"', $html);
         $this->assertStringContainsString('data-group="price_ids[ONWARD]"', $html);
         $this->assertStringContainsString('data-group="price_ids[RETURN]"', $html);
-        $this->assertStringContainsString('data-amount="'.FlightPricingService::price(4000)['customer_price'].'"', $html);
+        $this->assertStringContainsString('data-amount="'.FlightPricingService::price(4000, null, false)['customer_price'].'"', $html);
         $this->assertStringContainsString('data-times="06:00 BOM → 08:10 DEL"', $html);
 
         // One way keeps the single full-width list, no bar.
@@ -123,6 +126,6 @@ class FlightResultsPricingTest extends TestCase
 
         $this->getJson(route('flights.fare-calendar.ajax', ['from' => 'DEL', 'to' => 'BOM', 'depart_date' => now()->addDays(30)->toDateString(), 'adults' => 1]))
             ->assertOk()
-            ->assertJson(['success' => true, 'minPrice' => (int) round(FlightPricingService::price(5000)['customer_price'])]);
+            ->assertJson(['success' => true, 'minPrice' => (int) round(FlightPricingService::price(5000, null, false)['customer_price'])]);
     }
 }

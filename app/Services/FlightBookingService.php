@@ -554,6 +554,8 @@ class FlightBookingService
             'gst_slab' => $breakdown['gst_slab'],
             'margin_amount' => $breakdown['margin_amount'],
             'gst_on_margin' => $breakdown['gst_on_margin'],
+            'management_fee' => $breakdown['management_fee'],
+            'management_fee_gst' => $breakdown['management_fee_gst'],
             'razorpay_recovery' => $breakdown['razorpay_recovery'],
         ]);
 
@@ -926,9 +928,11 @@ class FlightBookingService
         // guest paid for that part (their payment in proportion to TripJack's
         // fare for it) minus the refund.
         $isFull = $trips === [];
+        // Our management fee + GST is never refunded.
+        $refundable = max(0, round($stillRefundable - ($booking->nonRefundableFee() ?? 0), 2));
         $refund = $isFull
-            ? RefundPolicy::cancellationRefund($stillRefundable, $supplierTotal, $airline['refund'])
-            : round(min($stillRefundable, $airline['refund']), 2);
+            ? min(RefundPolicy::cancellationRefund($stillRefundable, $supplierTotal, $airline['refund'], $booking->nonRefundableFee()), $refundable)
+            : round(min($refundable, $airline['refund']), 2);
         $supplierPart = ! $isFull && (float) ($airline['fare'] ?? 0) > 0 ? min($supplierTotal, (float) $airline['fare']) : $supplierTotal;
         $charges = round(max(0, $paid * $supplierPart / $supplierTotal - $refund), 2);
 
@@ -1142,15 +1146,18 @@ class FlightBookingService
 
         // RefundPolicy (business rule, 2026-10-08): TripJack's own refund —
         // our markup isn't refunded — or, when TripJack refunds its whole
-        // price, everything paid less the flat cancellation fee. An airline-
-        // caused Full Refund (flight cancelled, DGCA, …) gives back everything,
-        // like a booking that failed. A partial cancellation gets TripJack's
+        // price, everything paid less our management fee (₹100 on older
+        // bookings). An airline-caused Full Refund (flight cancelled, DGCA, …)
+        // gives back everything else. A partial cancellation gets TripJack's
         // refund as is: amendment-details doesn't give that part's fare.
-        $refundToGuest = match (true) {
+        // Our management fee + GST is never refunded, in any of these
+        // (2026-10-13).
+        $refundable = max(0, round($remaining - ($booking->nonRefundableFee() ?? 0), 2));
+        $refundToGuest = min($refundable, match (true) {
             $type === 'FULL_REFUND' && $isFullBooking => $remaining,
-            $isFullBooking => RefundPolicy::cancellationRefund($remaining, $supplierCost, $refundableAmount),
+            $isFullBooking => RefundPolicy::cancellationRefund($remaining, $supplierCost, $refundableAmount, $booking->nonRefundableFee()),
             default => round(min($remaining, $refundableAmount), 2),
-        };
+        });
 
         if ($refundToGuest > 0 && $refundableAmount > 0) {
             $refunded = 0.0;

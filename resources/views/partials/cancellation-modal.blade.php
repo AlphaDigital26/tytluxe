@@ -55,6 +55,7 @@
         </table>
       </div>
       <div class="tyt-cancellation-table-notes">
+        <div>• A management fee of ₹{{ number_format(\App\Services\HotelPricingService::MANAGEMENT_FEE) }} + GST applies to each booking. The ₹{{ number_format(\App\Services\HotelPricingService::MANAGEMENT_FEE) }} management fee is non-refundable; on a free cancellation you get back everything else you paid, including its GST.</div>
         <div>• No Show will attract full cancellation charge unless otherwise specified.</div>
         <div>• Early check out will attract full cancellation charge unless otherwise specified.</div>
       </div>
@@ -376,6 +377,11 @@
     return `${dateStr}, ${hours}:${minutes} ${ampm}`;
   }
 
+  // Our non-refundable management fee (its GST is refunded): all that's kept on a
+  // free cancellation (RefundPolicy / Booking::freeCancellationFee).
+  const TYT_MGMT_FEE = @json(\App\Services\HotelPricingService::MANAGEMENT_FEE);
+  const TYT_FREE_REFUND_TEXT = 'full refund except the ₹' + TYT_MGMT_FEE.toFixed(2) + ' management fee';
+
   function formatCurrency(amount) {
     const num = Number(amount);
     if (isNaN(num) || num === 0) return '₹0.00';
@@ -452,7 +458,7 @@
           ${freeUntilStr ? `
           <div class="tyt-cancel-bullet-item">
             <span class="tyt-cancel-bullet-icon success">✓</span>
-            <span>Free Cancellation till <strong>${freeUntilStr}</strong></span>
+            <span>Free Cancellation till <strong>${freeUntilStr}</strong> (${TYT_FREE_REFUND_TEXT})</span>
           </div>` : ''}
           ${noRefundStr && noRefundStr !== freeUntilStr ? `
           <div class="tyt-cancel-bullet-item">
@@ -467,7 +473,7 @@
         bulletsContainer.innerHTML = `
           <div class="tyt-cancel-bullet-item">
             <span class="tyt-cancel-bullet-icon success">✓</span>
-            <span>Free Cancellation (100% refund) until <strong>48 hours before check-in</strong></span>
+            <span>Free Cancellation (${TYT_FREE_REFUND_TEXT}) until <strong>48 hours before check-in</strong></span>
           </div>
         `;
       }
@@ -476,7 +482,7 @@
       if (penalties.length >= 3) {
         // 3 segments: 100% refund, partial, non-refundable
         barContainer.innerHTML = `
-          <div class="tyt-cancellation-bar-seg seg-full" style="flex: 1.2;">100% Refund</div>
+          <div class="tyt-cancellation-bar-seg seg-full" style="flex: 1.2;">Free Cancellation</div>
           <div class="tyt-cancellation-bar-seg seg-partial" style="flex: 1;"></div>
           <div class="tyt-cancellation-bar-seg seg-none" style="flex: 1.2;">Non Refundable</div>
         `;
@@ -493,7 +499,7 @@
       } else if (penalties.length === 2) {
         // 2 segments: 100% refund, non-refundable
         barContainer.innerHTML = `
-          <div class="tyt-cancellation-bar-seg seg-full" style="flex: 1;">100% Refund</div>
+          <div class="tyt-cancellation-bar-seg seg-full" style="flex: 1;">Free Cancellation</div>
           <div class="tyt-cancellation-bar-seg seg-none" style="flex: 1;">Non Refundable</div>
         `;
 
@@ -508,7 +514,7 @@
       } else {
         // 1 segment: 100% refund
         barContainer.innerHTML = `
-          <div class="tyt-cancellation-bar-seg seg-full" style="flex: 1;">100% Refund</div>
+          <div class="tyt-cancellation-bar-seg seg-full" style="flex: 1;">Free Cancellation</div>
         `;
 
         ticksContainer.innerHTML = `
@@ -521,8 +527,8 @@
       }
 
       explNoteEl.innerHTML = freeUntilStr 
-        ? `• Free Cancellation (100% refund) if you cancel this booking before ${freeUntilStr}`
-        : `• Free Cancellation (100% refund) is available for this room option.`;
+        ? `• Free Cancellation (${TYT_FREE_REFUND_TEXT}) if you cancel this booking before ${freeUntilStr}`
+        : `• Free Cancellation (${TYT_FREE_REFUND_TEXT}) is available for this room option.`;
 
       // Table rows
       if (penalties.length > 0) {
@@ -531,7 +537,7 @@
             <td>${formatTableDate(p.from, { now: i === 0 })}</td>
             <td>${formatTableDate(p.to)}</td>
             <td style="text-align: right; font-weight: 600; color: ${Number(p.amount) === 0 ? '#4ade80' : '#ffffff'};">
-              ${formatCurrency(p.amount)}
+              ${Number(p.amount) === 0 ? formatCurrency(TYT_MGMT_FEE) + ' (management fee only)' : formatCurrency(p.amount)}
             </td>
           </tr>
         `).join('');
@@ -540,7 +546,7 @@
           <tr>
             <td>Now</td>
             <td>48 hours before check-in</td>
-            <td style="text-align: right; font-weight: 600; color: #4ade80;">₹0.00 (100% Refund)</td>
+            <td style="text-align: right; font-weight: 600; color: #4ade80;">${formatCurrency(TYT_MGMT_FEE)} (management fee only)</td>
           </tr>
           <tr>
             <td>48 hours before check-in</td>

@@ -1376,6 +1376,8 @@ class FrontendController extends Controller
                 'razorpay_recovery' => $breakdown['razorpay_recovery'] ?? null,
                 'tripjack_mf' => $breakdown['tripjack_mf'] ?? null,
                 'tripjack_mft' => $breakdown['tripjack_mft'] ?? null,
+                'management_fee' => $breakdown['management_fee'] ?? null,
+                'management_fee_gst' => $breakdown['management_fee_gst'] ?? null,
                 'currency' => $pricing['currency'] ?? 'INR',
                 'status' => 'pending_payment', // awaiting Razorpay payment — Book hasn't been called yet
             ]);
@@ -2234,10 +2236,10 @@ class FrontendController extends Controller
         }
 
         // Same rule the refund itself uses (RefundPolicy): TripJack's own
-        // refund with a penalty, or everything paid less the flat fee when free.
+        // refund with a penalty, or everything paid less the management fee when free.
         $estimatedRefund = null;
         if ($penalty !== null && (float) $booking->tripjack_total_price > 0) {
-            $estimatedRefund = \App\Support\RefundPolicy::hotelRefund((float) $booking->total_amount, (float) $booking->tripjack_total_price, (float) $penalty['amount']);
+            $estimatedRefund = \App\Support\RefundPolicy::hotelRefund((float) $booking->total_amount, (float) $booking->tripjack_total_price, (float) $penalty['amount'], $booking->nonRefundableFee());
         }
 
         return view('pages.booking-cancel', compact('booking', 'penalty', 'estimatedRefund'));
@@ -2418,13 +2420,13 @@ class FrontendController extends Controller
         $payment = $booking->payments()->where('status', 'captured')->latest()->first();
 
         // RefundPolicy: TripJack's own refund (price − penalty) when a
-        // penalty applies; everything paid less the flat fee when free.
+        // penalty applies; everything paid less the management fee when free.
         $refundAmount = null;
         $free = false;
         if ($payment && $penalty !== null && (float) $booking->tripjack_total_price > 0) {
             $tripjackPrice = (float) $booking->tripjack_total_price;
             $free = \App\Support\RefundPolicy::isFreeCancellation($tripjackPrice, max(0.0, $tripjackPrice - $penalty['amount']));
-            $refundAmount = \App\Support\RefundPolicy::hotelRefund((float) $payment->amount, $tripjackPrice, (float) $penalty['amount']);
+            $refundAmount = \App\Support\RefundPolicy::hotelRefund((float) $payment->amount, $tripjackPrice, (float) $penalty['amount'], $booking->nonRefundableFee());
         }
 
         if ($payment && $refundAmount !== null && $refundAmount > 0) {

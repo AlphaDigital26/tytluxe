@@ -441,6 +441,7 @@
             </table>
           </div>
           <p style="font-family:'Jost',sans-serif; font-size:11px; color:var(--white-30); margin-top:14px; line-height:1.6;">
+            • A management fee of ₹{{ number_format(\App\Services\HotelPricingService::MANAGEMENT_FEE) }} + GST applies to each booking. The ₹{{ number_format(\App\Services\HotelPricingService::MANAGEMENT_FEE) }} management fee is non-refundable; on a free cancellation you get back everything else you paid, including its GST.<br>
             • No-shows and early check-outs attract the full cancellation charge unless otherwise specified above.
           </p>
         </div>
@@ -662,8 +663,9 @@
     <div class="br-line"><span>Room</span><span>{{ $roomNames ?: 'Room' }}</span></div>
     <div class="br-line"><span>Meal Plan</span><span>{{ $option['mealBasis'] ?? 'Room Only' }}</span></div>
     @php
-      $tjMf = (float) ($breakdown['tripjack_mf'] ?? 0);
-      $tjMft = (float) ($breakdown['tripjack_mft'] ?? 0);
+      // Management fee = TripJack's MF + our own fee; the tax line likewise.
+      $tjMf = (float) ($breakdown['tripjack_mf'] ?? 0) + (float) ($breakdown['management_fee'] ?? 0);
+      $tjMft = (float) ($breakdown['tripjack_mft'] ?? 0) + (float) ($breakdown['management_fee_gst'] ?? 0);
       $cur = ($pricing['currency'] ?? 'INR') === 'INR' ? '₹' : ($pricing['currency'] ?? 'INR').' ';
     @endphp
     {{-- TripJack: "Always display MF and MFT as separate line items in the

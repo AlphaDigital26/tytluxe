@@ -156,7 +156,8 @@
                   $fd = $fdAll['ADULT'] ?? [];
                   $fc = $fd['fC'] ?? [];
                   $bf = (float) ($fc['BF'] ?? 0);
-                  $price = \App\Services\FlightPricingService::price((float) ($fc['TF'] ?? 0))['customer_price'];
+                  // Per adult; the once-per-booking management fee is added at review.
+                  $price = \App\Services\FlightPricingService::price((float) ($fc['TF'] ?? 0), null, false)['customer_price'];
 
                   $options[] = [
                       'id' => $option['id'],
