@@ -85,6 +85,37 @@ class FlightResultsPricingTest extends TestCase
         $this->assertSame(1, substr_count($html, 'flex charge non-refundable'), 'Only the flex fare carries it');
     }
 
+    public function test_domestic_round_trip_shows_both_lists_side_by_side_with_a_booking_bar(): void
+    {
+        $out = now()->addDays(30)->toDateString();
+        $back = now()->addDays(33)->toDateString();
+        $leg = fn ($id, $from, $to, $date, $no, $tf) => ['sI' => [['id' => $id, 'fD' => ['aI' => ['code' => '6E', 'name' => 'IndiGo'], 'fN' => $no], 'da' => ['code' => $from], 'aa' => ['code' => $to],
+            'dt' => $date.'T06:00', 'at' => $date.'T08:10', 'duration' => 130, 'stops' => 0, 'sN' => 0]],
+            'totalPriceList' => [['id' => 'P'.$id, 'fareIdentifier' => 'PUBLISHED', 'fd' => ['ADULT' => ['fC' => ['TF' => $tf, 'BF' => $tf - 800, 'TAF' => 800], 'rT' => 1, 'cc' => 'ECONOMY']]]]];
+        Http::fake(['*/air-search-all' => Http::response([
+            'searchResult' => ['tripInfos' => [
+                'ONWARD' => [$leg('1', 'DEL', 'BOM', $out, '101', 5000)],
+                'RETURN' => [$leg('2', 'BOM', 'DEL', $back, '202', 4000)],
+            ]],
+            'status' => ['success' => true],
+        ])]);
+        $params = ['from' => 'DEL', 'to' => 'BOM', 'depart_date' => $out, 'adults' => 1, 'trip_type' => 'return', 'return_date' => $back];
+
+        $html = $this->get(route('flights.search', $params))->assertOk()->getContent();
+
+        $this->assertStringContainsString('class="frx-groups frx-rt-grid"', $html);
+        $this->assertStringContainsString('id="frxRtBar"', $html);
+        $this->assertStringContainsString('data-group="price_ids[ONWARD]"', $html);
+        $this->assertStringContainsString('data-group="price_ids[RETURN]"', $html);
+        $this->assertStringContainsString('data-amount="'.FlightPricingService::price(4000)['customer_price'].'"', $html);
+        $this->assertStringContainsString('data-times="06:00 BOM → 08:10 DEL"', $html);
+
+        // One way keeps the single full-width list, no bar.
+        $oneway = $this->get(route('flights.search', ['trip_type' => 'oneway'] + $params))->assertOk()->getContent();
+        $this->assertStringNotContainsString('id="frxRtBar"', $oneway);
+        $this->assertStringContainsString('class="frx-groups"', $oneway);
+    }
+
     public function test_fare_calendar_shows_the_marked_up_fare(): void
     {
         FlightSettings::save(['markup_percent' => 10]);
