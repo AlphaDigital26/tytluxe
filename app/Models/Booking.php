@@ -89,6 +89,17 @@ class Booking extends Model
     }
 
     /**
+     * What TripJack's fare dropped by on reschedules that came out negative
+     * (a much cheaper new flight) — the guest got it back, so it's taken off
+     * TripJack's cost when a later cancellation is worked out.
+     */
+    public function reissueCredit(): float
+    {
+        return round((float) collect($this->flight_reissue_history ?? [])
+            ->sum(fn ($h) => max(0, -(float) ($h['amountPaid'] ?? 0))), 2);
+    }
+
+    /**
      * The guest company's GST details given at checkout (business travel),
      * for "Billed To" on our invoice. Null when none were given.
      *

@@ -65,7 +65,7 @@ class FlightReissueController extends Controller
         // Nothing to pay (new fare + fees ≤ old fare): Razorpay can't take a
         // ₹0 order, so book the reissue straight away against a zero-amount
         // payment record — Auto Reissue still gets TF as its amount, per doc.
-        // Any amount owed back to the guest isn't refunded automatically.
+        // A negative total is refunded to the guest once it's confirmed.
         if ($result['amount'] <= 0) {
             $payment = Payment::create([
                 'booking_id' => $booking->id,
@@ -81,6 +81,14 @@ class FlightReissueController extends Controller
             if ($booking->flight_reissued_at === null) {
                 return redirect()->route('flights.reissue.show', $booking->reference)
                     ->with('booking_error', 'We couldn\'t confirm this reschedule with the airline. Please try again or contact our support team.');
+            }
+
+            if ($result['amount'] < 0) {
+                $refunded = $reissue->refundFareDifference($booking, $result['amount'], $razorpay);
+                if ($refunded > 0) {
+                    return redirect()->route('hotel.booking.confirmation', $booking->reference)
+                        ->with('booking_success', sprintf('Your flight has been rescheduled. The fare difference of ₹%s is being refunded to your original payment method (5–7 business days).', number_format($refunded, 2)));
+                }
             }
 
             return redirect()->route('hotel.booking.confirmation', $booking->reference);

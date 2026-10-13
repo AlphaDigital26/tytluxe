@@ -198,6 +198,42 @@ class FlightPostBookingTest extends TestCase
         $this->assertSame('confirmed', $booking->status);
     }
 
+    public function test_reschedule_to_a_much_cheaper_flight_refunds_the_difference(): void
+    {
+        \Illuminate\Support\Facades\Queue::fake();
+        \Illuminate\Support\Facades\Mail::fake();
+        $booking = $this->booking(['tripjack_flight_pnr' => ['DEL-COK' => 'OLD123']]);
+        $this->payment($booking, 11000, 'booking', 'pay_fare');
+        // New fare 4,350 below the old one after all fees: TF is negative.
+        Http::fake([
+            '*/reissue/review' => Http::response(['bookingId' => 'TJSNEW2', 'tripInfos' => [['sI' => [['dt' => '2026-10-25T06:00']]]],
+                'totalPriceInfo' => ['totalFareDetail' => ['fC' => ['TF' => -4350]]], 'status' => ['success' => true]]),
+            '*/amendment/auto-reissue' => Http::response(['bookingId' => 'TJSNEW2', 'status' => ['success' => true]]),
+        ]);
+
+        $this->post(route('flights.reissue.review', $booking->reference), ['price_id' => 'P1', 'leg_index' => 0])
+            ->assertRedirect(route('hotel.booking.confirmation', $booking->reference))
+            ->assertSessionHas('booking_success', fn ($m) => str_contains($m, '₹4,350.00'));
+
+        // Booked with TripJack at its (negative) TF, then 4,350 refunded to the guest.
+        Http::assertSent(fn ($r) => str_contains($r->url(), 'auto-reissue') && $r['paymentInfos'][0]['amount'] == -4350);
+        $this->assertSame([['pay_fare', 435000]], array_map(fn ($r) => [$r['payment_id'], $r['amount']], $this->razorpay->refunds));
+
+        $booking->refresh();
+        $this->assertSame('TJSNEW2', $booking->tripjack_booking_id);
+        $this->assertSame(4350.0, $booking->reissueCredit());
+        $this->assertSame(4350.0, (float) collect($booking->flight_reissue_history)->last()['differenceRefunded']);
+        $this->assertSame(4350.0, $booking->invoiceTotals()['refunded']);
+        $this->assertNull($booking->manual_refund_due_at);
+
+        // A later cancellation counts TripJack's cost as 10,000 − 4,350.
+        $booking->update(['cancellation_requested_at' => now()]);
+        app(FlightBookingService::class)->finalizeCancellation($booking, ['amendmentStatus' => 'SUCCESS', 'refundableAmount' => 5650]);
+        // TripJack refunds its whole (reduced) price → free cancellation:
+        // everything still held (11,000 − 4,350) less the ₹100 fee.
+        $this->assertSame(655000, $this->razorpay->refunds[1]['amount']);
+    }
+
     public function test_failed_reissue_never_refunds_the_original_ticket_payment(): void
     {
         $booking = $this->booking(['flight_reissued_at' => now(), 'tripjack_confirm_attempted_at' => now()->subMinute()]);

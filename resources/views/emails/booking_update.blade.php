@@ -178,6 +178,10 @@
         </table>
       @endif
 
+      @php $differenceRefunded = $kind === M::RESCHEDULED ? (float) (collect($booking->flight_reissue_history ?? [])->last()['differenceRefunded'] ?? 0) : 0; @endphp
+      @if($differenceRefunded > 0)
+      <div class="info-box"><p>Your new flight is cheaper, so we've refunded the fare difference of {{ $booking->currency }} {{ number_format($differenceRefunded, 2) }} to your original payment method. It can take 5–7 business days to show in your account.</p></div>
+      @endif
       @if(in_array($kind, [M::CONFIRMED, M::RESCHEDULED], true) && $booking->hasETicket())
       <div class="info-box"><p>Your e-ticket{{ $totals ? ' and invoice are' : ' is' }} attached to this email. Please carry the e-ticket (printed or on your phone) with a photo ID to the airport. You can also download {{ $totals ? 'both' : 'it' }} any time from your booking page.</p></div>
       @elseif(in_array($kind, [M::CONFIRMED, M::RESCHEDULED, M::CANCELLED], true) && $totals)

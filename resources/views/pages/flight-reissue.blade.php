@@ -118,7 +118,11 @@
                 <div class="rx-option-airline">{{ $option['airlineName'] ?? '' ?: $option['airlineCode'] }}</div>
                 <div class="rx-option-sub">{{ $option['flightNos'] ?? ($option['airlineCode'].' '.($option['flightNo'] ?? '')) }}</div>
               </div>
-              <div class="rx-option-price">₹{{ number_format($option['amountPayable']) }}<small>to pay</small></div>
+              @if($option['amountPayable'] < 0)
+                <div class="rx-option-price" style="color:#4ade80;">₹{{ number_format(abs($option['amountPayable'])) }}<small>back to you</small></div>
+              @else
+                <div class="rx-option-price">₹{{ number_format($option['amountPayable']) }}<small>to pay</small></div>
+              @endif
             </div>
             <div class="rx-option-times">
               <span>{{ $dep->format('H:i') }} <small>{{ $option['from'] ?? '' }}</small></span>
@@ -137,14 +141,18 @@
                   @if($bd['airlineFee'] > 0)<div class="rx-breakdown-row"><span>Airline reschedule fee</span><span>{{ $money($bd['airlineFee']) }}</span></div>@endif
                   @if($bd['serviceFee'] > 0)<div class="rx-breakdown-row"><span>Reschedule service fee</span><span>{{ $money($bd['serviceFee']) }}</span></div>@endif
                   @if($bd['ancillaryRefund'] > 0)<div class="rx-breakdown-row credit"><span>Refund for earlier seats/meals/baggage</span><span>− {{ $money($bd['ancillaryRefund']) }}</span></div>@endif
-                  <div class="rx-breakdown-row total"><span>Total to pay (all travellers)</span><span>{{ $money($option['amountPayable']) }}</span></div>
+                  @if($option['amountPayable'] < 0)
+                    <div class="rx-breakdown-row total credit"><span>Refunded to you (all travellers)</span><span>{{ $money(abs($option['amountPayable'])) }}</span></div>
+                  @else
+                    <div class="rx-breakdown-row total"><span>Total to pay (all travellers)</span><span>{{ $money($option['amountPayable']) }}</span></div>
+                  @endif
                 </div>
               </details>
             @endif
           </label>
         @endforeach
-        <p class="rx-note">Prices cover all travellers on this booking. The fare is re-confirmed with the airline when you continue, and the payment page shows the exact amount before you pay.</p>
-        <button type="submit" class="rx-btn">Continue to Pay</button>
+        <p class="rx-note">Prices cover all travellers on this booking. The fare is re-confirmed with the airline when you continue, and the payment page shows the exact amount before you pay. If the new flight is cheaper than your fees, there's nothing to pay and the difference is refunded to your original payment method (5–7 business days).</p>
+        <button type="submit" class="rx-btn">Continue</button>
       </form>
     @endif
   @endif

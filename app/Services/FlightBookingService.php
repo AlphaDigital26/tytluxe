@@ -913,7 +913,7 @@ class FlightBookingService
             ->whereIn('purpose', ['booking', 'flight_confirm_book', 'flight_reissue'])
             ->whereIn('status', ['captured', 'partially_refunded'])
             ->get();
-        $supplierTotal = (float) $booking->tripjack_total_price + (float) $payments->where('purpose', 'flight_reissue')->sum('amount');
+        $supplierTotal = (float) $booking->tripjack_total_price + (float) $payments->where('purpose', 'flight_reissue')->sum('amount') - $booking->reissueCredit();
         if (! $airline || $supplierTotal <= 0) {
             return null;
         }
@@ -1136,8 +1136,10 @@ class FlightBookingService
             ->orderByDesc('id')
             ->get();
         $remaining = round((float) $payments->sum(fn (Payment $p) => (float) $p->amount - (float) ($p->refund_amount ?? 0)), 2);
+        // Less any fare difference refunded on a cheaper reschedule.
         $supplierCost = (float) $booking->tripjack_total_price
-            + (float) $payments->where('purpose', 'flight_reissue')->sum('amount');
+            + (float) $payments->where('purpose', 'flight_reissue')->sum('amount')
+            - $booking->reissueCredit();
 
         // RefundPolicy (business rule, 2026-10-08): TripJack's own refund —
         // our markup isn't refunded — or, when TripJack refunds its whole
