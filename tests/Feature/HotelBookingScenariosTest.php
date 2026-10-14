@@ -120,7 +120,10 @@ class HotelBookingScenariosTest extends TestCase
         $this->get("/hotels/{$hotel->slug}?{$q}")->assertOk();
 
         $this->post("/hotels/{$hotel->slug}/review", ['option_id' => 'opt-1'])->assertRedirect("/hotels/{$hotel->slug}/review");
-        $this->get("/hotels/{$hotel->slug}/review")->assertOk();
+        // Our ₹50 + ₹9 management fee shows in the fare summary (the option
+        // has no TripJack MF/MFT, so the lines are ours alone).
+        $this->get("/hotels/{$hotel->slug}/review")->assertOk()
+            ->assertSeeInOrder(['Management fee', '₹50.00', 'Management fee tax', '₹9.00'], false);
 
         $this->post("/hotels/{$hotel->slug}/book", $form ?: [
             'contact_email' => 'guest@example.com', 'contact_phone' => '9876543210',
