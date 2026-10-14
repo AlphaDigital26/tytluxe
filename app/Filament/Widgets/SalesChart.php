@@ -35,6 +35,7 @@ class SalesChart extends ChartWidget
             'datasets' => [
                 ['label' => 'Hotels', 'data' => $m['hotel'], 'backgroundColor' => '#c9a84c', 'borderRadius' => 6, 'stack' => 'sales'],
                 ['label' => 'Flights', 'data' => $m['flight'], 'backgroundColor' => '#3b82f6', 'borderRadius' => 6, 'stack' => 'sales'],
+                ['label' => 'Packages', 'data' => $m['package'], 'backgroundColor' => '#10b981', 'borderRadius' => 6, 'stack' => 'sales'],
             ],
             'labels' => $m['labels'],
         ];

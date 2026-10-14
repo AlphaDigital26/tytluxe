@@ -33,6 +33,8 @@ class Booking extends Model
         'tripjack_mf', 'tripjack_mft', 'management_fee', 'management_fee_gst',
         'currency', 'offer_id', 'status', 'cancellation_reason', 'cancellation_requested_at', 'admin_note',
         'manual_refund_due_at', 'admin_refund_amount',
+        'package_departure_id', 'package_option', 'package_price_per_person', 'package_payment_plan',
+        'package_balance_amount', 'package_balance_due_on', 'package_balance_reminded_at',
     ];
 
     protected $casts = [
@@ -56,6 +58,8 @@ class Booking extends Model
         'cancellation_requested_at' => 'datetime',
         'flight_departure_date' => 'date',
         'flight_return_date' => 'date',
+        'package_balance_due_on' => 'date',
+        'package_balance_reminded_at' => 'datetime',
     ];
 
     public function user() { return $this->belongsTo(User::class); }
@@ -63,6 +67,14 @@ class Booking extends Model
     public function travelers() { return $this->hasMany(BookingTraveler::class); }
     public function payments() { return $this->hasMany(Payment::class); }
     public function package() { return $this->belongsTo(Package::class); }
+    public function packageDeparture() { return $this->belongsTo(PackageDeparture::class); }
+
+    /** A package booked with a booking amount whose balance is still unpaid. */
+    public function packageBalanceDue(): bool
+    {
+        return $this->vertical === 'package' && $this->status === 'confirmed'
+            && $this->cancellation_requested_at === null && (float) $this->package_balance_amount > 0;
+    }
     public function hotel() { return $this->belongsTo(Hotel::class); }
     public function roomType() { return $this->belongsTo(RoomType::class); }
 

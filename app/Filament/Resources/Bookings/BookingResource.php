@@ -31,10 +31,10 @@ class BookingResource extends Resource
 
     protected static ?string $modelLabel = 'hotel booking';
 
-    /** Flights have their own screen — Bookings & Leads → Flight Bookings. */
+    /** Flights and packages have their own screens under Bookings & Leads. */
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->where(fn ($q) => $q->where('vertical', '!=', 'flight')->orWhereNull('vertical'));
+        return parent::getEloquentQuery()->where(fn ($q) => $q->whereNotIn('vertical', ['flight', 'package'])->orWhereNull('vertical'));
     }
 
     /** Bookings come from guests on the website — never created by hand. */

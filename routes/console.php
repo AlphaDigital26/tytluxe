@@ -58,3 +58,7 @@ Schedule::command('tripjack:refresh-hotel-bookings --cancellations')->dailyAt('0
 // Held flight fares past TripJack's hold deadline → hold_expired, so the
 // admin panel matches what the guest already sees.
 Schedule::command('flights:expire-holds')->everyFiveMinutes()->withoutOverlapping();
+
+// Group packages: balance reminders, and cancelling bookings whose balance
+// is still unpaid on the departure day (booking amount forfeited).
+Schedule::command('packages:balance-check')->hourly()->withoutOverlapping();

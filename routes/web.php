@@ -7,6 +7,7 @@ use App\Http\Controllers\FlightAncillaryController;
 use App\Http\Controllers\FlightController;
 use App\Http\Controllers\FlightReissueController;
 use App\Http\Controllers\FrontendController;
+use App\Http\Controllers\PackageBookingController;
 
 Route::get('/', [FrontendController::class, 'index'])->name('home');
 Route::view('/about', 'pages.about')->name('about');
@@ -114,6 +115,12 @@ Route::middleware('auth')->group(function () {
     // Real accounts can still spam reviews; keep it well below anything a
     // genuine user would ever hit.
     Route::post('/packages/{slug}/reviews', [FrontendController::class, 'storeReview'])->name('package.reviews.store')->middleware('throttle:5,1');
+
+    // Group package booking — payment, confirmation and cancellation reuse
+    // the shared /booking/{reference}/* routes (see PackageBookingController).
+    Route::get('/packages/{slug}/book', [PackageBookingController::class, 'checkout'])->name('package.checkout')->middleware('throttle:30,1');
+    Route::post('/packages/{slug}/book', [PackageBookingController::class, 'book'])->name('package.book')->middleware('throttle:10,1');
+    Route::get('/booking/{reference}/package/balance', [PackageBookingController::class, 'balance'])->name('package.balance')->middleware('throttle:20,1');
 
     // Authenticated users download directly — no lead capture needed
     Route::get('/packages/{slug}/download-itinerary', [FrontendController::class, 'downloadItinerary'])->name('package.download')->middleware('throttle:20,1');
