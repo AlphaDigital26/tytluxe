@@ -161,7 +161,7 @@ class DashboardData
      */
     public static function monthly(int $months = 6): array
     {
-        $out = ['labels' => [], 'hotel' => [], 'flight' => [], 'earning' => [], 'bookings' => [], 'enquiries' => []];
+        $out = ['labels' => [], 'hotel' => [], 'flight' => [], 'package' => [], 'earning' => [], 'bookings' => [], 'enquiries' => []];
 
         for ($i = $months - 1; $i >= 0; $i--) {
             $start = now()->startOfMonth()->subMonths($i);
@@ -169,8 +169,9 @@ class DashboardData
             $month = fn () => self::sales()->whereBetween('created_at', [$start, $end]);
 
             $out['labels'][] = $start->format('M');
-            $out['hotel'][] = round((float) $month()->where('vertical', '!=', 'flight')->sum('total_amount'), 2);
+            $out['hotel'][] = round((float) $month()->whereNotIn('vertical', ['flight', 'package'])->sum('total_amount'), 2);
             $out['flight'][] = round((float) $month()->where('vertical', 'flight')->sum('total_amount'), 2);
+            $out['package'][] = round((float) $month()->where('vertical', 'package')->sum('total_amount'), 2);
             $out['earning'][] = round((float) $month()->sum('margin_amount'), 2);
             $out['bookings'][] = $month()->count();
             $out['enquiries'][] = Enquiry::whereBetween('created_at', [$start, $end])->count();

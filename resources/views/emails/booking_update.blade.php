@@ -3,12 +3,24 @@
   use Illuminate\Support\Carbon;
 
   $isFlight = $booking->vertical === 'flight';
+  $isPackage = $booking->vertical === 'package';
   $cur = $booking->currency ?: 'INR';
   $money = fn ($v) => $cur.' '.number_format((float) $v, 2);
   $date = fn ($v) => $v ? Carbon::parse($v)->format('D, j M Y') : '—';
   $dateTime = fn ($v) => $v ? Carbon::parse($v)->format('D, j M Y · g:i A') : '—';
+  $balanceCharge = $isPackage && $booking->packageBalanceDue() ? \App\Services\PackagePricingService::charge((float) $booking->package_balance_amount) : null;
 
-  [$headline, $intro] = match ($kind) {
+  $packageText = match (true) {
+      $isPackage && $kind === M::CONFIRMED => $balanceCharge
+          ? ['Your seats are booked', 'We have received your booking amount and your seats are reserved. Please pay the balance by '.$date($booking->package_balance_due_on).' — if it is not paid before departure, the booking is cancelled and the booking amount is not refundable.']
+          : ['Your trip is confirmed', 'Your payment was successful and your trip is fully paid. Our team will be in touch with the final trip details before departure.'],
+      $kind === M::BALANCE_PAID => ['Your trip is fully paid', 'We have received your balance payment. Nothing more is due — our team will be in touch with the final trip details before departure.'],
+      $kind === M::BALANCE_REMINDER => ['Your balance is due soon', 'This is a reminder to pay the balance for your trip by '.$date($booking->package_balance_due_on).'. If it is not paid before departure, the booking is cancelled and the booking amount is not refundable.'],
+      $isPackage && $kind === M::FAILED_REFUNDED => ['We couldn\'t book your seats', 'The seats on this date were taken before your payment went through, so we have refunded you in full. It can take 5–7 business days to show in your account. We are sorry for the trouble — please choose another date.'],
+      default => null,
+  };
+
+  [$headline, $intro] = $packageText ?? match ($kind) {
       M::CONFIRMED => $isFlight
           ? ['Your flight is booked', 'Your tickets have been issued by the airline. Your PNR and ticket numbers are below — keep this email handy for check-in.']
           : ['Your booking is confirmed', 'Your payment was successful and the hotel has confirmed your room. Your booking details are below.'],
@@ -137,6 +149,25 @@
             @endforeach
           </table>
         @endif
+      @elseif($isPackage)
+        <div class="section-title">Your trip</div>
+        <table class="rows">
+          @if($booking->package)
+          <tr><td class="label">Package</td><td class="value highlight">{{ $booking->package->title }}</td></tr>
+          @endif
+          <tr><td class="label">Departure</td><td class="value">{{ $date($booking->check_in) }}</td></tr>
+          @if($booking->check_out)
+          <tr><td class="label">Return</td><td class="value">{{ $date($booking->check_out) }}</td></tr>
+          @endif
+          @if($booking->package_option && $booking->package_option !== 'Per person')
+          <tr><td class="label">Room sharing</td><td class="value">{{ $booking->package_option }}</td></tr>
+          @endif
+          <tr><td class="label">Travellers</td><td class="value">{{ (int) $booking->pax_adults }}</td></tr>
+          @if($balanceCharge && in_array($kind, [M::CONFIRMED, M::BALANCE_REMINDER], true))
+          <tr><td class="label">Balance to pay</td><td class="value highlight">{{ $money($balanceCharge['total']) }}<br><span style="color:#888;">incl. GST and online payment charge</span></td></tr>
+          <tr><td class="label">Pay by</td><td class="value highlight">{{ $date($booking->package_balance_due_on) }}</td></tr>
+          @endif
+        </table>
       @else
         <div class="section-title">Your stay</div>
         <table class="rows">
@@ -163,7 +194,7 @@
           <tr><td class="label">Refunded</td><td class="value">− {{ $money($extrasPayment->refund_amount) }}</td></tr>
           @endif
         </table>
-      @elseif($totals && in_array($kind, [M::CONFIRMED, M::RESCHEDULED, M::CANCELLED, M::FAILED_REFUNDED], true))
+      @elseif($totals && in_array($kind, [M::CONFIRMED, M::RESCHEDULED, M::CANCELLED, M::FAILED_REFUNDED, M::BALANCE_PAID], true))
         <div class="section-title">Payment</div>
         <table class="rows">
           <tr><td class="label">Total paid</td><td class="value">{{ $money($totals['paid']) }}</td></tr>
@@ -184,12 +215,16 @@
       @endif
       @if(in_array($kind, [M::CONFIRMED, M::RESCHEDULED], true) && $booking->hasETicket())
       <div class="info-box"><p>Your e-ticket{{ $totals ? ' and invoice are' : ' is' }} attached to this email. Please carry the e-ticket (printed or on your phone) with a photo ID to the airport. You can also download {{ $totals ? 'both' : 'it' }} any time from your booking page.</p></div>
-      @elseif(in_array($kind, [M::CONFIRMED, M::RESCHEDULED, M::CANCELLED], true) && $totals)
+      @elseif(in_array($kind, [M::CONFIRMED, M::RESCHEDULED, M::CANCELLED, M::BALANCE_PAID], true) && $totals)
       <div class="info-box"><p>Your invoice is attached to this email. You can also download it any time from your booking page.</p></div>
       @endif
 
       <div class="btn-wrap">
-        <a class="btn" href="{{ route('hotel.booking.confirmation', $booking->reference) }}">{{ $kind === M::HELD ? 'Confirm & pay' : 'View your booking' }}</a>
+        @if($balanceCharge && in_array($kind, [M::CONFIRMED, M::BALANCE_REMINDER], true))
+          <a class="btn" href="{{ route('package.balance', $booking->reference) }}">Pay balance</a>
+        @else
+          <a class="btn" href="{{ route('hotel.booking.confirmation', $booking->reference) }}">{{ $kind === M::HELD ? 'Confirm & pay' : 'View your booking' }}</a>
+        @endif
       </div>
     </div>
 

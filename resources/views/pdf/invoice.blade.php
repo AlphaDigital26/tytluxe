@@ -241,6 +241,39 @@
   </table>
   @endif
 
+  @if($booking->vertical === 'package' && $booking->package)
+  <div class="inv-section-title">Booking Details</div>
+  <table class="inv-table">
+    <thead>
+      <tr>
+        <th>Package</th>
+        <th>Room Sharing</th>
+        <th class="right">Travellers</th>
+        <th class="right">Per Person</th>
+        <th class="right">Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>{{ $booking->package->title }}</strong></td>
+        <td>{{ $booking->package_option ?: '—' }}</td>
+        <td class="right">{{ $booking->pax_adults }}</td>
+        <td class="right">{{ $booking->currency }} {{ number_format((float) $booking->package_price_per_person, 2) }}</td>
+        <td class="right">{{ $booking->currency }} {{ number_format($booking->base_amount, 2) }}</td>
+      </tr>
+    </tbody>
+  </table>
+  <table class="inv-stay-strip">
+    <tr>
+      <td><span class="inv-stay-label">Departure</span><span class="inv-stay-value">{{ \Illuminate\Support\Carbon::parse($booking->check_in)->format('d M Y') }}</span></td>
+      @if($booking->check_out)
+      <td><span class="inv-stay-label">Return</span><span class="inv-stay-value">{{ \Illuminate\Support\Carbon::parse($booking->check_out)->format('d M Y') }}</span></td>
+      @endif
+      <td><span class="inv-stay-label">Booked On</span><span class="inv-stay-value">{{ $booking->created_at->format('d M Y') }}</span></td>
+    </tr>
+  </table>
+  @endif
+
   <div class="inv-section-title">Guests</div>
   <table class="inv-table" style="margin-bottom:22px;">
     <thead>
@@ -256,6 +289,29 @@
     </tbody>
   </table>
 
+  @if($booking->vertical === 'package')
+  {{-- Packages: our own service, GST 5% on the package price; the online
+       payment charge is added to each payment (booking amount, balance). --}}
+  @php $balanceDue = $booking->packageBalanceDue() ? \App\Services\PackagePricingService::charge((float) $booking->package_balance_amount) : null; @endphp
+  <div class="inv-summary-wrap">
+    <table class="inv-price-table">
+      <tr><td>Package Price</td><td class="right">{{ $booking->currency }} {{ number_format($booking->base_amount, 2) }}</td></tr>
+      <tr><td>GST (5%)</td><td class="right">{{ $booking->currency }} {{ number_format($booking->tax_amount, 2) }}</td></tr>
+      <tr class="gross"><td>Trip Total</td><td class="right">{{ $booking->currency }} {{ number_format((float) $booking->base_amount + (float) $booking->tax_amount, 2) }}</td></tr>
+      @if((float) $booking->razorpay_recovery > 0)
+      <tr><td>Online Payment Charges</td><td class="right">{{ $booking->currency }} {{ number_format($booking->razorpay_recovery, 2) }}</td></tr>
+      @endif
+      <tr class="gross"><td>Total Paid</td><td class="right">{{ $booking->currency }} {{ number_format($totals['paid'], 2) }}</td></tr>
+      @if($totals['refunded'] > 0)
+      <tr class="discount"><td>Refunded</td><td class="right">&minus; {{ $booking->currency }} {{ number_format($totals['refunded'], 2) }}</td></tr>
+      @endif
+      <tr class="total"><td>Net Amount Paid</td><td class="right">{{ $booking->currency }} {{ number_format($totals['net'], 2) }}</td></tr>
+      @if($balanceDue)
+      <tr><td>Balance Due by {{ $booking->package_balance_due_on?->format('d M Y') }} <span style="color:#999; font-weight:normal;">(incl. GST)</span></td><td class="right">{{ $booking->currency }} {{ number_format($balanceDue['base'] + $balanceDue['gst'], 2) }}</td></tr>
+      @endif
+    </table>
+  </div>
+  @else
   <div class="inv-summary-wrap">
     <table class="inv-price-table">
       <tr>
@@ -323,10 +379,14 @@
       </tr>
     </table>
   </div>
+  @endif
 
   <div class="inv-terms-title">Terms &amp; Conditions</div>
   <ol class="inv-terms">
-    @if($isFlight)
+    @if($booking->vertical === 'package')
+    <li>The balance must be paid {{ \App\Services\PackageBookingService::BALANCE_DUE_DAYS_BEFORE }} days before departure. If it is not paid before departure, the booking is cancelled and the booking amount is not refundable.</li>
+    <li>Cancellations can be requested up to {{ \App\Services\PackageBookingService::CANCEL_DAYS_BEFORE }} days before departure; refunds are confirmed by TYT Luxe under its cancellation policy.</li>
+    @elseif($isFlight)
     <li>This booking is fulfilled through TYT Luxe's airline supply partners and is governed by the operating airline's fare rules, including its cancellation, change and baggage policies.</li>
     <li>TYT Luxe acts as a booking facilitator; the airline remains the carrier responsible for the flight, check-in and boarding.</li>
     @else

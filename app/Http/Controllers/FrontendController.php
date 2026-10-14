@@ -1591,9 +1591,21 @@ class FrontendController extends Controller
         return $liveStatus;
     }
 
+    /** A package booking by reference, only for the guest who made it. */
+    protected function ownPackageBooking(string $reference): Booking
+    {
+        $booking = Booking::where('reference', $reference)->firstOrFail();
+        abort_if($booking->user_id !== auth()->id(), 403);
+
+        return $booking;
+    }
+
     public function bookingConfirmation($reference, Request $request, TripJackClient $client, RazorpayService $razorpay)
     {
         $verticalCheck = Booking::where('reference', $reference)->value('vertical');
+        if ($verticalCheck === 'package') {
+            return app(PackageBookingController::class)->confirmation($this->ownPackageBooking($reference));
+        }
         if ($verticalCheck === 'flight') {
             $booking = Booking::where('reference', $reference)->firstOrFail();
             if ($booking->user_id !== auth()->id()) {
@@ -1700,6 +1712,9 @@ class FrontendController extends Controller
         // guard is unreached for a flight booking and stays exactly as it
         // was for hotels.
         $verticalCheck = Booking::where('reference', $reference)->value('vertical');
+        if ($verticalCheck === 'package') {
+            return app(PackageBookingController::class)->payment($this->ownPackageBooking($reference));
+        }
         if ($verticalCheck === 'flight') {
             $booking = Booking::where('reference', $reference)->firstOrFail();
             if ($booking->user_id !== auth()->id()) {
@@ -1883,7 +1898,11 @@ class FrontendController extends Controller
             $this->confirmBookingAfterPayment($payment, $client, $razorpay);
         } elseif ($payment->status === 'created') {
             $payment->update(['status' => 'failed', 'raw_response' => $entity]);
-            $payment->booking->update(['status' => 'payment_failed']);
+            // Only the first payment decides the booking; a failed later
+            // payment (extras, reschedule, package balance) leaves it as is.
+            if ($payment->purpose === 'booking' && in_array($payment->booking->status, ['pending_payment', 'payment_failed'], true)) {
+                $payment->booking->update(['status' => 'payment_failed']);
+            }
         }
 
         return response()->json(['status' => 'ok']);
@@ -1917,6 +1936,13 @@ class FrontendController extends Controller
 
         if ($payment->purpose === 'flight_reissue') {
             app(\App\Services\FlightReissueService::class)->confirmAfterPayment($payment, $razorpay);
+
+            return;
+        }
+
+        // Packages have no supplier to book with — paying confirms the seats.
+        if ($payment->booking?->vertical === 'package') {
+            app(\App\Services\PackageBookingService::class)->confirmAfterPayment($payment);
 
             return;
         }
@@ -2187,6 +2213,9 @@ class FrontendController extends Controller
     public function showCancellation($reference, TripJackClient $client)
     {
         $verticalCheck = Booking::where('reference', $reference)->value('vertical');
+        if ($verticalCheck === 'package') {
+            return app(PackageBookingController::class)->showCancellation($this->ownPackageBooking($reference));
+        }
         if ($verticalCheck === 'flight') {
             $booking = Booking::where('reference', $reference)->firstOrFail();
             if ($booking->user_id !== auth()->id()) {
@@ -2254,6 +2283,9 @@ class FrontendController extends Controller
     public function submitCancellation($reference, Request $request, TripJackClient $client, RazorpayService $razorpay)
     {
         $verticalCheck = Booking::where('reference', $reference)->value('vertical');
+        if ($verticalCheck === 'package') {
+            return app(PackageBookingController::class)->submitCancellation($this->ownPackageBooking($reference), $request);
+        }
         if ($verticalCheck === 'flight') {
             $booking = Booking::where('reference', $reference)->firstOrFail();
             if ($booking->user_id !== auth()->id()) {
@@ -2580,6 +2612,7 @@ class FrontendController extends Controller
             'exclusions',
             'itineraryDays',
             'highlights',
+            'departures',
             'reviews' => fn ($q) => $q->where('is_published', true),
         ])->where('slug', $slug)->firstOrFail();
 

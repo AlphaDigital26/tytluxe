@@ -39,7 +39,7 @@
                                 $imageUrl = str_starts_with($booking->hotel->images->first()->image_path, 'http') ? $booking->hotel->images->first()->image_path : Storage::disk('public')->url($booking->hotel->images->first()->image_path);
                             }
                         } elseif ($booking->vertical === 'package' && $booking->package) {
-                            $title = $booking->package->name;
+                            $title = $booking->package->title;
                             $location = $booking->package->destination ? $booking->package->destination->name : '';
                             $imageUrl = $booking->package->hero_image_url;
                         } elseif ($booking->vertical === 'flight') {
@@ -79,10 +79,12 @@
                         // Same eligibility rule FrontendController@showCancellation enforces
                         // server-side — kept in sync so the button only appears when the
                         // cancel page would actually let the guest through.
-                        $canCancel = $booking->status === 'confirmed'
-                            && filled($booking->tripjack_booking_id)
-                            && $booking->cancellation_requested_at === null
-                            && ($booking->vertical === 'flight' ? \App\Support\FlightSettings::allowGuestCancel() : \App\Support\HotelSettings::allowGuestCancel());
+                        $canCancel = $booking->vertical === 'package'
+                            ? \App\Services\PackageBookingService::guestCanCancel($booking)
+                            : $booking->status === 'confirmed'
+                                && filled($booking->tripjack_booking_id)
+                                && $booking->cancellation_requested_at === null
+                                && ($booking->vertical === 'flight' ? \App\Support\FlightSettings::allowGuestCancel() : \App\Support\HotelSettings::allowGuestCancel());
                     @endphp
                     <img src="{{ $imageUrl }}" alt="{{ $title }}" class="journey-img">
                     <div class="journey-content">
@@ -104,7 +106,14 @@
                             @endif
                         </div>
                         <div class="journey-actions">
-                            <button type="button" class="btn btn-primary journey-btn booking-details-trigger" data-booking='{{ json_encode($modalData, JSON_HEX_APOS | JSON_HEX_QUOT) }}'>View Details</button>
+                            @if($booking->vertical === 'package')
+                                <a href="{{ route('hotel.booking.confirmation', $booking->reference) }}" class="btn btn-primary journey-btn">View Details</a>
+                                @if($booking->packageBalanceDue())
+                                    <a href="{{ route('package.balance', $booking->reference) }}" class="btn btn-primary journey-btn">Pay Balance</a>
+                                @endif
+                            @else
+                                <button type="button" class="btn btn-primary journey-btn booking-details-trigger" data-booking='{{ json_encode($modalData, JSON_HEX_APOS | JSON_HEX_QUOT) }}'>View Details</button>
+                            @endif
                             @if($canCancel)
                                 <a href="{{ route('hotel.booking.cancel.show', $booking->reference) }}" class="journey-btn-cancel">Cancel Booking</a>
                             @endif
@@ -159,7 +168,7 @@
                                     $imageUrl = str_starts_with($booking->hotel->images->first()->image_path, 'http') ? $booking->hotel->images->first()->image_path : Storage::disk('public')->url($booking->hotel->images->first()->image_path);
                                 }
                             } elseif ($booking->vertical === 'package' && $booking->package) {
-                                $title = $booking->package->name;
+                                $title = $booking->package->title;
                                 $location = $booking->package->destination ? $booking->package->destination->name : '';
                                 $imageUrl = $booking->package->hero_image_url;
                             } elseif ($booking->vertical === 'flight') {

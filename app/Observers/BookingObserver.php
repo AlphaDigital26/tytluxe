@@ -62,6 +62,12 @@ class BookingObserver
             return BookingUpdateMail::EXTRAS;
         }
 
+        // Group package: balance cleared (paid online, or marked received by staff).
+        if ($booking->vertical === 'package' && $status === 'confirmed' && $booking->wasChanged('package_balance_amount')
+            && (float) $booking->getOriginal('package_balance_amount') > 0 && (float) $booking->package_balance_amount <= 0) {
+            return BookingUpdateMail::BALANCE_PAID;
+        }
+
         if (! $booking->wasChanged('status')) {
             return null;
         }

@@ -124,13 +124,44 @@ class PackageForm
                                 ->suffix('nights'),
 
                             TextInput::make('booking_amount')
-                                ->label('Advance Booking Amount  (₹)')
+                                ->label('Advance Booking Amount per person  (₹)')
                                 ->placeholder('e.g.  2000')
-                                ->helperText('The partial amount a customer pays to confirm their spot.')
+                                ->helperText('Guests can pay this per person to reserve their seat and pay the rest later (up to '.\App\Services\PackageBookingService::BALANCE_DUE_DAYS_BEFORE.' days before departure). Leave empty to take full payment only. 5% GST is added on top.')
                                 ->numeric()
                                 ->minValue(0)
                                 ->prefix('₹')
                                 ->nullable(),
+
+                            Toggle::make('online_booking')
+                                ->label('Guests can book and pay online')
+                                ->helperText('Shows a "Book Now" box with dates and seats on the website. Needs a price, and departure dates in the Departures tab. Only for group tours.')
+                                ->default(true)
+                                ->visible(fn ($get) => $get('tour_type') !== 'custom')
+                                ->columnSpanFull(),
+
+                            Repeater::make('sharing_prices')
+                                ->label('Room sharing prices  (optional)')
+                                ->helperText('Only if the price depends on room sharing — e.g. Quad ₹17,999, Triple ₹18,999, Double ₹21,999 per person. Guests pick one when booking. Leave empty to use the Starting Price for everyone. Prices are before 5% GST.')
+                                ->schema([
+                                    TextInput::make('label')
+                                        ->label('Sharing')
+                                        ->placeholder('e.g.  Triple sharing')
+                                        ->required()
+                                        ->maxLength(60),
+                                    TextInput::make('price')
+                                        ->label('Price per person')
+                                        ->numeric()
+                                        ->minValue(1)
+                                        ->prefix('₹')
+                                        ->required(),
+                                ])
+                                ->columns(2)
+                                ->defaultItems(0)
+                                ->addActionLabel('+ Add a sharing price')
+                                ->reorderable()
+                                ->itemLabel(fn (array $state): string => filled($state['label'] ?? null) ? $state['label'].(filled($state['price'] ?? null) ? '  —  ₹'.number_format((float) $state['price']) : '') : 'New sharing price')
+                                ->visible(fn ($get) => $get('tour_type') !== 'custom')
+                                ->columnSpanFull(),
 
                             TagsInput::make('departure_from')
                                 ->label('Departure Cities')
@@ -294,7 +325,31 @@ class PackageForm
                                         ->label('End Date')
                                         ->required()
                                         ->native(false)
-                                        ->displayFormat('d M Y'),
+                                        ->displayFormat('d M Y')
+                                        ->afterOrEqual('start_date'),
+
+                                    TextInput::make('total_seats')
+                                        ->label('Total seats  (optional)')
+                                        ->helperText(function ($record) {
+                                            if (! $record) {
+                                                return 'Leave empty for no limit. The website shows "seats left" and stops bookings when full.';
+                                            }
+                                            $taken = $record->seatsTaken();
+
+                                            return "Booked so far: {$taken}. Leave empty for no limit.";
+                                        })
+                                        ->numeric()
+                                        ->minValue(0)
+                                        ->maxValue(999)
+                                        ->nullable(),
+
+                                    TextInput::make('extra_price')
+                                        ->label('Peak-date extra per person  (optional)')
+                                        ->helperText('Added to the price for this date only — e.g. ₹2,000 on a long weekend.')
+                                        ->numeric()
+                                        ->minValue(0)
+                                        ->prefix('₹')
+                                        ->default(0),
                                 ])
                                 ->columns(2)
                                 ->addActionLabel('+ Add a Batch')
@@ -302,7 +357,8 @@ class PackageForm
                                 ->collapsed(false)
                                 ->itemLabel(fn (array $state): string =>
                                     (isset($state['start_date']) && isset($state['end_date']))
-                                        ? \Carbon\Carbon::parse($state['start_date'])->format('d M') . ' — ' . \Carbon\Carbon::parse($state['end_date'])->format('d M')
+                                        ? \Carbon\Carbon::parse($state['start_date'])->format('d M Y') . ' — ' . \Carbon\Carbon::parse($state['end_date'])->format('d M Y')
+                                            . (filled($state['total_seats'] ?? null) ? '  ·  ' . $state['total_seats'] . ' seats' : '')
                                         : 'New Batch'
                                 )
                                 ->columnSpanFull(),
