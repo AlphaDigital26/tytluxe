@@ -638,7 +638,7 @@
   .frx-pick-line b { color: var(--gold-light); font-weight: 600; }
 
   @media (max-width: 560px) { .frx-picks { width: 100%; } .frx-pick { flex: 1 1 100%; min-width: 0; } }
-  .frx-share { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--white-60); }
+  .frx-share { display: flex; align-items: center; gap: 8px; margin-left: auto; font-size: 11.5px; color: var(--white-60); }
   .frx-share-btn { width: 32px; height: 32px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.12); background: var(--dark-2); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; text-decoration: none; color: var(--white-80); transition: all var(--tr); }
   .frx-share-btn:hover { border-color: var(--gold); color: var(--gold-light); }
   .frx-share-btn svg { width: 15px; height: 15px; }
@@ -687,13 +687,49 @@
   .frx-rt-grid .frx-group + .frx-group { margin-top: 0; }
   .frx-rt .frx-group-title { display: flex; align-items: baseline; gap: 10px; padding: 12px 14px; margin-bottom: 12px; border-radius: 10px; background: var(--dark-2); border: 1px solid rgba(201,168,76,0.22); font-size: 14px; }
   .frx-rt .frx-group-date { font-size: 11.5px; font-weight: 500; letter-spacing: 0.02em; text-transform: none; color: var(--white-60); }
-  /* Compact card: airline + times on top, fares below, no per-card Book. */
-  .frx-rt .frx-flight-main { grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 14px 16px; }
-  .frx-rt .frx-col-airline { flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; }
-  .frx-rt .frx-details-toggle.frx-view-details { padding: 6px 12px; font-size: 10.5px; }
-  .frx-rt .frx-card-time-val { font-size: 18px; }
-  .frx-rt .frx-opt-price { font-size: 16px; }
-  .frx-rt .frx-col-actions { flex-direction: row; justify-content: flex-end; }
+  /* Per column, as on TripJack: Cheapest / Fastest, route heading, sort row. */
+  .frx-leg-picks { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .frx-leg-pick { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 9px 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: var(--dark-2); cursor: pointer; text-align: left; font-family: 'Jost', sans-serif; color: var(--white-80); transition: all var(--tr); }
+  .frx-leg-pick:hover { border-color: rgba(201,168,76,0.4); }
+  .frx-leg-pick.active { border-color: var(--gold); background: rgba(201,168,76,0.08); box-shadow: inset 0 -2px 0 var(--gold); }
+  .frx-leg-pick .frx-pick-icon { width: 26px; height: 26px; font-size: 13px; }
+  .frx-leg-sort { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 18px; padding: 8px 14px; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+  .frx-leg-sort-label { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--white-30); }
+  .frx-leg-sort-btn { background: none; border: none; padding: 4px 0; font-family: 'Jost', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.03em; color: var(--white-60); cursor: pointer; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+  .frx-leg-sort-btn:hover, .frx-leg-sort-btn.active { color: var(--gold-light); }
+  .frx-leg-sort-btn .frx-sort-arrow { font-size: 9px; opacity: 0; transition: transform var(--tr); }
+  .frx-leg-sort-btn.active .frx-sort-arrow { opacity: 1; }
+  .frx-leg-sort-btn.desc .frx-sort-arrow { transform: rotate(180deg); }
+  .frx-rt .frx-group-title { margin-bottom: 4px; }
+  /* Each column scrolls on its own, sized to the screen between the top
+     bar and the bottom booking bar (like TripJack). */
+  .frx-rt .frx-leg-scroll { height: var(--frx-leg-h, calc(100vh - 230px)); min-height: 420px; overflow-y: auto; padding-right: 6px; scrollbar-width: thin; scrollbar-color: rgba(201,168,76,0.6) transparent; }
+  .frx-rt .frx-leg-scroll::-webkit-scrollbar { width: 6px; }
+  .frx-rt .frx-leg-scroll::-webkit-scrollbar-thumb { background: rgba(201,168,76,0.55); border-radius: 100px; }
+  .frx-rt .frx-leg-scroll::-webkit-scrollbar-track { background: transparent; }
+
+  /* Compact card, TripJack's placement: airline (with View Details and
+     seats left) | times | fares; no per-card Book. */
+  .frx-rt { --frx-rt-cols: 96px minmax(150px, 0.8fr) minmax(0, 1.4fr); }
+  .frx-rt .frx-flight-main { grid-template-columns: var(--frx-rt-cols); gap: 12px; padding: 14px; }
+  .frx-rt .frx-card-stops, .frx-rt .frx-card-duration { white-space: nowrap; }
+  .frx-rt .frx-col-journey { padding-right: 4px; }
+  .frx-rt .frx-opt-meta { gap: 4px 8px; }
+  .frx-rt .frx-opt-fareid { font-size: 9.5px; padding: 1px 6px; }
+  .frx-rt .frx-opt-desc { font-size: 11px; }
+  .frx-rt .frx-col-airline { gap: 10px; }
+  .frx-rt .frx-card-airline { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .frx-rt .frx-card-airline-name { font-size: 13px; }
+  .frx-rt .frx-details-toggle.frx-view-details { padding: 5px 8px; font-size: 9.5px; letter-spacing: 0.04em; white-space: nowrap; }
+  .frx-rt .frx-seats-left { font-size: 11.5px; }
+  .frx-rt .frx-card-times { gap: 8px; }
+  .frx-rt .frx-card-time { min-width: 44px; }
+  .frx-rt .frx-card-time-val { font-size: 17px; }
+  .frx-rt .frx-card-path { min-width: 44px; }
+  .frx-rt .frx-card-via { display: none; }
+  .frx-rt .frx-opt-row { padding: 7px 4px; }
+  .frx-rt .frx-opt-price { font-size: 15px; }
+  .frx-rt .frx-col-actions { grid-column: 3; flex-direction: row; justify-content: flex-end; }
   .frx-rt .frx-col-actions:not(:has(.frx-compare-btn)) { display: none; }
   .frx-rt .frx-col-actions .frx-row-continue-btn { display: none; }
   .frx-rt .frx-col-actions .frx-compare-btn { width: auto; padding: 6px 14px; font-size: 10.5px; }
@@ -716,8 +752,34 @@
   .frx-rt-book:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(201,168,76,0.35); }
   .frx-rt-book.frx-rt-book-wait { opacity: 0.55; }
 
+  /* Too narrow for three columns side by side: fares drop below. */
+  @media (max-width: 1280px) {
+    .frx-rt .frx-flight-main { grid-template-columns: 96px minmax(0, 1fr); }
+    .frx-rt .frx-col-fares, .frx-rt .frx-col-actions { grid-column: 1 / -1; }
+  }
+  /* Filters hidden: room again for all three columns. */
+  .frx-body.side-collapsed .frx-rt .frx-flight-main { grid-template-columns: var(--frx-rt-cols); }
+  .frx-body.side-collapsed .frx-rt .frx-col-fares { grid-column: auto; }
+  @media (max-width: 1000px) {
+    .frx-body.side-collapsed .frx-rt .frx-flight-main { grid-template-columns: 96px minmax(0, 1fr); }
+    .frx-body.side-collapsed .frx-rt .frx-col-fares { grid-column: 1 / -1; }
+  }
   @media (max-width: 900px) {
+    /* Stacked one under the other: the page scrolls as usual. */
+    .frx-rt .frx-leg-scroll { height: auto; min-height: 0; overflow: visible; padding-right: 0; }
     .frx-rt-grid { grid-template-columns: minmax(0, 1fr); }
+    .frx-rt .frx-flight-main, .frx-body.side-collapsed .frx-rt .frx-flight-main { grid-template-columns: var(--frx-rt-cols); }
+    .frx-rt .frx-col-fares, .frx-body.side-collapsed .frx-rt .frx-col-fares { grid-column: auto; }
+  }
+  @media (max-width: 640px) {
+    .frx-leg-sort { gap: 4px 12px; padding: 8px 4px; }
+    .frx-leg-sort-label { display: none; }
+    .frx-rt .frx-flight-main, .frx-body.side-collapsed .frx-rt .frx-flight-main { grid-template-columns: minmax(0, 1fr); }
+    .frx-rt .frx-col-airline { flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+    .frx-rt .frx-card-airline { flex-direction: row; align-items: center; }
+    .frx-rt .frx-col-fares, .frx-rt .frx-col-actions, .frx-body.side-collapsed .frx-rt .frx-col-fares { grid-column: auto; }
+  }
+  @media (max-width: 900px) {
     .frx-rt-grid .frx-group + .frx-group { margin-top: 24px; }
     .frx-rt-bar { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; padding: 10px 12px; }
     .frx-rt-pick { padding: 6px 8px; gap: 8px; }
@@ -1381,6 +1443,8 @@
           </div>
 
           <div class="frx-picks-row">
+            {{-- Round trip: each column has its own Cheapest / Fastest instead. --}}
+            @unless($splitReturn)
             <div class="frx-picks">
               <button type="button" class="frx-pick active" data-sort="price" data-dir="asc">
                 <span class="frx-pick-icon">&#8377;</span>
@@ -1401,6 +1465,7 @@
                 </span>
               </button>
             </div>
+            @endunless
             <div class="frx-share">
               <span>Share by:</span>
               <a class="frx-share-btn" id="frxShareWa" href="#" target="_blank" rel="noopener" title="Share on WhatsApp" aria-label="Share on WhatsApp">
@@ -1419,6 +1484,8 @@
 
         {{-- A direct child of .frx-main (not of .frx-main-head) so it can stay
              pinned for the whole length of the flight list. --}}
+        {{-- Round trip: each column has its own sort row instead. --}}
+        @unless($splitReturn)
         <div class="frx-sortbar-sentinel" id="frxSortSentinel"></div>
         <div class="frx-sortbar" id="frxSortbar">
             <span class="frx-sortbar-label">Sort by</span>
@@ -1428,6 +1495,7 @@
               <button type="button" class="frx-sort-btn" data-sort="arrival">Arrival <span class="frx-sort-arrow">&#9650;</span></button>
               <button type="button" class="frx-sort-btn active" data-sort="price">Price <span class="frx-sort-arrow">&#9650;</span></button>
             </div>        </div>
+        @endunless
 
         <form method="POST" action="{{ route('flights.review') }}" id="frReviewForm" target="_blank" @class(['frx-rt' => $splitReturn]) data-fares-shown="{{ $splitReturn ? 3 : 4 }}">
           @csrf
@@ -1435,15 +1503,46 @@
           <div @class(['frx-groups', 'frx-rt-grid' => $splitReturn])>
           @foreach($cardGroups as $key => $group)
             <section class="frx-group">
+            @if($splitReturn)
+              @php
+                // TripJack's layout: this leg's Cheapest / Fastest, its route
+                // heading, then its own sort row.
+                $legIndex = array_search($key, array_keys($cardGroups), true);
+                $legFirst = collect($group['flights'])->first();
+                $legFromCity = $legFirst['fromCity'] ?? '' ?: $group['meta']['from'];
+                $legToCity = $legFirst['toCity'] ?? '' ?: $group['meta']['to'];
+              @endphp
+              <div class="frx-leg-picks">
+                @foreach([['cheapest', 'price', '&#8377;', 'Cheapest'], ['fastest', 'duration', '&#9889;&#xFE0E;', 'Fastest']] as [$pickKind, $pickSort, $pickIcon, $pickTitle])
+                  @php $pick = $quickPicks[$pickKind][$legIndex]; @endphp
+                  <button type="button" class="frx-leg-pick {{ $pickKind === 'cheapest' ? 'active' : '' }}" data-group="{{ $key }}" data-sort="{{ $pickSort }}" data-dir="asc">
+                    <span class="frx-pick-icon">{!! $pickIcon !!}</span>
+                    <span>
+                      <span class="frx-pick-title">{{ $pickTitle }}</span>
+                      <span class="frx-pick-line" style="display:block;"><b>&#8377;{{ number_format($pick['price'], 2) }}</b> &middot; Duration: {{ $fmtDuration($pick['duration']) }}</span>
+                    </span>
+                  </button>
+                @endforeach
+              </div>
+              <p class="frx-group-title" id="frxGroupTitle_{{ $key }}">
+                {{ $legFromCity }} &rarr; {{ $legToCity }}
+                <span class="frx-group-date">{{ $group['meta']['date'] ? \Carbon\Carbon::parse($group['meta']['date'])->format('D, M jS Y') : '' }}</span>
+              </p>
+              <div class="frx-leg-sort" role="group" aria-label="Sort {{ $group['meta']['label'] }} flights">
+                <span class="frx-leg-sort-label">Sort by:</span>
+                <button type="button" class="frx-leg-sort-btn" data-group="{{ $key }}" data-sort="duration">Duration <span class="frx-sort-arrow">&#9650;</span></button>
+                <button type="button" class="frx-leg-sort-btn" data-group="{{ $key }}" data-sort="departure">Departure <span class="frx-sort-arrow">&#9650;</span></button>
+                <button type="button" class="frx-leg-sort-btn" data-group="{{ $key }}" data-sort="arrival">Arrival <span class="frx-sort-arrow">&#9650;</span></button>
+                <button type="button" class="frx-leg-sort-btn active" data-group="{{ $key }}" data-sort="price">Price <span class="frx-sort-arrow">&#9650;</span></button>
+              </div>
+            @else
             <p class="frx-group-title" id="frxGroupTitle_{{ $key }}">
-              @if($splitReturn)
-                {{ $group['meta']['from'] }} &rarr; {{ $group['meta']['to'] }}
-                <span class="frx-group-date">{{ $group['meta']['date'] ? \Carbon\Carbon::parse($group['meta']['date'])->format('D, M jS') : '' }}</span>
-              @else
-                {{ $group['meta']['label'] }} &middot; {{ $group['meta']['from'] }} &rarr; {{ $group['meta']['to'] }}
-              @endif
+              {{ $group['meta']['label'] }} &middot; {{ $group['meta']['from'] }} &rarr; {{ $group['meta']['to'] }}
             </p>
+            @endif
 
+            {{-- Round trip: each column scrolls on its own (see .frx-leg-scroll). --}}
+            <div class="frx-leg-scroll">
             <div class="frx-group-list" data-group="{{ $key }}">
             @foreach($group['flights'] as $fIdx => $flight)
               @php $rowId = 'frxRow_'.$key.'_'.$fIdx; @endphp
@@ -1606,6 +1705,7 @@
                   <div class="frx-skel-row"><span class="w-opt"></span><span class="w-opt"></span><span class="w-opt"></span></div>
                 </div>
               @endfor
+            </div>
             </div>
             </section>
           @endforeach
@@ -1922,15 +2022,50 @@
     // On a tall screen the loader can still be in range after a page is
     // added; keep going until it's pushed out of range or runs out.
     requestAnimationFrame(function () {
-      if (!loader.hidden && loader.getBoundingClientRect().top < window.innerHeight + LOAD_AHEAD) loadMore(loader);
+      var box = scrollBox(loader);
+      var bottom = box ? box.getBoundingClientRect().bottom : window.innerHeight;
+      if (!loader.hidden && loader.getBoundingClientRect().top < bottom + LOAD_AHEAD) loadMore(loader);
     });
   }
 
+  // Round trip: each column ends just above the bottom booking bar, so its
+  // last flight is never hidden behind it — re-measured as the page scrolls.
+  (function () {
+    var grid = document.querySelector('.frx-rt-grid');
+    var bar = document.getElementById('frxRtBar');
+    if (!grid || !bar) return;
+    var pending = false;
+    function fit() {
+      pending = false;
+      var box = grid.querySelector('.frx-leg-scroll');
+      if (!box || getComputedStyle(box).overflowY !== 'auto') return;
+      var h = window.innerHeight - box.getBoundingClientRect().top - bar.offsetHeight - 12;
+      grid.style.setProperty('--frx-leg-h', Math.max(420, Math.round(h)) + 'px');
+    }
+    function queue() { if (!pending) { pending = true; requestAnimationFrame(fit); } }
+    window.addEventListener('scroll', queue, { passive: true });
+    window.addEventListener('resize', queue);
+    fit();
+  })();
+
+  // Round trip: a column that scrolls on its own is the loader's viewport
+  // (null when it isn't scrollable, e.g. stacked on a phone).
+  function scrollBox(loader) {
+    var box = loader.closest('.frx-leg-scroll');
+    return box && getComputedStyle(box).overflowY === 'auto' ? box : null;
+  }
+
   if (window.IntersectionObserver) {
-    var loadObserver = new IntersectionObserver(function (entries) {
-      entries.forEach(function (e) { if (e.isIntersecting && !e.target.hidden) loadMore(e.target); });
-    }, { rootMargin: '0px 0px ' + LOAD_AHEAD + 'px 0px' });
-    loaders.forEach(function (l) { loadObserver.observe(l); });
+    var observers = new Map();
+    loaders.forEach(function (l) {
+      var root = scrollBox(l);
+      if (!observers.has(root)) {
+        observers.set(root, new IntersectionObserver(function (entries) {
+          entries.forEach(function (e) { if (e.isIntersecting && !e.target.hidden) loadMore(e.target); });
+        }, { root: root, rootMargin: '0px 0px ' + LOAD_AHEAD + 'px 0px' }));
+      }
+      observers.get(root).observe(l);
+    });
   } else {
     // Very old browsers: just show everything.
     PAGE_SIZE = Infinity;
@@ -2223,9 +2358,14 @@
   // Return flights stay under their own headings. Clicking the active key
   // again flips the direction; the Cheapest / Fastest cards are shortcuts
   // for Price ↑ and Duration ↑.
+  // Round trip: each column (data-group) keeps its own sort, set from its
+  // own sort row and Cheapest / Fastest cards.
   var sortState = { key: 'price', dir: 'asc' };
+  var legSortState = {};
   var sortBtns = document.querySelectorAll('.frx-sort-btn');
   var pickBtns = document.querySelectorAll('.frx-pick');
+  var legSortBtns = document.querySelectorAll('.frx-leg-sort-btn');
+  var legPickBtns = document.querySelectorAll('.frx-leg-pick');
 
   function sortValue(row, key) {
     if (key === 'price' || key === 'duration') {
@@ -2235,10 +2375,14 @@
     return row.dataset[key] || '￿';
   }
 
-  function applySort(key, dir) {
-    sortState = { key: key, dir: dir };
+  function applySort(key, dir, group) {
+    if (group) legSortState[group] = { key: key, dir: dir };
+    else sortState = { key: key, dir: dir };
     var sign = dir === 'desc' ? -1 : 1;
-    document.querySelectorAll('.frx-group-list').forEach(function (list) {
+    var lists = group
+      ? document.querySelectorAll('.frx-group-list[data-group="' + group + '"]')
+      : document.querySelectorAll('.frx-group-list');
+    lists.forEach(function (list) {
       var rows = Array.prototype.slice.call(list.children);
       rows.sort(function (a, b) {
         var va = sortValue(a, key), vb = sortValue(b, key);
@@ -2253,6 +2397,27 @@
     });
     // A new order starts again from the top of the list.
     resetWindow();
+    lists.forEach(function (list) {
+      var box = list.closest('.frx-leg-scroll');
+      if (box) box.scrollTop = 0;
+    });
+
+    function mark(btns) {
+      btns.forEach(function (b) {
+        if (group && b.dataset.group !== group) return;
+        var on = b.dataset.sort === key;
+        b.classList.toggle('active', on);
+        b.classList.toggle('desc', on && dir === 'desc');
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+    }
+    mark(group ? legSortBtns : sortBtns);
+    legPickBtns.forEach(function (p) {
+      if (!group || p.dataset.group === group) p.classList.toggle('active', p.dataset.sort === key && p.dataset.dir === dir);
+    });
+    if (group) return;
+    // A whole-page sort also resets each column's own sort row.
+    mark(legSortBtns);
 
     sortBtns.forEach(function (b) {
       var on = b.dataset.sort === key;
@@ -2273,6 +2438,16 @@
   });
   pickBtns.forEach(function (p) {
     p.addEventListener('click', function () { applySort(p.dataset.sort, p.dataset.dir); });
+  });
+  legSortBtns.forEach(function (b) {
+    b.addEventListener('click', function () {
+      var cur = legSortState[b.dataset.group] || { key: 'price', dir: 'asc' };
+      var dir = cur.key === b.dataset.sort && cur.dir === 'asc' ? 'desc' : 'asc';
+      applySort(b.dataset.sort, dir, b.dataset.group);
+    });
+  });
+  legPickBtns.forEach(function (p) {
+    p.addEventListener('click', function () { applySort(p.dataset.sort, p.dataset.dir, p.dataset.group); });
   });
   applySort('price', 'asc');
   applyFilters();

@@ -112,6 +112,10 @@ class FlightResultsPricingTest extends TestCase
         $this->assertStringContainsString('data-group="price_ids[RETURN]"', $html);
         $this->assertStringContainsString('data-amount="'.FlightPricingService::price(4000, null, false)['customer_price'].'"', $html);
         $this->assertStringContainsString('data-times="06:00 BOM → 08:10 DEL"', $html);
+        // TripJack's placement: each column has its own Cheapest / Fastest and sort row.
+        $this->assertSame(2, substr_count($html, 'class="frx-leg-sort"'));
+        $this->assertStringContainsString('class="frx-leg-pick active" data-group="RETURN" data-sort="price"', $html);
+        $this->assertStringNotContainsString('id="frxSortbar"', $html);
 
         // One way keeps the single full-width list, no bar.
         $oneway = $this->get(route('flights.search', ['trip_type' => 'oneway'] + $params))->assertOk()->getContent();
