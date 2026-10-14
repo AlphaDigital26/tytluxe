@@ -198,6 +198,10 @@
   .br-cancel-body { overflow: hidden; }
   .br-cancel-body.collapsed { display: none; }
   .br-cancel-table-wrap { overflow-x: auto; margin-top: 4px; }
+  /* Rows are drawn by the shared policy script with bare <td>s — without
+     this they fall back to the browser's dark default text. */
+  #brCancelTableBody td { padding: 10px 12px; color: rgba(255,255,255,0.8); border-bottom: 1px solid rgba(255,255,255,0.06); }
+  #brCancelTableBody tr:last-child td { border-bottom: none; }
 
   /* ===== PAN Information ===== */
   .br-pan-verify-note { font-family: 'Jost', sans-serif; font-size: 11.5px; color: var(--white-30); margin: -6px 0 4px; line-height: 1.5; }
@@ -250,6 +254,9 @@
 
 @php
   $pricing = $option['pricing'] ?? [];
+  // Set by FrontendController::withCustomerPricing() — feeds the
+  // management fee lines in the summary.
+  $breakdown = $pricing['pricingBreakdown'] ?? [];
   $roomNames = \App\Support\RoomLabel::forOption($option);
   $cancellation = $option['cancellation'] ?? [];
   $isRefundable = $cancellation['isRefundable'] ?? false;
