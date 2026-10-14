@@ -35,6 +35,12 @@ class BookingUpdateMail extends Mailable implements ShouldQueue
 
     public const FAILED_REFUNDED = 'failed_refunded';
 
+    /** Group package: the balance after the booking amount has been paid. */
+    public const BALANCE_PAID = 'balance_paid';
+
+    /** Group package: the balance falls due soon (sent by packages:balance-reminders). */
+    public const BALANCE_REMINDER = 'balance_reminder';
+
     /** Seats/meals/baggage bought after booking — wording follows flight_ssr_status. */
     public const EXTRAS = 'extras';
 
@@ -50,12 +56,15 @@ class BookingUpdateMail extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         $flight = $this->booking->vertical === 'flight';
+        $package = $this->booking->vertical === 'package';
         $ref = $this->booking->reference;
 
         $replyTo = config('services.booking_emails.reply_to');
 
         return new Envelope(replyTo: filled($replyTo) ? [new Address($replyTo, 'TYT Luxe')] : [], subject: match ($this->kind) {
-            self::CONFIRMED => ($flight ? 'Your flight is booked' : 'Your booking is confirmed')." — {$ref}",
+            self::CONFIRMED => ($flight ? 'Your flight is booked' : ($package && $this->booking->packageBalanceDue() ? 'Your seats are booked' : 'Your booking is confirmed'))." — {$ref}",
+            self::BALANCE_PAID => "Your trip is fully paid — {$ref}",
+            self::BALANCE_REMINDER => "Reminder: your balance is due — {$ref}",
             self::RESCHEDULED => "Your new flight details — {$ref}",
             self::HELD => "Your fare is on hold — {$ref}",
             self::HOLD_EXPIRED => "Your held fare has expired — {$ref}",
@@ -91,8 +100,8 @@ class BookingUpdateMail extends Mailable implements ShouldQueue
                 ->withMime('application/pdf');
         }
 
-        if (in_array($this->kind, [self::CONFIRMED, self::RESCHEDULED, self::CANCELLED], true) && $booking->hasInvoice()) {
-            $booking->loadMissing(['hotel.destination', 'roomType', 'travelers']);
+        if (in_array($this->kind, [self::CONFIRMED, self::RESCHEDULED, self::CANCELLED, self::BALANCE_PAID], true) && $booking->hasInvoice()) {
+            $booking->loadMissing(['hotel.destination', 'roomType', 'travelers', 'package']);
             $attachments[] = Attachment::fromData(fn () => Pdf::loadView('pdf.invoice', ['booking' => $booking])->setPaper('a4', 'portrait')->output(), "invoice-{$booking->reference}.pdf")
                 ->withMime('application/pdf');
         }

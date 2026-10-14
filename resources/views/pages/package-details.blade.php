@@ -288,6 +288,11 @@
 }
 .pd-form-select:focus, .pd-form-textarea:focus { outline: none; border-color: var(--gold); }
 .pd-form-textarea { resize: vertical; min-height: 120px; }
+.pd-book-form { margin-bottom: 12px; }
+.pd-book-form .pd-form-select { width: 100%; box-sizing: border-box; margin-bottom: 10px; }
+.pd-book-label { display: block; font-family: 'Jost', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--white-60); margin-bottom: 6px; }
+.pd-seat-tag { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 100px; font-size: 10.5px; font-weight: 600; background: var(--gold-dim); color: var(--gold); }
+.pd-seat-tag.pd-seat-soldout { background: rgba(220,80,80,0.12); color: #f3a3a3; }
 .pd-alert { padding: 14px 20px; border-radius: 8px; margin-bottom: 20px; font-family: 'Jost', sans-serif; font-size: 14px; }
 .pd-alert-success { background: rgba(76,175,130,0.15); border: 1px solid var(--green); color: var(--green); }
 .pd-alert-error { background: rgba(224,92,92,0.15); border: 1px solid var(--red); color: var(--red); }
@@ -337,6 +342,11 @@
     $publishedReviews = isset($package->reviews)
         ? $package->reviews->where('is_published', true)
         : collect();
+
+    // Online booking (group tours the client switched on in the admin).
+    $onlineBooking = $package->acceptsOnlineBooking();
+    $bookableDepartures = $onlineBooking ? $package->bookableDepartures() : collect();
+    $priceOptions = $package->priceOptions();
 @endphp
 
 {{-- ===== HERO ===== --}}
@@ -475,8 +485,29 @@
                   <div class="pd-month-name">{{ $monthName }}</div>
                   <ul class="pd-date-list">
                     @foreach($dates as $date)
+                      @php
+                        $dateLabel = \Carbon\Carbon::parse($date->start_date)->format('d M').' – '.\Carbon\Carbon::parse($date->end_date)->format('d M');
+                        $open = $onlineBooking && $date->isOpenForBooking();
+                        $left = $onlineBooking ? $date->seatsLeft() : null;
+                      @endphp
                       <li class="pd-date-item">
-                        {{ \Carbon\Carbon::parse($date->start_date)->format('d M') }} – {{ \Carbon\Carbon::parse($date->end_date)->format('d M') }}
+                        @if($open)
+                          <a href="{{ route('package.checkout', ['slug' => $package->slug, 'departure' => $date->id]) }}" style="color:inherit;text-decoration:none;">{{ $dateLabel }}</a>
+                        @else
+                          {{ $dateLabel }}
+                        @endif
+                        @if($onlineBooking)
+                          @if($left === 0)
+                            <span class="pd-seat-tag pd-seat-soldout">Sold out</span>
+                          @elseif(! $date->isOpenForBooking())
+                            <span class="pd-seat-tag pd-seat-soldout">Closed</span>
+                          @elseif($left !== null && $left <= 10)
+                            <span class="pd-seat-tag">{{ $left }} seat{{ $left === 1 ? '' : 's' }} left</span>
+                          @endif
+                          @if((float) $date->extra_price > 0)
+                            <span class="pd-seat-tag">+&#8377;{{ number_format($date->extra_price, 0) }} peak</span>
+                          @endif
+                        @endif
                       </li>
                     @endforeach
                   </ul>
@@ -521,11 +552,19 @@
           <div class="pd-section-label">How to Book</div>
           <h2 class="pd-section-title">Book Your <em>Spot</em></h2>
           <div class="pd-note">
-            To book this package, simply reach out to us on WhatsApp or call us directly.
-            @if($package->booking_amount)
-              A booking amount of <strong style="color:var(--gold);">&#8377;{{ number_format($package->booking_amount, 0) }} per person</strong> is required to confirm your seat.
+            @if($onlineBooking && $bookableDepartures->isNotEmpty())
+              Pick your travel date and room sharing, add your travellers and pay securely online.
+              @if($package->booking_amount)
+                Reserve your seat with a booking amount of <strong style="color:var(--gold);">&#8377;{{ number_format($package->booking_amount, 0) }} per person</strong> (+ GST) and pay the balance up to {{ \App\Services\PackageBookingService::BALANCE_DUE_DAYS_BEFORE }} days before departure — or pay in full now.
+              @endif
+              Prefer to talk first? Reach out to us on WhatsApp.
+            @else
+              To book this package, simply reach out to us on WhatsApp or call us directly.
+              @if($package->booking_amount)
+                A booking amount of <strong style="color:var(--gold);">&#8377;{{ number_format($package->booking_amount, 0) }} per person</strong> is required to confirm your seat.
+              @endif
+              Our team will then share the full itinerary and payment details with you.
             @endif
-            Our team will then share the full itinerary and payment details with you.
           </div>
           <div class="pd-payment-grid">
             <div class="pd-payment-card">
@@ -542,9 +581,15 @@
             </div>
           </div>
           <div style="display:flex;gap:16px;flex-wrap:wrap;">
-            <a href="https://wa.me/919875073788?text=Hi!%20I'm%20interested%20in%20the%20{{ urlencode($package->title) }}%20package.%20Please%20share%20details." target="_blank" class="pd-btn" style="max-width:260px;">
-              <i class="fa-solid fa-calendar-check"></i> Book Now
-            </a>
+            @if($onlineBooking && $bookableDepartures->isNotEmpty())
+              <a href="{{ route('package.checkout', $package->slug) }}" class="pd-btn" style="max-width:260px;">
+                <i class="fa-solid fa-calendar-check"></i> Book Online
+              </a>
+            @else
+              <a href="https://wa.me/919875073788?text=Hi!%20I'm%20interested%20in%20the%20{{ urlencode($package->title) }}%20package.%20Please%20share%20details." target="_blank" class="pd-btn" style="max-width:260px;">
+                <i class="fa-solid fa-calendar-check"></i> Book Now
+              </a>
+            @endif
             <a href="https://wa.me/919875073788" target="_blank" class="pd-btn-outline" style="max-width:260px;">
               <i class="fa-brands fa-whatsapp"></i> WhatsApp Us
             </a>
@@ -587,7 +632,7 @@
             <div class="pd-price-card-top">
               @if($package->price_from)
                 <div class="pd-price-label">Starting From</div>
-                <div class="pd-price-val"><span class="curr">&#8377;</span>{{ number_format($package->price_from, 0) }} <span style="font-size: 13px; font-weight: 500; color: var(--white-80); margin-left: 6px;">(inclusive of all taxes)</span></div>
+                <div class="pd-price-val"><span class="curr">&#8377;</span>{{ number_format($onlineBooking ? min(array_column($priceOptions, 'price')) : $package->price_from, 0) }} <span style="font-size: 13px; font-weight: 500; color: var(--white-80); margin-left: 6px;">{{ $onlineBooking ? '+ 5% GST' : '(inclusive of all taxes)' }}</span></div>
                 <div class="pd-price-pp">per person{{ !empty($package->departure_from) ? ' (ex. ' . (is_array($package->departure_from) ? implode(', ', $package->departure_from) : $package->departure_from) . ')' : '' }}</div>
               @else
                 <div class="pd-price-label">Pricing</div>
@@ -616,9 +661,37 @@
                   <i class="fa-solid fa-tag" style="margin-right:6px;"></i> Book now for &#8377;{{ number_format($package->booking_amount, 0) }} to confirm your seat
                 </div>
               @endif
-              <a href="https://wa.me/919875073788?text=Hi!%20I'm%20interested%20in%20the%20{{ urlencode($package->title) }}%20package." target="_blank" class="pd-btn">
-                <i class="fa-solid fa-calendar-check"></i> Book Now
-              </a>
+              @if($onlineBooking && $bookableDepartures->isNotEmpty())
+                {{-- Pick date, sharing and travellers here; the checkout page takes the rest. --}}
+                <form method="GET" action="{{ route('package.checkout', $package->slug) }}" class="pd-book-form">
+                  @if(count($priceOptions) > 1)
+                    <label class="pd-book-label" for="pdBookOption">Room sharing</label>
+                    <select name="option" id="pdBookOption" class="pd-form-select">
+                      @foreach($priceOptions as $opt)
+                        <option value="{{ $opt['label'] }}">{{ $opt['label'] }} — &#8377;{{ number_format($opt['price'], 0) }} / person</option>
+                      @endforeach
+                    </select>
+                  @endif
+                  <label class="pd-book-label" for="pdBookDeparture">Travel date</label>
+                  <select name="departure" id="pdBookDeparture" class="pd-form-select">
+                    @foreach($bookableDepartures as $dep)
+                      @php $left = $dep->seatsLeft(); @endphp
+                      <option value="{{ $dep->id }}">{{ $dep->start_date->format('d M Y') }} – {{ $dep->end_date->format('d M') }}{{ $left !== null ? ' · '.$left.' seat'.($left === 1 ? '' : 's').' left' : '' }}{{ (float) $dep->extra_price > 0 ? ' · +₹'.number_format($dep->extra_price, 0) : '' }}</option>
+                    @endforeach
+                  </select>
+                  <label class="pd-book-label" for="pdBookTravellers">Travellers</label>
+                  <input type="number" name="travellers" id="pdBookTravellers" class="pd-form-select" min="1" max="{{ \App\Services\PackageBookingService::MAX_TRAVELLERS }}" value="1">
+                  <button type="submit" class="pd-btn" style="width:100%;border:none;cursor:pointer;margin-top:14px;">
+                    <i class="fa-solid fa-calendar-check"></i> Book Now
+                  </button>
+                </form>
+              @elseif($onlineBooking)
+                <div class="pd-booking-badge">All current departures are full or closed. Message us to join the waitlist.</div>
+              @else
+                <a href="https://wa.me/919875073788?text=Hi!%20I'm%20interested%20in%20the%20{{ urlencode($package->title) }}%20package." target="_blank" class="pd-btn">
+                  <i class="fa-solid fa-calendar-check"></i> Book Now
+                </a>
+              @endif
               <a href="https://wa.me/919875073788" target="_blank" class="pd-btn-outline">
                 <i class="fa-brands fa-whatsapp"></i> WhatsApp Us
               </a>
