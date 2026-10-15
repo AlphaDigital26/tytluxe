@@ -50,6 +50,22 @@ class PackageBookingResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'reference';
 
+    /** Booking pages open by booking number: /package-bookings/TYTZFN3UM1L. */
+    protected static ?string $recordRouteKeyName = 'reference';
+
+    /** Old links by internal number (/package-bookings/38) still open the booking. */
+    public static function resolveRecordRouteBinding(int|string $key, ?\Closure $modifyQuery = null): ?\Illuminate\Database\Eloquent\Model
+    {
+        return parent::resolveRecordRouteBinding($key, $modifyQuery)
+            ?? (ctype_digit((string) $key) ? static::getEloquentQuery()->whereKey((int) $key)->first() : null);
+    }
+
+    /** Link to a booking's page by its booking number. */
+    public static function bookingUrl(Booking $record): string
+    {
+        return static::getUrl('view', ['record' => $record->reference]);
+    }
+
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()->where('vertical', 'package')->with(['package', 'payments']);
@@ -97,6 +113,7 @@ class PackageBookingResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->recordUrl(fn (Booking $record) => self::bookingUrl($record))
             ->columns([
                 TextColumn::make('reference')->label('Booking No.')->searchable()->copyable()->weight('bold'),
                 TextColumn::make('lead_guest_name')
@@ -148,7 +165,7 @@ class PackageBookingResource extends Resource
                         ->when($data['until'] ?? null, fn (Builder $q, $date) => $q->whereDate('check_in', '<=', $date))),
             ])
             ->recordActions([
-                ViewAction::make()->label('Open'),
+                ViewAction::make()->label('Open')->url(fn (Booking $record) => self::bookingUrl($record)),
                 ActionGroup::make([
                     PackageBookingActions::markBalanceReceived(),
                     HotelBookingActions::downloadInvoice(),
@@ -161,81 +178,168 @@ class PackageBookingResource extends Resource
             ->emptyStateDescription('Group packages booked and paid on the website will appear here. Turn on "Guests can book and pay online" in a package\'s Pricing tab.');
     }
 
+    /** ₹ amount for the plain-English blocks below. */
+    protected static function rupees(float $v): string
+    {
+        return '₹'.number_format($v, 2);
+    }
+
+    /**
+     * The booking page, written for non-technical staff: what state it is
+     * in and what to do, the money in plain words, then trip, people,
+     * payments and notes.
+     */
     public static function infolist(Schema $schema): Schema
     {
+        $cell = fn (string $label, string $value, string $extra = '') => '<div style="padding:4px 0;"><div style="font-size:12px;color:#6b7280;">'.e($label).'</div><div style="font-size:20px;font-weight:700;'.$extra.'">'.$value.'</div></div>';
+
         return $schema->components([
-            Section::make('Status')
+            // 1. At a glance
+            Section::make('At a glance')
+                ->icon('heroicon-o-eye')
+                ->columns(4)
+                ->columnSpanFull()
                 ->schema([
                     TextEntry::make('status_label')
-                        ->label('')
+                        ->label('Status')
                         ->state(fn (Booking $record) => PackageBookingStatus::for($record)['label'])
                         ->badge()
+                        ->size('lg')
                         ->color(fn (Booking $record) => PackageBookingStatus::for($record)['color'])
-                        ->helperText(fn (Booking $record) => PackageBookingStatus::for($record)['help']),
-                    TextEntry::make('cancellation_reason')->label('Cancellation')->visible(fn (Booking $record) => filled($record->cancellation_reason)),
-                ])
-                ->columnSpanFull(),
+                        ->helperText(fn (Booking $record) => 'What to do: '.PackageBookingStatus::for($record)['help'])
+                        ->columnSpan(2),
+                    TextEntry::make('glance_paid')
+                        ->hiddenLabel()
+                        ->state(fn (Booking $record) => $cell('Guest has paid', self::rupees(self::paidSoFar($record) - (float) $record->payments->sum('refund_amount')), 'color:#16a34a;'))
+                        ->html(),
+                    TextEntry::make('glance_due')
+                        ->hiddenLabel()
+                        ->state(function (Booking $record) use ($cell) {
+                            $due = self::balanceWithGst($record);
+
+                            return $due
+                                ? $cell('Still to pay (by '.$record->package_balance_due_on?->format('j M').')', self::rupees($due), 'color:#d97706;')
+                                : $cell('Still to pay', 'Nothing', 'color:#6b7280;');
+                        })
+                        ->html(),
+                    TextEntry::make('cancellation_reason')
+                        ->label('Cancellation')
+                        ->columnSpanFull()
+                        ->visible(fn (Booking $record) => filled($record->cancellation_reason)),
+                ]),
+
+            // 2. Trip
             Section::make('Trip')
-                ->columns(3)
+                ->icon('heroicon-o-map')
+                ->columns(2)
                 ->schema([
-                    TextEntry::make('package.title')->label('Package'),
-                    TextEntry::make('check_in')->label('Departure')->formatStateUsing(fn ($state) => $state ? Carbon::parse($state)->format('D, j M Y') : '—'),
-                    TextEntry::make('check_out')->label('Return')->formatStateUsing(fn ($state) => $state ? Carbon::parse($state)->format('D, j M Y') : '—'),
+                    TextEntry::make('package.title')->label('Package')->weight('bold'),
+                    TextEntry::make('trip_dates')
+                        ->label('Travel dates')
+                        ->state(function (Booking $record) {
+                            $start = Carbon::parse($record->check_in);
+                            $end = $record->check_out ? Carbon::parse($record->check_out) : null;
+                            $nights = $end ? $start->diffInDays($end) : null;
+
+                            return $start->format('D, j M Y').($end ? ' → '.$end->format('D, j M Y') : '')
+                                .($nights ? " ({$nights} nights)" : '');
+                        }),
                     TextEntry::make('package_option')->label('Room sharing')->placeholder('—'),
-                    TextEntry::make('pax_adults')->label('Travellers'),
-                    TextEntry::make('package_price_per_person')->label('Price per person (before GST)')->money('INR'),
+                    TextEntry::make('pax_adults')->label('Number of travellers')->formatStateUsing(fn ($state) => $state.' '.((int) $state === 1 ? 'person' : 'people')),
                 ]),
+
+            // 3. Guest & travellers
+            Section::make('Guest & travellers')
+                ->icon('heroicon-o-user-group')
+                ->columns(2)
+                ->schema([
+                    TextEntry::make('contact')
+                        ->label('Contact person')
+                        ->state(function (Booking $record) {
+                            $phone = '+'.($record->guest_phone_code ?: '91').' '.$record->guest_phone;
+                            $wa = 'https://wa.me/'.preg_replace('/\D/', '', ($record->guest_phone_code ?: '91').$record->guest_phone);
+
+                            return '<strong>'.e($record->lead_guest_name).'</strong><br>'
+                                .'📞 <a href="tel:'.e(preg_replace('/\s/', '', $phone)).'" style="color:#b8932b;">'.e($phone).'</a>'
+                                .' · <a href="'.e($wa).'" target="_blank" style="color:#16a34a;">WhatsApp</a><br>'
+                                .'✉️ <a href="mailto:'.e($record->guest_email).'" style="color:#b8932b;">'.e($record->guest_email).'</a>';
+                        })
+                        ->html(),
+                    TextEntry::make('traveller_list')
+                        ->label('Travellers')
+                        ->state(fn (Booking $record) => $record->travelers->values()->map(fn ($t, $i) => ($i + 1).'. <strong>'.e($t->full_name).'</strong>'
+                            .' — '.($t->age ? e($t->age).' yrs' : 'age not given').($t->gender ? ', '.e(ucfirst($t->gender)) : ''))
+                            ->implode('<br>'))
+                        ->html(),
+                    TextEntry::make('special_requests')->label('Special requests from the guest')->placeholder('None')->columnSpanFull(),
+                ]),
+
+            // 4. Money, line by line
             Section::make('Money')
-                ->columns(3)
+                ->icon('heroicon-o-banknotes')
+                ->description('How the amount the guest paid is made up.')
                 ->schema([
-                    TextEntry::make('trip_total')->label('Trip total (incl. 5% GST)')->state(fn (Booking $record) => (float) $record->base_amount + (float) $record->tax_amount)->money('INR'),
-                    TextEntry::make('paid')->label('Paid so far')->state(fn (Booking $record) => self::paidSoFar($record))->money('INR'),
-                    TextEntry::make('refunded')->label('Refunded')->state(fn (Booking $record) => (float) $record->payments->sum('refund_amount'))->money('INR'),
-                    TextEntry::make('package_payment_plan')->label('How they chose to pay')->formatStateUsing(fn ($state) => $state === 'part' ? 'Booking amount now, balance later' : 'In full'),
-                    TextEntry::make('balance')->label('Balance due (incl. GST)')->state(fn (Booking $record) => self::balanceWithGst($record))->money('INR')->placeholder('Nothing due'),
-                    TextEntry::make('package_balance_due_on')->label('Balance due by')->date('D, j M Y')->visible(fn (Booking $record) => $record->packageBalanceDue()),
-                    TextEntry::make('razorpay_recovery')->label('Online payment charges collected')->money('INR'),
+                    TextEntry::make('money_table')
+                        ->hiddenLabel()
+                        ->state(function (Booking $record) {
+                            $row = fn (string $label, string $value, string $note = '', bool $bold = false) => '<tr><td style="padding:6px 12px 6px 0;'.($bold ? 'font-weight:700;' : '').'">'.e($label)
+                                .($note ? '<div style="font-size:12px;color:#6b7280;font-weight:400;">'.e($note).'</div>' : '').'</td>'
+                                .'<td style="padding:6px 0;text-align:right;white-space:nowrap;'.($bold ? 'font-weight:700;' : '').'">'.$value.'</td></tr>';
+                            $line = '<tr><td colspan="2" style="border-top:1px solid #e5e7eb;"></td></tr>';
+                            $paid = self::paidSoFar($record);
+                            $refunded = (float) $record->payments->sum('refund_amount');
+                            $due = self::balanceWithGst($record);
+
+                            return '<table style="width:100%;max-width:560px;font-size:14px;">'
+                                .$row('Package price', self::rupees((float) $record->base_amount), $record->pax_adults.' × '.self::rupees((float) $record->package_price_per_person).' per person')
+                                .$row('GST (5%)', self::rupees((float) $record->tax_amount))
+                                .$row('Trip price', self::rupees((float) $record->base_amount + (float) $record->tax_amount), '', true)
+                                .$line
+                                .$row('Online payment charges', self::rupees((float) $record->razorpay_recovery), 'Added to each online payment to cover the Razorpay fee')
+                                .$row('Total paid by guest', self::rupees($paid), '', true)
+                                .($refunded > 0 ? $row('Refunded to guest', '− '.self::rupees($refunded)) : '')
+                                .($due ? $row('Still to pay', self::rupees($due), 'Due by '.$record->package_balance_due_on?->format('D, j M Y').' (online payment charges are added when paid)', true) : '')
+                                .'</table>'
+                                .'<p style="margin-top:8px;font-size:12px;color:#6b7280;">Payment plan: '.($record->package_payment_plan === 'part' ? 'booking amount first, balance later' : 'paid in full at booking').'.</p>';
+                        })
+                        ->html(),
                 ]),
-            Section::make('Guest')
-                ->columns(3)
+
+            // 5. Payment history
+            Section::make('Payment history')
+                ->icon('heroicon-o-clock')
                 ->schema([
-                    TextEntry::make('lead_guest_name')->label('Lead traveller'),
-                    TextEntry::make('guest_email')->label('Email')->copyable(),
-                    TextEntry::make('guest_phone')->label('Phone')->formatStateUsing(fn ($state, Booking $record) => '+'.($record->guest_phone_code ?: '91').' '.$state)->copyable(),
-                    TextEntry::make('special_requests')->label('Special requests')->placeholder('None')->columnSpanFull(),
+                    TextEntry::make('payment_list')
+                        ->hiddenLabel()
+                        ->state(fn (Booking $record) => $record->payments->sortBy('id')->map(function (Payment $p) use ($record) {
+                            $what = $p->purpose === 'package_balance' ? 'Balance' : ($record->package_payment_plan === 'part' ? 'Booking amount' : 'Full payment');
+                            [$status, $color] = match ($p->status) {
+                                'captured' => ['Paid', '#16a34a'],
+                                'refunded' => ['Refunded in full', '#6b7280'],
+                                'partially_refunded' => ['Partly refunded ('.self::rupees((float) $p->refund_amount).')', '#d97706'],
+                                'failed' => ['Failed — no money taken', '#dc2626'],
+                                default => ['Not completed — no money taken', '#6b7280'],
+                            };
+
+                            return '<div style="padding:6px 0;border-bottom:1px solid #f3f4f6;">'
+                                .'<span style="color:#6b7280;">'.$p->created_at->format('j M Y, g:i A').'</span> · '
+                                .'<strong>'.$what.'</strong> · '.self::rupees((float) $p->amount)
+                                .' · <span style="color:'.$color.';font-weight:600;">'.$status.'</span></div>';
+                        })->implode('') ?: 'No payments yet.')
+                        ->html(),
                 ]),
-            Section::make('Travellers')
-                ->schema([
-                    RepeatableEntry::make('travelers')
-                        ->label('')
-                        ->columns(3)
-                        ->schema([
-                            TextEntry::make('full_name')->label('Name'),
-                            TextEntry::make('age')->label('Age')->placeholder('—'),
-                            TextEntry::make('gender')->label('Gender')->formatStateUsing(fn ($state) => ucfirst((string) $state)),
-                        ]),
-                ]),
-            Section::make('Payments')
-                ->schema([
-                    RepeatableEntry::make('payments')
-                        ->label('')
-                        ->columns(4)
-                        ->schema([
-                            TextEntry::make('purpose')->label('For')->formatStateUsing(fn ($state, Payment $record) => $state === 'package_balance' ? 'Balance' : ($record->booking?->package_payment_plan === 'part' ? 'Booking amount' : 'Full payment')),
-                            TextEntry::make('amount')->label('Amount')->money('INR'),
-                            TextEntry::make('status')->label('Status')->formatStateUsing(fn ($state) => match ($state) {
-                                'captured' => 'Paid',
-                                'refunded' => 'Refunded in full',
-                                'partially_refunded' => 'Partly refunded',
-                                'failed' => 'Failed',
-                                default => 'Not completed',
-                            }),
-                            TextEntry::make('created_at')->label('When')->dateTime('j M Y, g:i A'),
-                        ]),
-                ]),
+
+            // 6. Notes
             Section::make('Notes for your team')
+                ->icon('heroicon-o-pencil-square')
+                ->description('Only your team sees these. Use "Add note" at the top to write one.')
                 ->schema([
-                    TextEntry::make('admin_note')->label('')->placeholder('No notes yet.')->formatStateUsing(fn ($state) => nl2br(e($state)))->html(),
+                    TextEntry::make('admin_note')
+                        ->hiddenLabel()
+                        ->placeholder('No notes yet.')
+                        ->formatStateUsing(fn ($state) => collect(preg_split('/\r?\n/', (string) $state))->filter()
+                            ->map(fn ($line) => '<div style="padding:5px 0;border-bottom:1px solid #f3f4f6;">'.e($line).'</div>')->implode(''))
+                        ->html(),
                 ]),
         ]);
     }

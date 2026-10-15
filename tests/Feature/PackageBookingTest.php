@@ -313,11 +313,11 @@ class PackageBookingTest extends TestCase
         $this->actingAs($admin, 'admin');
 
         $this->get('/tyt-console/package-bookings')->assertOk()->assertSee($booking->reference)->assertSee('Booking amount paid, balance due');
-        $this->get("/tyt-console/package-bookings/{$booking->id}")->assertOk()->assertSee('Traveller A')->assertSee('Mark balance as received');
+        $this->get("/tyt-console/package-bookings/{$booking->reference}")->assertOk()->assertSee('Traveller A')->assertSee('Mark balance as received');
         $this->get('/tyt-console/bookings')->assertOk()->assertDontSee($booking->reference);
         $this->get("/tyt-console/packages/{$package->id}/edit")->assertOk();
 
-        \Livewire\Livewire::test(\App\Filament\Resources\PackageBookings\Pages\ViewPackageBooking::class, ['record' => $booking->id])
+        \Livewire\Livewire::test(\App\Filament\Resources\PackageBookings\Pages\ViewPackageBooking::class, ['record' => $booking->reference])
             ->callAction('markBalanceReceived', ['note' => 'UPI ref 123'])
             ->assertHasNoActionErrors();
         $this->assertFalse($booking->fresh()->packageBalanceDue());

@@ -134,7 +134,7 @@
         {{-- 2. Sharing --}}
         <div class="pc-card" @if(count($options) === 1) style="display:none" @endif>
           <h2>2. Room sharing</h2>
-          <p class="pc-sub">Price per person, before GST.</p>
+          <p class="pc-sub">Price per person.</p>
           <div class="pc-choices">
             @foreach($options as $opt)
               <label class="pc-choice">
@@ -208,7 +208,7 @@
         {{-- 5. Payment plan --}}
         <div class="pc-card">
           <h2>{{ count($options) === 1 ? '4' : '5' }}. How would you like to pay?</h2>
-          <p class="pc-sub">GST (5%) and the online payment charge are added to each payment.</p>
+          <p class="pc-sub">Taxes are included in the amounts shown.</p>
           <div class="pc-choices">
             @if($bookingAmount > 0)
               <label class="pc-choice">
@@ -232,11 +232,7 @@
           <div class="pc-row"><span id="sPerLabel">Per person</span><strong id="sPer"></strong></div>
           <div class="pc-row"><span>Travellers</span><strong id="sPax"></strong></div>
           <div class="pc-divider"></div>
-          <div class="pc-row"><span>Package price</span><strong id="sSubtotal"></strong></div>
-          <div class="pc-row"><span>GST (5%)</span><strong id="sGst"></strong></div>
-          <div class="pc-row"><span>Trip total</span><strong id="sTotal"></strong></div>
-          <div class="pc-divider"></div>
-          <div class="pc-row"><span>Online payment charge</span><strong id="sGateway"></strong></div>
+          <div class="pc-row"><span>Trip total <small style="color:var(--white-30);">(incl. taxes)</small></span><strong id="sTotal"></strong></div>
           <div class="pc-pay-now"><span>Pay now</span><strong id="sNow"></strong></div>
           <p class="pc-note" id="sBalanceNote"></p>
 
@@ -330,14 +326,11 @@
     document.getElementById('sPerLabel').textContent = options.length > 1 ? 'Per person (' + o.label + ')' : 'Per person';
     document.getElementById('sPer').textContent = inr(perPerson);
     document.getElementById('sPax').textContent = n;
-    document.getElementById('sSubtotal').textContent = inr(subtotal);
-    document.getElementById('sGst').textContent = inr(round2(subtotal * formula.gstRate));
     document.getElementById('sTotal').textContent = inr(round2(subtotal * (1 + formula.gstRate)));
-    document.getElementById('sGateway').textContent = inr(now.gateway);
     document.getElementById('sNow').textContent = inr(now.total);
     document.getElementById('sBalanceNote').textContent = part
-      ? 'Balance of about ' + inr(balance.total) + ' (incl. GST and payment charge) due by ' + d.balanceDue + '. Pay it any time from My Trips.'
-      : 'Paid in full — nothing more to pay.';
+      ? 'Balance of ' + inr(balance.total) + ' due by ' + d.balanceDue + '.'
+      : 'Nothing more to pay later.';
     document.getElementById('tDue').textContent = d.balanceDue;
     document.getElementById('tCancel').textContent = d.cancelBy;
   }

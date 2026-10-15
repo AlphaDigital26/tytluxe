@@ -62,12 +62,10 @@
 
       <div class="pay-rows">
         @if($isBalance)
-          <div class="pay-row"><span>Balance (package price)</span><strong>&#8377;{{ number_format($charge['base'], 2) }}</strong></div>
-          <div class="pay-row"><span>GST (5%)</span><strong>&#8377;{{ number_format($charge['gst'], 2) }}</strong></div>
-          <div class="pay-row"><span>Online payment charge</span><strong>&#8377;{{ number_format($charge['gateway'], 2) }}</strong></div>
+          <div class="pay-row"><span>Balance due by</span><strong>{{ $booking->package_balance_due_on?->format('d M Y') }}</strong></div>
         @else
           <div class="pay-row"><span>{{ $booking->package_payment_plan === 'part' ? 'Booking amount now' : 'Paying in full' }}</span><strong>{{ $booking->package_payment_plan === 'part' ? 'Balance due by '.$booking->package_balance_due_on?->format('d M Y') : 'Nothing to pay later' }}</strong></div>
-          <div class="pay-row"><span>Trip total (incl. GST)</span><strong>&#8377;{{ number_format((float) $booking->base_amount + (float) $booking->tax_amount, 2) }}</strong></div>
+          <div class="pay-row"><span>Trip total (incl. taxes)</span><strong>&#8377;{{ number_format((float) $booking->base_amount + (float) $booking->tax_amount, 2) }}</strong></div>
         @endif
       </div>
 
