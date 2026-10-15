@@ -221,9 +221,20 @@ class ProfileController extends Controller
                 'phone' => $t->phone,
                 'email' => $t->email,
             ])->all(),
-            'bookings' => $user->bookings()->with('hotel')->get()->map(fn ($b) => [
+            'bookings' => $user->bookings()->with(['hotel', 'package'])->get()->map(fn ($b) => [
                 'reference' => $b->reference,
+                'type' => $b->vertical,
+                // What was booked, whatever the type.
+                'booked' => match ($b->vertical) {
+                    'flight' => trim('Flight '.str_replace('-', ' → ', (string) $b->flight_route)),
+                    'package' => $b->package?->title.($b->package_option && $b->package_option !== 'Per person' ? ' ('.$b->package_option.')' : ''),
+                    default => $b->hotel?->title.($b->room_name ? ' — '.$b->room_name : ''),
+                },
                 'hotel' => $b->hotel?->title,
+                'package' => $b->package?->title,
+                'flight_route' => $b->flight_route,
+                'flight_pnr' => $b->tripjack_flight_pnr,
+                'travellers' => (int) $b->pax_adults + (int) $b->pax_children + (int) $b->pax_infants,
                 // check_in/check_out aren't cast to Carbon on Booking (plain
                 // date strings from the DB already) — unlike dob/anniversary/
                 // passport_expiry above, which are.

@@ -38,6 +38,9 @@ class BookingUpdateMail extends Mailable implements ShouldQueue
     /** Group package: the balance after the booking amount has been paid. */
     public const BALANCE_PAID = 'balance_paid';
 
+    /** Group package: the guest asked to cancel online; the team will confirm. */
+    public const CANCEL_REQUESTED = 'cancel_requested';
+
     /** Group package: the balance falls due soon (sent by packages:balance-reminders). */
     public const BALANCE_REMINDER = 'balance_reminder';
 
@@ -64,6 +67,7 @@ class BookingUpdateMail extends Mailable implements ShouldQueue
         return new Envelope(replyTo: filled($replyTo) ? [new Address($replyTo, 'TYT Luxe')] : [], subject: match ($this->kind) {
             self::CONFIRMED => ($flight ? 'Your flight is booked' : ($package && $this->booking->packageBalanceDue() ? 'Your seats are booked' : 'Your booking is confirmed'))." — {$ref}",
             self::BALANCE_PAID => "Your trip is fully paid — {$ref}",
+            self::CANCEL_REQUESTED => "We received your cancellation request — {$ref}",
             self::BALANCE_REMINDER => "Reminder: your balance is due — {$ref}",
             self::RESCHEDULED => "Your new flight details — {$ref}",
             self::HELD => "Your fare is on hold — {$ref}",

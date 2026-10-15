@@ -48,13 +48,25 @@ class Package extends Model
      */
     public function canBeReviewedBy(?int $userId): bool
     {
-        return $userId !== null && Booking::where('user_id', $userId)
+        if ($userId === null) {
+            return false;
+        }
+
+        // Fully paid trips that have ended (return date, or departure when no return date).
+        $tripsTaken = Booking::where('user_id', $userId)
             ->where('vertical', 'package')
             ->where('package_id', $this->id)
             ->where('status', 'confirmed')
             ->whereNull('cancellation_requested_at')
             ->where(fn ($q) => $q->whereNull('package_balance_amount')->orWhere('package_balance_amount', '<=', 0))
-            ->exists();
+            ->where(fn ($q) => $q->whereDate('check_out', '<', today())
+                ->orWhere(fn ($q) => $q->whereNull('check_out')->whereDate('check_in', '<', today())))
+            ->count();
+
+        // One review per trip taken.
+        $reviewsWritten = $this->reviews()->where('user_id', $userId)->count();
+
+        return $tripsTaken > $reviewsWritten;
     }
 
     public function acceptsOnlineBooking(): bool
