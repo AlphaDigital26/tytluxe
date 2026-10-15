@@ -40,6 +40,7 @@ class InclusionsRelationManager extends RelationManager
                 TextInput::make('sort_order')
                     ->required()
                     ->numeric()
+                    ->minValue(0)
                     ->default(0),
             ]);
     }
