@@ -553,7 +553,7 @@ Discover curated domestic and international travel packages with TYT Luxe. Honey
                           @if($pkg->price_from)
                             From &#8377;{{ number_format($pkg->price_from) }} <span style="font-size: 10px; font-weight: 400; color: var(--white-60); margin-left: 4px;">(inclusive of all taxes)</span>
                           @else
-                            Price on Enquiry
+                            {{ $pkg->tour_type === 'custom' ? 'Custom Package · Price on Request' : 'Price on Request' }}
                           @endif
                         </span>
                       </div>
@@ -667,7 +667,7 @@ Discover curated domestic and international travel packages with TYT Luxe. Honey
                           @if($pkg->price_from)
                             From &#8377;{{ number_format($pkg->price_from) }} <span style="font-size: 10px; font-weight: 400; color: var(--white-60); margin-left: 4px;">(inclusive of all taxes)</span>
                           @else
-                            Price on Enquiry
+                            {{ $pkg->tour_type === 'custom' ? 'Custom Package · Price on Request' : 'Price on Request' }}
                           @endif
                         </span>
                       </div>
@@ -781,7 +781,7 @@ Discover curated domestic and international travel packages with TYT Luxe. Honey
                           @if($pkg->price_from)
                             From &#8377;{{ number_format($pkg->price_from) }} <span style="font-size: 10px; font-weight: 400; color: var(--white-60); margin-left: 4px;">(inclusive of all taxes)</span>
                           @else
-                            Price on Enquiry
+                            {{ $pkg->tour_type === 'custom' ? 'Custom Package · Price on Request' : 'Price on Request' }}
                           @endif
                         </span>
                       </div>
@@ -838,9 +838,17 @@ Discover curated domestic and international travel packages with TYT Luxe. Honey
     <!-- Price & Duration -->
     <div class="pkg-price-row">
       <div>
-        <div class="pkg-price-from">Starting From</div>
-        <div class="pkg-price-val"><span class="curr">&#8377;</span><span id="drawerPrice"></span> <span style="font-size: 13px; font-weight: 500; color: var(--white-80); margin-left: 6px;">(inclusive of all taxes)</span></div>
-        <div class="pkg-price-pp">per person</div>
+        <div id="drawerPriceBox">
+          <div class="pkg-price-from">Starting From</div>
+          <div class="pkg-price-val"><span class="curr">&#8377;</span><span id="drawerPrice"></span> <span style="font-size: 13px; font-weight: 500; color: var(--white-80); margin-left: 6px;">(inclusive of all taxes)</span></div>
+          <div class="pkg-price-pp">per person</div>
+        </div>
+        {{-- No price set (usually a custom tour): say so instead of "₹0". --}}
+        <div id="drawerNoPriceBox" hidden>
+          <div class="pkg-price-from" id="drawerNoPriceLabel">Custom Package</div>
+          <div class="pkg-price-val" style="font-size: 22px;">Price on Request</div>
+          <div class="pkg-price-pp">Tailored to your dates, group size &amp; budget</div>
+        </div>
       </div>
       <div class="pkg-duration-badge">
         <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--white-60);margin-bottom:4px;">Duration</div>
@@ -870,7 +878,8 @@ foreach($packages as $p) {
         'category'  => $p->category,
         'title'     => $p->title,
         'nights'    => $p->duration_nights,
-        'price'     => $p->price_from,
+        'price'     => $p->price_from > 0 ? (float) $p->price_from : null,
+        'custom'    => $p->tour_type === 'custom',
         'short_desc'=> $p->short_desc ?? '',
         'country'   => $p->destination?->name,
         'image'     => $p->hero_image_url,
@@ -945,16 +954,24 @@ function openDrawer(id) {
   document.getElementById('drawerEyebrow').textContent = pkg.country;
   document.getElementById('drawerTitle').textContent   = pkg.title;
   document.getElementById('drawerDesc').textContent    = pkg.short_desc;
-  document.getElementById('drawerPrice').textContent   = Number(pkg.price).toLocaleString('en-IN');
-  document.getElementById('drawerDuration').textContent = pkg.nights + 'N ' + (pkg.nights + 1) + 'D';
+  // A custom tour may have no price or no fixed length — never show ₹0 / "nullN".
+  const hasPrice  = pkg.price > 0;
+  const hasNights = pkg.nights > 0;
+  document.getElementById('drawerPriceBox').hidden   = !hasPrice;
+  document.getElementById('drawerNoPriceBox').hidden = hasPrice;
+  document.getElementById('drawerNoPriceLabel').textContent = pkg.custom ? 'Custom Package' : 'Price';
+  if (hasPrice) document.getElementById('drawerPrice').textContent = Number(pkg.price).toLocaleString('en-IN');
+  document.getElementById('drawerDuration').textContent = hasNights ? pkg.nights + 'N ' + (pkg.nights + 1) + 'D' : 'Flexible';
 
   // Pills
   const pillsEl = document.getElementById('drawerPills');
   pillsEl.innerHTML = `
-    <span class="pkg-drawer-pill"><i class="fa-regular fa-moon"></i> ${pkg.nights} Nights</span>
-    <span class="pkg-drawer-pill"><i class="fa-solid fa-sun"></i> ${pkg.nights + 1} Days</span>
-    <span class="pkg-drawer-pill"><i class="fa-solid fa-location-dot"></i> ${pkg.country}</span>
-    <span class="pkg-drawer-pill gold"><i class="fa-solid fa-indian-rupee-sign"></i> From &#8377;${Number(pkg.price).toLocaleString('en-IN')}</span>
+    ${hasNights ? `<span class="pkg-drawer-pill"><i class="fa-regular fa-moon"></i> ${pkg.nights} Nights</span>
+    <span class="pkg-drawer-pill"><i class="fa-solid fa-sun"></i> ${pkg.nights + 1} Days</span>` : ''}
+    ${pkg.country ? `<span class="pkg-drawer-pill"><i class="fa-solid fa-location-dot"></i> ${pkg.country}</span>` : ''}
+    ${hasPrice
+      ? `<span class="pkg-drawer-pill gold"><i class="fa-solid fa-indian-rupee-sign"></i> From &#8377;${Number(pkg.price).toLocaleString('en-IN')}</span>`
+      : `<span class="pkg-drawer-pill gold"><i class="fa-solid fa-wand-magic-sparkles"></i> ${pkg.custom ? 'Custom Package' : 'Price on Request'}</span>`}
   `;
 
   // Inclusions
