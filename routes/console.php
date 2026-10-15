@@ -9,9 +9,12 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
+// Sign-ups that never verified, after 48 hours. Never an account with
+// bookings — those are real customers whatever their verified flag says.
 Schedule::call(function () {
     User::whereNull('email_verified_at')
         ->where('created_at', '<=', now()->subHours(48))
+        ->whereDoesntHave('bookings')
         ->forceDelete();
 })->hourly();
 

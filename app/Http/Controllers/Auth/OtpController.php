@@ -68,10 +68,16 @@ class OtpController extends Controller
         // Increment attempt count
         $otpRecord->increment('attempts');
 
-        // Expiry check removed as requested
+        // Codes are valid for CODE_VALID_MINUTES (security: an old code seen
+        // later, e.g. in a forwarded email, must not still work).
+        if ($otpRecord->isExpired()) {
+            $otpRecord->delete();
+
+            return back()->withErrors(['otp' => self::CODE_EXPIRED_MESSAGE]);
+        }
 
         // Verify OTP
-        if ($otpRecord->otp !== $request->otp) {
+        if (! $otpRecord->matches($request->otp)) {
             $remaining = 5 - $otpRecord->fresh()->attempts;
             return back()->withErrors([
                 'otp' => "Invalid verification code. {$remaining} attempt(s) remaining.",
@@ -123,6 +129,10 @@ class OtpController extends Controller
 
         $email = $pending['email'];
 
+        if ($limit = self::codeLimitReached($email)) {
+            return back()->withErrors(['otp' => $limit]);
+        }
+
         // Delete all old OTPs for this email
         EmailOtp::where('email', $email)->delete();
 
@@ -134,6 +144,42 @@ class OtpController extends Controller
         return back()->with('success', 'A new verification code has been sent to your email.');
     }
 
+    /** How long a 6-digit code works (sign-up and email change). */
+    public const CODE_VALID_MINUTES = 10;
+
+    public const CODE_EXPIRED_MESSAGE = 'This code has expired. Please click "Resend Code" to get a new one.';
+
+    /** Most codes one email address, or one network (IP), can be sent per hour. */
+    public const MAX_CODES_PER_EMAIL_PER_HOUR = 5;
+
+    public const MAX_CODES_PER_IP_PER_HOUR = 15;
+
+    public const TOO_MANY_CODES_MESSAGE = 'Too many verification codes have been requested. Please wait an hour and try again, or contact our support team.';
+
+    /**
+     * Counts a code about to be sent. Returns TOO_MANY_CODES_MESSAGE (and
+     * counts nothing) when this email or IP has had its hourly share, so
+     * nobody can flood an inbox or run up the email bill.
+     */
+    public static function codeLimitReached(string $email): ?string
+    {
+        $keys = [
+            'otp-email:'.sha1(strtolower($email)) => self::MAX_CODES_PER_EMAIL_PER_HOUR,
+            'otp-ip:'.request()->ip() => self::MAX_CODES_PER_IP_PER_HOUR,
+        ];
+
+        foreach ($keys as $key => $max) {
+            if (\Illuminate\Support\Facades\RateLimiter::tooManyAttempts($key, $max)) {
+                return self::TOO_MANY_CODES_MESSAGE;
+            }
+        }
+        foreach (array_keys($keys) as $key) {
+            \Illuminate\Support\Facades\RateLimiter::hit($key, 3600);
+        }
+
+        return null;
+    }
+
     public const EMAIL_FAILED_MESSAGE = 'We couldn\'t send the verification email just now. Please try again in a few minutes, or contact our support team.';
 
     /**
@@ -142,7 +188,7 @@ class OtpController extends Controller
      * mail server is unreachable — so the guest sees a friendly message
      * instead of an error page.
      */
-    public static function generateAndSendOtp(string $email, string $name): ?string
+    public static function generateAndSendOtp(string $email, string $name, string $purpose = 'register'): ?string
     {
         // Remove any existing OTPs for this email
         EmailOtp::where('email', $email)->delete();
@@ -151,12 +197,12 @@ class OtpController extends Controller
 
         EmailOtp::create([
             'email'      => $email,
-            'otp'        => $otp,
-            'expires_at' => now()->addYears(1),
+            'otp'        => EmailOtp::hashCode($otp),
+            'expires_at' => now()->addMinutes(self::CODE_VALID_MINUTES),
         ]);
 
         try {
-            Mail::to($email)->send(new OtpVerificationMail($otp, $name));
+            Mail::to($email)->send(new OtpVerificationMail($otp, $name, $purpose));
         } catch (\Throwable $e) {
             EmailOtp::where('email', $email)->delete();
             \Illuminate\Support\Facades\Log::error('otp_email_send_failed', ['email' => $email, 'error' => $e->getMessage()]);

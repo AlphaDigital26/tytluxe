@@ -193,6 +193,7 @@
                     <input class="otp-digit" type="text" maxlength="1" inputmode="numeric" id="d6">
                 </div>
 
+                <p style="text-align:center; font-size:12px; color:#999; margin:-14px 0 10px;">The code is valid for {{ \App\Http\Controllers\Auth\OtpController::CODE_VALID_MINUTES }} minutes.</p>
                 {{-- Countdown timer --}}
                 <div class="otp-countdown" id="otpCountdown">
                     Resend code in <span id="timerDisplay">01:00</span>

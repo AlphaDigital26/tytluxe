@@ -543,7 +543,9 @@
         <!-- CONTENT -->
         <div class="profile-content">
             
-            @if(session('status'))
+            @if(session('email_notice'))
+                <div class="alert-success">{{ session('email_notice') }}</div>
+            @elseif(session('status'))
                 <div class="alert-success">Successfully updated!</div>
             @endif
             @if($errors->any())
@@ -703,7 +705,8 @@
                                 <button type="button" class="pf-add-link" onclick="document.getElementById('email-edit-row').classList.toggle('pf-hidden')">
                                     <i class="fa-solid fa-pen-to-square"></i> Change Email
                                 </button>
-                                <div id="email-edit-row" class="pf-hidden" style="margin-top:10px;">
+                                <div id="email-edit-row" class="{{ $errors->has('email') ? '' : 'pf-hidden' }}" style="margin-top:10px;">
+                                    <p style="font-size:12px; color:#888; margin:0 0 6px;">We'll send a 6-digit code to the new address. Your email changes only after you enter it.</p>
                                     <input type="email" name="email" class="pf-input" placeholder="your@email.com"
                                         value="{{ auth()->user()->email }}">
                                     @error('email') <span class="pf-error">{{ $message }}</span> @enderror

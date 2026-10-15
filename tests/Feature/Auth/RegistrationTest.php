@@ -39,7 +39,7 @@ class RegistrationTest extends TestCase
         $this->assertDatabaseMissing('users', ['email' => 'test@example.com']);
         Mail::assertSent(OtpVerificationMail::class);
 
-        $otp = EmailOtp::where('email', 'test@example.com')->value('otp');
+        $otp = $this->sentCode('test@example.com');
 
         $this->post(route('otp.verify.submit'), ['otp' => $otp])
             ->assertRedirect(route('home'));
@@ -76,11 +76,77 @@ class RegistrationTest extends TestCase
             'password_confirmation' => 'password',
         ]);
 
-        $wrong = EmailOtp::where('email', 'test@example.com')->value('otp') === '000000' ? '111111' : '000000';
+        $wrong = $this->sentCode('test@example.com') === '000000' ? '111111' : '000000';
 
         $this->post(route('otp.verify.submit'), ['otp' => $wrong])->assertSessionHasErrors('otp');
 
         $this->assertGuest();
         $this->assertDatabaseMissing('users', ['email' => 'test@example.com']);
+    }
+
+    public function test_the_database_never_holds_the_code_itself(): void
+    {
+        Mail::fake();
+        $this->post('/register', ['name' => 'Test User', 'email' => 'test@example.com', 'password' => 'password', 'password_confirmation' => 'password']);
+
+        $stored = EmailOtp::where('email', 'test@example.com')->value('otp');
+        $this->assertNotSame($this->sentCode('test@example.com'), $stored);
+        $this->assertSame(64, strlen($stored));
+    }
+
+    public function test_an_email_gets_at_most_5_codes_an_hour(): void
+    {
+        Mail::fake();
+        $this->post('/register', ['name' => 'Test User', 'email' => 'test@example.com', 'password' => 'password', 'password_confirmation' => 'password']);
+        for ($i = 0; $i < 4; $i++) {
+            $this->travel(2)->minutes(); // past the per-minute route throttle
+            $this->post(route('otp.resend'))->assertSessionHasNoErrors();
+        }
+
+        $this->travel(2)->minutes();
+        $this->post(route('otp.resend'))->assertSessionHasErrors(['otp' => \App\Http\Controllers\Auth\OtpController::TOO_MANY_CODES_MESSAGE]);
+        Mail::assertSentCount(5);
+
+        // An hour later it works again.
+        $this->travel(61)->minutes();
+        $this->post(route('otp.resend'))->assertSessionHasNoErrors();
+    }
+
+    public function test_code_expires_after_10_minutes_and_a_resent_code_works(): void
+    {
+        Mail::fake();
+
+        $this->post('/register', [
+            'name' => 'Test User',
+            'email' => 'test@example.com',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+        ]);
+        $otp = $this->sentCode('test@example.com');
+
+        $this->travel(11)->minutes();
+        $this->post(route('otp.verify.submit'), ['otp' => $otp])
+            ->assertSessionHasErrors(['otp' => \App\Http\Controllers\Auth\OtpController::CODE_EXPIRED_MESSAGE]);
+        $this->assertGuest();
+
+        $this->post(route('otp.resend'));
+        $fresh = $this->sentCode('test@example.com');
+        $this->post(route('otp.verify.submit'), ['otp' => $fresh])->assertRedirect(route('home'));
+        $this->assertAuthenticated();
+    }
+
+    /** The last 6-digit code emailed to $email (the database only keeps a hash). */
+    protected function sentCode(string $email): ?string
+    {
+        $code = null;
+        \Illuminate\Support\Facades\Mail::assertSent(\App\Mail\OtpVerificationMail::class, function ($m) use (&$code, $email) {
+            if ($m->hasTo($email)) {
+                $code = $m->otp;
+            }
+
+            return true;
+        });
+
+        return $code;
     }
 }
