@@ -8,9 +8,9 @@
             <div class="footer-about">
 
                 <div class="footer-logo">
-                    <a href="{{ url('/') }}" aria-label="TYT Luxe — Go to homepage">
-                        <img src="{{ asset('assets/images/tyt-logo.webp') }}"
-                             alt="TYT Luxe logo"
+                    <a href="{{ url('/') }}" aria-label="Take Your Trip (TYT Luxe) — Go to homepage">
+                        <img src="{{ asset('assets/images/tyt-logo.png') }}"
+                             alt="Take Your Trip — TYT Luxe logo"
                              width="140"
                              height="48"
                              loading="lazy">
@@ -18,8 +18,8 @@
                 </div>
 
                 <p>
-                    Curated hotels and cruises for unforgettable journeys.
-                    Travel better, travel smarter with TYT Luxe.
+                    Curated hotels, flights, cruises and holidays for unforgettable journeys.
+                    Travel better, travel smarter with Take Your Trip — TYT Luxe.
                 </p>
 
                 <nav aria-label="Social media links">
@@ -117,7 +117,7 @@
 
         <div class="copyright">
             <p>
-                &copy; {{ date('Y') }} TYT Luxe. All Rights Reserved.
+                &copy; {{ date('Y') }} Take Your Trip (TYT Luxe) · tytluxe.in. All Rights Reserved.
                 &nbsp;|&nbsp; Designed for the Indian Traveller.
             </p>
         </div>

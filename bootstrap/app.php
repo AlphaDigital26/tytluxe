@@ -29,6 +29,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'hotel.enabled' => \App\Http\Middleware\EnsureHotelBookingEnabled::class,
         ]);
 
+        $middleware->web(prepend: [
+            \App\Http\Middleware\RedirectWwwToMainDomain::class,
+        ]);
+
         $middleware->web(append: [
             \App\Http\Middleware\IncreaseAdminExecutionLimits::class,
         ]);

@@ -10,6 +10,7 @@ use App\Http\Controllers\FrontendController;
 use App\Http\Controllers\PackageBookingController;
 
 Route::get('/', [FrontendController::class, 'index'])->name('home');
+Route::get('/sitemap.xml', [\App\Http\Controllers\SitemapController::class, 'index'])->name('sitemap');
 Route::view('/about', 'pages.about')->name('about');
 Route::view('/flights', 'pages.flights')->name('flights');
 // Live TripJack-powered search results — separate from the static /flights

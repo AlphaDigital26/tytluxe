@@ -18,7 +18,9 @@
     border-radius: 0 0 4px 4px;
     transition: top 0.2s ease;
 }
-.skip-link:focus {
+/* Keyboard focus only (Tab) — not when the browser restores focus after a
+   reload/Back or the link is clicked, which made it keep reappearing. */
+.skip-link:focus-visible {
     top: 0;
     outline: 3px solid #fff;
     outline-offset: 2px;

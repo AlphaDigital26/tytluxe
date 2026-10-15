@@ -1,23 +1,34 @@
 @extends('layouts.frontend')
 
-@section('meta_title', 'TYT Luxe — Luxury Hotels & Cruises | Book Your Dream Vacation')
-@section('meta_description', 'Discover handpicked luxury hotels, premium cruises and tailored travel packages with TYT Luxe. Serving Indian travellers with personalised itineraries, veg-friendly options and a 2-hour WhatsApp response guarantee.')
+@section('meta_title', 'Take Your Trip (TYT Luxe) — Luxury Hotels, Flights & Holiday Packages')
+@section('meta_description', 'Take Your Trip (tytluxe.in) — book handpicked luxury hotels, flights, cruises and holiday packages with TYT Luxe. Personalised itineraries for Indian travellers and a 2-hour WhatsApp response guarantee.')
 
 @push('scripts')
+{{-- WebSite tells Google the site's name for search results ("Take Your
+     Trip"), and every other way people type it. Must stay on the homepage. --}}
+<script type="application/ld+json">
+{
+  "@@context": "https://schema.org",
+  "@@type": "WebSite",
+  "name": "Take Your Trip",
+  "alternateName": ["TYT Luxe", "tytluxe", "tytluxe.in", "Take Your Trip Luxe", "TakeYourTrip", "TYT"],
+  "url": "https://tytluxe.in/"
+}
+</script>
 <script type="application/ld+json">
 {
   "@@context": "https://schema.org",
   "@@type": ["TravelAgency", "LocalBusiness"],
-  "name": "TYT Luxe",
-  "alternateName": "Take Your Trip Luxe",
-  "url": "https://tytluxe.in",
-  "logo": "{{ asset('assets/images/tyt-logo.webp') }}",
+  "name": "Take Your Trip",
+  "alternateName": ["TYT Luxe", "tytluxe", "Take Your Trip Luxe"],
+  "url": "https://tytluxe.in/",
+  "logo": "{{ asset('assets/images/tyt-logo.png') }}",
   "image": "{{ asset('assets/images/og-image.jpg') }}",
   "description": "Handpicked luxury hotels and premium cruises for Indian travellers. Personalised travel planning with a 2-hour WhatsApp response guarantee.",
   "telephone": "+91-98750-73788",
   "priceRange": "\u20b9\u20b9\u20b9",
   "areaServed": { "@@type": "Country", "name": "India" },
-  "sameAs": ["https://wa.me/919875073788"],
+  "sameAs": ["https://www.instagram.com/tytluxe_/", "https://www.facebook.com/profile.php?id=61589456826795", "https://wa.me/919875073788"],
   "openingHoursSpecification": {
     "@@type": "OpeningHoursSpecification",
     "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],

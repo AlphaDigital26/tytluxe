@@ -27,6 +27,7 @@ class ExclusionsRelationManager extends RelationManager
                 ->columnSpanFull(),
             TextInput::make('sort_order')
                 ->numeric()
+                ->minValue(0)
                 ->default(0),
         ]);
     }

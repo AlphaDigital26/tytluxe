@@ -27,6 +27,7 @@ class ItineraryDaysRelationManager extends RelationManager
                 ->label('Day Number')
                 ->required()
                 ->numeric()
+                ->minValue(0)
                 ->default(1),
             TextInput::make('title')
                 ->required()
@@ -41,6 +42,7 @@ class ItineraryDaysRelationManager extends RelationManager
             TextInput::make('sort_order')
                 ->label('Sort Order')
                 ->numeric()
+                ->minValue(0)
                 ->default(0),
         ]);
     }

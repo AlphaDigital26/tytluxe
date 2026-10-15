@@ -23,6 +23,23 @@ use Illuminate\Support\Facades\Blade;
 
 class AdminPanelProvider extends PanelProvider
 {
+    public function boot(): void
+    {
+        // Number boxes inside tabs (most admin forms) get no HTML "min" from
+        // Filament, so the browser's ▼ button runs into negatives. Hand the
+        // lower limit over as data-min for the script below instead — a real
+        // "min" on a box in a hidden tab would make the browser silently
+        // refuse to save.
+        \Filament\Forms\Components\TextInput::configureUsing(function (\Filament\Forms\Components\TextInput $input): void {
+            $input->extraInputAttributes(
+                fn (\Filament\Forms\Components\TextInput $component): array => $component->isNumeric() && filled($min = $component->getMinValue())
+                    ? ['data-min' => $min]
+                    : [],
+                merge: true,
+            );
+        });
+    }
+
     public function panel(Panel $panel): Panel
     {
         return $panel
@@ -135,6 +152,40 @@ class AdminPanelProvider extends PanelProvider
                                 }
                             });
                         });
+
+                        // Number boxes: the mouse wheel must scroll the page, not
+                        // change the value (drop focus so the browser leaves it be),
+                        // and a box with a lower limit (min) can't go below it —
+                        // no "-" key, and a lower value is raised to the limit.
+                        (function () {
+                            function minOf(el) {
+                                if (! el || el.type !== 'number') return null;
+                                var min = el.dataset.min !== undefined ? el.dataset.min : el.min;
+                                return min !== '' && min !== undefined ? parseFloat(min) : null;
+                            }
+                            document.addEventListener('wheel', function (e) {
+                                var el = document.activeElement;
+                                if (el && el.type === 'number' && el === e.target) el.blur();
+                            }, { capture: true, passive: true });
+                            document.addEventListener('keydown', function (e) {
+                                var min = minOf(e.target);
+                                if (min !== null && min >= 0 && e.key === '-') e.preventDefault();
+                            }, true);
+                            // Capture phase: runs before Livewire reads the value.
+                            // The ▼ button / arrow keys (no inputType) stop at the limit
+                            // straight away. While typing only negatives are stopped
+                            // (typing "0" on the way to "0.5" is fine); on leaving the
+                            // box, the full limit.
+                            ['input', 'change'].forEach(function (type) {
+                                document.addEventListener(type, function (e) {
+                                    var el = e.target, min = minOf(el);
+                                    if (min === null || el.value === '') return;
+                                    var v = parseFloat(el.value), typing = type === 'input' && !! e.inputType;
+                                    if (! typing && v < min) el.value = min;
+                                    else if (typing && min >= 0 && v < 0) el.value = 0;
+                                }, true);
+                            });
+                        })();
                     </script>
                 HTML)
             );
