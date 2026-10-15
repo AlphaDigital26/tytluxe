@@ -1218,7 +1218,7 @@ class FrontendController extends Controller
         }
 
         $rules = [
-            'contact_email' => 'required|email|max:255',
+            'contact_email' => ['required', 'max:255', new \App\Rules\BookableEmail],
             'contact_phone' => ['required', 'string', 'max:20', $phoneRule],
             'contact_dial_code' => 'nullable|string|max:6',
             'pan_name' => [$panRequired ? 'required' : 'nullable', 'string', 'max:255', $nameRegex],
@@ -2572,10 +2572,10 @@ class FrontendController extends Controller
         // Fallback to hardcoded Unsplash images if none set in DB
         if (empty($heroImages)) {
             $heroImages = [
-                'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1800&q=80',
-                'https://images.unsplash.com/photo-1512100356356-de1b84283e18?auto=format&fit=crop&w=1800&q=80',
-                'https://images.unsplash.com/photo-1500375592092-40eb2168fd21?auto=format&fit=crop&w=1800&q=80',
-                'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=1800&q=80',
+                '/assets/images/stock/photo-1507525428034-b723cf961d3e-1440.webp',
+                '/assets/images/stock/photo-1512100356356-de1b84283e18-1440.webp',
+                '/assets/images/stock/photo-1500375592092-40eb2168fd21-1440.webp',
+                '/assets/images/stock/photo-1520250497591-112f2f40a3f4-1440.webp',
             ];
         }
 
@@ -2642,10 +2642,10 @@ class FrontendController extends Controller
 
         if (empty($heroImages)) {
             $heroImages = [
-                'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=1400&q=85',
-                'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=1400&q=85',
-                'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1400&q=85',
-                'https://images.unsplash.com/photo-1548574505-5e239809ee19?w=1400&q=85',
+                '/assets/images/stock/photo-1436491865332-7a61a109cc05-1400.webp',
+                '/assets/images/stock/photo-1542314831-068cd1dbfeeb-1400.webp',
+                '/assets/images/stock/photo-1566073771259-6a8506099945-1400.webp',
+                '/assets/images/stock/photo-1548574505-5e239809ee19-1400.webp',
             ];
         }
 

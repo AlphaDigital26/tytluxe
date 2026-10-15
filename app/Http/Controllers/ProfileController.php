@@ -255,6 +255,25 @@ class ProfileController extends Controller
 
         $user = $request->user();
 
+        // Never leave a paid trip without its owner: the guest would lose the
+        // booking page, invoice, balance payment and cancellation.
+        $activeTrip = $user->bookings()
+            ->where(fn ($q) => $q
+                ->where(fn ($q) => $q->whereIn('status', ['confirmed', 'pending_confirmation', 'on_hold', 'failed_needs_review'])
+                    ->where(fn ($q) => $q->whereNull('check_in')->orWhereDate('check_in', '>=', today())))
+                ->orWhereNotNull('manual_refund_due_at')
+                ->orWhere(fn ($q) => $q->where('status', 'confirmed')->whereNotNull('cancellation_requested_at')))
+            ->orderBy('check_in')
+            ->first();
+
+        if ($activeTrip) {
+            $when = $activeTrip->check_in ? ' on '.\Illuminate\Support\Carbon::parse($activeTrip->check_in)->format('j M Y') : '';
+
+            return back()->withErrors([
+                'password' => "You have a booking ({$activeTrip->reference}){$when} that is still active, so your account can't be deleted yet. Please wait until after your trip, or contact us on +91 98750 73788 and we'll help.",
+            ], 'userDeletion');
+        }
+
         Auth::logout();
 
         $user->delete();

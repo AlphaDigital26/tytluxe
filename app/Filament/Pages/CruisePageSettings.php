@@ -62,21 +62,21 @@ class CruisePageSettings extends Page
             'destinations_label'   => Setting::get('cruise_page.destinations_label', 'Where We Sail'),
             'destinations_heading' => Setting::get('cruise_page.destinations_heading', 'Six Stunning Destinations'),
             'destination_cards'    => Setting::getJson('cruise_page.destination_cards', [
-                ['city' => 'Mumbai',      'tag' => 'Enjoy Unlimited Experiences',  'image_url' => 'https://images.unsplash.com/photo-1595658658481-d53d3f999875?w=700&q=80', 'image_path' => null],
-                ['city' => 'Goa',         'tag' => 'Party Capital of India',        'image_url' => 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=700&q=80', 'image_path' => null],
-                ['city' => 'Lakshadweep', 'tag' => "India's Best Kept Secret",      'image_url' => 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=700&q=80', 'image_path' => null],
-                ['city' => 'Kochi',       'tag' => 'Queen of the Arabian Sea',      'image_url' => 'https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&w=700&q=80', 'image_path' => null],
-                ['city' => 'Chennai',     'tag' => 'The Cultural Capital of India', 'image_url' => 'https://images.unsplash.com/photo-1582510003544-4d00b7f74220?auto=format&fit=crop&w=700&q=80', 'image_path' => null],
-                ['city' => 'Sri Lanka',   'tag' => 'Island of Wonder',              'image_url' => 'https://images.unsplash.com/photo-1588411393236-d2524cca1196?auto=format&fit=crop&w=700&q=80', 'image_path' => null],
+                ['city' => 'Mumbai',      'tag' => 'Enjoy Unlimited Experiences',  'image_url' => '/assets/images/stock/photo-1595658658481-d53d3f999875-700.webp', 'image_path' => null],
+                ['city' => 'Goa',         'tag' => 'Party Capital of India',        'image_url' => '/assets/images/stock/photo-1512343879784-a960bf40e7f2-700.webp', 'image_path' => null],
+                ['city' => 'Lakshadweep', 'tag' => "India's Best Kept Secret",      'image_url' => '/assets/images/stock/photo-1507525428034-b723cf961d3e-700.webp', 'image_path' => null],
+                ['city' => 'Kochi',       'tag' => 'Queen of the Arabian Sea',      'image_url' => '/assets/images/stock/photo-1602216056096-3b40cc0c9944-700.webp', 'image_path' => null],
+                ['city' => 'Chennai',     'tag' => 'The Cultural Capital of India', 'image_url' => '/assets/images/stock/photo-1582510003544-4d00b7f74220-700.webp', 'image_path' => null],
+                ['city' => 'Sri Lanka',   'tag' => 'Island of Wonder',              'image_url' => '/assets/images/stock/photo-1588411393236-d2524cca1196-700.webp', 'image_path' => null],
             ]),
 
             // Experience Tabs
             'dining_intro'   => Setting::get('cruise_page.dining_intro',   'From premium restaurants and world-class dining to street food favourites — all food preferences are taken care of onboard The Empress. Pure vegetarian & Jain options available throughout.'),
             'dining_items'   => Setting::getJson('cruise_page.dining_items', [
-                ['name' => 'Starlight',      'description' => 'Experience waterfront dining at Starlight, a two-level restaurant onboard.', 'image_url' => 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=500&q=80', 'image_path' => null],
-                ['name' => 'Chopstix',       'description' => 'A culinary tour of exotic Pan-Asian cuisines at this speciality restaurant.', 'image_url' => 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=500&q=80', 'image_path' => null],
-                ['name' => "Chef's Table",   'description' => 'A global culinary pavilion with delectable delicacies from a specially curated menu.', 'image_url' => 'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=500&q=80', 'image_path' => null],
-                ['name' => 'Food Pavilions', 'description' => 'Essence of India · Far Eastern Kadhai · Hot Clay Tandoor · International Grill · Kettle & Bun · Street Food · Frozen desserts · The Cafe.', 'image_url' => 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=500&q=80', 'image_path' => null],
+                ['name' => 'Starlight',      'description' => 'Experience waterfront dining at Starlight, a two-level restaurant onboard.', 'image_url' => '/assets/images/stock/photo-1414235077428-338989a2e8c0-500.webp', 'image_path' => null],
+                ['name' => 'Chopstix',       'description' => 'A culinary tour of exotic Pan-Asian cuisines at this speciality restaurant.', 'image_url' => '/assets/images/stock/photo-1579871494447-9811cf80d66c-500.webp', 'image_path' => null],
+                ['name' => "Chef's Table",   'description' => 'A global culinary pavilion with delectable delicacies from a specially curated menu.', 'image_url' => '/assets/images/stock/photo-1559339352-11d035aa65de-500.webp', 'image_path' => null],
+                ['name' => 'Food Pavilions', 'description' => 'Essence of India · Far Eastern Kadhai · Hot Clay Tandoor · International Grill · Kettle & Bun · Street Food · Frozen desserts · The Cafe.', 'image_url' => '/assets/images/stock/photo-1555396273-367ea4eb4db5-500.webp', 'image_path' => null],
             ]),
 
             'entertainment_intro' => Setting::get('cruise_page.entertainment_intro', "From India's most popular entertainment shows at the Marquee Theatre to live music, magic shows, outdoor movie nights and professional theatre performances."),

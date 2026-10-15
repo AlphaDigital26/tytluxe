@@ -1146,11 +1146,11 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
 =================================================== -->
 <x-hero-carousel
   :slides="[
-    'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=1600&q=85',
-    'https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?w=1600&q=85',
-    'https://images.unsplash.com/photo-1564501049412-61c2a3083791?w=1600&q=85',
-    'https://images.unsplash.com/photo-1549294413-26f195200c16?w=1600&q=85',
-    'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=1600&q=85'
+    '/assets/images/stock/photo-1542314831-068cd1dbfeeb-1600.webp',
+    '/assets/images/stock/photo-1571003123894-1f0594d2b5d9-1600.webp',
+    '/assets/images/stock/photo-1564501049412-61c2a3083791-1600.webp',
+    '/assets/images/stock/photo-1549294413-26f195200c16-1600.webp',
+    '/assets/images/stock/photo-1520250497591-112f2f40a3f4-1600.webp'
   ]"
   eyebrow="Curated Collection"
   title="Handpicked Hotels &amp;<br><em>Luxury Stays</em>"
@@ -1774,7 +1774,7 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
       </div>
     </div>
     <div class="htl-banner-img">
-      <img src="https://images.unsplash.com/photo-1564501049412-61c2a3083791?w=800&q=85" alt="Luxury Hotel Lobby" loading="lazy" />
+      <img src="/assets/images/stock/photo-1564501049412-61c2a3083791-800.webp" alt="Luxury Hotel Lobby" loading="lazy" />
     </div>
   </div>
 </div>

@@ -22,7 +22,7 @@
   "name": "Take Your Trip",
   "alternateName": ["TYT Luxe", "tytluxe", "Take Your Trip Luxe"],
   "url": "https://tytluxe.in/",
-  "logo": "{{ asset('assets/images/tyt-logo.png') }}",
+  "logo": "{{ asset('assets/images/tyt-logo.webp') }}",
   "image": "{{ asset('assets/images/og-image.jpg') }}",
   "description": "Handpicked luxury hotels and premium cruises for Indian travellers. Personalised travel planning with a 2-hour WhatsApp response guarantee.",
   "telephone": "+91-98750-73788",
@@ -46,7 +46,7 @@
 ============================ -->
 
 <section class="hero"
-    style="background-image: url('{{ asset('assets/images/Carousel.jpeg') }}');">
+    style="background-image: url('{{ asset('assets/images/Carousel.webp') }}');">
 
     <div class="container">
 
@@ -294,7 +294,7 @@
                 <div class="item-info"><h4>Honeymoon Stays</h4></div>
             </a>
             <a href="{{ url('/hotels') }}" class="item-card">
-                <img src="{{ asset('assets/images/Hotel Collections 4.png') }}" alt="Family-friendly hotel with pool area" width="400" height="300" loading="lazy">
+                <img src="{{ asset('assets/images/Hotel Collections 4.webp') }}" alt="Family-friendly hotel with pool area" width="400" height="300" loading="lazy">
                 <div class="item-info"><h4>Family Friendly</h4></div>
             </a>
         </div>
@@ -317,7 +317,7 @@
                 <div class="item-info"><h4>Scenic Getaways</h4></div>
             </a>
             <a href="{{ url('/cruises') }}" class="item-card cruise-card">
-                <img src="{{ asset('assets/images/Cruise Experiences 2.png') }}" alt="Luxury cruise ship on open ocean" width="400" height="300" loading="lazy">
+                <img src="{{ asset('assets/images/Cruise Experiences 2.webp') }}" alt="Luxury cruise ship on open ocean" width="400" height="300" loading="lazy">
                 <div class="item-info"><h4>Luxury Cruises</h4></div>
             </a>
             <a href="{{ url('/cruises') }}" class="item-card cruise-card">
@@ -400,7 +400,7 @@
 </section>
 
 <!-- CTA Banner -->
-<section class="cta-banner" style="background-image: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('{{ asset('assets/images/Carousel.jpeg') }}'); background-size: cover; background-position: center;">
+<section class="cta-banner" style="background-image: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('{{ asset('assets/images/Carousel.webp') }}'); background-size: cover; background-position: center;">
     <div class="container">
         <div class="cta-banner-inner">
             <div>

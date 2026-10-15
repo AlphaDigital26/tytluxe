@@ -239,7 +239,7 @@
           <ul class="pc-terms" style="margin-top:16px;">
             <li>The balance must be paid by <strong id="tDue"></strong> ({{ $balanceDueDays }} days before departure).</li>
             <li>If the balance is not paid before departure, the booking is cancelled and the booking amount is <strong>not refundable</strong>.</li>
-            <li>You can cancel online until <strong id="tCancel"></strong> ({{ $cancelDays }} days before departure). Our team confirms any refund under our <a href="{{ route('cancellation') }}" target="_blank" style="color:var(--gold);">cancellation policy</a>.</li>
+            <li>You can cancel online until <strong id="tCancel"></strong> ({{ $cancelDays }} days before departure). Our team confirms any refund under our <a href="{{ route('cancellation') }}#online-group-packages" target="_blank" style="color:var(--gold);">cancellation policy</a>.</li>
           </ul>
           <label class="pc-check">
             <input type="checkbox" name="terms" value="1" @checked(old('terms')) required>
