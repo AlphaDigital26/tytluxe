@@ -42,6 +42,21 @@ class Package extends Model
     }
 
     /** Guests can book and pay on the website (group tours the client switched on). */
+    /**
+     * Only a guest with a fully paid booking of this package may review it
+     * (not one who has paid only the booking amount, nor a cancelled one).
+     */
+    public function canBeReviewedBy(?int $userId): bool
+    {
+        return $userId !== null && Booking::where('user_id', $userId)
+            ->where('vertical', 'package')
+            ->where('package_id', $this->id)
+            ->where('status', 'confirmed')
+            ->whereNull('cancellation_requested_at')
+            ->where(fn ($q) => $q->whereNull('package_balance_amount')->orWhere('package_balance_amount', '<=', 0))
+            ->exists();
+    }
+
     public function acceptsOnlineBooking(): bool
     {
         return $this->online_booking && $this->is_active && $this->tour_type !== 'custom' && $this->priceOptions() !== [];

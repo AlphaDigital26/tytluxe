@@ -121,6 +121,7 @@ class PackageForm
                                 ->numeric()
                                 ->minValue(0)
                                 ->maxValue(65535)
+                                ->live(onBlur: true)
                                 ->suffix('nights'),
 
                             TextInput::make('booking_amount')
@@ -315,18 +316,49 @@ class PackageForm
                                 ->label('Travel Dates / Batches')
                                 ->helperText('Add fixed departure batches for this tour. They will be automatically grouped by month on the website.')
                                 ->schema([
+                                    // Pick the start date only: the end date follows from the
+                                    // package's number of nights (Pricing tab), e.g. 3 nights
+                                    // from 10 Nov → 13 Nov. It can still be changed by hand.
                                     DatePicker::make('start_date')
                                         ->label('Start Date')
                                         ->required()
                                         ->native(false)
-                                        ->displayFormat('d M Y'),
+                                        ->displayFormat('d M Y')
+                                        ->closeOnDateSelection()
+                                        ->live()
+                                        ->afterStateUpdated(function ($state, $get, $set) {
+                                            $nights = (int) $get('../../duration_nights');
+                                            if ($state && $nights > 0) {
+                                                $set('end_date', \Carbon\Carbon::parse($state)->addDays($nights)->toDateString());
+                                            }
+                                        })
+                                        ->helperText(fn ($get) => (int) $get('../../duration_nights') > 0
+                                            ? 'The end date fills in by itself ('.(int) $get('../../duration_nights').' nights later).'
+                                            : 'Tip: set "Duration (number of nights)" in the Pricing tab and the end date fills in by itself.'),
 
                                     DatePicker::make('end_date')
                                         ->label('End Date')
                                         ->required()
                                         ->native(false)
                                         ->displayFormat('d M Y')
-                                        ->afterOrEqual('start_date'),
+                                        ->closeOnDateSelection()
+                                        ->live()
+                                        ->minDate(fn ($get) => $get('start_date'))
+                                        ->afterOrEqual('start_date')
+                                        ->helperText(function ($get) {
+                                            $start = $get('start_date');
+                                            $end = $get('end_date');
+                                            if (! $start || ! $end) {
+                                                return null;
+                                            }
+                                            $n = \Carbon\Carbon::parse($start)->diffInDays(\Carbon\Carbon::parse($end));
+                                            $expected = (int) $get('../../duration_nights');
+                                            $text = $n.' night'.($n === 1 ? '' : 's').' / '.($n + 1).' day'.($n === 0 ? '' : 's');
+
+                                            return $expected > 0 && $n !== $expected
+                                                ? new HtmlString('<span style="color:#d97706;">'.$text.' — this package is '.$expected.' nights. Check the dates.</span>')
+                                                : $text;
+                                        }),
 
                                     TextInput::make('total_seats')
                                         ->label('Total seats  (optional)')
@@ -357,7 +389,9 @@ class PackageForm
                                 ->collapsed(false)
                                 ->itemLabel(fn (array $state): string =>
                                     (isset($state['start_date']) && isset($state['end_date']))
-                                        ? \Carbon\Carbon::parse($state['start_date'])->format('d M Y') . ' — ' . \Carbon\Carbon::parse($state['end_date'])->format('d M Y')
+                                        ? \Carbon\Carbon::parse($state['start_date'])->format('D, d M Y') . ' — ' . \Carbon\Carbon::parse($state['end_date'])->format('D, d M Y')
+                                            . '  ·  ' . ($n = \Carbon\Carbon::parse($state['start_date'])->diffInDays(\Carbon\Carbon::parse($state['end_date']))) . 'N/' . ($n + 1) . 'D'
+                                            . (\Carbon\Carbon::parse($state['start_date'])->lt(today()) ? '  ·  past' : '')
                                             . (filled($state['total_seats'] ?? null) ? '  ·  ' . $state['total_seats'] . ' seats' : '')
                                         : 'New Batch'
                                 )

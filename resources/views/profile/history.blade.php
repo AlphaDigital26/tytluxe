@@ -18,16 +18,45 @@
     <div class="history-container">
         <div class="history-grid">
             
-            <!-- LEFT COLUMN -->
+                {{-- Category sidebar: filters every section (trips and enquiries) by type. --}}
+                @php
+                    $allBookings = $upcomingBookings->concat($pastBookings);
+                    $userEnquiries = auth()->user()->enquiries;
+                    $categories = [
+                        'all' => ['All', 'fa-layer-group'],
+                        'hotel' => ['Hotels', 'fa-hotel'],
+                        'flight' => ['Flights', 'fa-plane'],
+                        'package' => ['Packages', 'fa-mountain-sun'],
+                        'cruise' => ['Cruises', 'fa-ship'],
+                    ];
+                    $countFor = fn ($key) => $key === 'all'
+                        ? $allBookings->count() + $userEnquiries->count()
+                        : $allBookings->where('vertical', $key)->count() + $userEnquiries->where('vertical', $key)->count();
+                    $tagFor = fn ($vertical) => $categories[$vertical] ?? ['Booking', 'fa-suitcase'];
+                @endphp
+            <aside class="history-sidebar">
+                <p class="history-sidebar-label">My Bookings</p>
+                <div class="history-tabs" role="tablist" aria-label="Booking type" aria-orientation="vertical">
+                    @foreach($categories as $key => [$label, $icon])
+                        <button type="button" role="tab" class="history-tab {{ $key === 'all' ? 'active' : '' }}" data-filter="{{ $key }}" aria-selected="{{ $key === 'all' ? 'true' : 'false' }}">
+                            <i class="fa-solid {{ $icon }}"></i> <span class="history-tab-label">{{ $label }}</span>
+                            <span class="history-tab-count">{{ $countFor($key) }}</span>
+                        </button>
+                    @endforeach
+                </div>
+            </aside>
+
+            <!-- MAIN COLUMN -->
             <div class="history-main">
-                
+
                 <!-- Upcoming Journeys -->
                 <div class="history-section-title">
                     <h2>Upcoming Journeys</h2>
                 </div>
                 
+                <div class="history-filter-group" data-empty-text="upcoming">
                 @forelse($upcomingBookings as $booking)
-                <div class="journey-card">
+                <div class="journey-card" data-vertical="{{ $booking->vertical }}">
                     @php
                         $imageUrl = 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80';
                         $title = 'Booking ' . $booking->reference;
@@ -89,7 +118,10 @@
                     <img src="{{ $imageUrl }}" alt="{{ $title }}" class="journey-img">
                     <div class="journey-content">
                         <div class="journey-header">
-                            <span class="status-badge">{{ $booking->guestStatusLabel() }}</span>
+                            <span>
+                                <span class="history-type-tag"><i class="fa-solid {{ $tagFor($booking->vertical)[1] }}"></i> {{ \Illuminate\Support\Str::singular($tagFor($booking->vertical)[0]) }}</span>
+                                <span class="status-badge">{{ $booking->guestStatusLabel() }}</span>
+                            </span>
                             <span>
                                 @if($booking->check_in && $booking->check_out)
                                     {{ \Carbon\Carbon::parse($booking->check_in)->format('M d') }} - {{ \Carbon\Carbon::parse($booking->check_out)->format('M d, Y') }}
@@ -121,17 +153,18 @@
                     </div>
                 </div>
                 @empty
-                    <p style="padding: 10px; color: #666;">You have no upcoming journeys.</p>
                 @endforelse
+                    <p class="history-empty" style="padding: 10px; color: #666;">You have no upcoming <span class="history-empty-type">journeys</span>.</p>
+                </div>
 
                 <!-- Enquiries -->
                 <div class="history-section-title">
                     <h2>Your Enquiries</h2>
                 </div>
 
-                <div class="concierge-list">
-                    @forelse(auth()->user()->enquiries as $enquiry)
-                        <div class="concierge-item">
+                <div class="concierge-list history-filter-group">
+                    @forelse($userEnquiries as $enquiry)
+                        <div class="concierge-item" data-vertical="{{ $enquiry->vertical }}">
                             <div class="concierge-icon">
                                 <i class="fa-solid fa-clipboard-list" style="font-size: 24px; color: var(--primary);"></i>
                             </div>
@@ -146,8 +179,8 @@
                             </div>
                         </div>
                     @empty
-                        <p style="padding: 10px; color: #666;">You have no enquiries yet.</p>
                     @endforelse
+                    <p class="history-empty" style="padding: 10px; color: #666;">You have no <span class="history-empty-type"></span>enquiries yet.</p>
                 </div>
 
                 <!-- Past Journeys -->
@@ -155,7 +188,7 @@
                     <h2>Past Journeys</h2>
                 </div>
                 
-                <div class="past-journeys-grid">
+                <div class="past-journeys-grid history-filter-group">
                     @forelse($pastBookings as $booking)
                         @php
                             $imageUrl = 'https://images.unsplash.com/photo-1570077188670-e3a8d69ac5f1?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80';
@@ -205,11 +238,14 @@
                                 'eticketUrl' => $booking->hasETicket() ? route('flight.booking.eticket', $booking->reference) : null,
                             ];
                         @endphp
-                        <div class="past-card">
+                        <div class="past-card" data-vertical="{{ $booking->vertical }}">
                             <img src="{{ $imageUrl }}" alt="{{ $title }}" class="past-img">
                             <div class="past-content">
                                 <div class="journey-header">
-                                    <span class="status-badge" style="background: var(--white-10); color: var(--white-60); border: 1px solid var(--border-color);">{{ $booking->guestStatusLabel() }}</span>
+                                    <span>
+                                        <span class="history-type-tag"><i class="fa-solid {{ $tagFor($booking->vertical)[1] }}"></i> {{ \Illuminate\Support\Str::singular($tagFor($booking->vertical)[0]) }}</span>
+                                        <span class="status-badge" style="background: var(--white-10); color: var(--white-60); border: 1px solid var(--border-color);">{{ $booking->guestStatusLabel() }}</span>
+                                    </span>
                                     <span>
                                         @if($booking->check_in)
                                             {{ \Carbon\Carbon::parse($booking->check_in)->format('M Y') }}
@@ -227,8 +263,8 @@
                             </div>
                         </div>
                     @empty
-                        <p style="padding: 10px; color: #666; grid-column: 1 / -1;">You have no past journeys.</p>
                     @endforelse
+                    <p class="history-empty" style="padding: 10px; color: #666; grid-column: 1 / -1;">You have no past <span class="history-empty-type">journeys</span>.</p>
                 </div>
 
             </div>
@@ -349,6 +385,42 @@
     opacity: 0; pointer-events: none; transition: opacity 0.28s ease;
   }
   .bd-modal-backdrop.open { opacity: 1; pointer-events: auto; }
+
+  /* Category sidebar (left column; a scrolling bar on phones) */
+  .history-grid { grid-template-columns: 230px minmax(0, 1fr); align-items: start; }
+  .history-sidebar {
+    position: sticky; top: 110px; background: #121212; border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 18px; padding: 18px 12px;
+  }
+  .history-sidebar-label { margin: 0 8px 12px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: #c9a84c; }
+  .history-tabs { display: flex; flex-direction: column; gap: 4px; }
+  .history-tab {
+    display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 14px; border-radius: 12px;
+    background: transparent; border: 1px solid transparent; color: rgba(255,255,255,0.75);
+    font-size: 14px; font-weight: 500; cursor: pointer; text-align: left; transition: all 0.2s ease;
+  }
+  .history-tab i { width: 18px; text-align: center; color: #c9a84c; font-size: 14px; }
+  .history-tab-label { flex: 1; }
+  .history-tab:hover { background: rgba(255,255,255,0.05); color: #fff; }
+  .history-tab.active { background: linear-gradient(90deg, #c9a84c, #e8c96b); color: #0d0d0d; font-weight: 600; }
+  .history-tab.active i { color: #0d0d0d; }
+  .history-tab-count { min-width: 22px; padding: 1px 7px; border-radius: 100px; background: rgba(255,255,255,0.08); font-size: 11.5px; text-align: center; }
+  @media (max-width: 900px) {
+    .history-grid { grid-template-columns: 1fr; gap: 20px; }
+    .history-sidebar { position: static; padding: 0; background: none; border: none; }
+    .history-sidebar-label { display: none; }
+    .history-tabs { flex-direction: row; overflow-x: auto; gap: 8px; padding-bottom: 4px; scrollbar-width: none; }
+    .history-tabs::-webkit-scrollbar { display: none; }
+    .history-tab { flex: none; width: auto; border-radius: 100px; padding: 9px 16px; background: #141414; border-color: rgba(255,255,255,0.12); }
+    .history-tab-label { flex: none; }
+  }
+  .history-tab.active .history-tab-count { background: rgba(0,0,0,0.15); }
+  .history-type-tag {
+    display: inline-flex; align-items: center; gap: 6px; margin-right: 8px; padding: 4px 10px; border-radius: 6px;
+    background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.75); font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .history-type-tag i { color: #c9a84c; }
+  .history-filter-group [data-vertical].is-hidden { display: none !important; }
   .bd-modal-card {
     background: #171717; border: 1px solid rgba(201,168,76,0.28); border-radius: 20px;
     max-width: 480px; width: 100%; max-height: 90vh; overflow-y: auto; position: relative;
@@ -566,6 +638,46 @@
   document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') closeModal();
   });
+})();
+
+// Category tabs: show only the chosen type in every section, with a
+// matching "no … yet" line when a section has none of it.
+(function () {
+  var tabs = document.querySelectorAll('.history-tab');
+  var words = { all: '', hotel: 'hotel ', flight: 'flight ', package: 'package ', cruise: 'cruise ' };
+
+  function apply(filter) {
+    tabs.forEach(function (t) {
+      var on = t.dataset.filter === filter;
+      t.classList.toggle('active', on);
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    document.querySelectorAll('.history-filter-group').forEach(function (group) {
+      var shown = 0;
+      group.querySelectorAll('[data-vertical]').forEach(function (card) {
+        var match = filter === 'all' || card.dataset.vertical === filter;
+        card.classList.toggle('is-hidden', !match);
+        if (match) shown++;
+      });
+      var empty = group.querySelector('.history-empty');
+      if (empty) {
+        empty.style.display = shown ? 'none' : '';
+        var type = empty.querySelector('.history-empty-type');
+        if (type) {
+          // Enquiries: "no hotel enquiries yet"; trips: "no upcoming hotel bookings".
+          type.textContent = group.classList.contains('concierge-list')
+            ? words[filter]
+            : (filter === 'all' ? 'journeys' : words[filter] + 'bookings');
+        }
+      }
+    });
+    try { sessionStorage.setItem('historyFilter', filter); } catch (e) {}
+  }
+
+  tabs.forEach(function (t) { t.addEventListener('click', function () { apply(t.dataset.filter); }); });
+  var saved = null;
+  try { saved = sessionStorage.getItem('historyFilter'); } catch (e) {}
+  apply(saved && document.querySelector('.history-tab[data-filter="' + saved + '"]') ? saved : 'all');
 })();
 </script>
 @endsection

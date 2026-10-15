@@ -291,6 +291,44 @@
 .pd-book-form { margin-bottom: 12px; }
 .pd-book-form .pd-form-select { width: 100%; box-sizing: border-box; margin-bottom: 10px; }
 .pd-book-label { display: block; font-family: 'Jost', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--white-60); margin-bottom: 6px; }
+/* Travel dates: one card per departure */
+.pd-month-chips { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 18px; scrollbar-width: none; }
+.pd-month-chips::-webkit-scrollbar { display: none; }
+.pd-month-chip { flex: none; padding: 8px 16px; border-radius: 100px; background: transparent; border: 1px solid var(--white-10); color: var(--white-60); font-family: 'Jost', sans-serif; font-size: 13px; cursor: pointer; transition: all .2s; }
+.pd-month-chip:hover { color: #fff; border-color: var(--gold-dim); }
+.pd-month-chip.active { background: var(--gold); border-color: var(--gold); color: #0d0d0d; font-weight: 600; }
+.pd-departures { display: flex; flex-direction: column; gap: 8px; }
+.pd-dep { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 10px 14px 10px 10px; border-radius: 12px; background: var(--dark-3, #1b1b1b); border: 1px solid var(--white-10); font-family: 'Jost', sans-serif; transition: border-color .2s, transform .2s; }
+.pd-dep[hidden] { display: none; }
+.pd-dep:hover { border-color: var(--gold-dim); transform: translateY(-2px); }
+.pd-dep.is-off { opacity: .5; }
+.pd-dep.is-off:hover { transform: none; border-color: var(--white-10); }
+.pd-dep-cal { display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 9px; overflow: hidden; background: #0f0f0f; border: 1px solid var(--white-10); padding-bottom: 3px; }
+.pd-dep-mon { width: 100%; text-align: center; background: var(--gold); color: #0d0d0d; font-size: 9px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; padding: 2px 0; }
+.pd-dep-day { font-size: 19px; font-weight: 600; color: #fff; line-height: 1.2; }
+.pd-dep-dow { display: none; }
+.pd-dep-range { color: #fff; font-size: 14px; font-weight: 500; }
+.pd-dep-range i { color: var(--gold); font-size: 12px; margin: 0 6px; }
+.pd-dep-tags { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 3px; font-size: 12px; color: var(--white-60); }
+.pd-dep-tags i { color: var(--gold); margin-right: 3px; }
+.pd-dep-peak { color: #f0b46a; }
+.pd-dep-peak i { color: #f0b46a; }
+.pd-dep-hot { color: #f3a3a3; font-weight: 600; }
+.pd-dep-bad { color: #f3a3a3; }
+.pd-dep-bar { height: 3px; max-width: 180px; margin-top: 6px; border-radius: 100px; background: rgba(255,255,255,0.08); overflow: hidden; }
+.pd-dep-bar span { display: block; height: 100%; border-radius: 100px; background: linear-gradient(90deg, #c9a84c, #e8c96b); }
+.pd-dep-cta { display: flex; align-items: center; gap: 16px; }
+.pd-dep-price { color: #fff; font-size: 15px; font-weight: 600; white-space: nowrap; text-align: right; }
+.pd-dep-price small { font-size: 11px; font-weight: 400; color: var(--white-60); margin: 0 2px; }
+.pd-dep-btn { padding: 7px 18px; border-radius: 100px; background: var(--gold); color: #0d0d0d; font-size: 11.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; text-decoration: none; white-space: nowrap; transition: background .2s; }
+.pd-dep-btn:hover { background: var(--gold-light); }
+.pd-dep-btn-ghost { background: transparent; border: 1px solid var(--gold); color: var(--gold); }
+.pd-dep-btn-ghost:hover { background: var(--gold-dim); }
+@media (max-width: 640px) {
+  .pd-dep { grid-template-columns: 46px minmax(0, 1fr); gap: 12px; padding: 10px; }
+  .pd-dep-cta { grid-column: 1 / -1; justify-content: space-between; padding-top: 8px; border-top: 1px solid var(--white-10); }
+  .pd-dep-price { text-align: left; }
+}
 .pd-seat-tag { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 100px; font-size: 10.5px; font-weight: 600; background: var(--gold-dim); color: var(--gold); }
 .pd-seat-tag.pd-seat-soldout { background: rgba(220,80,80,0.12); color: #f3a3a3; }
 .pd-alert { padding: 14px 20px; border-radius: 8px; margin-bottom: 20px; font-family: 'Jost', sans-serif; font-size: 14px; }
@@ -331,13 +369,8 @@
 @php
     $heroImage = $package->hero_image_url;
 
-    $hasBooked = auth()->check()
-        ? \App\Models\Booking::where('user_id', auth()->id())
-            ->where('vertical', 'package')
-            ->where('package_id', $package->id)
-            ->where('status', 'confirmed')
-            ->exists()
-        : false;
+    // Reviews are only for guests who have fully paid for this package.
+    $hasBooked = $package->canBeReviewedBy(auth()->id());
 
     $publishedReviews = isset($package->reviews)
         ? $package->reviews->where('is_published', true)
@@ -393,7 +426,7 @@
     @if($package->itineraryDays && $package->itineraryDays->count() > 0)
       <a href="#itinerary" class="pd-nav-link">Itinerary</a>
     @endif
-    @if($package->departures && $package->departures->count() > 0)
+    @if($package->departures->isNotEmpty())
       <a href="#dates" class="pd-nav-link">Dates</a>
     @endif
     @if($package->inclusions && $package->inclusions->count() > 0)
@@ -468,52 +501,94 @@
           </div>
         @endif
 
-        {{-- TRAVEL DATES --}}
-        @if($package->departures && $package->departures->count() > 0)
-          @php
-              // Group departures by Year and Month, e.g., "August 2025"
-              $groupedDates = $package->departures->groupBy(function($d) {
-                  return \Carbon\Carbon::parse($d->start_date)->format('F Y');
-              });
-          @endphp
+        {{-- TRAVEL DATES — one card per departure: upcoming first, then past ones
+             faded as "Booking closed". Month buttons show one month at a time. --}}
+        @php
+          [$future, $past] = $package->departures->filter(fn ($d) => $d->start_date)->partition(fn ($d) => $d->start_date->gte(today()));
+          $allDates = $future->sortBy('start_date')->values()->concat($past->sortByDesc('start_date')->values());
+          $months = $allDates->groupBy(fn ($d) => $d->start_date->format('M Y'));
+          $firstMonth = $months->keys()->first();
+          $fromPrice = $priceOptions ? min(array_column($priceOptions, 'price')) : (float) $package->price_from;
+        @endphp
+        @if($allDates->isNotEmpty())
           <div class="pd-section" id="dates">
             <div class="pd-section-label">Plan Your Trip</div>
             <h2 class="pd-section-title">Travel <em>Dates</em></h2>
-            <div class="pd-dates-grid">
-              @foreach($groupedDates as $monthName => $dates)
-                <div class="pd-month-card">
-                  <div class="pd-month-name">{{ $monthName }}</div>
-                  <ul class="pd-date-list">
-                    @foreach($dates as $date)
-                      @php
-                        $dateLabel = \Carbon\Carbon::parse($date->start_date)->format('d M').' – '.\Carbon\Carbon::parse($date->end_date)->format('d M');
-                        $open = $onlineBooking && $date->isOpenForBooking();
-                        $left = $onlineBooking ? $date->seatsLeft() : null;
-                      @endphp
-                      <li class="pd-date-item">
-                        @if($open)
-                          <a href="{{ route('package.checkout', ['slug' => $package->slug, 'departure' => $date->id]) }}" style="color:inherit;text-decoration:none;">{{ $dateLabel }}</a>
-                        @else
-                          {{ $dateLabel }}
-                        @endif
-                        @if($onlineBooking)
-                          @if($left === 0)
-                            <span class="pd-seat-tag pd-seat-soldout">Sold out</span>
-                          @elseif(! $date->isOpenForBooking())
-                            <span class="pd-seat-tag pd-seat-soldout">Closed</span>
-                          @elseif($left !== null && $left <= 10)
-                            <span class="pd-seat-tag">{{ $left }} seat{{ $left === 1 ? '' : 's' }} left</span>
-                          @endif
-                          @if((float) $date->extra_price > 0)
-                            <span class="pd-seat-tag">+&#8377;{{ number_format($date->extra_price, 0) }} peak</span>
-                          @endif
-                        @endif
-                      </li>
-                    @endforeach
-                  </ul>
+
+            @if($months->count() > 1)
+              <div class="pd-month-chips" role="tablist" aria-label="Choose a month">
+                @foreach($months as $month => $list)
+                  <button type="button" role="tab" class="pd-month-chip {{ $month === $firstMonth ? 'active' : '' }}" data-month="{{ \Illuminate\Support\Str::slug($month) }}" aria-selected="{{ $month === $firstMonth ? 'true' : 'false' }}">{{ $month }}</button>
+                @endforeach
+              </div>
+            @endif
+
+            <div class="pd-departures">
+              @foreach($allDates as $date)
+                @php
+                  $start = $date->start_date;
+                  $end = $date->end_date;
+                  $nights = $end ? $start->diffInDays($end) : null;
+                  $open = $onlineBooking && $date->isOpenForBooking();
+                  $left = $onlineBooking ? $date->seatsLeft() : null;
+                  $total = $date->total_seats;
+                  $isPast = $start->lt(today());
+                  $soldOut = ! $isPast && $left === 0;
+                  $closed = $isPast || ($onlineBooking && ! $soldOut && ! $open);
+                  $fillPct = ($total && $left !== null) ? max(6, min(100, round(($total - $left) / $total * 100))) : null;
+                  $price = $fromPrice + (float) $date->extra_price;
+                @endphp
+                <div class="pd-dep {{ $soldOut || $closed ? 'is-off' : '' }}" data-month="{{ \Illuminate\Support\Str::slug($start->format('M Y')) }}" @if($months->count() > 1 && $start->format('M Y') !== $firstMonth) hidden @endif>
+                  <div class="pd-dep-cal">
+                    <span class="pd-dep-mon">{{ $start->format('M') }}</span>
+                    <span class="pd-dep-day">{{ $start->format('d') }}</span>
+                    <span class="pd-dep-dow">{{ $start->format('D') }}</span>
+                  </div>
+
+                  <div class="pd-dep-info">
+                    <div class="pd-dep-range">
+                      {{ $start->format('D, d M') }} <i class="fa-solid fa-arrow-right-long"></i> {{ $end?->format('D, d M') }}
+                    </div>
+                    <div class="pd-dep-tags">
+                      @if($nights)<span><i class="fa-regular fa-moon"></i> {{ $nights }}N / {{ $nights + 1 }}D</span>@endif
+                      @if((float) $date->extra_price > 0 && ! $closed)<span class="pd-dep-peak"><i class="fa-solid fa-fire"></i> Peak date</span>@endif
+                      @if($soldOut)<span class="pd-dep-bad">Sold out</span>
+                      @elseif($closed)<span class="pd-dep-bad">Booking closed</span>
+                      @elseif($left !== null && $left <= 5)<span class="pd-dep-hot">Only {{ $left }} seat{{ $left === 1 ? '' : 's' }} left</span>
+                      @elseif($left !== null)<span>{{ $left }} seats left</span>
+                      @endif
+                    </div>
+                    @if($fillPct !== null && ! $closed)
+                      <div class="pd-dep-bar" title="{{ $total - $left }} of {{ $total }} seats booked"><span style="width: {{ $fillPct }}%"></span></div>
+                    @endif
+                  </div>
+
+                  <div class="pd-dep-cta">
+                    @if($onlineBooking && $price > 0 && ! $closed && ! $soldOut)
+                      <div class="pd-dep-price"><small>from</small> &#8377;{{ number_format($price, 0) }}<small>/person</small></div>
+                    @endif
+                    @if($open)
+                      <a href="{{ route('package.checkout', ['slug' => $package->slug, 'departure' => $date->id]) }}" class="pd-dep-btn">Select</a>
+                    @elseif(! $onlineBooking && ! $isPast)
+                      <a href="https://wa.me/919875073788?text={{ urlencode('Hi! I am interested in '.$package->title.' departing '.$start->format('d M Y').'.') }}" target="_blank" class="pd-dep-btn pd-dep-btn-ghost">Enquire</a>
+                    @endif
+                  </div>
                 </div>
               @endforeach
             </div>
+            @if($months->count() > 1)
+              <script>
+                document.querySelectorAll('.pd-month-chip').forEach(function (chip) {
+                  chip.addEventListener('click', function () {
+                    document.querySelectorAll('.pd-month-chip').forEach(function (c) {
+                      c.classList.toggle('active', c === chip);
+                      c.setAttribute('aria-selected', c === chip ? 'true' : 'false');
+                    });
+                    document.querySelectorAll('.pd-dep').forEach(function (d) { d.hidden = d.dataset.month !== chip.dataset.month; });
+                  });
+                });
+              </script>
+            @endif
           </div>
         @endif
 

@@ -2943,14 +2943,8 @@ class FrontendController extends Controller
             'images.*' => 'nullable|image|max:2048', // up to 2MB per image
         ]);
 
-        $hasBooked = \App\Models\Booking::where('user_id', auth()->id())
-            ->where('vertical', 'package')
-            ->where('package_id', $package->id)
-            ->where('status', 'confirmed')
-            ->exists();
-
-        if (!$hasBooked) {
-            return back()->with('error', 'You can only review packages you have booked and completed.');
+        if (! $package->canBeReviewedBy(auth()->id())) {
+            return back()->with('error', 'You can review this package once your booking is fully paid.');
         }
 
         $imagePaths = [];
