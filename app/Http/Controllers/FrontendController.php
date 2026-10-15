@@ -2528,9 +2528,7 @@ class FrontendController extends Controller
 
         // Resolve destination card images (uploaded file takes priority)
         $destinationCards = array_map(function ($card) {
-            $card['resolved_image'] = (!empty($card['image_path']) && Storage::disk('public')->exists($card['image_path']))
-                ? Storage::disk('public')->url($card['image_path'])
-                : ($card['image_url'] ?? null);
+            $card['resolved_image'] = $this->settingImageUrl($card);
             return $card;
         }, $destinationCards);
 
@@ -2547,9 +2545,7 @@ class FrontendController extends Controller
 
         // Resolve dining item images
         $diningItems = array_map(function ($item) {
-            $item['resolved_image'] = (!empty($item['image_path']) && Storage::disk('public')->exists($item['image_path']))
-                ? Storage::disk('public')->url($item['image_path'])
-                : ($item['image_url'] ?? null);
+            $item['resolved_image'] = $this->settingImageUrl($item);
             return $item;
         }, $diningItems);
 
@@ -2594,6 +2590,25 @@ class FrontendController extends Controller
         ));
     }
 
+    /**
+     * Image for an item saved from a page-settings screen: the uploaded file
+     * when it exists, else the image link. The admin's upload field can save
+     * the path as a list (["uuid" => "path"]) instead of a plain string.
+     */
+    protected function settingImageUrl(array $item): ?string
+    {
+        $path = $item['image_path'] ?? null;
+        if (is_array($path)) {
+            $path = collect($path)->flatten()->first(fn ($p) => is_string($p) && $p !== '');
+        }
+
+        if (is_string($path) && $path !== '' && Storage::disk('public')->exists($path)) {
+            return Storage::disk('public')->url($path);
+        }
+
+        return is_string($item['image_url'] ?? null) && $item['image_url'] !== '' ? $item['image_url'] : null;
+    }
+
     public function packages()
     {
         $packages = \App\Models\Package::with(['destination', 'images', 'inclusions'])
@@ -2614,7 +2629,10 @@ class FrontendController extends Controller
             'highlights',
             'departures',
             'reviews' => fn ($q) => $q->where('is_published', true),
-        ])->where('slug', $slug)->firstOrFail();
+        ])->where('slug', $slug)
+            // Switched-off packages are hidden from guests; admins can still preview them.
+            ->when(! auth('admin')->check(), fn ($q) => $q->where('is_active', true))
+            ->firstOrFail();
 
         return view('pages.package-details', compact('package'));
     }
@@ -2633,12 +2651,10 @@ class FrontendController extends Controller
         $heroTitle    = $s('offers_page.hero_title',    'Exclusive Deals. <em>Unforgettable</em> Experiences.');
         $heroSubtitle = $s('offers_page.hero_subtitle', 'Handpicked offers on flights, hotels, cruises & packages — updated regularly');
 
-        $heroImages = array_values(array_filter(array_map(function ($img) {
-            if (!empty($img['image_path']) && Storage::disk('public')->exists($img['image_path'])) {
-                return Storage::disk('public')->url($img['image_path']);
-            }
-            return $img['image_url'] ?? null;
-        }, $j('offers_page.hero_images', []))));
+        $heroImages = array_values(array_filter(array_map(
+            fn ($img) => $this->settingImageUrl((array) $img),
+            $j('offers_page.hero_images', [])
+        )));
 
         if (empty($heroImages)) {
             $heroImages = [
@@ -2944,7 +2960,7 @@ class FrontendController extends Controller
         ]);
 
         if (! $package->canBeReviewedBy(auth()->id())) {
-            return back()->with('error', 'You can review this package once your booking is fully paid.');
+            return back()->with('error', 'You can review this package once you have completed the trip (one review per trip).');
         }
 
         $imagePaths = [];

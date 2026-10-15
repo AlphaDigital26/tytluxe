@@ -68,6 +68,15 @@ class BookingObserver
             return BookingUpdateMail::BALANCE_PAID;
         }
 
+        // Group package: guest asked to cancel online (the team decides the
+        // refund later). Not when staff cancel directly — that changes status
+        // and sends the "cancelled" email instead.
+        if ($booking->vertical === 'package' && $status === 'confirmed' && ! $booking->wasChanged('status')
+            && $booking->wasChanged('cancellation_requested_at') && $booking->getOriginal('cancellation_requested_at') === null
+            && $booking->cancellation_requested_at !== null) {
+            return BookingUpdateMail::CANCEL_REQUESTED;
+        }
+
         if (! $booking->wasChanged('status')) {
             return null;
         }
