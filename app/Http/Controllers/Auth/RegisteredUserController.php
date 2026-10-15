@@ -37,6 +37,11 @@ class RegisteredUserController extends Controller
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
+        if ($limit = OtpController::codeLimitReached($request->email)) {
+            return back()->withInput($request->except('password', 'password_confirmation'))
+                ->withErrors(['email' => $limit]);
+        }
+
         // Store pending registration data in session (password already hashed)
         $request->session()->put('pending_registration', [
             'name'                 => $request->name,

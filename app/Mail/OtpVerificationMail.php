@@ -15,9 +15,11 @@ class OtpVerificationMail extends Mailable
     /**
      * Create a new message instance.
      */
+    /** $purpose: 'register' (new account) or 'email_change' (confirming a new address on the profile). */
     public function __construct(
         public string $otp,
         public string $userName,
+        public string $purpose = 'register',
     ) {}
 
     /**

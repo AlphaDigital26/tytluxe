@@ -60,9 +60,15 @@
             <div class="body">
                 <p class="greeting">Hello, {{ $userName }}</p>
                 <p class="intro">
+                    @if(($purpose ?? 'register') === 'email_change')
+                    You asked to change the email address on your TYT Luxe account to this one.
+                    Please use the verification code below to confirm it. If you didn't ask for this,
+                    you can ignore this email — nothing will change.
+                    @else
                     Thank you for creating your TYT Luxe account. To complete your registration,
                     please use the verification code below. This code confirms your email address
                     and activates your account.
+                    @endif
                 </p>
 
                 <!-- OTP Display -->
@@ -83,7 +89,7 @@
                 </div>
 
                 <p style="font-size: 13px; color: #888; text-align: center;">
-                    This code is valid for one use only.
+                    This code is valid for {{ \App\Http\Controllers\Auth\OtpController::CODE_VALID_MINUTES }} minutes and can be used once only.
                 </p>
             </div>
 

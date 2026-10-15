@@ -105,6 +105,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update')->middleware('throttle:10,1');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy')->middleware('throttle:5,1');
+    // A new email takes effect only after the 6-digit code sent to it is entered.
+    Route::get('/profile/email/verify', [ProfileController::class, 'showEmailVerify'])->name('profile.email.verify');
+    Route::post('/profile/email/verify', [ProfileController::class, 'verifyEmailChange'])->name('profile.email.verify.submit')->middleware('throttle:10,1');
+    Route::post('/profile/email/resend', [ProfileController::class, 'resendEmailChange'])->name('profile.email.resend')->middleware('throttle:3,1');
+    Route::post('/profile/email/cancel', [ProfileController::class, 'cancelEmailChange'])->name('profile.email.cancel');
     Route::get('/profile/export-data', [ProfileController::class, 'exportData'])->name('profile.export-data')->middleware('throttle:5,1');
 
     Route::post('/profile/traveller', [ProfileController::class, 'storeTraveller'])->name('profile.traveller.store')->middleware('throttle:20,1');

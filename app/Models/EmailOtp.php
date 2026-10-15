@@ -21,6 +21,21 @@ class EmailOtp extends Model
     }
 
     /**
+     * The code as stored: a keyed hash, never the code itself, so a copy of
+     * the database doesn't expose codes that still work.
+     */
+    public static function hashCode(string $code): string
+    {
+        return hash_hmac('sha256', $code, (string) config('app.key'));
+    }
+
+    /** Whether $code is this record's code. */
+    public function matches(string $code): bool
+    {
+        return hash_equals($this->otp, self::hashCode($code));
+    }
+
+    /**
      * Check if this OTP has expired.
      */
     public function isExpired(): bool

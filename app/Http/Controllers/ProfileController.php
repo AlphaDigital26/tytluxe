@@ -48,15 +48,131 @@ class ProfileController extends Controller
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
+        $user = $request->user();
+        $data = $request->validated();
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+        // A new email only takes effect once the 6-digit code sent to it is
+        // entered (verifyEmailChange). Until then the account keeps its old,
+        // verified address — never un-verified, since the hourly cleanup in
+        // routes/console.php deletes unverified accounts.
+        $newEmail = strtolower(trim((string) ($data['email'] ?? '')));
+        unset($data['email']);
+
+        $user->fill($data);
+        $user->save();
+
+        if ($newEmail === '' || $newEmail === strtolower($user->email)) {
+            $request->session()->forget('pending_email_change');
+
+            return Redirect::route('profile.edit')->with('status', 'profile-updated');
         }
 
-        $request->user()->save();
+        if ($limit = \App\Http\Controllers\Auth\OtpController::codeLimitReached($newEmail)) {
+            return Redirect::route('profile.edit')->withErrors(['email' => $limit]);
+        }
 
-        return Redirect::route('profile.edit')->with('status', 'profile-updated');
+        if (\App\Http\Controllers\Auth\OtpController::generateAndSendOtp($newEmail, $user->name, 'email_change') === null) {
+            return Redirect::route('profile.edit')
+                ->withErrors(['email' => \App\Http\Controllers\Auth\OtpController::EMAIL_FAILED_MESSAGE]);
+        }
+
+        $request->session()->put('pending_email_change', ['user_id' => $user->id, 'email' => $newEmail]);
+
+        return Redirect::route('profile.email.verify');
+    }
+
+    /** The guest's own pending email change, or null. */
+    protected function pendingEmailChange(Request $request): ?array
+    {
+        $pending = $request->session()->get('pending_email_change');
+
+        return $pending && (int) ($pending['user_id'] ?? 0) === $request->user()->id ? $pending : null;
+    }
+
+    public function showEmailVerify(Request $request): View|RedirectResponse
+    {
+        $pending = $this->pendingEmailChange($request);
+        if (! $pending) {
+            return Redirect::route('profile.edit');
+        }
+
+        return view('profile.verify-email-change', ['newEmail' => $pending['email']]);
+    }
+
+    public function verifyEmailChange(Request $request): RedirectResponse
+    {
+        $request->validate(['otp' => ['required', 'string', 'size:6', 'regex:/^[0-9]+$/']]);
+
+        $pending = $this->pendingEmailChange($request);
+        if (! $pending) {
+            return Redirect::route('profile.edit')->withErrors(['email' => 'Your email change has expired. Please enter the new email again.']);
+        }
+
+        $otp = \App\Models\EmailOtp::where('email', $pending['email'])->latest()->first();
+        if (! $otp) {
+            return back()->withErrors(['otp' => 'No verification code found. Please request a new one.']);
+        }
+
+        if ($otp->isMaxAttemptsExceeded()) {
+            $otp->delete();
+            $request->session()->forget('pending_email_change');
+
+            return Redirect::route('profile.edit')->withErrors(['email' => 'Too many incorrect codes. Your email was not changed — please try again.']);
+        }
+
+        $otp->increment('attempts');
+
+        if ($otp->isExpired()) {
+            $otp->delete();
+
+            return back()->withErrors(['otp' => \App\Http\Controllers\Auth\OtpController::CODE_EXPIRED_MESSAGE]);
+        }
+
+        if (! $otp->matches((string) $request->input('otp'))) {
+            return back()->withErrors(['otp' => 'Invalid verification code. '.(5 - $otp->fresh()->attempts).' attempt(s) remaining.']);
+        }
+
+        // Someone may have registered this address since the code was sent.
+        if (\App\Models\User::where('email', $pending['email'])->whereKeyNot($request->user()->id)->exists()) {
+            $otp->delete();
+            $request->session()->forget('pending_email_change');
+
+            return Redirect::route('profile.edit')->withErrors(['email' => 'This email is already used by another account.']);
+        }
+
+        $request->user()->forceFill(['email' => $pending['email'], 'email_verified_at' => now()])->save();
+        $otp->delete();
+        $request->session()->forget('pending_email_change');
+
+        return Redirect::route('profile.edit')->with('status', 'email-updated')->with('email_notice', 'Your email has been changed to '.$pending['email'].'.');
+    }
+
+    public function resendEmailChange(Request $request): RedirectResponse
+    {
+        $pending = $this->pendingEmailChange($request);
+        if (! $pending) {
+            return Redirect::route('profile.edit');
+        }
+
+        if ($limit = \App\Http\Controllers\Auth\OtpController::codeLimitReached($pending['email'])) {
+            return back()->withErrors(['otp' => $limit]);
+        }
+
+        if (\App\Http\Controllers\Auth\OtpController::generateAndSendOtp($pending['email'], $request->user()->name, 'email_change') === null) {
+            return back()->withErrors(['otp' => \App\Http\Controllers\Auth\OtpController::EMAIL_FAILED_MESSAGE]);
+        }
+
+        return back()->with('success', 'A new verification code has been sent to '.$pending['email'].'.');
+    }
+
+    public function cancelEmailChange(Request $request): RedirectResponse
+    {
+        if ($pending = $this->pendingEmailChange($request)) {
+            \App\Models\EmailOtp::where('email', $pending['email'])->delete();
+        }
+        $request->session()->forget('pending_email_change');
+
+        return Redirect::route('profile.edit')->with('status', 'email-change-cancelled')->with('email_notice', 'Email change cancelled. Your email was not changed.');
     }
 
     /**
