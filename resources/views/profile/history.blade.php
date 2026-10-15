@@ -3,7 +3,7 @@
 @section('content')
 
 <!-- Profile Hero Section -->
-<section class="profile-hero" style="background-image: linear-gradient(to bottom, rgba(0,0,0,0.4), rgba(0,0,0,1)), url('{{ asset('assets/images/Carousel.jpeg') }}');">
+<section class="profile-hero" style="background-image: linear-gradient(to bottom, rgba(0,0,0,0.4), rgba(0,0,0,1)), url('{{ asset('assets/images/Carousel.webp') }}');">
     <div class="profile-hero-inner">
         <div class="profile-avatar-container">
             <img src="https://ui-avatars.com/api/?name={{ urlencode(auth()->user()->name) }}&color=c9a84c&background=111&size=120" alt="{{ auth()->user()->name }}" class="profile-avatar">
@@ -58,7 +58,7 @@
                 @forelse($upcomingBookings as $booking)
                 <div class="journey-card" data-vertical="{{ $booking->vertical }}">
                     @php
-                        $imageUrl = 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80';
+                        $imageUrl = '/assets/images/stock/photo-1512453979798-5ea266f8880c-600.webp';
                         $title = 'Booking ' . $booking->reference;
                         $location = '';
                         if ($booking->vertical === 'hotel' && $booking->hotel) {
@@ -191,7 +191,7 @@
                 <div class="past-journeys-grid history-filter-group">
                     @forelse($pastBookings as $booking)
                         @php
-                            $imageUrl = 'https://images.unsplash.com/photo-1570077188670-e3a8d69ac5f1?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80';
+                            $imageUrl = '/assets/images/stock/photo-1476514525535-07fb3b4ae5f1-600.webp';
                             $title = 'Booking ' . $booking->reference;
                             $location = '';
                             if ($booking->vertical === 'hotel' && $booking->hotel) {

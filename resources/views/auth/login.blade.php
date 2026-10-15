@@ -86,26 +86,26 @@
                 <img src="{{ asset('assets/images/Cruise Experiences 1.webp') }}" alt="Cruise">
                 <img src="{{ asset('assets/images/Hotel Collections 3.jpg') }}" alt="Hotel">
                 <img src="{{ asset('assets/images/29788-15-hotel_carousel_large.jpg') }}" alt="Flight">
-                <img src="{{ asset('assets/images/Cruise Experiences 2.png') }}" alt="Cruise">
+                <img src="{{ asset('assets/images/Cruise Experiences 2.webp') }}" alt="Cruise">
                 <!-- Duplicate for infinite scroll -->
                 <img src="{{ asset('assets/images/Hotel Collections 1.webp') }}" alt="Hotel">
                 <img src="{{ asset('assets/images/Cruise Experiences 1.webp') }}" alt="Cruise">
                 <img src="{{ asset('assets/images/Hotel Collections 3.jpg') }}" alt="Hotel">
                 <img src="{{ asset('assets/images/29788-15-hotel_carousel_large.jpg') }}" alt="Flight">
-                <img src="{{ asset('assets/images/Cruise Experiences 2.png') }}" alt="Cruise">
+                <img src="{{ asset('assets/images/Cruise Experiences 2.webp') }}" alt="Cruise">
             </div>
             <!-- Column 2 (Scrolls Down) -->
             <div class="grid-column col-down">
                 <img src="{{ asset('assets/images/Hotel Collections 2.jpg') }}" alt="Hotel">
-                <img src="{{ asset('assets/images/Carousel.jpeg') }}" alt="Carousel">
+                <img src="{{ asset('assets/images/Carousel.webp') }}" alt="Carousel">
                 <img src="{{ asset('assets/images/Cruise Experiences 3.webp') }}" alt="Cruise">
-                <img src="{{ asset('assets/images/Hotel Collections 4.png') }}" alt="Hotel">
+                <img src="{{ asset('assets/images/Hotel Collections 4.webp') }}" alt="Hotel">
                 <img src="{{ asset('assets/images/cruise-ship-is-docked-night-with-word-cruise-side_916191-10755.jpg') }}" alt="Cruise">
                 <!-- Duplicate for infinite scroll -->
                 <img src="{{ asset('assets/images/Hotel Collections 2.jpg') }}" alt="Hotel">
-                <img src="{{ asset('assets/images/Carousel.jpeg') }}" alt="Carousel">
+                <img src="{{ asset('assets/images/Carousel.webp') }}" alt="Carousel">
                 <img src="{{ asset('assets/images/Cruise Experiences 3.webp') }}" alt="Cruise">
-                <img src="{{ asset('assets/images/Hotel Collections 4.png') }}" alt="Hotel">
+                <img src="{{ asset('assets/images/Hotel Collections 4.webp') }}" alt="Hotel">
                 <img src="{{ asset('assets/images/cruise-ship-is-docked-night-with-word-cruise-side_916191-10755.jpg') }}" alt="Cruise">
             </div>
         </div>
@@ -114,7 +114,7 @@
         <div class="auth-bg-overlay"></div>
 
         <div class="auth-image-content" style="position: relative; z-index: 10; padding: 40px; text-align: center;">
-            <img src="{{ asset('assets/images/tyt-logo.png') }}" alt="TYT Luxe" style="max-width: 150px; margin-bottom: 20px; display: inline-block;">
+            <img src="{{ asset('assets/images/tyt-logo.webp') }}" alt="TYT Luxe" style="max-width: 150px; margin-bottom: 20px; display: inline-block;">
             <h2>Elevate Your Journey.</h2>
             <p>Experience world-class flights, luxury cruises, and exclusive handpicked hotels tailored for you.</p>
         </div>

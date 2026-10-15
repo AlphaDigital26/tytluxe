@@ -490,7 +490,7 @@
   @if($trendingPosts->isNotEmpty())
     <div class="blog-slider-track">
       @foreach($trendingPosts as $post)
-        <div class="blog-hero-slide" style="background-image: url('{{ $post->resolved_cover_image ?: 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=1920&q=80' }}');">
+        <div class="blog-hero-slide" style="background-image: url('{{ $post->resolved_cover_image ?: '/assets/images/stock/photo-1476514525535-07fb3b4ae5f1-1600.webp' }}');">
           <div class="blog-hero-inner">
             <span class="blog-hero-badge">✦ {{ $post->is_trending ? 'Trending' : 'Featured Story' }}</span>
             <h1 class="blog-hero-title">{{ $post->title }}</h1>
@@ -562,7 +562,7 @@
         <a href="{{ route('blog.details', $post->slug) }}" class="blog-card" data-category="{{ $post->category?->slug ?? '' }}">
           <div class="blog-card-img-wrap">
             <img
-              src="{{ $post->resolved_cover_image ?: 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=800&q=80' }}"
+              src="{{ $post->resolved_cover_image ?: '/assets/images/stock/photo-1476514525535-07fb3b4ae5f1-800.webp' }}"
               alt="{{ $post->title }}"
               loading="lazy"
             >
@@ -616,7 +616,7 @@
           @if($dest->resolved_image)
             <img src="{{ $dest->resolved_image }}" alt="{{ $dest->name }}" loading="lazy">
           @else
-            <img src="https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=600&q=80" alt="{{ $dest->name }}" loading="lazy">
+            <img src="/assets/images/stock/photo-1476514525535-07fb3b4ae5f1-600.webp" alt="{{ $dest->name }}" loading="lazy">
           @endif
           <div class="dest-card-overlay">
             <div>

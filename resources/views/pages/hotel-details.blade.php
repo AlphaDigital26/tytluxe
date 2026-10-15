@@ -2803,10 +2803,10 @@ html { scroll-behavior: smooth; }
 
   // Fallback photos for consistent luxury rendering
   $defaultPhotos = [
-    'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=1600&q=85',
-    'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=1200&q=85',
-    'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=1200&q=85',
-    'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1200&q=85',
+    '/assets/images/stock/photo-1542314831-068cd1dbfeeb-1600.webp',
+    '/assets/images/stock/photo-1590490360182-c33d57733427-1200.webp',
+    '/assets/images/stock/photo-1571896349842-33c89424de2d-1200.webp',
+    '/assets/images/stock/photo-1566073771259-6a8506099945-1200.webp',
   ];
   $photoList = [];
   foreach ($images as $img) {
@@ -3618,7 +3618,7 @@ html { scroll-behavior: smooth; }
         @foreach($hotel->roomTypes->where('is_active', true) as $room)
           @php
              $roomImage = match(true) {
-                 empty($room->image_path) => 'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=600&q=80',
+                 empty($room->image_path) => '/assets/images/stock/photo-1578683010236-d716f9a3f461-600.webp',
                  Str::startsWith($room->image_path, ['http://', 'https://']) => $room->image_path,
                  default => Storage::disk('public')->url($room->image_path),
              };
@@ -3983,7 +3983,7 @@ html { scroll-behavior: smooth; }
               // No matched room photo — use the hotel's own real photo rather than
               // an unrelated stock image, so guests never see a room that isn't this property.
               ! empty($photoList[0]['url'] ?? null) => $photoList[0]['url'],
-              default => 'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=600&q=80',
+              default => '/assets/images/stock/photo-1578683010236-d716f9a3f461-600.webp',
           };
           // More rate-option cards in a room group means less vertical room per
           // card, so show fewer inclusion pills per card as the card count grows.
@@ -4777,6 +4777,26 @@ html { scroll-behavior: smooth; }
 @endsection
 
 @push('scripts')
+<script>
+// TripJack's image server (i.travelapi.com) often drops photo requests;
+// show a hotel photo of our own instead of a blank tile. Capture phase,
+// because image error events don't bubble.
+(function () {
+  var fallback = @json(asset('assets/images/stock/photo-1564501049412-61c2a3083791-800.webp'));
+  function swap(img) {
+    if (img.tagName !== 'IMG' || img.dataset.fallbackDone) return;
+    img.dataset.fallbackDone = '1';
+    img.src = fallback;
+  }
+  document.addEventListener('error', function (e) { swap(e.target); }, true);
+  // Photos that already failed before this script ran.
+  window.addEventListener('load', function () {
+    document.querySelectorAll('img').forEach(function (img) {
+      if (img.complete && img.naturalWidth === 0 && img.currentSrc) swap(img);
+    });
+  });
+})();
+</script>
 <script>
 (function () {
 

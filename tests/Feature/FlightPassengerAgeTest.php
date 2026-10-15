@@ -57,7 +57,7 @@ class FlightPassengerAgeTest extends TestCase
         return $this->post(route('flights.book'), [
             'review_booking_id' => 'TJS200000000001',
             'intent' => 'review',
-            'contact_email' => 'guest@example.com',
+            'contact_email' => 'guest@gmail.com',
             'contact_phone' => '9876543210',
             'travellers' => $travellers,
         ]);
@@ -108,7 +108,7 @@ class FlightPassengerAgeTest extends TestCase
         session(['flight_booking_draft' => $draft]);
         $this->post(route('flights.book'), [
             'review_booking_id' => 'TJS200000000001', 'intent' => 'review',
-            'contact_email' => 'guest@example.com', 'contact_phone' => '9876543210',
+            'contact_email' => 'guest@gmail.com', 'contact_phone' => '9876543210',
             'travellers' => [['title' => 'Mr', 'first_name' => 'Rahul', 'last_name' => 'Probe']],
         ])->assertSessionHasErrors('travellers.0.dob');
 

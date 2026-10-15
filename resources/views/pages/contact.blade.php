@@ -245,9 +245,9 @@
 <!-- HERO -->
 <x-hero-carousel 
   :slides="[
-    'https://images.unsplash.com/photo-1423666639041-f56000c27a9a?w=1600&q=80',
-    'https://images.unsplash.com/photo-1516738901171-8eb4fc13bd20?w=1600&q=80',
-    'https://images.unsplash.com/photo-1510414842594-a61c69b5ae57?w=1600&q=80'
+    '/assets/images/stock/photo-1423666639041-f56000c27a9a-1600.webp',
+    '/assets/images/stock/photo-1516738901171-8eb4fc13bd20-1600.webp',
+    '/assets/images/stock/photo-1510414842594-a61c69b5ae57-1600.webp'
   ]"
   eyebrow="Get in Touch"
   title="We're Here to Help You <em>Travel Better</em>"

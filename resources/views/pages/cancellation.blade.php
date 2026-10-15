@@ -93,8 +93,8 @@ body {
   </ul>
 
   <h2>2. Cancellation by the Customer</h2>
-  <p>Cancellation requests must be made in writing via email or WhatsApp from the registered contact details used during booking.</p>
-  <p>The cancellation date shall be considered the date on which TYT Luxe receives the written cancellation request.</p>
+  <p>Cancellation requests must be made in writing via email or WhatsApp from the registered contact details used during booking, or online from the booking page in your TYT Luxe account (My Trips) where the "Cancel Booking" option is shown.</p>
+  <p>The cancellation date shall be considered the date on which TYT Luxe receives the written cancellation request, or the date it is submitted online.</p>
   <p>Cancellation charges are as follows:</p>
   
   <table class="policy-table">
@@ -160,6 +160,17 @@ body {
     <li>Cancellation charges may be higher due to supplier commitments.</li>
   </ul>
   <p>Special event departures, festivals, and holiday packages may have separate cancellation terms communicated at the time of booking.</p>
+
+  <h3 id="online-group-packages">Group packages booked and paid online</h3>
+  <p>These terms apply to group packages booked on tytluxe.in, and are shown to you before payment:</p>
+  <ul>
+    <li><strong>Booking amount:</strong> you may reserve your seats by paying the booking amount per person shown on the package page, or pay the full price at the time of booking. GST and the online payment charge are included in each payment.</li>
+    <li><strong>Balance due date:</strong> the balance must be paid {{ \App\Services\PackageBookingService::BALANCE_DUE_DAYS_BEFORE }} days before the departure date. You can pay it at any time from your booking page; we also send reminder emails.</li>
+    <li><strong>Unpaid balance:</strong> if the balance has not been paid by the departure date, the booking is cancelled automatically and the booking amount is not refundable.</li>
+    <li><strong>Online cancellation:</strong> you can request a cancellation online until {{ \App\Services\PackageBookingService::CANCEL_DAYS_BEFORE }} days before departure. Your seats remain booked until TYT Luxe confirms the cancellation.</li>
+    <li><strong>Refunds:</strong> TYT Luxe confirms the refund amount based on the cancellation charges in section 2 and any charges already paid to suppliers, and pays it back to your original payment method. Within {{ \App\Services\PackageBookingService::CANCEL_DAYS_BEFORE }} days of departure, cancellations are charged 100% and cannot be requested online.</li>
+    <li><strong>Seat availability:</strong> seats are held for 30 minutes while you pay. If seats on your date are no longer available when your payment completes, the full amount is refunded automatically.</li>
+  </ul>
 
   <h2>8. Amendment / Rescheduling</h2>
   <p>Any request for:</p>

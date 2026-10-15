@@ -366,9 +366,9 @@ body {
 ══════════════════════════════════ -->
 <x-hero-carousel 
   :slides="[
-    'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=1800&q=80',
-    'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1800&q=80',
-    'https://images.unsplash.com/photo-1500375592092-40eb2168fd21?auto=format&fit=crop&w=1800&q=80'
+    '/assets/images/stock/photo-1476514525535-07fb3b4ae5f1-1600.webp',
+    '/assets/images/stock/photo-1507525428034-b723cf961d3e-1600.webp',
+    '/assets/images/stock/photo-1500375592092-40eb2168fd21-1600.webp'
   ]"
   eyebrow="About Take Your Trip · Our Story"
   title="We Craft Journeys,<br>Not Just <em>Itineraries</em>"
@@ -395,7 +395,7 @@ body {
 <section class="ta-section-cream">
   <div class="ta-story-grid">
     <div class="ta-story-img">
-      <img src="https://images.unsplash.com/photo-1522199755839-a2bacb67c546?auto=format&fit=crop&w=800&q=80"
+      <img src="/assets/images/stock/photo-1522199755839-a2bacb67c546-800.webp"
            alt="Travel planner working on a laptop with maps and destinations"
            width="800" height="520"
            loading="lazy">
@@ -448,7 +448,7 @@ body {
       </div>
     </div>
     <div class="ta-team-card">
-      <img src="{{ asset('assets/images/Co-founder.jpeg') }}" alt="Swati Lohariwal">
+      <img src="{{ asset('assets/images/Co-founder.webp') }}" alt="Swati Lohariwal">
       <div class="ta-team-card-body">
         <div class="ta-team-role">Co-Founder</div>
         <h3>Swati Lohariwal</h3>
@@ -457,7 +457,7 @@ body {
       </div>
     </div>
     <div class="ta-team-card">
-      <img src="{{ asset('assets/images/operational-head.jpeg') }}" alt="Ashish Lohariwal">
+      <img src="{{ asset('assets/images/operational-head.webp') }}" alt="Ashish Lohariwal">
       <div class="ta-team-card-body">
         <div class="ta-team-role">Operational Head</div>
         <h3>Ashish Lohariwal</h3>
@@ -576,7 +576,7 @@ body {
       <span class="ta-testi-quote">"</span>
       <p>Amazing stay and exceptional service. Take Your Trip made our vacation truly memorable! They recommended the perfect hotel in Maldives and it was beyond our expectations.</p>
       <div class="ta-testi-author">
-        <img src="https://images.unsplash.com/photo-1506869640319-fe1a24fd76dc?auto=format&fit=crop&w=160&q=80"
+        <img src="/assets/images/stock/photo-1506869640319-fe1a24fd76dc-160.webp"
              alt="Neha Malhotra from Jaipur, happy TYT Luxe traveller"
              width="44" height="44"
              loading="lazy">
@@ -590,7 +590,7 @@ body {
       <span class="ta-testi-quote">"</span>
       <p>The cruise was beyond our expectations. Everything was perfect from start to finish. The team responded in under an hour and handled every single detail for our family trip.</p>
       <div class="ta-testi-author">
-        <img src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=160&q=80"
+        <img src="/assets/images/stock/photo-1529156069898-49953e39b3ac-160.webp"
              alt="Rohan Mehta from Mumbai, TYT Luxe cruise traveller"
              width="44" height="44"
              loading="lazy">
@@ -604,7 +604,7 @@ body {
       <span class="ta-testi-quote">"</span>
       <p>Best holiday ever! Great deals and fantastic support throughout our trip. Our honeymoon package was curated so thoughtfully — every detail was just perfect.</p>
       <div class="ta-testi-author">
-        <img src="https://images.unsplash.com/photo-1521336575822-6da63fb45455?auto=format&fit=crop&w=160&q=80"
+        <img src="/assets/images/stock/photo-1521336575822-6da63fb45455-160.webp"
              alt="Priya Sharma from Bangalore, TYT Luxe honeymoon traveller"
              width="44" height="44"
              loading="lazy">

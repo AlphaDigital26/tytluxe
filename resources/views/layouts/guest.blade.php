@@ -20,7 +20,7 @@
         <div class="auth-wrapper">
             <div class="auth-logo">
                 <a href="/">
-                    <img src="{{ asset('assets/images/tyt-logo.png') }}" alt="TYT Luxe" style="max-width: 150px;">
+                    <img src="{{ asset('assets/images/tyt-logo.webp') }}" alt="TYT Luxe" style="max-width: 150px;">
                 </a>
             </div>
 
