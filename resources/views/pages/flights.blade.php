@@ -109,10 +109,10 @@ input[type="date"].tyt-finput::-webkit-calendar-picker-indicator{filter:invert(0
   <!-- HERO SLIDER -->
   <x-hero-carousel 
     :slides="[
-      'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=1600&q=80',
-      'https://images.unsplash.com/photo-1540339832862-474599807836?w=1600&q=80',
-      'https://images.unsplash.com/photo-1503221043305-f7498f8b7888?w=1600&q=80',
-      'https://images.unsplash.com/photo-1464037866556-6812c9d1c72e?w=1600&q=80'
+      '/assets/images/stock/photo-1436491865332-7a61a109cc05-1600.webp',
+      '/assets/images/stock/photo-1540339832862-474599807836-1600.webp',
+      '/assets/images/stock/photo-1503221043305-f7498f8b7888-1600.webp',
+      '/assets/images/stock/photo-1464037866556-6812c9d1c72e-1600.webp'
     ]"
     eyebrow="Flight Experiences"
     title="Fly the <em>Right Way</em>"
@@ -138,37 +138,37 @@ input[type="date"].tyt-finput::-webkit-calendar-picker-indicator{filter:invert(0
     </div>
     <div class="tyt-cards-6">
       <div class="tyt-img-card" onclick="location.href='#tyt-book-flight'">
-        <img src="https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=700&q=80" alt="Domestic Flights" loading="lazy"/>
+        <img src="/assets/images/stock/photo-1436491865332-7a61a109cc05-700.webp" alt="Domestic Flights" loading="lazy"/>
         <div class="tyt-card-overlay"></div>
         <div class="tyt-card-label">Domestic Flights<div class="tyt-card-sub">Pan-India routes, best fares</div></div>
       </div>
 
       <div class="tyt-img-card" onclick="location.href='#tyt-book-flight'">
-        <img src="https://images.unsplash.com/photo-1503221043305-f7498f8b7888?w=700&q=80" alt="International Flights" loading="lazy"/>
+        <img src="/assets/images/stock/photo-1503221043305-f7498f8b7888-700.webp" alt="International Flights" loading="lazy"/>
         <div class="tyt-card-overlay"></div>
         <div class="tyt-card-label">International<div class="tyt-card-sub">Global destinations covered</div></div>
       </div>
 
       <div class="tyt-img-card" onclick="location.href='#tyt-book-flight'">
-        <img src="https://images.unsplash.com/photo-1540339832862-474599807836?w=700&q=80" alt="Business Class" loading="lazy"/>
+        <img src="/assets/images/stock/photo-1540339832862-474599807836-700.webp" alt="Business Class" loading="lazy"/>
         <div class="tyt-card-overlay"></div>
         <div class="tyt-card-label">Business Class<div class="tyt-card-sub">Lie-flat beds, premium lounges</div></div>
       </div>
 
       <div class="tyt-img-card" onclick="location.href='#tyt-book-flight'">
-        <img src="https://images.unsplash.com/photo-1464037866556-6812c9d1c72e?w=700&q=80" alt="First Class" loading="lazy"/>
+        <img src="/assets/images/stock/photo-1464037866556-6812c9d1c72e-700.webp" alt="First Class" loading="lazy"/>
         <div class="tyt-card-overlay"></div>
         <div class="tyt-card-label">First Class<div class="tyt-card-sub">Suite experience, concierge</div></div>
       </div>
 
       <div class="tyt-img-card" onclick="location.href='#tyt-book-flight'">
-        <img src="https://images.unsplash.com/photo-1578474846511-04ba529f0b88?w=700&q=80" alt="Charter Flights" loading="lazy"/>
+        <img src="/assets/images/stock/photo-1578474846511-04ba529f0b88-700.webp" alt="Charter Flights" loading="lazy"/>
         <div class="tyt-card-overlay"></div>
         <div class="tyt-card-label">Charter Flights<div class="tyt-card-sub">Private &amp; group aircraft</div></div>
       </div>
 
       <div class="tyt-img-card" onclick="location.href='#tyt-book-flight'">
-        <img src="https://images.unsplash.com/photo-1569154941061-e231b4725ef1?w=700&q=80" alt="Multi-City" loading="lazy"/>
+        <img src="/assets/images/stock/photo-1569154941061-e231b4725ef1-700.webp" alt="Multi-City" loading="lazy"/>
         <div class="tyt-card-overlay"></div>
         <div class="tyt-card-label">Multi-City<div class="tyt-card-sub">Complex itineraries, seamless</div></div>
       </div>

@@ -126,7 +126,7 @@ class HotelBookingScenariosTest extends TestCase
             ->assertSeeInOrder(['Management fee', '₹50.00', 'Management fee tax', '₹9.00'], false);
 
         $this->post("/hotels/{$hotel->slug}/book", $form ?: [
-            'contact_email' => 'guest@example.com', 'contact_phone' => '9876543210',
+            'contact_email' => 'guest@gmail.com', 'contact_phone' => '9876543210',
             'rooms' => [0 => ['travelers' => [
                 0 => ['title' => 'Mr', 'first_name' => 'Ravi', 'last_name' => 'Kumar'],
                 1 => ['title' => 'Ms', 'first_name' => 'Asha', 'last_name' => 'Kumar'],
@@ -203,7 +203,7 @@ class HotelBookingScenariosTest extends TestCase
         $this->get("/hotels/{$hotel->slug}/review")->assertOk()->assertSee('Room 1: Deluxe Room | Room 2: Standard Room');
 
         $this->post("/hotels/{$hotel->slug}/book", [
-            'contact_email' => 'fam@example.com', 'contact_phone' => '9876543210',
+            'contact_email' => 'fam@gmail.com', 'contact_phone' => '9876543210',
             'rooms' => [
                 0 => ['travelers' => [
                     0 => ['title' => 'Mr', 'first_name' => 'Arun', 'last_name' => 'Shah'],
@@ -237,7 +237,7 @@ class HotelBookingScenariosTest extends TestCase
             '*/hotel/booking-details' => Http::response($this->details('TJ-3', 'SUCCESS'), 200),
         ]);
 
-        $base = ['contact_email' => 'p@example.com', 'contact_phone' => '9876543210', 'pan_name' => 'Ravi Kumar',
+        $base = ['contact_email' => 'p@gmail.com', 'contact_phone' => '9876543210', 'pan_name' => 'Ravi Kumar',
             'rooms' => [0 => ['travelers' => [0 => ['title' => 'Mr', 'first_name' => 'Ravi', 'last_name' => 'Kumar'], 1 => ['title' => 'Ms', 'first_name' => 'Asha', 'last_name' => 'Kumar']]]]];
 
         // 4th letter D isn't a valid PAN holder type (TripJack error 1092).
@@ -409,7 +409,7 @@ class HotelBookingScenariosTest extends TestCase
         $newPrice = HotelPricingService::price(27000)['customer_price'];
         $this->get("/hotels/{$hotel->slug}/review")->assertOk()->assertSee(number_format($newPrice, 2));
 
-        $this->post("/hotels/{$hotel->slug}/book", ['contact_email' => 'x@example.com', 'contact_phone' => '9876543210',
+        $this->post("/hotels/{$hotel->slug}/book", ['contact_email' => 'x@gmail.com', 'contact_phone' => '9876543210',
             'rooms' => [0 => ['travelers' => [0 => ['title' => 'Mr', 'first_name' => 'Ravi', 'last_name' => 'Kumar'], 1 => ['title' => 'Ms', 'first_name' => 'Asha', 'last_name' => 'Kumar']]]]]);
         $booking = Booking::where('hotel_id', $hotel->id)->firstOrFail();
         $this->assertEqualsWithDelta($newPrice, (float) $booking->total_amount, 0.01);
@@ -582,7 +582,7 @@ class HotelBookingScenariosTest extends TestCase
     protected function gstForm(array $gst): array
     {
         return [
-            'contact_email' => 'work@example.com', 'contact_phone' => '9876543210',
+            'contact_email' => 'work@gmail.com', 'contact_phone' => '9876543210',
             'rooms' => [0 => ['travelers' => [
                 0 => ['title' => 'Mr', 'first_name' => 'Ravi', 'last_name' => 'Kumar'],
                 1 => ['title' => 'Ms', 'first_name' => 'Asha', 'last_name' => 'Kumar'],

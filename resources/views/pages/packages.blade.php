@@ -416,8 +416,8 @@ Discover curated domestic and international travel packages with TYT Luxe. Honey
 <!-- HERO -->
 <x-hero-carousel 
   :slides="[
-    'https://images.unsplash.com/photo-1540202404-b71180fb78d1?auto=format&fit=crop&w=1800&q=80',
-    'https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?auto=format&fit=crop&w=1800&q=80'
+    '/assets/images/stock/photo-1476514525535-07fb3b4ae5f1-1600.webp',
+    '/assets/images/stock/photo-1571003123894-1f0594d2b5d9-1600.webp'
   ]"
   eyebrow="Exclusive Travel Packages"
   title="Curated Journeys<br><em>Unforgettable Memories</em>"

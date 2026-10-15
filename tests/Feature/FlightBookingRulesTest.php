@@ -60,7 +60,7 @@ class FlightBookingRulesTest extends TestCase
         return $this->post(route('flights.book'), array_merge([
             'review_booking_id' => 'TJS200000000001',
             'intent' => 'pay',
-            'contact_email' => 'guest@example.com',
+            'contact_email' => 'guest@gmail.com',
             'contact_phone' => '9876543210',
             'travellers' => [['title' => 'Mr', 'first_name' => 'Rahul', 'last_name' => 'Probe']],
         ], $extra));
@@ -108,7 +108,7 @@ class FlightBookingRulesTest extends TestCase
         return $this->post(route('flights.book'), [
             'review_booking_id' => 'TJS200000000001',
             'intent' => 'review',
-            'contact_email' => 'guest@example.com',
+            'contact_email' => 'guest@gmail.com',
             'contact_phone' => '9876543210',
             'travellers' => $travellers,
         ]);

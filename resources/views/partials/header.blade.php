@@ -5,14 +5,14 @@
             <!-- Logo -->
             <div class="logo">
                 <a href="{{ url('/') }}" aria-label="TYT Luxe — Go to homepage">
-                    <img src="{{ asset('assets/images/tyt-logo.png') }}" alt="TYT Luxe logo" width="140" height="48">
+                    <img src="{{ asset('assets/images/tyt-logo.webp') }}" alt="TYT Luxe logo" width="140" height="48">
                 </a>
             </div>
 
             <!-- Navigation -->
             <nav class="nav-menu" aria-label="Main navigation">
                 <div class="mobile-menu-header">
-                    <img src="{{ asset('assets/images/tyt-logo.png') }}" alt="TYT Luxe logo" width="120" height="40">
+                    <img src="{{ asset('assets/images/tyt-logo.webp') }}" alt="TYT Luxe logo" width="120" height="40">
                     <button class="menu-close" aria-label="Close navigation menu">
                         <i class="fa-solid fa-xmark" aria-hidden="true"></i>
                     </button>

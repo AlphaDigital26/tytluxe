@@ -131,7 +131,7 @@ class AuditFollowUpTest extends TestCase
 
         $this->post(route('flights.book'), [
             'review_booking_id' => 'TJS200000000001', 'intent' => 'review',
-            'contact_email' => 'guest@example.com', 'contact_phone' => '9876543210',
+            'contact_email' => 'guest@gmail.com', 'contact_phone' => '9876543210',
             'travellers' => [['title' => 'Mr', 'first_name' => 'Rahul', 'last_name' => 'Probe']],
         ])->assertRedirect(route('flights.confirm.show'));
 

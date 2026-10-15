@@ -67,7 +67,7 @@ class PackageBookingTest extends TestCase
             'option' => 'Triple sharing',
             'plan' => 'part',
             'travellers' => array_map(fn ($i) => ['full_name' => 'Traveller '.chr(64 + $i), 'gender' => 'female', 'age' => 30], range(1, $travellers)),
-            'email' => 'guest@example.com',
+            'email' => 'guest@gmail.com',
             'phone_code' => '91',
             'phone' => '9876543210',
             'terms' => '1',

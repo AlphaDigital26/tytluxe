@@ -79,7 +79,7 @@ class BookingSecurityTest extends TestCase
         $hotel = $this->makeHotel('login-required-book-hotel', '777000004');
 
         $this->post("/hotels/{$hotel->slug}/book", [
-            'contact_email' => 'john@example.com', 'contact_phone' => '9876543210',
+            'contact_email' => 'john@gmail.com', 'contact_phone' => '9876543210',
         ])->assertRedirect(route('login'));
     }
 
@@ -98,7 +98,7 @@ class BookingSecurityTest extends TestCase
         ]]);
 
         $this->post("/hotels/{$hotel->slug}/book", [
-            'contact_email' => 'john@example.com', 'contact_phone' => '9876543210',
+            'contact_email' => 'john@gmail.com', 'contact_phone' => '9876543210',
             'rooms' => [0 => ['travelers' => [0 => ['title' => 'Mr', 'first_name' => 'John', 'last_name' => 'Doe']]]],
         ]);
 
@@ -153,7 +153,7 @@ class BookingSecurityTest extends TestCase
         ]]);
 
         $payload = [
-            'contact_email' => 'john@example.com', 'contact_phone' => '9876543210',
+            'contact_email' => 'john@gmail.com', 'contact_phone' => '9876543210',
             'pan_name' => 'John Doe', 'pan_number' => 'ABCPE1234F',
             'rooms' => [0 => ['travelers' => [0 => ['title' => 'Mr', 'first_name' => 'John', 'last_name' => 'Doe']]]],
         ];
@@ -187,7 +187,7 @@ class BookingSecurityTest extends TestCase
         ]]);
 
         $this->post("/hotels/{$hotel->slug}/book", [
-            'contact_email' => 'john@example.com', 'contact_phone' => '9876543210',
+            'contact_email' => 'john@gmail.com', 'contact_phone' => '9876543210',
             'rooms' => [0 => ['travelers' => [0 => ['title' => 'Mr', 'first_name' => 'John', 'last_name' => 'Doe']]]],
         ]);
 
@@ -208,7 +208,7 @@ class BookingSecurityTest extends TestCase
         ]]);
 
         $this->post("/hotels/{$hotel->slug}/book", [
-            'contact_email' => 'john@example.com', 'contact_phone' => '9222222222',
+            'contact_email' => 'john@gmail.com', 'contact_phone' => '9222222222',
             'rooms' => [0 => ['travelers' => [0 => ['title' => 'Mr', 'first_name' => 'John', 'last_name' => 'Doe']]]],
         ]);
 
