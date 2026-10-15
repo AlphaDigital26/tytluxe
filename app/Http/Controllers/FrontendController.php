@@ -2629,7 +2629,10 @@ class FrontendController extends Controller
             'highlights',
             'departures',
             'reviews' => fn ($q) => $q->where('is_published', true),
-        ])->where('slug', $slug)->firstOrFail();
+        ])->where('slug', $slug)
+            // Switched-off packages are hidden from guests; admins can still preview them.
+            ->when(! auth('admin')->check(), fn ($q) => $q->where('is_active', true))
+            ->firstOrFail();
 
         return view('pages.package-details', compact('package'));
     }
@@ -2957,7 +2960,7 @@ class FrontendController extends Controller
         ]);
 
         if (! $package->canBeReviewedBy(auth()->id())) {
-            return back()->with('error', 'You can review this package once your booking is fully paid.');
+            return back()->with('error', 'You can review this package once you have completed the trip (one review per trip).');
         }
 
         $imagePaths = [];
