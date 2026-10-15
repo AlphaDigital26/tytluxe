@@ -144,10 +144,10 @@
 <!-- HERO with brochure images slideshow -->
 <x-hero-carousel 
   :slides="$heroImages"
-  eyebrow="{{ $heroEyebrow }}"
+  :eyebrow="$heroEyebrow"
   :title="$heroTitle"
-  subtitle="{{ $heroSubtitle }}"
-  ctaText="{{ $heroCtaText }}"
+  :subtitle="$heroSubtitle"
+  :ctaText="$heroCtaText"
   ctaLink="#tc-booking"
 />
 

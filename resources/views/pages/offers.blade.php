@@ -449,9 +449,9 @@
 {{-- HERO --}}
 <x-hero-carousel
   :slides="$heroImages"
-  eyebrow="{{ $heroEyebrow }}"
+  :eyebrow="$heroEyebrow"
   :title="$heroTitle"
-  subtitle="{{ $heroSubtitle }}"
+  :subtitle="$heroSubtitle"
   ctaText=""
   ctaLink=""
 />
