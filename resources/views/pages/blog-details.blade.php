@@ -146,7 +146,7 @@
 
 @section('content')
 
-<section class="post-hero" style="background-image: url('{{ $post->resolved_cover_image ?: 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=1920&q=80' }}');">
+<section class="post-hero" style="background-image: url('{{ $post->resolved_cover_image ?: '/assets/images/stock/photo-1476514525535-07fb3b4ae5f1-1600.webp' }}');">
   <div class="post-hero-inner">
     @if($post->category)
       <span class="post-category-tag">{{ $post->category->name }}</span>
@@ -187,7 +187,7 @@
   <div class="related-grid">
     @foreach($relatedPosts as $related)
       <a href="{{ route('blog.details', $related->slug) }}" class="related-card">
-        <img src="{{ $related->resolved_cover_image ?: 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=600&q=80' }}" alt="{{ $related->title }}" loading="lazy">
+        <img src="{{ $related->resolved_cover_image ?: '/assets/images/stock/photo-1476514525535-07fb3b4ae5f1-600.webp' }}" alt="{{ $related->title }}" loading="lazy">
         <div class="related-card-body">
           <h3 class="related-card-title">{{ $related->title }}</h3>
         </div>

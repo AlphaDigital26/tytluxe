@@ -73,7 +73,7 @@ class RazorpayPaymentFlowTest extends TestCase
         ]]);
 
         $response = $this->post("/hotels/{$slug}/book", [
-            'contact_email' => 'jane@example.com', 'contact_phone' => '9876543210',
+            'contact_email' => 'jane@gmail.com', 'contact_phone' => '9876543210',
             'rooms' => [0 => ['travelers' => [0 => ['title' => 'Ms', 'first_name' => 'Jane', 'last_name' => 'Payer']]]],
         ]);
 

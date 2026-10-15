@@ -74,7 +74,7 @@ class FlightReviewRedirectTest extends TestCase
     protected function payPost(): array
     {
         return [
-            'intent' => 'pay', 'review_booking_id' => 'TJS-DRAFT-1', 'contact_email' => 'guest@example.com', 'contact_phone' => '9876543210',
+            'intent' => 'pay', 'review_booking_id' => 'TJS-DRAFT-1', 'contact_email' => 'guest@gmail.com', 'contact_phone' => '9876543210',
             'travellers' => [['title' => 'Mr', 'first_name' => 'Valid', 'last_name' => 'Fare']],
         ];
     }

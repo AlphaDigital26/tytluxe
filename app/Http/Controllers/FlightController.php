@@ -986,7 +986,7 @@ class FlightController extends Controller
         $dialCodeRule = ['nullable', 'string', 'regex:/^\+?[1-9]\d{0,3}$/'];
 
         $rules = [
-            'contact_email' => 'required|email|max:255',
+            'contact_email' => ['required', 'max:255', new \App\Rules\BookableEmail],
             'contact_dial_code' => $dialCodeRule,
             'contact_phone' => ['required', 'string', 'max:20', $phoneRule],
             'special_requests' => 'nullable|string|max:500',

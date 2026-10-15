@@ -61,7 +61,7 @@ class PackageBookingController extends Controller
             'travellers.*.gender' => 'required|in:male,female,other',
             'travellers.*.age' => 'required|integer|min:1|max:99',
             // Strict check: a typo'd address would lose the guest their confirmation.
-            'email' => 'required|email:rfc,strict|max:150',
+            'email' => ['required', 'max:150', new \App\Rules\BookableEmail],
             'phone_code' => ['required', 'regex:/^\d{1,4}$/'],
             'phone' => ['required', 'regex:/^\d{6,15}$/'],
             'special_requests' => 'nullable|string|max:500',
