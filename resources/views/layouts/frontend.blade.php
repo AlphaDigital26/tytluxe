@@ -7,6 +7,19 @@
          SKIP TO MAIN CONTENT (Accessibility)
     ══════════════════════════════════════ --}}
     <a href="#main-content" class="skip-link">Skip to main content</a>
+    <script>
+      // Shown only while a keyboard user tabs onto it. The browser can hand
+      // focus back to it after a reload or Back (it's the first link on the
+      // page), which kept it showing over the header — drop that focus.
+      (function () {
+        var link = document.currentScript.previousElementSibling;
+        function drop() { if (document.activeElement === link) link.blur(); }
+        drop();
+        window.addEventListener('pageshow', drop);
+        window.addEventListener('load', drop);
+        link.addEventListener('mousedown', function (e) { e.preventDefault(); });
+      })();
+    </script>
 
     @include('partials.header')
 

@@ -1,6 +1,6 @@
 @extends('layouts.frontend')
 
-@section('meta_title', 'About TYT Luxe — Our Story, Team & Values | Luxury Travel Agency')
+@section('meta_title', 'About Take Your Trip (TYT Luxe) — Our Story, Team & Values')
 @section('meta_description', 'Learn about TYT Luxe — founded in 2020, we handpick luxury hotels and curated cruise experiences for Indian travellers. Meet our founders Kartik Singhal, Neha Singhal and the team behind every journey.')
 
 @push('scripts')

@@ -13,10 +13,10 @@
 {{-- ══════════════════════════════════════════
      PER-PAGE SEO META (overrideable per page)
 ══════════════════════════════════════════ --}}
-<title>@yield('meta_title', 'TYT Luxe — Luxury Hotels & Cruises | Book Your Dream Vacation')</title>
+<title>@yield('meta_title', 'Take Your Trip (TYT Luxe) — Luxury Hotels, Flights & Holiday Packages')</title>
 <meta name="description" content="@yield('meta_description', 'Discover handpicked luxury hotels and premium cruises with TYT Luxe. Personalised travel planning for Indian travellers. 2-hour WhatsApp response guarantee. Call: 98750 73788.')">
 <meta name="robots" content="@yield('meta_robots', 'index, follow')">
-<meta name="author" content="TYT Luxe">
+<meta name="author" content="Take Your Trip (TYT Luxe)">
 <meta name="referrer" content="no-referrer-when-downgrade">
 
 {{-- ══════════════════════════════════════════
@@ -28,7 +28,7 @@
      OPEN GRAPH (Facebook, WhatsApp, LinkedIn)
 ══════════════════════════════════════════ --}}
 <meta property="og:type"        content="@yield('og_type', 'website')">
-<meta property="og:site_name"   content="TYT Luxe">
+<meta property="og:site_name"   content="Take Your Trip — TYT Luxe">
 <meta property="og:locale"      content="en_IN">
 <meta property="og:url"         content="@yield('canonical', url()->current())">
 <meta property="og:title"       content="@yield('meta_title', 'TYT Luxe — Luxury Hotels & Cruises')">
@@ -52,7 +52,7 @@
      THEME & PWA
 ══════════════════════════════════════════ --}}
 <meta name="theme-color" content="#b8935a">
-<meta name="application-name" content="TYT Luxe">
+<meta name="application-name" content="Take Your Trip">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -95,7 +95,8 @@
 {{-- ══════════════════════════════════════════
      THEME STYLESHEETS
 ══════════════════════════════════════════ --}}
-<link rel="stylesheet" href="{{ asset('assets/css/style.css') }}">
+{{-- ?v= changes whenever the file does, so browsers fetch the new CSS after a deploy instead of a cached old copy. --}}
+<link rel="stylesheet" href="{{ asset('assets/css/style.css') }}?v={{ @filemtime(public_path('assets/css/style.css')) }}">
 <link rel="stylesheet" href="{{ asset('assets/css/responsive.css') }}">
 
 @vite(['resources/js/app.js'])
