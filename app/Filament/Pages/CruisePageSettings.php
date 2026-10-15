@@ -43,7 +43,7 @@ class CruisePageSettings extends Page
 
     public function mount(): void
     {
-        $this->data = [
+        $data = [
             // Hero
             'hero_eyebrow'  => Setting::get('cruise_page.hero_eyebrow', "Cordelia Cruises · India's Premium Cruise Line"),
             'hero_title'    => Setting::get('cruise_page.hero_title', 'Destination of <br><em>Your Dreams</em>'),
@@ -124,6 +124,24 @@ class CruisePageSettings extends Page
             'booking_ports'        => Setting::get('cruise_page.booking_ports', "Mumbai\nChennai\nKochi"),
             'booking_destinations' => Setting::get('cruise_page.booking_destinations', "Goa\nLakshadweep\nKochi\nChennai\nSri Lanka\nMulti-Port Voyage"),
         ];
+
+        // Older saves stored upload placeholders ({"uuid": []}) instead of a
+        // path; keep only a real path so the upload field starts clean.
+        foreach (['destination_cards', 'dining_items'] as $list) {
+            $data[$list] = array_map(function ($item) {
+                $path = $item['image_path'] ?? null;
+                if (is_array($path)) {
+                    $path = collect($path)->flatten()->first(fn ($p) => is_string($p) && $p !== '');
+                }
+                $item['image_path'] = is_string($path) && $path !== '' ? $path : null;
+
+                return $item;
+            }, (array) ($data[$list] ?? []));
+        }
+
+        // fill(), not a plain assignment: it turns a saved path into the
+        // upload field's own state, which the field needs to show the photo.
+        $this->form->fill($data);
     }
 
     // -----------------------------------------------------------------
@@ -218,7 +236,8 @@ class CruisePageSettings extends Page
                                             ->maxSize(4096),
                                         TextInput::make('image_url')
                                             ->label('Or: External Image URL')
-                                            ->url()
+                                            ->rule('regex:#^(https?://|/)\S+$#')
+                                            ->validationMessages(['regex' => 'Enter a full web address (https://…) or a path on this site (/assets/…).'])
                                             ->placeholder('https://images.unsplash.com/...'),
                                     ]),
                             ])
@@ -255,7 +274,8 @@ class CruisePageSettings extends Page
                                             ->maxSize(4096),
                                         TextInput::make('image_url')
                                             ->label('Or: External URL')
-                                            ->url(),
+                                            ->rule('regex:#^(https?://|/)\S+$#')
+                                            ->validationMessages(['regex' => 'Enter a full web address (https://…) or a path on this site (/assets/…).']),
                                     ]),
                             ])
                             ->reorderable()
@@ -394,7 +414,10 @@ class CruisePageSettings extends Page
 
     public function save(): void
     {
-        $data = $this->data;
+        // getState(), not the raw $this->data: it stores uploaded photos and
+        // returns their saved path. The raw data holds upload placeholders
+        // ({"uuid": [...]}) that broke the cruise page.
+        $data = $this->form->getState();
 
         // Simple string fields
         Setting::set('cruise_page.hero_eyebrow',  $data['hero_eyebrow']);
@@ -425,5 +448,8 @@ class CruisePageSettings extends Page
             ->body('Changes will be reflected on the cruise page immediately.')
             ->success()
             ->send();
+
+        // Done editing: back to the dashboard (the notification shows there).
+        $this->redirect(\App\Filament\Pages\Dashboard::getUrl(), navigate: true);
     }
 }
