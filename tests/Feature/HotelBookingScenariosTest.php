@@ -156,6 +156,26 @@ class HotelBookingScenariosTest extends TestCase
 
     // ── 1. Happy paths ──────────────────────────────────────────────────
 
+    /**
+     * Review can answer with a different optionId than Detail (seen live on
+     * multi-room rates). The re-review just before payment must send the
+     * guest's Detail optionId — Review's one made TripJack reject it with
+     * 6505 and threw the guest back to the hotel page.
+     */
+    public function test_00_re_review_before_payment_uses_the_detail_option_id(): void
+    {
+        $hotel = $this->hotel('700000099');
+        $this->fakeSearch('700000099', $this->option(), [], $this->option(['optionId' => 'opt-from-review']));
+
+        $booking = $this->bookThrough($hotel, pay: false);
+
+        $this->assertNotNull($booking, 'the guest reached the payment page');
+        $reviews = $this->sentTo('/hotel/review')->values();
+        $this->assertCount(2, $reviews);
+        $this->assertSame('opt-1', $reviews[0]['optionId']);
+        $this->assertSame('opt-1', $reviews[1]['optionId'], 'the re-review must reference the Detail optionId');
+    }
+
     public function test_01_single_room_confirmed_with_hotel_confirmation_number(): void
     {
         $hotel = $this->hotel('700000001');
