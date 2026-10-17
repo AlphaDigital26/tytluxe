@@ -50,7 +50,6 @@ class FlightSettings extends Page
             'booking_enabled' => Settings::bookingEnabled(),
             'disabled_message' => Settings::disabledMessage(),
             'markup_percent' => Settings::markupPercent(),
-            'allow_hold' => Settings::allowHold(),
             'allow_guest_cancel' => Settings::allowGuestCancel(),
             'allow_guest_reschedule' => Settings::allowGuestReschedule(),
             'allow_guest_extras' => Settings::allowGuestExtras(),
@@ -100,11 +99,8 @@ class FlightSettings extends Page
 
                 Section::make('🧳 What Guests Can Do Themselves')
                     ->description('Turn an option off if you\'d rather your team handles it. Guests will then see a "please contact our support team" message instead.')
-                    ->columns(2)
+                    ->columns(3)
                     ->schema([
-                        Toggle::make('allow_hold')
-                            ->label('Reserve now, pay later')
-                            ->helperText('Lets guests block a seat without paying, when the airline allows it. The reservation is released automatically if they don\'t pay in time.'),
                         Toggle::make('allow_guest_cancel')
                             ->label('Cancel online')
                             ->helperText('Guests can cancel their own ticket. The refund is worked out from the airline\'s charges and paid back automatically.'),
@@ -140,7 +136,6 @@ class FlightSettings extends Page
             'booking_enabled' => (bool) $data['booking_enabled'],
             'disabled_message' => trim((string) ($data['disabled_message'] ?? '')) ?: Settings::DEFAULT_DISABLED_MESSAGE,
             'markup_percent' => round((float) $data['markup_percent'], 2),
-            'allow_hold' => (bool) $data['allow_hold'],
             'allow_guest_cancel' => (bool) $data['allow_guest_cancel'],
             'allow_guest_reschedule' => (bool) $data['allow_guest_reschedule'],
             'allow_guest_extras' => (bool) $data['allow_guest_extras'],

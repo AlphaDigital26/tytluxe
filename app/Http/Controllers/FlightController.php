@@ -1196,7 +1196,7 @@ class FlightController extends Controller
         // before attempting" — the Review page hides Block otherwise, but a
         // crafted/stale post must not reach TripJack either.
         if ($intent === 'hold' && (! ($conditions['isBA'] ?? false) || ! FlightSettings::allowHold())) {
-            return back()->withInput()->withErrors(['intent' => 'This fare can’t be held — the airline requires payment to book it. Please choose Proceed to Pay.']);
+            return back()->withInput()->withErrors(['intent' => 'Reserving a flight without payment isn’t available. Please choose Proceed to Pay.']);
         }
 
         // A hold blocks the PNR without any payment, so there's nothing to
