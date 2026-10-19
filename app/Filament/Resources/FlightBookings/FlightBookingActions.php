@@ -106,6 +106,7 @@ class FlightBookingActions
             ->modalHeading('Cancel this flight booking')
             ->modalDescription('This cancels the whole booking (all passengers and all flights) with the airline. The refund is paid back to the guest\'s card automatically once the airline confirms — usually within a few minutes. This cannot be undone.')
             ->modalSubmitActionLabel('Yes, cancel this booking')
+            ->modalCancelActionLabel('Go back')
             ->schema(function (Booking $record) {
                 $flights = app(FlightBookingService::class);
                 $scope = $flights->cancellationScope($record, 'full');
@@ -169,6 +170,7 @@ class FlightBookingActions
             ->modalHeading('Release this reserved seat?')
             ->modalDescription('The guest has not paid for this reservation. Releasing it frees the seat with the airline and cancels the booking. No money is involved.')
             ->modalSubmitActionLabel('Release reservation')
+            ->modalCancelActionLabel('Go back')
             ->action(function (Booking $record): void {
                 app(FlightBookingService::class)->releaseHold($record, auth('admin')->user()?->name ?? 'admin');
 

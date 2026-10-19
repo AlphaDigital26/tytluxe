@@ -103,6 +103,9 @@ class FlightBookingsTable
                         ->when($data['from'] ?? null, fn (Builder $q, $date) => $q->whereDate('created_at', '>=', $date))
                         ->when($data['until'] ?? null, fn (Builder $q, $date) => $q->whereDate('created_at', '<=', $date))),
             ])
+            // Actions first in the row: at the end they sat past the right edge
+            // of a laptop screen, so staff never saw Cancel / Refund.
+            ->recordActionsPosition(\Filament\Tables\Enums\RecordActionsPosition::BeforeColumns)
             ->recordActions([
                 ViewAction::make()->label('Open'),
                 ActionGroup::make([

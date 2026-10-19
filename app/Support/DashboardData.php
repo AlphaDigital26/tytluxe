@@ -8,6 +8,7 @@ use App\Filament\Pages\TripJackNotifications;
 use App\Filament\Resources\Bookings\BookingResource;
 use App\Filament\Resources\Enquiries\EnquiryResource;
 use App\Filament\Resources\FlightBookings\FlightBookingResource;
+use App\Filament\Resources\PackageBookings\PackageBookingResource;
 use App\Filament\Resources\Reviews\ReviewResource;
 use App\Models\Booking;
 use App\Models\Enquiry;
@@ -60,6 +61,13 @@ class DashboardData
                 'title' => $n === 1 ? 'Flight booking needs a look' : 'Flight bookings need a look',
                 'text' => 'A ticket, cancellation or refund did not finish by itself.',
                 'url' => FlightBookingResource::getUrl('index').'?activeTab=attention', 'button' => 'See bookings'];
+        }
+
+        if (PackageBookingResource::canViewAny() && ($n = PackageBookingStatus::applyNeedsAttention(PackageBookingResource::getEloquentQuery())->count())) {
+            $items[] = ['icon' => '🧳', 'tone' => 'danger', 'count' => $n,
+                'title' => $n === 1 ? 'Package booking needs a look' : 'Package bookings need a look',
+                'text' => 'A guest asked to cancel, a balance is due today or tomorrow, or a refund needs action.',
+                'url' => PackageBookingResource::getUrl('index').'?activeTab=attention', 'button' => 'See bookings'];
         }
 
         $balance = self::walletBalance();

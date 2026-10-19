@@ -49,7 +49,8 @@ class PackageBookingStatus
             ->orWhere(fn (Builder $q) => $q->where('status', 'cancelled')->where('cancellation_reason', 'like', '%manual%'))
             ->orWhere(fn (Builder $q) => $q->where('status', 'confirmed')->whereNotNull('cancellation_requested_at'))
             ->orWhere(fn (Builder $q) => $q->where('status', 'confirmed')->whereNull('cancellation_requested_at')
-                ->where('package_balance_amount', '>', 0)->whereDate('package_balance_due_on', '<', today())));
+                // Due today or tomorrow too, so the team can call the guest in time.
+                ->where('package_balance_amount', '>', 0)->whereDate('package_balance_due_on', '<=', today()->addDay())));
     }
 
     /** @return array<string, string> raw status => plain words, for filters */

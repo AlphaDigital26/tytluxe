@@ -112,6 +112,9 @@ class BookingsTable
                         ->when($data['from'] ?? null, fn (Builder $q, $date) => $q->whereDate('created_at', '>=', $date))
                         ->when($data['until'] ?? null, fn (Builder $q, $date) => $q->whereDate('created_at', '<=', $date))),
             ])
+            // Actions first in the row: at the end they sat past the right edge
+            // of a laptop screen, so staff never saw Cancel / Refund.
+            ->recordActionsPosition(\Filament\Tables\Enums\RecordActionsPosition::BeforeColumns)
             ->recordActions([
                 ViewAction::make()->label('Open'),
                 ActionGroup::make([
@@ -133,7 +136,7 @@ class BookingsTable
      * confirmed bookings TripJack actually booked, and only to admins the
      * BookingPolicy allows to cancel (Super Admin, Operations).
      */
-    protected static function cancelAndRefundAction(): Action
+    public static function cancelAndRefundAction(): Action
     {
         return Action::make('cancelAndRefund')
             ->label(fn (Booking $record) => $record->cancellation_requested_at ? 'Finish cancellation & refund' : 'Cancel & Refund')
@@ -196,6 +199,7 @@ class BookingsTable
                 ? 'Checks TripJack again. If the hotel has confirmed the cancellation, the guest is refunded now; if not, it finishes by itself once TripJack confirms.'
                 : 'This calls TripJack to cancel the reservation, then refunds the guest via Razorpay for the amount entered. This cannot be undone.')
             ->modalSubmitActionLabel(fn (Booking $record) => $record->cancellation_requested_at ? 'Check & finish' : 'Confirm cancellation')
+            ->modalCancelActionLabel('Go back')
             ->action(function (array $data, Booking $record): void {
                 $refundAmount = ($data['refund_amount'] ?? null) !== null && $data['refund_amount'] !== ''
                     ? (float) $data['refund_amount']

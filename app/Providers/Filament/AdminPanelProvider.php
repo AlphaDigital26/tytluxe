@@ -83,6 +83,7 @@ class AdminPanelProvider extends PanelProvider
                 \App\Filament\Widgets\BusinessSnapshot::class,
                 \App\Filament\Widgets\HotelsOverview::class,
                 \App\Filament\Widgets\FlightsOverview::class,
+                \App\Filament\Widgets\PackagesOverview::class,
                 \App\Filament\Widgets\SalesChart::class,
                 \App\Filament\Widgets\UpcomingTrips::class,
                 \App\Filament\Widgets\EnquiriesByCategoryChart::class,

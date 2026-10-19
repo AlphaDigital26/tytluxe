@@ -5,8 +5,10 @@ namespace App\Filament\Resources\Bookings\Pages;
 use App\Filament\Actions\RecordManualRefundAction;
 use App\Filament\Resources\Bookings\BookingResource;
 use App\Filament\Resources\Bookings\HotelBookingActions;
+use App\Filament\Resources\Bookings\Tables\BookingsTable;
 use App\Models\Booking;
 use App\Services\TripJack\TripJackClient;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
 use Illuminate\Support\Carbon;
@@ -30,9 +32,15 @@ class ViewBooking extends ViewRecord
         return [
             HotelBookingActions::checkStatus(fn (Booking $record) => $this->loadPenaltySchedule(fresh: true)),
             HotelBookingActions::downloadInvoice(),
-            HotelBookingActions::addNote(),
-            RecordManualRefundAction::make(),
-            EditAction::make()->label('Edit contact details'),
+            // Grouped so the row fits a laptop screen, as on the flight page.
+            ActionGroup::make([
+                HotelBookingActions::addNote(),
+                EditAction::make()->label('Edit contact details'),
+                RecordManualRefundAction::make(),
+            ])->label('More')->icon('heroicon-m-ellipsis-vertical')->button()->color('gray'),
+            // Same cancel as the list's "More" menu, so staff on a call can
+            // cancel from the booking itself.
+            BookingsTable::cancelAndRefundAction()->button(),
         ];
     }
 

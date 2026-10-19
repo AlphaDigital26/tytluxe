@@ -18,8 +18,11 @@ class FeaturedBlogDestinationForm
                     ->required()
                     ->maxLength(100)
                     ->live(onBlur: true)
-                    ->afterStateUpdated(function ($state, $set) {
-                        $set('slug', Str::slug($state));
+                    // Only on create: changing a live page's slug breaks its old links.
+                    ->afterStateUpdated(function ($state, $set, string $operation) {
+                        if ($operation === 'create') {
+                            $set('slug', Str::slug($state));
+                        }
                     }),
 
                 TextInput::make('slug')

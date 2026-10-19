@@ -164,6 +164,9 @@ class PackageBookingResource extends Resource
                         ->when($data['from'] ?? null, fn (Builder $q, $date) => $q->whereDate('check_in', '>=', $date))
                         ->when($data['until'] ?? null, fn (Builder $q, $date) => $q->whereDate('check_in', '<=', $date))),
             ])
+            // Actions first in the row: at the end they sat past the right edge
+            // of a laptop screen, so staff never saw Cancel / Refund.
+            ->recordActionsPosition(\Filament\Tables\Enums\RecordActionsPosition::BeforeColumns)
             ->recordActions([
                 ViewAction::make()->label('Open')->url(fn (Booking $record) => self::bookingUrl($record)),
                 ActionGroup::make([

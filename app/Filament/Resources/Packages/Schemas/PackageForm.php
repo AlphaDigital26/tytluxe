@@ -41,12 +41,12 @@ class PackageForm
                                 ->helperText('The full name of this trip, exactly as it appears on the brochure or PDF.')
                                 ->required()
                                 ->live(onBlur: true)
-                                ->afterStateUpdated(fn (string $state, $set) => $set('slug', Str::slug($state)))
+                                ->afterStateUpdated(fn (?string $state, $set, string $operation) => $operation === 'create' ? $set('slug', Str::slug((string) $state)) : null) // only on create: a new slug breaks old links
                                 ->columnSpanFull(),
 
                             TextInput::make('slug')
-                                ->label('URL Slug  (auto-filled from title)')
-                                ->helperText('Auto-generated from the title. You can edit it, but use hyphens instead of spaces.')
+                                ->label('Web address (URL slug)')
+                                ->helperText(fn (string $operation) => $operation === 'create' ? 'Auto-generated from the title. You can edit it, but use hyphens instead of spaces.' : 'This is the web address of the page. Changing it breaks links people already have (Google, WhatsApp shares) — only change it if you must.')
                                 ->required()
                                 ->unique(ignoreRecord: true),
 

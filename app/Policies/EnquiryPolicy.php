@@ -30,7 +30,8 @@ class EnquiryPolicy
      */
     public function create(Admin $user): bool
     {
-        return $user->role === 'Super Admin';
+        // Support and Operations take the phone and WhatsApp calls.
+        return in_array($user->role, ['Super Admin', 'Operations', 'Support'], true);
     }
 
     /**
@@ -38,7 +39,9 @@ class EnquiryPolicy
      */
     public function update(Admin $user, Enquiry $model): bool
     {
-        if ($user->role === 'Super Admin') return true;
+        if (in_array($user->role, ['Super Admin', 'Operations'], true)) return true;
+        // Support picks up new, unassigned enquiries as well as their own.
+        if ($user->role === 'Support' && $model->assigned_agent_id === null) return true;
         return $model->assigned_agent_id === $user->id;
     }
 

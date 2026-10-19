@@ -36,9 +36,13 @@ class ViewFlightBooking extends ViewRecord
         return [
             FlightBookingActions::checkStatus(),
             FlightBookingActions::downloadETicket(),
-            FlightBookingActions::downloadInvoice(),
-            FlightBookingActions::addNote(),
-            RecordManualRefundAction::make(),
+            // Grouped so the row fits a laptop screen — side by side, the
+            // Cancel button ran off the right edge.
+            ActionGroup::make([
+                FlightBookingActions::downloadInvoice(),
+                FlightBookingActions::addNote(),
+                RecordManualRefundAction::make(),
+            ])->label('More')->icon('heroicon-m-ellipsis-vertical')->button()->color('gray'),
             ActionGroup::make([
                 FlightBookingActions::releaseReservation(),
                 FlightBookingActions::cancelAndRefund(),

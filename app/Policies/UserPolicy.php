@@ -22,8 +22,9 @@ class UserPolicy
      */
     public function view(Admin $user, User $model): bool
     {
-        if ($user->role === 'Super Admin') return true;
-        return $this->viewAny($user) && $model->role === 'customer';
+        // The users table holds customers only (staff are in admins) and has
+        // no role column, so the old role === 'customer' check refused everyone.
+        return $this->viewAny($user);
     }
 
     /**
