@@ -79,7 +79,7 @@
         <div class="tyt-fbv-banner" style="background: {{ $tone[1] }}; border-color: {{ $tone[0] }}33;">
             <div>
                 <h2 style="color: {{ $tone[0] }};">{{ $status['label'] }}</h2>
-                <p>{{ $status['help'] }}</p>
+                <p><strong>What to do:</strong> {{ $status['help'] }}</p>
                 @if($record->status === 'on_hold' && $record->tripjack_hold_expires_at)
                     <p><strong>Guest must pay by {{ $record->tripjack_hold_expires_at->format('D, j M Y, g:i A') }}</strong> ({{ $record->tripjack_hold_expires_at->diffForHumans() }}).</p>
                 @endif
@@ -143,8 +143,10 @@
                                 @endforelse
                             </tbody>
                         </table>
-                        @if($record->tripjack_booking_id)
-                            <p class="tyt-fbv-fine">Airline name and flight times appear here after you click "Check status with airline".</p>
+                        @if($record->tripjack_booking_id && $this->itineraryError)
+                            <p class="tyt-fbv-fine">{{ $this->itineraryError }}</p>
+                        @elseif($record->tripjack_booking_id)
+                            <p class="tyt-fbv-fine" wire:init="loadItinerary">Loading airline name and flight times…</p>
                         @endif
                     @endif
                 </div>
@@ -215,11 +217,21 @@
                 {{-- Money --}}
                 <div class="tyt-fbv-card">
                     <h3>Money</h3>
-                    <div class="tyt-fbv-row tyt-fbv-total"><span>Guest paid</span><strong>{{ $money($record->total_amount) }}</strong></div>
+                    @php
+                        $paidIn = (float) $record->payments->whereIn('status', \App\Models\Booking::PAID_PAYMENT_STATUSES)->sum('amount');
+                        $refunded = (float) $record->payments->sum('refund_amount');
+                    @endphp
+                    <div class="tyt-fbv-row tyt-fbv-total"><span>{{ $paidIn > 0 ? 'Guest paid' : 'Price (not paid)' }}</span><strong>{{ $money($paidIn > 0 ? $paidIn : $record->total_amount) }}</strong></div>
+                    @if($refunded > 0)
+                        <div class="tyt-fbv-row"><span>Refunded to guest</span><strong>− {{ $money($refunded) }}</strong></div>
+                    @endif
                     @if((float) $record->tripjack_total_price > 0)
                         <div class="tyt-fbv-row"><span>Airline ticket cost (paid from TripJack wallet)</span><strong>{{ $money($record->tripjack_total_price) }}</strong></div>
                         <div class="tyt-fbv-row tyt-fbv-earn"><span>Your earning</span><strong>{{ $money($record->margin_amount) }}</strong></div>
                         <div class="tyt-fbv-row"><span>GST on your earning</span><strong>{{ $money($record->gst_on_margin) }}</strong></div>
+                        @if((float) $record->management_fee > 0)
+                            <div class="tyt-fbv-row"><span>Management fee + GST</span><strong>{{ $money((float) $record->management_fee + (float) $record->management_fee_gst) }}</strong></div>
+                        @endif
                         <div class="tyt-fbv-row"><span>Online payment charge</span><strong>{{ $money($record->razorpay_recovery) }}</strong></div>
                     @endif
                 </div>

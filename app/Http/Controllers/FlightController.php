@@ -1300,6 +1300,10 @@ class FlightController extends Controller
                     'resultsUrl' => $draft['resultsUrl'] ?? null,
                 ],
                 'flight_legs' => $flightLegs,
+                // Airline, flight numbers and times from Review, so the admin
+                // page shows them straight away; ticket numbers are added
+                // from Booking Details once the airline issues the ticket.
+                'flight_itinerary' => FlightBookingService::itinerarySummary($draft['response'] ?? []) ?: null,
                 'check_in' => $firstDepartDate, // reused generic date columns so admin/list views sort sensibly across verticals
                 'check_out' => $lastDepartDate,
                 'pax_adults' => $context['adults'],

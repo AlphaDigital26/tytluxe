@@ -10,7 +10,9 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class AmenitiesTable
 {
@@ -49,12 +51,15 @@ class AmenitiesTable
                     })
                     ->sortable(),
 
+                // Shown by default: tells staff which entries matter before
+                // they tidy the list.
                 TextColumn::make('hotels_count')
-                    ->label('Used by (Hotels)')
+                    ->label('Used by hotels')
                     ->counts('hotels')
                     ->badge()
-                    ->color('gray')
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->color(fn ($state) => $state ? 'gray' : 'warning')
+                    ->sortable()
+                    ->toggleable(),
 
                 TextColumn::make('created_at')
                     ->label('Added on')
@@ -62,6 +67,12 @@ class AmenitiesTable
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
+            ])
+
+            ->filters([
+                Filter::make('unused')
+                    ->label('Not used by any hotel, cruise or package')
+                    ->query(fn (Builder $query) => $query->doesntHave('hotels')->doesntHave('cruises')->doesntHave('packages')),
             ])
 
             // ── Row actions ───────────────────────────────────────────────

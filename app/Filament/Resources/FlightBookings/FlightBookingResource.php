@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\FlightBookings;
 
+use App\Filament\Resources\Concerns\SearchesBookingsGlobally;
 use App\Filament\Resources\FlightBookings\Pages\ListFlightBookings;
 use App\Filament\Resources\FlightBookings\Pages\ViewFlightBooking;
 use App\Filament\Resources\FlightBookings\Tables\FlightBookingsTable;
@@ -18,6 +19,8 @@ use Illuminate\Database\Eloquent\Builder;
  */
 class FlightBookingResource extends Resource
 {
+    use SearchesBookingsGlobally;
+
     protected static ?string $model = Booking::class;
 
     protected static string|\UnitEnum|null $navigationGroup = 'Bookings & Leads';
@@ -39,6 +42,22 @@ class FlightBookingResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()->where('vertical', 'flight');
+    }
+
+    /** Also by airline PNR — what a passenger reads off their ticket. */
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['reference', 'lead_guest_name', 'guest_phone', 'guest_email', 'tripjack_booking_id', 'tripjack_flight_pnr'];
+    }
+
+    protected static function globalSearchTrip(Booking $record): ?string
+    {
+        return $record->flight_route ? str_replace('-', ' → ', $record->flight_route) : null;
+    }
+
+    protected static function globalSearchStatus(Booking $record): string
+    {
+        return FlightBookingStatus::for($record)['label'];
     }
 
     /** Red badge on the menu item when something needs a person to look. */

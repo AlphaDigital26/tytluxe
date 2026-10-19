@@ -36,6 +36,7 @@ class PackageBookingStatus
             $booking->status === 'cancelled' => 'cancelled',
             $booking->status === 'refunded' => 'refunded',
             $booking->status === 'payment_failed' => 'payment_failed',
+            $booking->paymentAbandoned() => 'left_without_paying',
             default => 'awaiting_payment',
         };
     }
@@ -111,6 +112,11 @@ class PackageBookingStatus
             'label' => 'Payment failed',
             'color' => 'gray',
             'help' => 'The guest\'s payment did not go through. Nothing was booked and no money was taken.',
+        ],
+        'left_without_paying' => [
+            'label' => 'Left without paying',
+            'color' => 'gray',
+            'help' => 'The guest reached the payment page over an hour ago and did not pay. Their seats were released. No money was taken. Nothing to do — you can call them if you would like to help them finish booking.',
         ],
         'awaiting_payment' => [
             'label' => 'Waiting for payment',

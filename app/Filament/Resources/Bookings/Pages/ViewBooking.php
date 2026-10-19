@@ -49,16 +49,26 @@ class ViewBooking extends ViewRecord
         return parent::resolveRecord($key)->load('hotel', 'travelers', 'payments');
     }
 
+    /** No schedule saved yet: fetch it just after the page opens (wire:init). */
+    public bool $penaltyPending = false;
+
     /**
      * No TripJack call here: a slow TripJack used to hold this page for up
      * to its full timeout × retries and crash it. The last schedule fetched
-     * (by "Check status with TripJack") is shown from cache instead.
+     * is shown from cache; if there is none, loadPenaltyLater() fetches it
+     * once the page is already on screen.
      */
     public function mount(int|string $record): void
     {
         parent::mount($record);
 
         $this->loadPenaltySchedule(fresh: false);
+    }
+
+    public function loadPenaltyLater(): void
+    {
+        $this->penaltyPending = false;
+        $this->loadPenaltySchedule(fresh: true);
     }
 
     protected function cacheKey(): string
@@ -80,7 +90,7 @@ class ViewBooking extends ViewRecord
             if ($cached) {
                 [$this->penaltySchedule, $this->penaltyFetchedAt] = [$cached['slabs'], $cached['at']];
             } else {
-                $this->penaltyError = 'Click "Check status with TripJack" at the top to load the hotel\'s cancellation policy.';
+                $this->penaltyPending = true;
             }
 
             return;
@@ -108,6 +118,8 @@ class ViewBooking extends ViewRecord
         ])->all();
         $this->penaltyFetchedAt = now()->format('M j, Y g:i A');
 
-        Cache::put($this->cacheKey(), ['slabs' => $this->penaltySchedule, 'at' => $this->penaltyFetchedAt], now()->addDays(7));
+        // The schedule doesn't change after booking — keep it until the stay is over.
+        $until = $this->record->check_out ? Carbon::parse($this->record->check_out)->endOfDay() : null;
+        Cache::put($this->cacheKey(), ['slabs' => $this->penaltySchedule, 'at' => $this->penaltyFetchedAt], $until && $until->isFuture() ? $until->addDays(7) : now()->addDays(7));
     }
 }

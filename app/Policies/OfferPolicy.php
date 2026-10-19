@@ -9,6 +9,9 @@ use App\Models\Offer;
 
 class OfferPolicy
 {
+    /** Offers are website content: the Content team adds them, as with destinations. */
+    public const EDIT_ROLES = ['Super Admin', 'Operations', 'Content'];
+
     /**
      * Determine whether the user can view any models.
      */
@@ -30,7 +33,7 @@ class OfferPolicy
      */
     public function create(Admin $user): bool
     {
-        return $user->role === 'Super Admin';
+        return in_array($user->role, self::EDIT_ROLES, true);
     }
 
     /**
@@ -38,7 +41,7 @@ class OfferPolicy
      */
     public function update(Admin $user, Offer $model): bool
     {
-        return $user->role === 'Super Admin';
+        return in_array($user->role, self::EDIT_ROLES, true);
     }
 
     /**

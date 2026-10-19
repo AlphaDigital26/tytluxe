@@ -28,6 +28,7 @@ class BookingsTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with('payments'))
             ->columns([
                 TextColumn::make('reference')
                     ->label('Booking No.')
@@ -55,6 +56,7 @@ class BookingsTable
                 TextColumn::make('total_amount')
                     ->label('Guest paid')
                     ->money('INR')
+                    ->description(fn (Booking $record) => self::paidNote($record))
                     ->sortable(),
                 TextColumn::make('status')
                     ->label('Status')
@@ -122,7 +124,7 @@ class BookingsTable
                     HotelBookingActions::downloadInvoice(),
                     HotelBookingActions::addNote(),
                     EditAction::make()->label('Edit contact details'),
-                    RecordManualRefundAction::make(onlyWhenDue: true),
+                    RecordManualRefundAction::make(),
                     static::cancelAndRefundAction(),
                 ])->label('More')->button()->color('gray'),
             ])
@@ -218,5 +220,19 @@ class BookingsTable
                     ->color($result['success'] ? 'success' : 'danger')
                     ->send();
             });
+    }
+
+    /** Under "Guest paid": a refund or an unpaid booking, so the amount isn't read as money kept. */
+    public static function paidNote(Booking $record): ?string
+    {
+        $paid = (float) $record->payments->whereIn('status', Booking::PAID_PAYMENT_STATUSES)->sum('amount');
+        $refunded = (float) $record->payments->sum('refund_amount');
+
+        return match (true) {
+            $paid <= 0 => 'Not paid',
+            $refunded >= $paid - 0.01 => 'Refunded in full',
+            $refunded > 0 => 'Refunded ₹'.number_format($refunded, 2),
+            default => null,
+        };
     }
 }

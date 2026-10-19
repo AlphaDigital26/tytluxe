@@ -86,12 +86,14 @@ class HotelsTable
                 ToggleColumn::make('is_active')
                     ->label('Visible')
                     ->sortable()
-                    ->tooltip('Turn on to show on website, off to hide'),
+                    ->tooltip('Turn on to show on website, off to hide')
+                    ->disabled(fn ($record) => ! auth('admin')->user()?->can('update', $record)),
 
                 ToggleColumn::make('is_featured')
                     ->label('Featured')
                     ->sortable()
-                    ->tooltip('Highlight on homepage & destination showcases'),
+                    ->tooltip('Highlight on homepage & destination showcases')
+                    ->disabled(fn ($record) => ! auth('admin')->user()?->can('update', $record)),
 
                 TextColumn::make('created_at')
                     ->label('Added On')

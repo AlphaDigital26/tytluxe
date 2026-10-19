@@ -3,7 +3,11 @@
 namespace App\Filament\Pages;
 
 use App\Models\Setting;
+use App\Services\FlightBookingService;
 use App\Services\FlightPricingService;
+use App\Services\TripJack\TripJackFlightClient;
+use App\Support\DashboardData;
+use Filament\Actions\Action;
 use App\Support\FlightSettings as Settings;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Textarea;
@@ -181,10 +185,40 @@ class FlightSettings extends Page
     {
         $last = Setting::getJson('tripjack_alert.last_balance', []);
         if (! isset($last['amount'])) {
-            return 'Not checked yet — it is checked automatically every 15 minutes.';
+            return 'Not checked yet. Click "Check wallet now" at the top. It should also be checked automatically every 15 minutes — if it never is, the server\'s scheduled tasks (cron) are not set up; tell your developer.';
         }
 
-        return '₹'.number_format((float) $last['amount'], 2)
-            .' (checked '.Carbon::parse($last['checked_at'])->diffForHumans().')';
+        $at = Carbon::parse($last['checked_at']);
+
+        return '₹'.number_format((float) $last['amount'], 2).' (checked '.$at->diffForHumans().')'
+            .($at->lt(now()->subMinutes(DashboardData::WALLET_STALE_MINUTES))
+                ? ' — automatic checks seem to have stopped; the server\'s scheduled tasks (cron) may not be running. Tell your developer.'
+                : '');
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Action::make('checkWallet')
+                ->label('Check wallet now')
+                ->icon('heroicon-o-arrow-path')
+                ->color('gray')
+                ->action(function (): void {
+                    try {
+                        $amount = FlightBookingService::tripJackBalance(app(TripJackFlightClient::class)->userDetail());
+                    } catch (\Throwable $e) {
+                        $amount = null;
+                    }
+
+                    if ($amount === null) {
+                        Notification::make()->title('Couldn\'t read the wallet')->body('TripJack did not answer. Please try again in a few minutes.')->danger()->send();
+
+                        return;
+                    }
+
+                    Setting::setJson('tripjack_alert.last_balance', ['amount' => $amount, 'checked_at' => now()->toIso8601String()]);
+                    Notification::make()->title('TripJack wallet: ₹'.number_format($amount, 2))->success()->send();
+                }),
+        ];
     }
 }

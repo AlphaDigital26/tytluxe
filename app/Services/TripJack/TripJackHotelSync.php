@@ -886,6 +886,9 @@ class TripJackHotelSync
         $amenityIds = collect($amenitiesMap)
             ->pluck('name')
             ->filter()
+            // TripJack sometimes lists a hotel's own (or a sister hotel's)
+            // name as an amenity — "Shimla Mountain Resort" isn't a facility.
+            ->reject(fn ($name) => Amenity::looksLikeHotelName($name, $hotel->title))
             ->unique(fn ($name) => strtolower(trim($name)))
             ->map(function ($name) {
                 $amenity = Amenity::where('type', 'hotel')

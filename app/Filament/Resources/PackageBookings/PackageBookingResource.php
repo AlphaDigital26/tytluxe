@@ -4,6 +4,7 @@ namespace App\Filament\Resources\PackageBookings;
 
 use App\Filament\Actions\RecordManualRefundAction;
 use App\Filament\Resources\Bookings\HotelBookingActions;
+use App\Filament\Resources\Concerns\SearchesBookingsGlobally;
 use App\Filament\Resources\PackageBookings\Pages\ListPackageBookings;
 use App\Filament\Resources\PackageBookings\Pages\ViewPackageBooking;
 use App\Models\Booking;
@@ -32,6 +33,8 @@ use Illuminate\Support\Carbon;
  */
 class PackageBookingResource extends Resource
 {
+    use SearchesBookingsGlobally;
+
     protected static ?string $model = Booking::class;
 
     protected static string|\UnitEnum|null $navigationGroup = 'Bookings & Leads';
@@ -74,6 +77,21 @@ class PackageBookingResource extends Resource
     public static function canCreate(): bool
     {
         return false;
+    }
+
+    public static function getGlobalSearchResultUrl(\Illuminate\Database\Eloquent\Model $record): string
+    {
+        return self::bookingUrl($record);
+    }
+
+    protected static function globalSearchTrip(Booking $record): ?string
+    {
+        return $record->package?->title;
+    }
+
+    protected static function globalSearchStatus(Booking $record): string
+    {
+        return PackageBookingStatus::for($record)['label'];
     }
 
     public static function getNavigationBadge(): ?string
@@ -133,7 +151,8 @@ class PackageBookingResource extends Resource
                 TextColumn::make('paid')
                     ->label('Paid')
                     ->state(fn (Booking $record) => self::paidSoFar($record))
-                    ->money('INR'),
+                    ->money('INR')
+                    ->description(fn (Booking $record) => \App\Filament\Resources\Bookings\Tables\BookingsTable::paidNote($record)),
                 TextColumn::make('balance')
                     ->label('Balance due')
                     ->state(fn (Booking $record) => self::balanceWithGst($record))
@@ -173,7 +192,7 @@ class PackageBookingResource extends Resource
                     PackageBookingActions::markBalanceReceived(),
                     HotelBookingActions::downloadInvoice(),
                     HotelBookingActions::addNote(),
-                    RecordManualRefundAction::make(onlyWhenDue: true),
+                    RecordManualRefundAction::make(),
                     PackageBookingActions::cancelAndRefund(),
                 ])->label('More')->button()->color('gray'),
             ])

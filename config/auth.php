@@ -107,6 +107,16 @@ return [
             'expire' => 60,
             'throttle' => 60,
         ],
+
+        // "Forgot password" on the admin login. Own table, so a staff
+        // member who is also a customer with the same email can't have one
+        // reset link cancel the other.
+        'admins' => [
+            'provider' => 'admins',
+            'table' => 'admin_password_reset_tokens',
+            'expire' => 30,
+            'throttle' => 60,
+        ],
     ],
 
     /*

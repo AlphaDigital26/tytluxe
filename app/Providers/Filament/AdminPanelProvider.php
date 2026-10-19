@@ -47,7 +47,11 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('tyt-console')
             ->login()
+            // "Forgot password?" link on the login page; the reset link is
+            // emailed to the staff member (see passwords.admins in config/auth.php).
+            ->passwordReset()
             ->authGuard('admin')
+            ->authPasswordBroker('admins')
             ->colors([
                 'primary' => Color::hex('#c9a84c'),
                 'danger' => Color::Rose,

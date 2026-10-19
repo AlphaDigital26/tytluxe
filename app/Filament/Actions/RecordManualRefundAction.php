@@ -20,17 +20,19 @@ use Filament\Schemas\Components\Utilities\Get;
 class RecordManualRefundAction
 {
     /**
-     * @param  bool  $onlyWhenDue  list menus: show only on bookings flagged as
-     *                             waiting for a refund, not on every paid one
+     * Shown only where a refund can actually be owed: a booking flagged as
+     * waiting for a refund, or one that was cancelled with money still not
+     * returned (e.g. a goodwill refund on top of the penalty). Never on a
+     * normal confirmed booking, where it looked like the main button.
      */
-    public static function make(bool $onlyWhenDue = false): Action
+    public static function make(): Action
     {
         return Action::make('recordManualRefund')
             ->label('Record manual refund')
             ->icon('heroicon-o-banknotes')
-            ->color('warning')
+            ->color(fn (Booking $record) => self::refundDue($record) ? 'warning' : 'gray')
             ->visible(fn (Booking $record) => (bool) auth('admin')->user()?->can('recordRefund', $record)
-                && (! $onlyWhenDue || self::refundDue($record))
+                && (self::refundDue($record) || $record->status === 'cancelled')
                 && ManualRefundService::refundablePayments($record)->isNotEmpty())
             ->modalHeading('Record a refund you made in Razorpay')
             ->modalDescription('Use this after you have refunded the guest yourself in the Razorpay dashboard. It does not send any money — it records the refund here so the booking, the guest\'s page and the invoice show it, and clears the "refund needs action" warning.')

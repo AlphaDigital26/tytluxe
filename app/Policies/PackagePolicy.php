@@ -9,6 +9,9 @@ use App\Models\Package;
 
 class PackagePolicy
 {
+    /** Who adds and edits packages — matches the role descriptions on the staff form. */
+    public const EDIT_ROLES = ['Super Admin', 'Operations', 'Content'];
+
     /**
      * Determine whether the user can view any models.
      */
@@ -30,7 +33,7 @@ class PackagePolicy
      */
     public function create(Admin $user): bool
     {
-        return in_array($user->role, ['Super Admin', 'Operations', 'Support', 'Finance', 'Content', 'Analyst']);
+        return in_array($user->role, self::EDIT_ROLES, true);
     }
 
     /**
@@ -38,7 +41,7 @@ class PackagePolicy
      */
     public function update(Admin $user, Package $model): bool
     {
-        return in_array($user->role, ['Super Admin', 'Operations', 'Support', 'Finance', 'Content', 'Analyst']);
+        return in_array($user->role, self::EDIT_ROLES, true);
     }
 
     /**
