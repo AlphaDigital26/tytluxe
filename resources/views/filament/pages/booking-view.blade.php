@@ -72,12 +72,12 @@
                     <div class="tyt-bkv-stat-grid">
                         <div class="tyt-bkv-stat">
                             <span>Check in</span>
-                            <strong>{{ $record->check_in ? \Illuminate\Support\Carbon::parse($record->check_in)->format('d-m-Y') : '—' }}</strong>
+                            <strong>{{ $record->check_in ? \Illuminate\Support\Carbon::parse($record->check_in)->format('j M Y') : '—' }}</strong>
                             @if($hotel?->check_in_time)<small>{{ $hotel->check_in_time }}</small>@endif
                         </div>
                         <div class="tyt-bkv-stat">
                             <span>Check out</span>
-                            <strong>{{ $record->check_out ? \Illuminate\Support\Carbon::parse($record->check_out)->format('d-m-Y') : '—' }}</strong>
+                            <strong>{{ $record->check_out ? \Illuminate\Support\Carbon::parse($record->check_out)->format('j M Y') : '—' }}</strong>
                             @if($hotel?->check_out_time)<small>{{ $hotel->check_out_time }}</small>@endif
                         </div>
                         <div class="tyt-bkv-stat">
@@ -288,7 +288,7 @@
                     </div>
                     <div class="tyt-bkv-fare-row">
                         <span>Booked On</span>
-                        <strong>{{ $record->created_at->format('M j, Y, g:i A') }}</strong>
+                        <strong>{{ $record->created_at->format('j M Y, g:i A') }}</strong>
                     </div>
                     @if($record->cancellation_reason)
                         <div class="tyt-bkv-fare-row" style="flex-direction: column; align-items: flex-start; gap: 4px;">

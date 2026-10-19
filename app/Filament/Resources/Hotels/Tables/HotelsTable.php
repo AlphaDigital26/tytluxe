@@ -97,7 +97,7 @@ class HotelsTable
 
                 TextColumn::make('created_at')
                     ->label('Added On')
-                    ->date('d M Y')
+                    ->date('j M Y')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])

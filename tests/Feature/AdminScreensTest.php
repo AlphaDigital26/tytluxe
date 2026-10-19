@@ -58,7 +58,7 @@ class AdminScreensTest extends TestCase
         }
 
         $this->get('/tyt-console/reviews')->assertSee('Hotel: Sea View')->assertSee('★★★★★');
-        $this->get('/tyt-console')->assertSee('Bookings &amp; Leads', false)->assertSee('Check Bookings with TripJack')->assertDontSee('System Notification');
+        $this->get('/tyt-console')->assertSee('Bookings &amp; Leads', false)->assertSee('Check Hotel Bookings with TripJack')->assertDontSee('System Notification');
     }
 
     public function test_raw_settings_screen_is_switched_off(): void

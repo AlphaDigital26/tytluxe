@@ -25,14 +25,14 @@ class BlogCategoryForm
                     }),
 
                 TextInput::make('slug')
-                    ->label('URL Slug')
+                    ->label('Web address')
                     ->required()
                     ->unique(ignoreRecord: true)
                     ->maxLength(255)
                     ->helperText('Used for filtering on the blog page.'),
 
                 TextInput::make('sort_order')
-                    ->label('Sort Order')
+                    ->label('Position in the list')
                     ->numeric()
                     ->default(0)
                     ->helperText('Lower numbers appear first in the filter bar.'),

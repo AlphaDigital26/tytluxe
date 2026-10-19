@@ -63,7 +63,7 @@ class AmenitiesTable
 
                 TextColumn::make('created_at')
                     ->label('Added on')
-                    ->date('d M Y')
+                    ->date('j M Y')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 

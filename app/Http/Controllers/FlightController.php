@@ -1298,6 +1298,8 @@ class FlightController extends Controller
                     'contactInfo' => $contactInfo,
                     'fareExpiresAt' => $draft['expiresAt'] ?? null,
                     'resultsUrl' => $draft['resultsUrl'] ?? null,
+                    // "HCCB" → "Chicken sandwich" etc., for the admin page.
+                    'ssrNames' => \App\Support\FlightAddonNames::fromReview($draft['response'] ?? []),
                 ],
                 'flight_legs' => $flightLegs,
                 // Airline, flight numbers and times from Review, so the admin

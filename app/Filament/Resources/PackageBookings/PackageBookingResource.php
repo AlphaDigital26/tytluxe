@@ -133,27 +133,34 @@ class PackageBookingResource extends Resource
         return $table
             ->recordUrl(fn (Booking $record) => self::bookingUrl($record))
             ->columns([
-                TextColumn::make('reference')->label('Booking No.')->searchable()->copyable()->weight('bold'),
-                TextColumn::make('lead_guest_name')
+                // Phones only: who and which booking in one column, so the
+                // amount and status fit on screen (see the CSS in AdminPanelProvider).
+                TextColumn::make('phone_summary')
+                    ->label('Booking')
+                    ->state(fn (Booking $record) => $record->lead_guest_name)
+                    ->description(fn (Booking $record) => $record->reference.' · '.$record->guest_phone)
+                    ->hiddenFrom('md'),
+                TextColumn::make('reference')->visibleFrom('md')->label('Booking No.')->searchable()->copyable()->weight('bold'),
+                TextColumn::make('lead_guest_name')->visibleFrom('md')
                     ->label('Guest')
                     ->description(fn (Booking $record) => $record->guest_phone)
                     ->searchable(['lead_guest_name', 'guest_email', 'guest_phone']),
-                TextColumn::make('package.title')
+                TextColumn::make('package.title')->visibleFrom('md')
                     ->label('Package')
                     ->description(fn (Booking $record) => $record->package_option && $record->package_option !== 'Per person' ? $record->package_option : null)
                     ->wrap()
                     ->searchable(),
-                TextColumn::make('check_in')
+                TextColumn::make('check_in')->visibleFrom('md')
                     ->label('Departure')
                     ->formatStateUsing(fn ($state) => $state ? Carbon::parse($state)->format('D, j M Y') : '—')
                     ->sortable(),
-                TextColumn::make('pax_adults')->label('Travellers'),
+                TextColumn::make('pax_adults')->label('Travellers')->visibleFrom('md'),
                 TextColumn::make('paid')
                     ->label('Paid')
                     ->state(fn (Booking $record) => self::paidSoFar($record))
                     ->money('INR')
                     ->description(fn (Booking $record) => \App\Filament\Resources\Bookings\Tables\BookingsTable::paidNote($record)),
-                TextColumn::make('balance')
+                TextColumn::make('balance')->visibleFrom('md')
                     ->label('Balance due')
                     ->state(fn (Booking $record) => self::balanceWithGst($record))
                     ->money('INR')
@@ -165,7 +172,7 @@ class PackageBookingResource extends Resource
                     ->formatStateUsing(fn (Booking $record) => PackageBookingStatus::for($record)['label'])
                     ->color(fn (Booking $record) => PackageBookingStatus::for($record)['color'])
                     ->tooltip(fn (Booking $record) => PackageBookingStatus::for($record)['help']),
-                TextColumn::make('created_at')->label('Booked on')->dateTime('j M Y, g:i A')->sortable(),
+                TextColumn::make('created_at')->label('Booked on')->visibleFrom('md')->dateTime('j M Y, g:i A')->sortable(),
                 TextColumn::make('guest_email')->label('Email')->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('created_at', 'desc')
@@ -187,14 +194,16 @@ class PackageBookingResource extends Resource
             // of a laptop screen, so staff never saw Cancel / Refund.
             ->recordActionsPosition(\Filament\Tables\Enums\RecordActionsPosition::BeforeColumns)
             ->recordActions([
-                ViewAction::make()->label('Open')->url(fn (Booking $record) => self::bookingUrl($record)),
+                ViewAction::make()->label('Open')->extraAttributes(['class' => 'tyt-hide-on-phone'])->url(fn (Booking $record) => self::bookingUrl($record)),
                 ActionGroup::make([
                     PackageBookingActions::markBalanceReceived(),
                     HotelBookingActions::downloadInvoice(),
                     HotelBookingActions::addNote(),
                     RecordManualRefundAction::make(),
                     PackageBookingActions::cancelAndRefund(),
-                ])->label('More')->button()->color('gray'),
+                ])->label('More')->button()->color('gray')
+                    // Phones: every button is on the booking page a tap away.
+                    ->extraAttributes(['class' => 'tyt-hide-on-phone']),
             ])
             ->emptyStateHeading('No package bookings yet')
             ->emptyStateDescription('Group packages booked and paid on the website will appear here. Turn on "Guests can book and pay online" in a package\'s Pricing tab.');

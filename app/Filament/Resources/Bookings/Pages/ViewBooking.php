@@ -112,11 +112,11 @@ class ViewBooking extends ViewRecord
         }
 
         $this->penaltySchedule = collect($slabs)->map(fn (array $slab) => [
-            'from' => Carbon::parse($slab['fdt'])->format('d-M, g:i A'),
-            'to' => Carbon::parse($slab['tdt'])->format('d-M, g:i A'),
+            'from' => Carbon::parse($slab['fdt'])->format('j M, g:i A'),
+            'to' => Carbon::parse($slab['tdt'])->format('j M, g:i A'),
             'amount' => (float) ($slab['am'] ?? 0),
         ])->all();
-        $this->penaltyFetchedAt = now()->format('M j, Y g:i A');
+        $this->penaltyFetchedAt = now()->format('j M Y, g:i A');
 
         // The schedule doesn't change after booking — keep it until the stay is over.
         $until = $this->record->check_out ? Carbon::parse($this->record->check_out)->endOfDay() : null;

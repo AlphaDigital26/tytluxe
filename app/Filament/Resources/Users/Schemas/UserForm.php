@@ -58,6 +58,14 @@ class UserForm
                                         ]),
                                     \Filament\Forms\Components\DatePicker::make('anniversary')
                                         ->label('Anniversary'),
+                                    // Read in CreateUser::afterCreate(); not a column.
+                                    Toggle::make('send_password_link')
+                                        ->label('Email them a link to set their password')
+                                        ->default(true)
+                                        ->dehydrated(false)
+                                        ->visibleOn('create')
+                                        ->helperText('So they can sign in on the website and see their bookings. They can also sign in with Google, or use "Forgot password" later, with this email address.')
+                                        ->columnSpanFull(),
                                 ]),
                             ]),
 

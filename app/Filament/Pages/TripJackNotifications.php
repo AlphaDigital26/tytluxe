@@ -15,9 +15,10 @@ use Illuminate\Support\Facades\Auth;
 class TripJackNotifications extends Page implements HasTable
 {
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Customers & Team';
+    // With the bookings it warns about (TripJack problems, wallet), not under Customers & Team.
+    protected static string|\UnitEnum|null $navigationGroup = 'Bookings & Leads';
 
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 9;
 
     protected static ?string $navigationLabel = 'Alerts';
     use InteractsWithTable;
@@ -62,7 +63,7 @@ class TripJackNotifications extends Page implements HasTable
                     ->wrap(),
                 TextColumn::make('created_at')
                     ->label('Received')
-                    ->dateTime('M j, Y h:i A')
+                    ->dateTime('j M Y, g:i A')
                     ->sortable(),
             ])
             ->defaultSort('created_at', 'desc')

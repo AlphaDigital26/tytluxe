@@ -37,7 +37,7 @@ class EnquiriesTable
             ->columns([
                 TextColumn::make('created_at')
                     ->label('Received On')
-                    ->dateTime('M d, Y h:i A')
+                    ->dateTime('j M Y, g:i A')
                     ->sortable()
                     ->toggleable(),
                     
@@ -117,7 +117,7 @@ class EnquiriesTable
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('updated_at')
                     ->label('Last updated')
-                    ->dateTime('M j, Y h:i A')
+                    ->dateTime('j M Y, g:i A')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('admin_notes')
@@ -126,7 +126,7 @@ class EnquiriesTable
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('resolved_at')
                     ->label('Resolved on')
-                    ->dateTime('M j, Y h:i A')
+                    ->dateTime('j M Y, g:i A')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])

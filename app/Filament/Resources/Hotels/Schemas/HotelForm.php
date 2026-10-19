@@ -222,14 +222,14 @@ class HotelForm
                                         ->columnSpan(2),
 
                                     TextInput::make('slug')
-                                        ->label('Web Address (URL Slug)')
+                                        ->label('Web address')
                                         ->helperText(fn (string $operation) => $operation === 'create' ? 'Auto-generated web address for this hotel.' : 'This is the web address of the page. Changing it breaks links people already have (Google, WhatsApp shares) — only change it if you must.')
                                         ->required()
                                         ->unique(ignoreRecord: true)
                                         ->columnSpan(2)
                                         ->visible(fn (?Hotel $record) => $record === null),
                                     Placeholder::make('slug_view')
-                                        ->label('Web Address (URL Slug)')
+                                        ->label('Web address')
                                         ->content(fn (?Hotel $record) => $record?->slug ? '/hotels/'.$record->slug : '—')
                                         ->columnSpan(2)
                                         ->visible(fn (?Hotel $record) => $record !== null),

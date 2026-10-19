@@ -70,12 +70,12 @@ class OffersTable
 
                 TextColumn::make('valid_from')
                     ->label('Starts')
-                    ->date('d M Y')
+                    ->date('j M Y')
                     ->sortable(),
 
                 TextColumn::make('valid_to')
                     ->label('Expires')
-                    ->date('d M Y')
+                    ->date('j M Y')
                     ->sortable()
                     ->color(fn ($record) => now()->gt($record->valid_to) ? 'danger' : 'success'),
 
@@ -90,7 +90,7 @@ class OffersTable
                     ->sortable(),
 
                 TextColumn::make('sort_order')
-                    ->label('Order')
+                    ->label('Position')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])

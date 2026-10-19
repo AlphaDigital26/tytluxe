@@ -38,21 +38,21 @@ class OfferForm
                 ->schema([
                     Grid::make(2)->schema([
                         Select::make('category_key')
-                            ->label('Which Tab Should This Go In?')
+                            ->label('Tab on the Offers page')
                             ->options(self::$categories)
                             ->required()
                             ->native(false),
 
                         TextInput::make('sort_order')
-                            ->label('Display Priority')
+                            ->label('Position in the list')
                             ->helperText('Use 1 to show first, 2 for second, etc.')
                             ->numeric()
                             ->default(10)
                             ->required(),
 
                         TextInput::make('title')
-                            ->label('Main Big Golden Text')
-                            ->helperText('E.g. "$50 OFF" or "Luxury Maldives Escape"')
+                            ->label('Headline (big gold text)')
+                            ->helperText('E.g. "₹5,000 OFF" or "Luxury Maldives Escape"')
                             ->required()
                             ->columnSpan(2),
 

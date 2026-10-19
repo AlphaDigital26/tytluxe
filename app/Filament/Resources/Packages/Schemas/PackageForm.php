@@ -45,7 +45,7 @@ class PackageForm
                                 ->columnSpanFull(),
 
                             TextInput::make('slug')
-                                ->label('Web address (URL slug)')
+                                ->label('Web address')
                                 ->helperText(fn (string $operation) => $operation === 'create' ? 'Auto-generated from the title. You can edit it, but use hyphens instead of spaces.' : 'This is the web address of the page. Changing it breaks links people already have (Google, WhatsApp shares) — only change it if you must.')
                                 ->required()
                                 ->unique(ignoreRecord: true),
@@ -323,7 +323,7 @@ class PackageForm
                                         ->label('Start Date')
                                         ->required()
                                         ->native(false)
-                                        ->displayFormat('d M Y')
+                                        ->displayFormat('j M Y')
                                         ->closeOnDateSelection()
                                         ->live()
                                         ->afterStateUpdated(function ($state, $get, $set) {
@@ -340,7 +340,7 @@ class PackageForm
                                         ->label('End Date')
                                         ->required()
                                         ->native(false)
-                                        ->displayFormat('d M Y')
+                                        ->displayFormat('j M Y')
                                         ->closeOnDateSelection()
                                         ->live()
                                         ->minDate(fn ($get) => $get('start_date'))
@@ -389,7 +389,7 @@ class PackageForm
                                 ->collapsed(false)
                                 ->itemLabel(fn (array $state): string =>
                                     (isset($state['start_date']) && isset($state['end_date']))
-                                        ? \Carbon\Carbon::parse($state['start_date'])->format('D, d M Y') . ' — ' . \Carbon\Carbon::parse($state['end_date'])->format('D, d M Y')
+                                        ? \Carbon\Carbon::parse($state['start_date'])->format('D, j M Y') . ' — ' . \Carbon\Carbon::parse($state['end_date'])->format('D, j M Y')
                                             . '  ·  ' . ($n = \Carbon\Carbon::parse($state['start_date'])->diffInDays(\Carbon\Carbon::parse($state['end_date']))) . 'N/' . ($n + 1) . 'D'
                                             . (\Carbon\Carbon::parse($state['start_date'])->lt(today()) ? '  ·  past' : '')
                                             . (filled($state['total_seats'] ?? null) ? '  ·  ' . $state['total_seats'] . ' seats' : '')

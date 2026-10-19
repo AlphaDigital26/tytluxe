@@ -19,10 +19,14 @@
     $travellers = $record->flight_segments_payload['travellerInfo'] ?? [];
 
     $paxType = fn ($t) => match (strtoupper($t['pt'] ?? 'ADULT')) { 'CHILD' => 'Child', 'INFANT' => 'Infant', default => 'Adult' };
-    $extras = function (array $t): string {
+    $ssrNames = $record->flight_segments_payload['ssrNames'] ?? [];
+    $extras = function (array $t) use ($ssrNames): string {
         $parts = [];
         foreach (['ssrSeatInfos' => 'Seat', 'ssrMealInfos' => 'Meal', 'ssrBaggageInfos' => 'Extra baggage'] as $field => $label) {
-            $codes = collect($t[$field] ?? [])->pluck('code')->filter()->implode(', ');
+            // Seats stay as "12A"; meals and baggage get their names.
+            $codes = collect($t[$field] ?? [])->pluck('code')->filter()
+                ->map(fn ($code) => $field === 'ssrSeatInfos' ? $code : \App\Support\FlightAddonNames::name($code, $ssrNames))
+                ->implode(', ');
             if ($codes) {
                 $parts[] = $label.': '.$codes;
             }

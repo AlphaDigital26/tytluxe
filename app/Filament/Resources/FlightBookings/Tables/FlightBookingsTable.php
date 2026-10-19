@@ -22,29 +22,36 @@ class FlightBookingsTable
         return $table
             ->modifyQueryUsing(fn (Builder $query) => $query->with('payments'))
             ->columns([
-                TextColumn::make('reference')
+                // Phones only: who and which booking in one column, so the
+                // amount and status fit on screen (see the CSS in AdminPanelProvider).
+                TextColumn::make('phone_summary')
+                    ->label('Booking')
+                    ->state(fn (Booking $record) => $record->lead_guest_name)
+                    ->description(fn (Booking $record) => $record->reference.' · '.$record->guest_phone)
+                    ->hiddenFrom('md'),
+                TextColumn::make('reference')->visibleFrom('md')
                     ->label('Booking No.')
                     ->searchable()
                     ->copyable()
                     ->weight('bold'),
-                TextColumn::make('lead_guest_name')
+                TextColumn::make('lead_guest_name')->visibleFrom('md')
                     ->label('Passenger')
                     ->description(fn (Booking $record) => $record->guest_phone)
                     ->searchable(['lead_guest_name', 'guest_email', 'guest_phone']),
-                TextColumn::make('flight_route')
+                TextColumn::make('flight_route')->visibleFrom('md')
                     ->label('Journey')
                     ->formatStateUsing(fn (?string $state, Booking $record) => self::journey($record))
                     ->description(fn (Booking $record) => $record->flight_journey_type === 'RETURN' ? 'Round trip' : 'One way')
                     ->searchable(),
-                TextColumn::make('flight_departure_date')
+                TextColumn::make('flight_departure_date')->visibleFrom('md')
                     ->label('Travel date')
                     ->date('D, j M Y')
                     ->description(fn (Booking $record) => $record->flight_return_date ? 'Return '.$record->flight_return_date->format('j M') : null)
                     ->sortable(),
-                TextColumn::make('pax')
+                TextColumn::make('pax')->visibleFrom('md')
                     ->label('Travellers')
                     ->state(fn (Booking $record) => (int) $record->pax_adults + (int) $record->pax_children + (int) $record->pax_infants),
-                TextColumn::make('tripjack_flight_pnr')
+                TextColumn::make('tripjack_flight_pnr')->visibleFrom('md')
                     ->label('PNR')
                     ->state(fn (Booking $record) => collect($record->tripjack_flight_pnr ?? [])->unique()->implode(', ') ?: '—')
                     ->searchable(query: fn (Builder $query, string $search) => $query->where('tripjack_flight_pnr', 'like', '%'.$search.'%'))
@@ -60,7 +67,7 @@ class FlightBookingsTable
                     ->formatStateUsing(fn (Booking $record) => FlightBookingStatus::for($record)['label'])
                     ->color(fn (Booking $record) => FlightBookingStatus::for($record)['color'])
                     ->tooltip(fn (Booking $record) => FlightBookingStatus::for($record)['help']),
-                TextColumn::make('created_at')
+                TextColumn::make('created_at')->visibleFrom('md')
                     ->label('Booked on')
                     ->dateTime('j M Y, g:i A')
                     ->sortable(),
@@ -109,7 +116,7 @@ class FlightBookingsTable
             // of a laptop screen, so staff never saw Cancel / Refund.
             ->recordActionsPosition(\Filament\Tables\Enums\RecordActionsPosition::BeforeColumns)
             ->recordActions([
-                ViewAction::make()->label('Open'),
+                ViewAction::make()->label('Open')->extraAttributes(['class' => 'tyt-hide-on-phone']), // a tap on the row opens it too
                 ActionGroup::make([
                     FlightBookingActions::checkStatus(),
                     FlightBookingActions::downloadETicket(),
@@ -118,7 +125,9 @@ class FlightBookingsTable
                     RecordManualRefundAction::make(),
                     FlightBookingActions::releaseReservation(),
                     FlightBookingActions::cancelAndRefund(),
-                ])->label('More')->button()->color('gray'),
+                ])->label('More')->button()->color('gray')
+                    // Phones: every button is on the booking page a tap away.
+                    ->extraAttributes(['class' => 'tyt-hide-on-phone']),
             ])
             ->emptyStateHeading('No flight bookings here')
             ->emptyStateDescription('Flight bookings made by guests on the website will appear here.')

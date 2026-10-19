@@ -31,7 +31,7 @@ class DestinationForm
                                 ->columnSpan(2),
 
                             TextInput::make('slug')
-                                ->label('URL Slug')
+                                ->label('Web address')
                                 ->helperText(fn (string $operation) => $operation === 'create' ? 'This forms the web address. Auto-generated from the name above.' : 'This is the web address of the page. Changing it breaks links people already have (Google, WhatsApp shares) — only change it if you must.')
                                 ->required()
                                 ->unique(ignoreRecord: true)

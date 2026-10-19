@@ -14,7 +14,7 @@ class ListFlightBookings extends ListRecords
 
     public function getSubheading(): ?string
     {
-        return 'Every flight booked on your website. Hover over a status to see what it means, and use "More" for actions like cancelling or downloading the invoice.';
+        return 'Every flight booked on your website. Open a booking to see what its status means and what to do, or use "More" for actions like cancelling or downloading the invoice.';
     }
 
     public function getTabs(): array

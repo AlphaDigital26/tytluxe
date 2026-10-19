@@ -30,27 +30,34 @@ class BookingsTable
         return $table
             ->modifyQueryUsing(fn (Builder $query) => $query->with('payments'))
             ->columns([
-                TextColumn::make('reference')
+                // Phones only: who and which booking in one column, so the
+                // amount and status fit on screen (see the CSS in AdminPanelProvider).
+                TextColumn::make('phone_summary')
+                    ->label('Booking')
+                    ->state(fn (Booking $record) => $record->lead_guest_name)
+                    ->description(fn (Booking $record) => $record->reference.' · '.$record->guest_phone)
+                    ->hiddenFrom('md'),
+                TextColumn::make('reference')->visibleFrom('md')
                     ->label('Booking No.')
                     ->searchable()
                     ->copyable()
                     ->weight('bold'),
-                TextColumn::make('lead_guest_name')
+                TextColumn::make('lead_guest_name')->visibleFrom('md')
                     ->label('Guest')
                     ->description(fn (Booking $record) => $record->guest_phone)
                     ->searchable(['lead_guest_name', 'guest_email', 'guest_phone']),
-                TextColumn::make('hotel.title')
+                TextColumn::make('hotel.title')->visibleFrom('md')
                     ->label('Hotel')
                     ->description(fn (Booking $record) => $record->room_name)
                     ->placeholder('—')
                     ->wrap()
                     ->searchable(),
-                TextColumn::make('check_in')
+                TextColumn::make('check_in')->visibleFrom('md')
                     ->label('Check-in')
                     ->date('D, j M Y')
                     ->description(fn (Booking $record) => $record->check_out ? 'Check-out '.\Illuminate\Support\Carbon::parse($record->check_out)->format('j M') : null)
                     ->sortable(),
-                TextColumn::make('guests')
+                TextColumn::make('guests')->visibleFrom('md')
                     ->label('Guests')
                     ->state(fn (Booking $record) => (int) $record->pax_adults + (int) $record->pax_children),
                 TextColumn::make('total_amount')
@@ -64,7 +71,7 @@ class BookingsTable
                     ->formatStateUsing(fn (Booking $record) => HotelBookingStatus::for($record)['label'])
                     ->color(fn (Booking $record) => HotelBookingStatus::for($record)['color'])
                     ->tooltip(fn (Booking $record) => HotelBookingStatus::for($record)['help']),
-                TextColumn::make('created_at')
+                TextColumn::make('created_at')->visibleFrom('md')
                     ->label('Booked on')
                     ->dateTime('j M Y, g:i A')
                     ->sortable(),
@@ -118,7 +125,7 @@ class BookingsTable
             // of a laptop screen, so staff never saw Cancel / Refund.
             ->recordActionsPosition(\Filament\Tables\Enums\RecordActionsPosition::BeforeColumns)
             ->recordActions([
-                ViewAction::make()->label('Open'),
+                ViewAction::make()->label('Open')->extraAttributes(['class' => 'tyt-hide-on-phone']), // a tap on the row opens it too
                 ActionGroup::make([
                     HotelBookingActions::checkStatus(),
                     HotelBookingActions::downloadInvoice(),
@@ -126,7 +133,9 @@ class BookingsTable
                     EditAction::make()->label('Edit contact details'),
                     RecordManualRefundAction::make(),
                     static::cancelAndRefundAction(),
-                ])->label('More')->button()->color('gray'),
+                ])->label('More')->button()->color('gray')
+                    // Phones: every button is on the booking page a tap away.
+                    ->extraAttributes(['class' => 'tyt-hide-on-phone']),
             ])
             ->emptyStateHeading('No hotel bookings here')
             ->emptyStateDescription('Hotel bookings made by guests on the website will appear here.');

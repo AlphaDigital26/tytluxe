@@ -20,6 +20,7 @@ class BlogCategoriesTable
                     ->sortable(),
 
                 TextColumn::make('slug')
+                    ->label('Web address')
                     ->searchable()
                     ->copyable()
                     ->color('gray'),
@@ -32,7 +33,7 @@ class BlogCategoriesTable
                     ->color('success'),
 
                 TextColumn::make('sort_order')
-                    ->label('Order')
+                    ->label('Position')
                     ->sortable(),
 
                 IconColumn::make('is_active')
@@ -40,7 +41,7 @@ class BlogCategoriesTable
                     ->boolean(),
 
                 TextColumn::make('created_at')
-                    ->dateTime('M j, Y h:i A')
+                    ->dateTime('j M Y, g:i A')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
