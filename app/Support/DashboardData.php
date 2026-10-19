@@ -8,6 +8,7 @@ use App\Filament\Pages\TripJackNotifications;
 use App\Filament\Resources\Bookings\BookingResource;
 use App\Filament\Resources\Enquiries\EnquiryResource;
 use App\Filament\Resources\FlightBookings\FlightBookingResource;
+use App\Filament\Resources\PackageBookings\PackageBookingResource;
 use App\Filament\Resources\Reviews\ReviewResource;
 use App\Models\Booking;
 use App\Models\Enquiry;
@@ -41,7 +42,9 @@ class DashboardData
     {
         $items = [];
 
-        if (EnquiryResource::canViewAny() && ($n = Enquiry::where('status', 'new')->count())) {
+        // Only for the people who call guests back (Content and Analyst can
+        // read enquiries but don't handle them).
+        if (auth('admin')->user()?->can('create', Enquiry::class) && ($n = Enquiry::where('status', 'new')->count())) {
             $items[] = ['icon' => '📞', 'tone' => 'danger', 'count' => $n,
                 'title' => $n === 1 ? 'New enquiry waiting for a call' : 'New enquiries waiting for a call',
                 'text' => 'Guests asked about a trip and nobody has contacted them yet.',
@@ -62,7 +65,24 @@ class DashboardData
                 'url' => FlightBookingResource::getUrl('index').'?activeTab=attention', 'button' => 'See bookings'];
         }
 
+        if (PackageBookingResource::canViewAny() && ($n = PackageBookingStatus::applyNeedsAttention(PackageBookingResource::getEloquentQuery())->count())) {
+            $items[] = ['icon' => '🧳', 'tone' => 'danger', 'count' => $n,
+                'title' => $n === 1 ? 'Package booking needs a look' : 'Package bookings need a look',
+                'text' => 'A guest asked to cancel, a balance is due today or tomorrow, or a refund needs action.',
+                'url' => PackageBookingResource::getUrl('index').'?activeTab=attention', 'button' => 'See bookings'];
+        }
+
         $balance = self::walletBalance();
+        $lastCheck = $balance && $balance['checked_at'] ? Carbon::parse($balance['checked_at']) : null;
+        if (FlightSettingsPage::canAccess() && (! $lastCheck || $lastCheck->lt(now()->subMinutes(self::WALLET_STALE_MINUTES)))) {
+            // The same scheduler sends guests' emails and finishes bookings
+            // in the background, so this matters beyond the wallet.
+            $items[] = ['icon' => '⚙️', 'tone' => 'warning', 'count' => null,
+                'title' => 'Automatic background tasks may not be running',
+                'text' => ($lastCheck ? 'The TripJack wallet was last checked '.$lastCheck->diffForHumans().'.' : 'The TripJack wallet has never been checked automatically.')
+                    .' These tasks also send guests\' emails and finish bookings. Ask your developer to check the server\'s scheduled tasks (cron).',
+                'url' => FlightSettingsPage::getUrl(), 'button' => 'Check wallet now'];
+        }
         if ($balance !== null && $balance['low']) {
             $items[] = ['icon' => '💳', 'tone' => 'danger', 'count' => null,
                 'title' => 'TripJack wallet is running low',
@@ -116,8 +136,39 @@ class DashboardData
         ];
     }
 
+    /** No reading for this long means the automatic 15-minute check has stopped. */
+    public const WALLET_STALE_MINUTES = 60;
+
     /**
-     * Check-ins and flight departures in the next $days days, soonest first.
+     * The wallet in plain words for the dashboard cards. The balance is read
+     * by tripjack:health-check, which only runs when the server's scheduler
+     * (cron) is set up — so "never checked" or "last checked hours ago" means
+     * that is not running, not that the wallet is empty.
+     *
+     * @return array{value: string, hint: string, problem: bool, url: ?string}
+     */
+    public static function walletStatus(): array
+    {
+        $wallet = self::walletBalance();
+        $at = $wallet && $wallet['checked_at'] ? Carbon::parse($wallet['checked_at']) : null;
+        $stale = ! $at || $at->lt(now()->subMinutes(self::WALLET_STALE_MINUTES));
+        $url = FlightSettingsPage::canAccess() ? FlightSettingsPage::getUrl() : null;
+
+        return [
+            'value' => $wallet ? '₹'.number_format($wallet['amount'], 0) : 'Not checked',
+            'hint' => match (true) {
+                $wallet === null => 'Automatic checks are not running. Open Flight Settings and click "Check wallet now"; ask your developer to set up the server\'s scheduled tasks (cron).',
+                $stale => 'Last checked '.$at->diffForHumans().' — automatic checks seem to have stopped. Click to check now.',
+                $wallet['low'] => 'Low — please top up',
+                default => 'Enough for new bookings · checked '.$at->diffForHumans(),
+            },
+            'problem' => $wallet === null || $stale || $wallet['low'],
+            'url' => $url,
+        ];
+    }
+
+    /**
+     * Check-ins, flight and package departures in the next $days days, soonest first.
      *
      * @return array<int, array{date: Carbon, icon: string, guest: string, what: string, url: string, status: array}>
      */
@@ -146,6 +197,18 @@ class DashboardData
                     $trips[] = ['date' => Carbon::parse($b->flight_departure_date), 'icon' => '✈️', 'guest' => (string) $b->lead_guest_name,
                         'what' => str_replace('-', ' → ', (string) $b->flight_route).($b->flight_journey_type === 'RETURN' ? ' (round trip)' : ''),
                         'url' => FlightBookingResource::getUrl('view', ['record' => $b]), 'status' => FlightBookingStatus::for($b)];
+                });
+        }
+
+        if (PackageBookingResource::canViewAny()) {
+            PackageBookingResource::getEloquentQuery()
+                ->where('status', 'confirmed')->whereNull('cancellation_requested_at')
+                ->whereBetween('check_in', [today(), today()->addDays($days)])
+                ->orderBy('check_in')->limit($limit)->get()
+                ->each(function (Booking $b) use (&$trips) {
+                    $trips[] = ['date' => Carbon::parse($b->check_in), 'icon' => '🧳', 'guest' => (string) $b->lead_guest_name,
+                        'what' => ($b->package?->title ?? 'Package').' · '.$b->pax_adults.' '.((int) $b->pax_adults === 1 ? 'person' : 'people'),
+                        'url' => PackageBookingResource::bookingUrl($b), 'status' => PackageBookingStatus::for($b)];
                 });
         }
 

@@ -24,7 +24,7 @@
                 <span class="tyt-bkv-check" style="background: {{ $statusMeta['color'] }};">{{ $plain['color'] === 'success' ? '✓' : ($plain['color'] === 'danger' ? '!' : 'i') }}</span>
                 <div>
                     <h2 style="color: {{ $statusMeta['color'] }};">{{ $statusMeta['label'] }}</h2>
-                    <p class="tyt-bkv-banner-note">{{ $plain['help'] }}</p>
+                    <p class="tyt-bkv-banner-note"><strong>What to do:</strong> {{ $plain['help'] }}</p>
                     @if($record->status === 'pending_payment' && $record->tripjack_hold_expires_at)
                         <p class="tyt-bkv-banner-note">Complete payment before <strong>{{ $record->tripjack_hold_expires_at->format('j F') }}</strong> by <strong>{{ $record->tripjack_hold_expires_at->format('g:i A') }}</strong> to avoid automatic cancellation.</p>
                     @endif
@@ -72,12 +72,12 @@
                     <div class="tyt-bkv-stat-grid">
                         <div class="tyt-bkv-stat">
                             <span>Check in</span>
-                            <strong>{{ $record->check_in ? \Illuminate\Support\Carbon::parse($record->check_in)->format('d-m-Y') : '—' }}</strong>
+                            <strong>{{ $record->check_in ? \Illuminate\Support\Carbon::parse($record->check_in)->format('j M Y') : '—' }}</strong>
                             @if($hotel?->check_in_time)<small>{{ $hotel->check_in_time }}</small>@endif
                         </div>
                         <div class="tyt-bkv-stat">
                             <span>Check out</span>
-                            <strong>{{ $record->check_out ? \Illuminate\Support\Carbon::parse($record->check_out)->format('d-m-Y') : '—' }}</strong>
+                            <strong>{{ $record->check_out ? \Illuminate\Support\Carbon::parse($record->check_out)->format('j M Y') : '—' }}</strong>
                             @if($hotel?->check_out_time)<small>{{ $hotel->check_out_time }}</small>@endif
                         </div>
                         <div class="tyt-bkv-stat">
@@ -146,8 +146,10 @@
                             </tbody>
                         </table>
                         <p class="tyt-bkv-fineprint">From TripJack, last checked {{ $this->penaltyFetchedAt }}. Charges shown are calculated per the schedule above and may include non-refundable taxes/fees per the property's own policy.</p>
+                    @elseif($this->penaltyPending)
+                        <p class="tyt-bkv-fineprint" wire:init="loadPenaltyLater">Loading the hotel's cancellation policy from TripJack…</p>
                     @else
-                        <p class="tyt-bkv-fineprint">{{ $this->penaltyError ?? 'No cancellation schedule available.' }}</p>
+                        <p class="tyt-bkv-fineprint">{{ $this->penaltyError ?? 'No cancellation schedule available.' }}{{ $this->penaltyError ? ' You can also click "Check status with TripJack" at the top.' : '' }}</p>
                     @endif
                 </div>
 
@@ -189,26 +191,63 @@
 
             {{-- Right column: fare summary --}}
             <div class="tyt-bkv-side">
+                {{-- Money: laid out as on the flight and package pages. --}}
+                @php
+                    $rs = fn ($v) => $record->currency.' '.number_format((float) $v, 2);
+                    $paidIn = (float) $record->payments->whereIn('status', \App\Models\Booking::PAID_PAYMENT_STATUSES)->sum('amount');
+                    $refunded = (float) $record->payments->sum('refund_amount');
+                @endphp
                 <div class="tyt-bkv-card tyt-bkv-fare">
-                    <h3 class="tyt-bkv-card-title">Fare Summary</h3>
-                    <div class="tyt-bkv-fare-row">
-                        <span>Base Fare</span>
-                        <strong>{{ $record->currency }} {{ number_format($record->base_amount, 2) }}</strong>
+                    <h3 class="tyt-bkv-card-title">Money</h3>
+                    <div class="tyt-bkv-fare-row tyt-bkv-fare-total" style="border-top: none; margin-top: 0; padding-top: 8px;">
+                        <span>{{ $paidIn > 0 ? 'Guest paid' : 'Price (not paid)' }}</span>
+                        <strong>{{ $rs($paidIn > 0 ? $paidIn : $record->total_amount) }}</strong>
                     </div>
-                    <div class="tyt-bkv-fare-row">
-                        <span>Taxes and fees</span>
-                        <strong>{{ $record->currency }} {{ number_format($record->tax_amount, 2) }}</strong>
-                    </div>
-                    @if((float) $record->discount_amount > 0)
+                    @if($refunded > 0)
                         <div class="tyt-bkv-fare-row">
-                            <span>Discount</span>
-                            <strong>- {{ $record->currency }} {{ number_format($record->discount_amount, 2) }}</strong>
+                            <span>Refunded to guest</span>
+                            <strong>− {{ $rs($refunded) }}</strong>
                         </div>
                     @endif
-                    <div class="tyt-bkv-fare-row tyt-bkv-fare-total">
-                        <span>Total Amount Payable</span>
-                        <strong>{{ $record->currency }} {{ number_format($record->total_amount, 2) }}</strong>
-                    </div>
+                    @if((float) $record->tripjack_total_price > 0)
+                        <div class="tyt-bkv-fare-row">
+                            <span>Hotel cost (paid from TripJack wallet)</span>
+                            <strong>{{ $rs($record->tripjack_total_price) }}</strong>
+                        </div>
+                        <div class="tyt-bkv-fare-row" style="color: #16a34a;">
+                            <span>Your earning</span>
+                            <strong>{{ $rs($record->margin_amount) }}</strong>
+                        </div>
+                        <div class="tyt-bkv-fare-row">
+                            <span>GST on your earning</span>
+                            <strong>{{ $rs($record->gst_on_margin) }}</strong>
+                        </div>
+                        @if((float) $record->management_fee > 0)
+                            <div class="tyt-bkv-fare-row">
+                                <span>Management fee + GST</span>
+                                <strong>{{ $rs((float) $record->management_fee + (float) $record->management_fee_gst) }}</strong>
+                            </div>
+                        @endif
+                        <div class="tyt-bkv-fare-row">
+                            <span>Online payment charge</span>
+                            <strong>{{ $rs($record->razorpay_recovery) }}</strong>
+                        </div>
+                    @else
+                        <div class="tyt-bkv-fare-row">
+                            <span>Room price</span>
+                            <strong>{{ $rs($record->base_amount) }}</strong>
+                        </div>
+                        <div class="tyt-bkv-fare-row">
+                            <span>Taxes and fees</span>
+                            <strong>{{ $rs($record->tax_amount) }}</strong>
+                        </div>
+                    @endif
+                    @if((float) $record->discount_amount > 0)
+                        <div class="tyt-bkv-fare-row">
+                            <span>Discount given</span>
+                            <strong>− {{ $rs($record->discount_amount) }}</strong>
+                        </div>
+                    @endif
                 </div>
 
                 <div class="tyt-bkv-card">
@@ -249,7 +288,7 @@
                     </div>
                     <div class="tyt-bkv-fare-row">
                         <span>Booked On</span>
-                        <strong>{{ $record->created_at->format('M j, Y, g:i A') }}</strong>
+                        <strong>{{ $record->created_at->format('j M Y, g:i A') }}</strong>
                     </div>
                     @if($record->cancellation_reason)
                         <div class="tyt-bkv-fare-row" style="flex-direction: column; align-items: flex-start; gap: 4px;">

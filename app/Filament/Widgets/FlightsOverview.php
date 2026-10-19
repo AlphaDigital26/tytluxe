@@ -52,7 +52,7 @@ class FlightsOverview extends MetricCardsWidget
         $today = (clone $flights)->where('status', 'confirmed')->whereDate('created_at', today())->count();
         $month = (clone $flights)->where('status', 'confirmed')->where('created_at', '>=', now()->startOfMonth());
 
-        $wallet = DashboardData::walletBalance();
+        $wallet = DashboardData::walletStatus();
         $on = FlightSettings::bookingEnabled();
         $settingsUrl = FlightSettingsPage::canAccess() ? FlightSettingsPage::getUrl() : null;
 
@@ -65,13 +65,9 @@ class FlightsOverview extends MetricCardsWidget
                 'url' => $url.'?activeTab=upcoming'],
             ['icon' => '💰', 'label' => 'Flight sales this month', 'value' => '₹'.number_format((float) (clone $month)->sum('total_amount')),
                 'hint' => 'You earned ₹'.number_format((float) (clone $month)->sum('margin_amount')), 'tone' => 'gold'],
-            ['icon' => '👛', 'label' => 'TripJack wallet', 'value' => $wallet === null ? '—' : '₹'.number_format($wallet['amount']),
-                'hint' => match (true) {
-                    $wallet === null => 'Checked every 15 minutes',
-                    $wallet['low'] => 'Low — please top up',
-                    default => 'Checked '.Carbon::parse($wallet['checked_at'])->diffForHumans(),
-                },
-                'tone' => $wallet && $wallet['low'] ? 'red' : 'violet', 'url' => $settingsUrl],
+            ['icon' => '👛', 'label' => 'TripJack wallet', 'value' => $wallet['value'],
+                'hint' => $wallet['hint'],
+                'tone' => $wallet['problem'] ? 'red' : 'violet', 'url' => $settingsUrl],
             ['icon' => $on ? '🟢' : '⏸️', 'label' => 'Online flight booking', 'value' => $on ? 'ON' : 'OFF',
                 'hint' => $on ? 'Guests can book flights' : 'Guests cannot book right now', 'tone' => $on ? 'green' : 'amber',
                 'url' => $settingsUrl],

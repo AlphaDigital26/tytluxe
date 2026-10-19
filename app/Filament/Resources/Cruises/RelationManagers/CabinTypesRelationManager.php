@@ -89,11 +89,11 @@ class CabinTypesRelationManager extends RelationManager
                     ->label('Size')
                     ->limit(40),
                 TextColumn::make('created_at')
-                    ->dateTime('M j, Y h:i A')
+                    ->dateTime('j M Y, g:i A')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('updated_at')
-                    ->dateTime('M j, Y h:i A')
+                    ->dateTime('j M Y, g:i A')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])

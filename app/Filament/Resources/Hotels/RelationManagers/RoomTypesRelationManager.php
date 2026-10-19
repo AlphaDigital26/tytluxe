@@ -379,7 +379,7 @@ class RoomTypesRelationManager extends RelationManager
                     ->tooltip('Turn on to show this room on website, off to hide'),
 
                 TextColumn::make('created_at')
-                    ->dateTime('M j, Y h:i A')
+                    ->dateTime('j M Y, g:i A')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])

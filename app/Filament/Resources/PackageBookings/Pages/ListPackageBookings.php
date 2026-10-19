@@ -14,7 +14,7 @@ class ListPackageBookings extends ListRecords
 
     public function getSubheading(): ?string
     {
-        return 'Every group package booked on your website. Hover over a status to see what it means, and use "More" for actions like cancelling or marking a balance as received.';
+        return 'Every group package booked on your website. Open a booking to see what its status means and what to do, or use "More" for actions like cancelling or marking a balance as received.';
     }
 
     public function getTabs(): array

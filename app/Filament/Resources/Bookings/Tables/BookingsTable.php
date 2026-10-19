@@ -28,33 +28,42 @@ class BookingsTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with('payments'))
             ->columns([
-                TextColumn::make('reference')
+                // Phones only: who and which booking in one column, so the
+                // amount and status fit on screen (see the CSS in AdminPanelProvider).
+                TextColumn::make('phone_summary')
+                    ->label('Booking')
+                    ->state(fn (Booking $record) => $record->lead_guest_name)
+                    ->description(fn (Booking $record) => $record->reference.' · '.$record->guest_phone)
+                    ->hiddenFrom('md'),
+                TextColumn::make('reference')->visibleFrom('md')
                     ->label('Booking No.')
                     ->searchable()
                     ->copyable()
                     ->weight('bold'),
-                TextColumn::make('lead_guest_name')
+                TextColumn::make('lead_guest_name')->visibleFrom('md')
                     ->label('Guest')
                     ->description(fn (Booking $record) => $record->guest_phone)
                     ->searchable(['lead_guest_name', 'guest_email', 'guest_phone']),
-                TextColumn::make('hotel.title')
+                TextColumn::make('hotel.title')->visibleFrom('md')
                     ->label('Hotel')
                     ->description(fn (Booking $record) => $record->room_name)
                     ->placeholder('—')
                     ->wrap()
                     ->searchable(),
-                TextColumn::make('check_in')
+                TextColumn::make('check_in')->visibleFrom('md')
                     ->label('Check-in')
                     ->date('D, j M Y')
                     ->description(fn (Booking $record) => $record->check_out ? 'Check-out '.\Illuminate\Support\Carbon::parse($record->check_out)->format('j M') : null)
                     ->sortable(),
-                TextColumn::make('guests')
+                TextColumn::make('guests')->visibleFrom('md')
                     ->label('Guests')
                     ->state(fn (Booking $record) => (int) $record->pax_adults + (int) $record->pax_children),
                 TextColumn::make('total_amount')
                     ->label('Guest paid')
                     ->money('INR')
+                    ->description(fn (Booking $record) => self::paidNote($record))
                     ->sortable(),
                 TextColumn::make('status')
                     ->label('Status')
@@ -62,7 +71,7 @@ class BookingsTable
                     ->formatStateUsing(fn (Booking $record) => HotelBookingStatus::for($record)['label'])
                     ->color(fn (Booking $record) => HotelBookingStatus::for($record)['color'])
                     ->tooltip(fn (Booking $record) => HotelBookingStatus::for($record)['help']),
-                TextColumn::make('created_at')
+                TextColumn::make('created_at')->visibleFrom('md')
                     ->label('Booked on')
                     ->dateTime('j M Y, g:i A')
                     ->sortable(),
@@ -112,16 +121,21 @@ class BookingsTable
                         ->when($data['from'] ?? null, fn (Builder $q, $date) => $q->whereDate('created_at', '>=', $date))
                         ->when($data['until'] ?? null, fn (Builder $q, $date) => $q->whereDate('created_at', '<=', $date))),
             ])
+            // Actions first in the row: at the end they sat past the right edge
+            // of a laptop screen, so staff never saw Cancel / Refund.
+            ->recordActionsPosition(\Filament\Tables\Enums\RecordActionsPosition::BeforeColumns)
             ->recordActions([
-                ViewAction::make()->label('Open'),
+                ViewAction::make()->label('Open')->extraAttributes(['class' => 'tyt-hide-on-phone']), // a tap on the row opens it too
                 ActionGroup::make([
                     HotelBookingActions::checkStatus(),
                     HotelBookingActions::downloadInvoice(),
                     HotelBookingActions::addNote(),
                     EditAction::make()->label('Edit contact details'),
-                    RecordManualRefundAction::make(onlyWhenDue: true),
+                    RecordManualRefundAction::make(),
                     static::cancelAndRefundAction(),
-                ])->label('More')->button()->color('gray'),
+                ])->label('More')->button()->color('gray')
+                    // Phones: every button is on the booking page a tap away.
+                    ->extraAttributes(['class' => 'tyt-hide-on-phone']),
             ])
             ->emptyStateHeading('No hotel bookings here')
             ->emptyStateDescription('Hotel bookings made by guests on the website will appear here.');
@@ -133,7 +147,7 @@ class BookingsTable
      * confirmed bookings TripJack actually booked, and only to admins the
      * BookingPolicy allows to cancel (Super Admin, Operations).
      */
-    protected static function cancelAndRefundAction(): Action
+    public static function cancelAndRefundAction(): Action
     {
         return Action::make('cancelAndRefund')
             ->label(fn (Booking $record) => $record->cancellation_requested_at ? 'Finish cancellation & refund' : 'Cancel & Refund')
@@ -196,6 +210,7 @@ class BookingsTable
                 ? 'Checks TripJack again. If the hotel has confirmed the cancellation, the guest is refunded now; if not, it finishes by itself once TripJack confirms.'
                 : 'This calls TripJack to cancel the reservation, then refunds the guest via Razorpay for the amount entered. This cannot be undone.')
             ->modalSubmitActionLabel(fn (Booking $record) => $record->cancellation_requested_at ? 'Check & finish' : 'Confirm cancellation')
+            ->modalCancelActionLabel('Go back')
             ->action(function (array $data, Booking $record): void {
                 $refundAmount = ($data['refund_amount'] ?? null) !== null && $data['refund_amount'] !== ''
                     ? (float) $data['refund_amount']
@@ -214,5 +229,19 @@ class BookingsTable
                     ->color($result['success'] ? 'success' : 'danger')
                     ->send();
             });
+    }
+
+    /** Under "Guest paid": a refund or an unpaid booking, so the amount isn't read as money kept. */
+    public static function paidNote(Booking $record): ?string
+    {
+        $paid = (float) $record->payments->whereIn('status', Booking::PAID_PAYMENT_STATUSES)->sum('amount');
+        $refunded = (float) $record->payments->sum('refund_amount');
+
+        return match (true) {
+            $paid <= 0 => 'Not paid',
+            $refunded >= $paid - 0.01 => 'Refunded in full',
+            $refunded > 0 => 'Refunded ₹'.number_format($refunded, 2),
+            default => null,
+        };
     }
 }

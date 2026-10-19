@@ -86,6 +86,8 @@ class DashboardTest extends TestCase
     public function test_all_caught_up_when_nothing_to_do(): void
     {
         $this->actingAs($this->admin(), 'admin');
+        // The scheduler is running (a fresh wallet reading), so nothing to flag.
+        Setting::setJson('tripjack_alert.last_balance', ['amount' => 90000, 'checked_at' => now()->toIso8601String()]);
 
         $this->get('/tyt-console')->assertOk()->assertSee('All caught up')->assertSee('nothing needs your attention');
     }

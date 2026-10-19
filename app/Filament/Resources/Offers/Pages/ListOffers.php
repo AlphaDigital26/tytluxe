@@ -19,6 +19,7 @@ class ListOffers extends ListRecords
                 ->label($isVisible ? 'Hide Offers Page' : 'Show Offers Page')
                 ->icon($isVisible ? 'heroicon-o-eye-slash' : 'heroicon-o-eye')
                 ->color($isVisible ? 'danger' : 'success')
+                ->visible(fn () => (bool) auth('admin')->user()?->can('create', \App\Models\Offer::class))
                 ->action(function () use ($isVisible) {
                     \App\Models\Setting::set('offers_page.is_visible', $isVisible ? '0' : '1');
                     \Filament\Notifications\Notification::make()

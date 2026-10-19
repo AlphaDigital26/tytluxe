@@ -17,11 +17,11 @@ class SettingsTable
                 TextColumn::make('key')
                     ->searchable(),
                 TextColumn::make('created_at')
-                    ->dateTime('M j, Y h:i A')
+                    ->dateTime('j M Y, g:i A')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('updated_at')
-                    ->dateTime('M j, Y h:i A')
+                    ->dateTime('j M Y, g:i A')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])

@@ -265,10 +265,61 @@ class PackageBookingService
         });
     }
 
-    /** What can still be refunded across this booking's payments. */
+    /**
+     * Cancellation charges from the Cancellation Policy (section 2), by days
+     * before departure: [at least this many days, % charged]. Checked top
+     * to bottom; keep in step with pages/cancellation.blade.php.
+     */
+    public const CANCELLATION_CHARGES = [
+        [31, 10],
+        [21, 25],
+        [15, 50],
+        [8, 75],
+        [0, 100],
+    ];
+
+    /** Payments that can be refunded through Razorpay (not ones taken offline). */
+    protected static function onlineRefundablePayments(Booking $booking)
+    {
+        return ManualRefundService::refundablePayments($booking)->reject(fn (Payment $p) => $p->isOffline())->values();
+    }
+
+    /** What can still be refunded through Razorpay across this booking's payments. */
     public static function refundableAmount(Booking $booking): float
     {
-        return round((float) ManualRefundService::refundablePayments($booking)->sum(fn (Payment $p) => ManualRefundService::remaining($p)), 2);
+        return round((float) self::onlineRefundablePayments($booking)->sum(fn (Payment $p) => ManualRefundService::remaining($p)), 2);
+    }
+
+    /** Paid to the team offline and not yet returned — must be refunded outside the website. */
+    public static function offlinePaidAmount(Booking $booking): float
+    {
+        return round((float) ManualRefundService::refundablePayments($booking)->filter(fn (Payment $p) => $p->isOffline())->sum(fn (Payment $p) => ManualRefundService::remaining($p)), 2);
+    }
+
+    /**
+     * The refund the cancellation policy gives, counted from the day the guest
+     * asked to cancel (or today) to departure. Staff can change it, e.g. when
+     * a supplier's charges are higher.
+     *
+     * @return array{days: int, charge_percent: int, refund: float}
+     */
+    public static function suggestedRefund(Booking $booking): array
+    {
+        $from = ($booking->cancellation_requested_at ?? now())->copy()->startOfDay();
+        $days = $booking->check_in ? max(0, (int) $from->diffInDays(\Illuminate\Support\Carbon::parse($booking->check_in)->startOfDay(), false)) : 0;
+        $percent = 100;
+        foreach (self::CANCELLATION_CHARGES as [$minDays, $charge]) {
+            if ($days >= $minDays) {
+                $percent = $charge;
+                break;
+            }
+        }
+
+        $online = self::refundableAmount($booking);
+        $paid = $online + self::offlinePaidAmount($booking);
+        $refund = round($paid * (100 - $percent) / 100, 2);
+
+        return ['days' => $days, 'charge_percent' => $percent, 'refund' => min($online, $refund)];
     }
 
     /**
@@ -292,7 +343,7 @@ class PackageBookingService
         $refunded = 0.0;
         $failed = null;
         $remaining = $amount;
-        foreach (ManualRefundService::refundablePayments($booking)->sortByDesc('id') as $payment) {
+        foreach (self::onlineRefundablePayments($booking)->sortByDesc('id') as $payment) {
             if ($remaining <= 0) {
                 break;
             }
@@ -338,13 +389,35 @@ class PackageBookingService
             : ['success' => true, 'message' => $amount > 0 ? sprintf('Booking cancelled and INR %s refunded to the guest.', number_format($refunded, 2)) : 'Booking cancelled with no refund.'];
     }
 
-    /** The team received the balance outside the website (bank transfer, UPI…). */
-    public function markBalancePaidOffline(Booking $booking, string $staff, ?string $note): void
+    /**
+     * The team received the balance outside the website (bank transfer, UPI…).
+     * Saved as an offline payment so "Guest has paid", the invoice and the
+     * sales figures include it; it is never refunded through Razorpay.
+     */
+    public function markBalancePaidOffline(Booking $booking, string $staff, ?string $note, float $amount): void
     {
-        $booking->update([
-            'package_balance_amount' => 0,
-            'admin_note' => $booking->adminNoteWith(sprintf('%s — %s marked the balance as received offline.%s', now()->format('j M Y, g:i A'), $staff, $note ? ' '.trim($note) : '')),
-        ]);
+        $amount = round(max(0, $amount), 2);
+
+        DB::transaction(function () use ($booking, $staff, $note, $amount) {
+            $booking = Booking::whereKey($booking->id)->lockForUpdate()->first();
+
+            if ($amount > 0) {
+                $booking->payments()->create([
+                    'razorpay_order_id' => 'offline_'.$booking->reference.'_'.Str::lower(Str::random(8)),
+                    'amount' => $amount,
+                    'currency' => 'INR',
+                    'status' => 'captured',
+                    'method' => Payment::METHOD_OFFLINE,
+                    'purpose' => self::PURPOSE_BALANCE,
+                ]);
+            }
+
+            $booking->update([
+                'package_balance_amount' => 0,
+                'total_amount' => round((float) $booking->total_amount + $amount, 2),
+                'admin_note' => $booking->adminNoteWith(sprintf('%s — %s marked the balance of INR %s as received offline.%s', now()->format('j M Y, g:i A'), $staff, number_format($amount, 2), $note ? ' '.trim($note) : '')),
+            ]);
+        });
     }
 
     /**

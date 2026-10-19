@@ -55,16 +55,16 @@ class BlogPostsTable
                     ->sortable(),
 
                 TextColumn::make('sort_order')
-                    ->label('Order')
+                    ->label('Position')
                     ->sortable(),
 
                 TextColumn::make('published_at')
                     ->label('Published')
-                    ->dateTime('M j, Y')
+                    ->dateTime('j M Y')
                     ->sortable(),
 
                 TextColumn::make('created_at')
-                    ->dateTime('M j, Y h:i A')
+                    ->dateTime('j M Y, g:i A')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])

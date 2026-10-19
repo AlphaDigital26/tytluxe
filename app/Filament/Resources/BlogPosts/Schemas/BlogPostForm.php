@@ -26,12 +26,17 @@ class BlogPostForm
                             ->required()
                             ->maxLength(255)
                             ->live(onBlur: true)
-                            ->afterStateUpdated(function ($state, $set) {
-                                $set('slug', Str::slug($state));
+                            // Only on create: changing a live post's slug breaks its old links.
+                            ->afterStateUpdated(function ($state, $set, string $operation) {
+                                if ($operation === 'create') {
+                                    $set('slug', Str::slug($state));
+                                }
                             })
                             ->columnSpanFull(),
 
                         TextInput::make('slug')
+                            ->label('Web address')
+                            ->helperText('The last part of the page link, e.g. tytluxe.in/…/goa-beaches. Use hyphens instead of spaces.')
                             ->required()
                             ->maxLength(255)
                             ->unique(ignoreRecord: true)
@@ -93,7 +98,7 @@ class BlogPostForm
                             ->nullable(),
 
                         TextInput::make('sort_order')
-                            ->label('Sort Order')
+                            ->label('Position in the list')
                             ->numeric()
                             ->default(0)
                             ->helperText('Lower numbers appear first.'),

@@ -161,14 +161,13 @@ class FlightBookingRulesTest extends TestCase
         $this->assertSame(0, Booking::count());
     }
 
-    public function test_hold_that_tripjack_reports_failed_is_not_shown_as_held(): void
+    /** "Reserve now, pay later" is switched off, even on fares the airline lets us hold. */
+    public function test_hold_is_refused_even_when_the_fare_allows_it(): void
     {
-        Http::fake([
-            '*/air/book' => Http::response(['bookingId' => 'TJS200000000001', 'status' => ['success' => true]]),
-            '*/booking-details' => Http::response(['order' => ['status' => 'FAILED'], 'status' => ['success' => true]]),
-        ]);
+        Http::fake();
 
-        $this->submit(['intent' => 'hold'], ['isBA' => true])->assertRedirect(route('flights.search'));
+        $this->submit(['intent' => 'hold'], ['isBA' => true])->assertSessionHasErrors('intent');
+        Http::assertNotSent(fn (Request $r) => str_contains($r->url(), '/air/book'));
         $this->assertSame(0, Booking::count());
     }
 

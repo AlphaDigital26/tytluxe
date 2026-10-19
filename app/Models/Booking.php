@@ -69,6 +69,20 @@ class Booking extends Model
     public function package() { return $this->belongsTo(Package::class); }
     public function packageDeparture() { return $this->belongsTo(PackageDeparture::class); }
 
+    /** After this long on the payment page without paying, the guest has left. */
+    public const ABANDONED_AFTER_MINUTES = 60;
+
+    /**
+     * Started booking, reached the payment page and never paid — long enough
+     * ago that it's not someone paying right now. Fare and seat holds are
+     * shorter than this, so nothing is still held for them.
+     */
+    public function paymentAbandoned(): bool
+    {
+        return $this->status === 'pending_payment' && $this->created_at
+            && $this->created_at->lt(now()->subMinutes(self::ABANDONED_AFTER_MINUTES));
+    }
+
     /** A package booked with a booking amount whose balance is still unpaid. */
     public function packageBalanceDue(): bool
     {

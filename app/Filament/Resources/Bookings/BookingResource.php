@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Bookings;
 
 use App\Filament\Resources\Bookings\Pages\EditBooking;
+use App\Filament\Resources\Concerns\SearchesBookingsGlobally;
 use App\Filament\Resources\Bookings\Pages\ListBookings;
 use App\Filament\Resources\Bookings\Pages\ViewBooking;
 use App\Filament\Resources\Bookings\Schemas\BookingForm;
@@ -17,6 +18,8 @@ use Illuminate\Database\Eloquent\Builder;
 
 class BookingResource extends Resource
 {
+    use SearchesBookingsGlobally;
+
     protected static ?string $model = Booking::class;
 
     protected static string|\UnitEnum|null $navigationGroup = 'Bookings & Leads';
@@ -35,6 +38,21 @@ class BookingResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()->where(fn ($q) => $q->whereNotIn('vertical', ['flight', 'package'])->orWhereNull('vertical'));
+    }
+
+    public static function getGlobalSearchEloquentQuery(): Builder
+    {
+        return static::getEloquentQuery()->with('hotel');
+    }
+
+    protected static function globalSearchTrip(Booking $record): ?string
+    {
+        return $record->hotel?->title;
+    }
+
+    protected static function globalSearchStatus(Booking $record): string
+    {
+        return HotelBookingStatus::for($record)['label'];
     }
 
     /** Bookings come from guests on the website — never created by hand. */

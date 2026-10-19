@@ -30,6 +30,17 @@ class UserResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'name';
 
+    /** The top search bar finds a customer by what they tell you on the phone. */
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['name', 'last_name', 'email', 'phone'];
+    }
+
+    public static function getGlobalSearchResultDetails(\Illuminate\Database\Eloquent\Model $record): array
+    {
+        return array_filter(['Email' => $record->email, 'Phone' => $record->phone]);
+    }
+
     public static function form(Schema $schema): Schema
     {
         return UserForm::configure($schema);

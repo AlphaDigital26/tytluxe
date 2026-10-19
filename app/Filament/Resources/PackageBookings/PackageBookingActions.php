@@ -28,14 +28,24 @@ class PackageBookingActions
             ->modalHeading('Cancel this package booking')
             ->modalDescription('The booking is cancelled, its seats are freed, and the refund you enter is paid back to the guest\'s original payment method through Razorpay. The guest gets an email. This cannot be undone.')
             ->modalSubmitActionLabel('Yes, cancel and refund')
+            // "Cancel" next to "Yes, cancel and refund" read as a second way to cancel.
+            ->modalCancelActionLabel('Go back')
             ->schema(function (Booking $record) {
                 $refundable = PackageBookingService::refundableAmount($record);
+                $offline = PackageBookingService::offlinePaidAmount($record);
+                $suggested = PackageBookingService::suggestedRefund($record);
+                $from = $record->cancellation_requested_at ? 'the guest asked to cancel on '.$record->cancellation_requested_at->format('j M Y') : 'today';
 
                 return [
                     Placeholder::make('paid')
                         ->label('Guest has paid (not yet refunded)')
-                        ->content('₹'.number_format($refundable, 2)
+                        ->content('₹'.number_format($refundable + $offline, 2)
+                            .($offline > 0 ? ' (₹'.number_format($offline, 2).' of it paid to you offline)' : '')
                             .($record->cancellation_requested_at ? ' · Guest asked to cancel on '.$record->cancellation_requested_at->format('j M Y') : '')),
+                    Placeholder::make('policy')
+                        ->label('What the cancellation policy gives')
+                        ->content(sprintf('%d days before departure (counted from %s): %d%% cancellation charge, so the refund is ₹%s.',
+                            $suggested['days'], $from, $suggested['charge_percent'], number_format($suggested['refund'], 2))),
                     TextInput::make('refund_amount')
                         ->label('Refund to the guest')
                         ->prefix('₹')
@@ -43,8 +53,9 @@ class PackageBookingActions
                         ->required()
                         ->minValue(0)
                         ->maxValue($refundable)
-                        ->default($refundable > 0 ? null : 0)
-                        ->helperText('Enter 0 for no refund. Most you can refund: ₹'.number_format($refundable, 2).'.'),
+                        ->default($suggested['refund'])
+                        ->helperText('Filled in from the policy above. Lower it if a supplier charges more; enter 0 for no refund. Most you can refund online: ₹'.number_format($refundable, 2).'.'
+                            .($offline > 0 ? ' The ₹'.number_format($offline, 2).' paid offline is not refunded from here — return it the way it was paid, then use "Record manual refund".' : '')),
                 ];
             })
             ->action(function (array $data, Booking $record): void {
@@ -73,7 +84,16 @@ class PackageBookingActions
             ->modalHeading('Balance received outside the website?')
             ->modalDescription('Use this only if the guest paid the balance to you directly (bank transfer, UPI, cash). The booking becomes fully paid, the reminders stop and it will not be cancelled on the departure day. No money moves from here.')
             ->modalSubmitActionLabel('Mark as received')
-            ->schema([
+            ->modalCancelActionLabel('Go back')
+            ->schema(fn (Booking $record) => [
+                TextInput::make('amount')
+                    ->label('Amount received')
+                    ->prefix('₹')
+                    ->numeric()
+                    ->required()
+                    ->minValue(1)
+                    ->default(PackageBookingResource::balanceWithGst($record))
+                    ->helperText('The balance including GST is filled in. Change it if the guest paid a different amount. It is added to what the guest has paid.'),
                 Textarea::make('note')
                     ->label('How was it paid? (for your records)')
                     ->placeholder('e.g. UPI to company account, ref 4521…')
@@ -82,9 +102,9 @@ class PackageBookingActions
                     ->maxLength(300),
             ])
             ->action(function (array $data, Booking $record): void {
-                app(PackageBookingService::class)->markBalancePaidOffline($record, auth('admin')->user()?->name ?? 'admin', $data['note']);
+                app(PackageBookingService::class)->markBalancePaidOffline($record, auth('admin')->user()?->name ?? 'admin', $data['note'], (float) $data['amount']);
 
-                Notification::make()->title('Balance marked as received')->body('The booking is now fully paid.')->success()->send();
+                Notification::make()->title('Balance marked as received')->body('₹'.number_format((float) $data['amount'], 2).' recorded. The booking is now fully paid.')->success()->send();
             });
     }
 }

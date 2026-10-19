@@ -27,12 +27,12 @@ class DestinationForm
                                 ->helperText('E.g. Goa, Maldives, Kerala')
                                 ->required()
                                 ->live(onBlur: true)
-                                ->afterStateUpdated(fn ($set, ?string $state) => $set('slug', Str::slug($state)))
+                                ->afterStateUpdated(fn ($set, ?string $state, string $operation) => $operation === 'create' ? $set('slug', Str::slug($state)) : null) // only on create: a new slug breaks old links
                                 ->columnSpan(2),
 
                             TextInput::make('slug')
-                                ->label('URL Slug')
-                                ->helperText('This forms the web address. Auto-generated from the name above.')
+                                ->label('Web address')
+                                ->helperText(fn (string $operation) => $operation === 'create' ? 'This forms the web address. Auto-generated from the name above.' : 'This is the web address of the page. Changing it breaks links people already have (Google, WhatsApp shares) — only change it if you must.')
                                 ->required()
                                 ->unique(ignoreRecord: true)
                                 ->columnSpan(2),

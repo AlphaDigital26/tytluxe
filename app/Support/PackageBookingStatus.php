@@ -36,6 +36,7 @@ class PackageBookingStatus
             $booking->status === 'cancelled' => 'cancelled',
             $booking->status === 'refunded' => 'refunded',
             $booking->status === 'payment_failed' => 'payment_failed',
+            $booking->paymentAbandoned() => 'left_without_paying',
             default => 'awaiting_payment',
         };
     }
@@ -49,7 +50,8 @@ class PackageBookingStatus
             ->orWhere(fn (Builder $q) => $q->where('status', 'cancelled')->where('cancellation_reason', 'like', '%manual%'))
             ->orWhere(fn (Builder $q) => $q->where('status', 'confirmed')->whereNotNull('cancellation_requested_at'))
             ->orWhere(fn (Builder $q) => $q->where('status', 'confirmed')->whereNull('cancellation_requested_at')
-                ->where('package_balance_amount', '>', 0)->whereDate('package_balance_due_on', '<', today())));
+                // Due today or tomorrow too, so the team can call the guest in time.
+                ->where('package_balance_amount', '>', 0)->whereDate('package_balance_due_on', '<=', today()->addDay())));
     }
 
     /** @return array<string, string> raw status => plain words, for filters */
@@ -110,6 +112,11 @@ class PackageBookingStatus
             'label' => 'Payment failed',
             'color' => 'gray',
             'help' => 'The guest\'s payment did not go through. Nothing was booked and no money was taken.',
+        ],
+        'left_without_paying' => [
+            'label' => 'Left without paying',
+            'color' => 'gray',
+            'help' => 'The guest reached the payment page over an hour ago and did not pay. Their seats were released. No money was taken. Nothing to do — you can call them if you would like to help them finish booking.',
         ],
         'awaiting_payment' => [
             'label' => 'Waiting for payment',

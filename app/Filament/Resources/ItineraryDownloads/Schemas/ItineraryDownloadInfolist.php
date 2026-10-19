@@ -35,7 +35,7 @@ class ItineraryDownloadInfolist
                         TextEntry::make('created_at')
                             ->label('Downloaded On')
                             ->icon('heroicon-m-clock')
-                            ->dateTime('M j, Y h:i A'),
+                            ->dateTime('j M Y, g:i A'),
                     ])->columns(2),
             ]);
     }

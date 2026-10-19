@@ -1196,7 +1196,7 @@ class FlightController extends Controller
         // before attempting" — the Review page hides Block otherwise, but a
         // crafted/stale post must not reach TripJack either.
         if ($intent === 'hold' && (! ($conditions['isBA'] ?? false) || ! FlightSettings::allowHold())) {
-            return back()->withInput()->withErrors(['intent' => 'This fare can’t be held — the airline requires payment to book it. Please choose Proceed to Pay.']);
+            return back()->withInput()->withErrors(['intent' => 'Reserving a flight without payment isn’t available. Please choose Proceed to Pay.']);
         }
 
         // A hold blocks the PNR without any payment, so there's nothing to
@@ -1298,8 +1298,14 @@ class FlightController extends Controller
                     'contactInfo' => $contactInfo,
                     'fareExpiresAt' => $draft['expiresAt'] ?? null,
                     'resultsUrl' => $draft['resultsUrl'] ?? null,
+                    // "HCCB" → "Chicken sandwich" etc., for the admin page.
+                    'ssrNames' => \App\Support\FlightAddonNames::fromReview($draft['response'] ?? []),
                 ],
                 'flight_legs' => $flightLegs,
+                // Airline, flight numbers and times from Review, so the admin
+                // page shows them straight away; ticket numbers are added
+                // from Booking Details once the airline issues the ticket.
+                'flight_itinerary' => FlightBookingService::itinerarySummary($draft['response'] ?? []) ?: null,
                 'check_in' => $firstDepartDate, // reused generic date columns so admin/list views sort sensibly across verticals
                 'check_out' => $lastDepartDate,
                 'pax_adults' => $context['adults'],

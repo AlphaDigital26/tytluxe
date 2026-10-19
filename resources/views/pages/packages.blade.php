@@ -194,6 +194,20 @@ Discover curated domestic and international travel packages with TYT Luxe. Honey
   margin-bottom: 24px; padding-bottom: 4px;
 }
 .state-filter-wrap::-webkit-scrollbar { display: none; }
+/* ‹ › arrows either side of the destination pills (added by script). */
+.state-slider { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; }
+.state-slider .state-filter-wrap { flex: 1; min-width: 0; margin-bottom: 0; scroll-behavior: smooth; }
+.state-arrow {
+  flex-shrink: 0; width: 36px; height: 36px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--gold); background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(201,168,76,0.45); cursor: pointer;
+  transition: background .2s, color .2s, opacity .2s;
+}
+.state-arrow:hover:not(:disabled) { background: var(--gold); color: #111; }
+.state-arrow:disabled { opacity: .3; cursor: default; }
+.state-arrow[hidden] { display: none; }
+@media (max-width: 600px) { .state-arrow { width: 30px; height: 30px; font-size: 12px; } .state-slider { gap: 6px; } }
 .state-tab {
   flex-shrink: 0; padding: 6px 16px; font-size: 0.88rem; font-weight: 500;
   color: var(--white-60); background: rgba(255,255,255,0.03);
@@ -1042,6 +1056,44 @@ document.querySelectorAll('.state-filter-wrap').forEach(slider => {
     const walk = (x - startX) * 2; // scroll speed multiplier
     slider.scrollLeft = scrollLeft - walk;
   });
+});
+
+// --- ‹ › Arrows for State Filters ---------------------------------------------
+// Shown only when the pills don't all fit; greyed out at either end.
+document.querySelectorAll('.state-filter-wrap').forEach(strip => {
+  const box = document.createElement('div');
+  box.className = 'state-slider';
+  strip.parentNode.insertBefore(box, strip);
+
+  const arrow = (dir) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'state-arrow';
+    b.setAttribute('aria-label', dir < 0 ? 'Scroll destinations left' : 'Scroll destinations right');
+    b.innerHTML = '<i class="fa-solid fa-chevron-' + (dir < 0 ? 'left' : 'right') + '" aria-hidden="true"></i>';
+    b.addEventListener('click', () => strip.scrollBy({ left: dir * strip.clientWidth * 0.7 }));
+    return b;
+  };
+  const prev = arrow(-1), next = arrow(1);
+  box.append(prev, strip, next);
+
+  const update = () => {
+    const overflow = strip.scrollWidth > strip.clientWidth + 2;
+    prev.hidden = next.hidden = !overflow;
+    prev.disabled = strip.scrollLeft <= 2;
+    next.disabled = strip.scrollLeft + strip.clientWidth >= strip.scrollWidth - 2;
+  };
+  strip.addEventListener('scroll', update, { passive: true });
+  // Re-check when a hidden tab's panel is shown, the window resizes, or the
+  // pills change width (the web font loading in makes them wider).
+  if (window.ResizeObserver) {
+    const ro = new ResizeObserver(update);
+    ro.observe(strip);
+    strip.querySelectorAll('.state-tab').forEach(t => ro.observe(t));
+  }
+  window.addEventListener('resize', update);
+  if (document.fonts) document.fonts.ready.then(update);
+  update();
 });
 </script>
 

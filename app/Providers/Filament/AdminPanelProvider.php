@@ -38,6 +38,31 @@ class AdminPanelProvider extends PanelProvider
                 merge: true,
             );
         });
+
+        // Error messages name the box as it reads on screen, in quotes:
+        // 'The "Web address" field is required.' Filament's default lower-
+        // cases the first letter ("The uRL Slug (auto-filled…) field…").
+        \Filament\Forms\Components\Field::configureUsing(function (\Filament\Forms\Components\Field $field): void {
+            $field->validationAttribute(fn (\Filament\Forms\Components\Field $component): string => self::plainLabel($component));
+        });
+
+        // One date style everywhere: 17 Sep 2026 / 17 Sep 2026, 7:18 AM.
+        foreach ([\Filament\Tables\Table::class, \Filament\Schemas\Schema::class] as $class) {
+            $class::configureUsing(fn ($component) => $component
+                ->defaultDateDisplayFormat('j M Y')
+                ->defaultDateTimeDisplayFormat('j M Y, g:i A')
+                ->defaultTimeDisplayFormat('g:i A'));
+        }
+    }
+
+    /** "URL Slug (auto-filled from title)" → "URL Slug"; "Which tab?" → "Which tab". */
+    public static function plainLabel(\Filament\Forms\Components\Field $component): string
+    {
+        $label = $component->getLabel();
+        $label = $label instanceof \Illuminate\Contracts\Support\Htmlable || blank($label) ? $component->getDefaultLabel() : (string) $label;
+        $label = trim(preg_replace('/\s*\([^)]*\)/', '', strip_tags($label)));
+
+        return '"'.rtrim($label, ' ?:').'"';
     }
 
     public function panel(Panel $panel): Panel
@@ -47,7 +72,11 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('tyt-console')
             ->login()
+            // "Forgot password?" link on the login page; the reset link is
+            // emailed to the staff member (see passwords.admins in config/auth.php).
+            ->passwordReset()
             ->authGuard('admin')
+            ->authPasswordBroker('admins')
             ->colors([
                 'primary' => Color::hex('#c9a84c'),
                 'danger' => Color::Rose,
@@ -83,6 +112,7 @@ class AdminPanelProvider extends PanelProvider
                 \App\Filament\Widgets\BusinessSnapshot::class,
                 \App\Filament\Widgets\HotelsOverview::class,
                 \App\Filament\Widgets\FlightsOverview::class,
+                \App\Filament\Widgets\PackagesOverview::class,
                 \App\Filament\Widgets\SalesChart::class,
                 \App\Filament\Widgets\UpcomingTrips::class,
                 \App\Filament\Widgets\EnquiriesByCategoryChart::class,
@@ -132,6 +162,18 @@ class AdminPanelProvider extends PanelProvider
                         .dark .fi-sidebar {
                             border-right: 1px solid #374151 !important; /* gray-700 */
                             box-shadow: 1px 0 0 0 rgba(255,255,255,0.05) !important;
+                        }
+
+                        /* Phones: fit booking no., guest, amount and status on
+                           screen — "Open" goes (tapping the row opens it),
+                           long status labels wrap, cells sit closer. */
+                        @media (max-width: 767px) {
+                            .tyt-hide-on-phone { display: none !important; }
+                            .fi-ta-cell { padding-left: 4px !important; padding-right: 4px !important; }
+                            .fi-ta-cell .fi-badge { white-space: normal !important; text-align: left; }
+                            .fi-ta-cell .fi-badge .fi-badge-label-ctn, .fi-ta-cell .fi-badge span { white-space: normal !important; }
+                            .fi-ta-cell .fi-ta-text, .fi-ta-cell .fi-ta-text * { white-space: normal !important; }
+                            .fi-ta-cell .fi-ta-text { min-width: 0 !important; }
                         }
                     </style>
                 HTML)
