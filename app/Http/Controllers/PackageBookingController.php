@@ -57,9 +57,9 @@ class PackageBookingController extends Controller
             'option' => 'required|string|max:100',
             'plan' => 'required|in:part,full',
             'travellers' => 'required|array|min:1|max:'.PackageBookingService::MAX_TRAVELLERS,
-            'travellers.*.full_name' => ['required', 'string', 'min:2', 'max:100', 'regex:/^[\pL][\pL .\'-]*$/u'],
+            'travellers.*.full_name' => ['required', 'string', 'min:2', 'max:100', 'regex:/^[\pL][\pL .\'-]*$/u', 'distinct:ignore_case'],
             'travellers.*.gender' => 'required|in:male,female,other',
-            'travellers.*.age' => 'required|integer|min:1|max:99',
+            'travellers.*.age' => 'required|integer|min:0|max:99',
             // Strict check: a typo'd address would lose the guest their confirmation.
             'email' => ['required', 'max:150', new \App\Rules\BookableEmail],
             'phone_code' => ['required', 'regex:/^\d{1,4}$/'],
@@ -69,9 +69,10 @@ class PackageBookingController extends Controller
         ], [
             'travellers.*.full_name.required' => 'Please enter the name of every traveller.',
             'travellers.*.full_name.regex' => 'Traveller names can only have letters, spaces, dots, apostrophes and hyphens.',
+            'travellers.*.full_name.distinct' => 'Two travellers have the same name. Please enter each traveller\'s full name as on their ID.',
             'travellers.*.gender.required' => 'Please choose a gender for every traveller.',
             'travellers.*.age.required' => 'Please enter the age of every traveller.',
-            'travellers.*.age.*' => 'Each traveller\'s age must be between 1 and 99.',
+            'travellers.*.age.*' => 'Each traveller\'s age must be between 0 and 99 (enter 0 for babies under 1).',
             'phone.regex' => 'Please enter a valid mobile number (digits only).',
             'terms.accepted' => 'Please accept the booking and cancellation terms.',
         ]);

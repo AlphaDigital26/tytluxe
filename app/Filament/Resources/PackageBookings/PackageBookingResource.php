@@ -129,7 +129,7 @@ class PackageBookingResource extends Resource
                     ->label('Departure')
                     ->formatStateUsing(fn ($state) => $state ? Carbon::parse($state)->format('D, j M Y') : '—')
                     ->sortable(),
-                TextColumn::make('pax_adults')->label('Travellers'),
+                TextColumn::make('pax_adults')->label('Travellers')->formatStateUsing(fn ($state, Booking $record) => $state.($record->pax_infants ? ' + '.$record->pax_infants.' infant' : '')),
                 TextColumn::make('paid')
                     ->label('Paid')
                     ->state(fn (Booking $record) => self::paidSoFar($record))
@@ -245,7 +245,7 @@ class PackageBookingResource extends Resource
                                 .($nights ? " ({$nights} nights)" : '');
                         }),
                     TextEntry::make('package_option')->label('Room sharing')->placeholder('—'),
-                    TextEntry::make('pax_adults')->label('Number of travellers')->formatStateUsing(fn ($state) => $state.' '.((int) $state === 1 ? 'person' : 'people')),
+                    TextEntry::make('pax_adults')->label('Number of travellers')->formatStateUsing(fn ($state, Booking $record) => $record->packageTravellersLabel()),
                 ]),
 
             // 3. Guest & travellers

@@ -6,3 +6,58 @@
  *
  * Add any additional responsive overrides here if needed in future.
  */
+
+/* ==========================================================================
+   Phone tap targets (guest test F18, 2026-10-16)
+   Every link/button gets a tap area of about 44px (Apple/Google guidance)
+   without changing how it looks: text links get vertical padding cancelled
+   by an equal negative margin; icons keep their size inside a bigger box.
+   ========================================================================== */
+@media (max-width: 768px) {
+    /* Footer and inline text links */
+    .footer-col a,
+    .info-value a,
+    .wl-breadcrumb a,
+    .pd-back-btn {
+        display: inline-block;
+        padding-block: 12px;
+        margin-block: -12px;
+    }
+
+    /* Mobile menu links: full-width rows, at least 44px tall */
+    .nav-menu a {
+        display: flex;
+        align-items: center;
+        min-height: 44px;
+    }
+    .nav-menu ul {
+        gap: 4px;
+    }
+
+    /* Close buttons (menu, toast notifications) */
+    .menu-close,
+    .tyt-toast-close {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 44px;
+        min-height: 44px;
+        margin: -10px -10px -10px 0;
+    }
+
+    /* Banner slide dots: same 8px dot, 26px tappable button around it */
+    .shared-slider-dots {
+        gap: 0;
+    }
+    .shared-slider-dots .shared-dot { /* beats page-wide box-sizing resets (e.g. Cruises) */
+        box-sizing: content-box;
+        padding: 9px;
+        background-clip: content-box;
+    }
+
+    /* Hotel filter checkboxes */
+    .tyt-sb-check input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+    }
+}

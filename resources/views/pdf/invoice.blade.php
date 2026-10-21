@@ -257,7 +257,7 @@
       <tr>
         <td><strong>{{ $booking->package->title }}</strong></td>
         <td>{{ $booking->package_option ?: '—' }}</td>
-        <td class="right">{{ $booking->pax_adults }}</td>
+        <td class="right">{{ $booking->pax_adults }}{{ $booking->pax_infants ? ' + '.$booking->pax_infants.' infant (free)' : '' }}</td>
         <td class="right">{{ $booking->currency }} {{ number_format((float) $booking->package_price_per_person, 2) }}</td>
         <td class="right">{{ $booking->currency }} {{ number_format($booking->base_amount, 2) }}</td>
       </tr>

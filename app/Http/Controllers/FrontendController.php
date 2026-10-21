@@ -707,6 +707,9 @@ class FrontendController extends Controller
 
     public function wishlistLookup(Request $request)
     {
+        // A wishlist is a handful of hotels; refuse oversized lists so one
+        // request can't make the server look up thousands of rows.
+        $request->validate(['slugs' => 'nullable|array|max:100', 'slugs.*' => 'string|max:255']);
         $slugs = (array) $request->input('slugs', []);
         if (empty($slugs)) {
             return response()->json(['hotels' => []]);
@@ -789,7 +792,8 @@ class FrontendController extends Controller
                 // Add the customer-facing price (TripJack's raw totalPrice + TYTLUXE markup)
                 // to every option here, once, so every view downstream reads it rather than
                 // re-deriving it from the raw TripJack price.
-                $liveOptions = collect($response['options'] ?? [])->map(fn ($option) => $this->withCustomerPricing($option));
+                $roomNights = HotelPricingService::roomNights($checkIn, $checkOut, $roomCount);
+                $liveOptions = collect($response['options'] ?? [])->map(fn ($option) => $this->withCustomerPricing($option, $roomNights));
                 $reviewHash = $response['reviewHash'] ?? null;
 
                 session(["tripjack_pricing.{$hotel->tripjack_hotel_id}" => [
@@ -845,10 +849,10 @@ class FrontendController extends Controller
      * Also normalises deadlineDateTime: the docs put it under `cancellation`,
      * live Review responses put it on the option itself.
      */
-    protected function withCustomerPricing(array $option): array
+    protected function withCustomerPricing(array $option, int $roomNights = 1): array
     {
         if (isset($option['pricing']['totalPrice'])) {
-            $breakdown = HotelPricingService::price((float) $option['pricing']['totalPrice']);
+            $breakdown = HotelPricingService::price((float) $option['pricing']['totalPrice'], $roomNights);
             $breakdown['tripjack_mf'] = round((float) ($option['pricing']['mf'] ?? 0), 2);
             $breakdown['tripjack_mft'] = round((float) ($option['pricing']['mft'] ?? 0), 2);
             $option['pricing']['pricingBreakdown'] = $breakdown;
@@ -859,7 +863,7 @@ class FrontendController extends Controller
             // that already includes our margin.
             $strike = (float) ($option['pricing']['strikethrough'] ?? 0);
             $option['pricing']['customerStrikethrough'] = $strike > (float) $option['pricing']['totalPrice']
-                ? HotelPricingService::price($strike)['customer_price']
+                ? HotelPricingService::price($strike, $roomNights)['customer_price']
                 : null;
         }
 
@@ -938,8 +942,9 @@ class FrontendController extends Controller
         }
 
         $oldTotal = (float) ($draft['option']['pricing']['totalPrice'] ?? 0);
-        $oldCustomerPrice = (float) ($draft['option']['pricing']['customerPrice'] ?? HotelPricingService::price($oldTotal)['customer_price']);
-        $option = $this->withCustomerPricing($response['option'] ?? []);
+        $roomNights = HotelPricingService::roomNights($draft['check_in'] ?? null, $draft['check_out'] ?? null, $draft['rooms'] ?? 1);
+        $oldCustomerPrice = (float) ($draft['option']['pricing']['customerPrice'] ?? HotelPricingService::price($oldTotal, $roomNights)['customer_price']);
+        $option = $this->withCustomerPricing($response['option'] ?? [], $roomNights);
         $newTotal = (float) ($option['pricing']['totalPrice'] ?? 0);
 
         $draft['bookingId'] = $response['bookingId'];
@@ -1041,7 +1046,8 @@ class FrontendController extends Controller
         // reuse a markup figure computed at an earlier step (per founder's
         // pricing rules) — this recalculated value is what the guest sees on
         // the review/checkout page and what ultimately gets booked/charged.
-        $option = $this->withCustomerPricing($response['option'] ?? []);
+        $roomNights = HotelPricingService::roomNights($pricingContext['check_in'] ?? null, $pricingContext['check_out'] ?? null, $pricingContext['rooms'] ?? 1);
+        $option = $this->withCustomerPricing($response['option'] ?? [], $roomNights);
 
         // Detail → Review can move the price. The guest picked a room at the
         // Detail price, so tell them on the review page rather than silently
@@ -1049,7 +1055,7 @@ class FrontendController extends Controller
         $pickedTotal = $pricingContext['option_prices'][$optionId] ?? null;
         $reviewedTotal = $option['pricing']['totalPrice'] ?? null;
         $priceChange = ($pickedTotal !== null && $reviewedTotal !== null && abs((float) $reviewedTotal - (float) $pickedTotal) >= 0.01)
-            ? ['old' => HotelPricingService::price((float) $pickedTotal)['customer_price'], 'new' => $option['pricing']['customerPrice']]
+            ? ['old' => HotelPricingService::price((float) $pickedTotal, $roomNights)['customer_price'], 'new' => $option['pricing']['customerPrice']]
             : null;
 
         session(['tripjack_booking_draft' => [
@@ -2875,9 +2881,9 @@ class FrontendController extends Controller
     {
         $request->validate([
             'name'  => 'required|string|max:255',
-            'phone' => 'required|string|max:20',
-            'email' => 'required|email|max:255'
-        ]);
+            'phone' => ['required', 'max:20', 'regex:/^\+?[\d\s-]{7,20}$/'],
+            'email' => ['required', 'max:255', new \App\Rules\BookableEmail],
+        ], ['phone.regex' => 'Please enter a valid phone number.']);
 
         $package = \App\Models\Package::with([
             'destination', 'images', 'inclusions', 'exclusions', 'itineraryDays', 'departures'
@@ -2992,16 +2998,20 @@ class FrontendController extends Controller
     public function storeEnquiry(Request $request)
     {
         $request->validate([
-            'vertical'     => 'required|string',
+            'vertical'     => 'required|in:hotel,flight,package,cruise,general',
             'reference_id' => 'required|integer',
             'name'         => 'required|string|max:255',
-            'phone'        => 'required|string|max:20',
+            // 7–15 digits, optionally with +, spaces or dashes — usable for a call-back.
+            'phone'        => ['required', 'max:20', 'regex:/^\+?[\d\s-]{7,20}$/'],
             'email'        => 'nullable|email|max:255',
             'checkin'      => 'nullable|string',
             'checkout'     => 'nullable|string',
             'guest_data'   => 'nullable|string',
             'message'      => 'nullable|string|max:1000',
             'rooms_summary'=> 'nullable|string|max:1000',
+        ], [
+            'phone.regex' => 'Please enter a valid phone number so we can call you back.',
+            'vertical.in' => 'Please choose what your enquiry is about.',
         ]);
 
         $travelDateFrom = null;
@@ -3048,7 +3058,9 @@ class FrontendController extends Controller
             'reference_id'     => $request->reference_id,
             'name'             => $request->name,
             'phone'            => $request->phone,
-            'email'            => $request->email,
+            // Email is optional on some forms (e.g. "Notify me" takes only a
+            // phone), but the column is NOT NULL.
+            'email'            => $request->email ?? '',
             'travel_date_from' => $travelDateFrom,
             'travel_date_to'   => $travelDateTo,
             'pax_adults'       => $paxAdults,

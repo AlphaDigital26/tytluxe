@@ -325,7 +325,7 @@
 
       <div class="tc-fg">
         <label>Departure Port</label>
-        <select>
+        <select aria-label="Departure Port">
           <option value="">Select Port</option>
           @foreach($bookingPorts as $port)
             <option>{{ $port }}</option>
@@ -334,7 +334,7 @@
       </div>
       <div class="tc-fg">
         <label>Destination</label>
-        <select>
+        <select aria-label="Destination">
           <option value="">Select Destination</option>
           @foreach($bookingDestinations as $dest)
             <option>{{ $dest }}</option>
@@ -343,11 +343,11 @@
       </div>
       <div class="tc-fg">
         <label>Travel Date</label>
-        <input type="date" onclick="this.showPicker()">
+        <input type="date" aria-label="Travel Date" onclick="this.showPicker()">
       </div>
       <div class="tc-fg">
         <label>Duration</label>
-        <select>
+        <select aria-label="Duration">
           <option>2 Nights / 3 Days</option>
           <option>3 Nights / 4 Days</option>
           <option>4 Nights / 5 Days</option>
@@ -358,7 +358,7 @@
       @if($cabinTypes->isNotEmpty())
       <div class="tc-fg">
         <label>Cabin Type</label>
-        <select>
+        <select aria-label="Cabin Type">
           @foreach($cabinTypes as $cabin)
             <option>{{ $cabin->name }}</option>
           @endforeach
@@ -367,7 +367,7 @@
       @endif
       <div class="tc-fg">
         <label>No. of Guests</label>
-        <select>
+        <select aria-label="No. of Guests">
           <option>1 Guest</option>
           <option>2 Guests</option>
           <option>3 Guests</option>
@@ -450,7 +450,7 @@ async function tcSubmit() {
   btn.disabled = true;
   
   try {
-      await fetch("{{ route('enquiries.store') }}", {
+      await postEnquiry("{{ route('enquiries.store') }}", {
           method: 'POST',
           headers: {
               'Content-Type': 'application/json',
@@ -471,7 +471,7 @@ async function tcSubmit() {
       btn.disabled = false;
   } catch (error) {
       console.error(error);
-      showToast('Error', 'Something went wrong. Please try again.', 'error');
+      showToast('Error', error.message, 'error');
       btn.textContent = originalText;
       btn.disabled = false;
   }

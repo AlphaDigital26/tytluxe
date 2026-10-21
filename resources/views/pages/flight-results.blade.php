@@ -1014,6 +1014,8 @@
 
 @section('content')
 <div class="frx-wrap">
+  {{-- Page heading for search engines and screen readers (the visible route header is below). --}}
+  <h1 style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;">Flights from {{ $searchParams['from'] ?? '' }} to {{ $searchParams['to'] ?? '' }}</h1>
 
   <div class="frx-sticky-sentinel" id="frxStickySentinel"></div>
   <div class="frx-sticky" id="frxSticky">

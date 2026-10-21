@@ -295,6 +295,12 @@ class ProfileController extends Controller
         return Redirect::to('/');
     }
 
+    protected const TRAVELLER_MESSAGES = [
+        'dob.before_or_equal' => 'Date of birth cannot be in the future.',
+        'passport_expiry.after' => 'This passport has expired. Please enter a valid passport.',
+        'phone.regex' => 'Please enter a valid phone number.',
+    ];
+
     public function storeTraveller(Request $request): RedirectResponse
     {
         $validated = $request->validate([
@@ -302,19 +308,19 @@ class ProfileController extends Controller
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
             'relationship' => 'nullable|string',
-            'dob' => 'nullable|date',
+            'dob' => 'nullable|date|before_or_equal:today|after:1900-01-01',
             'gender' => 'nullable|string',
             'nationality' => 'nullable|string',
             'meal_preference' => 'nullable|string',
             'train_berth_preference' => 'nullable|string',
             'passport_number' => 'nullable|string',
-            'passport_expiry' => 'nullable|date',
+            'passport_expiry' => 'nullable|date|after:today',
             'passport_issuing_country' => 'nullable|string',
-            'phone' => 'nullable|string',
+            'phone' => ['nullable', 'regex:/^\+?[\d\s-]{7,18}$/'],
             'email' => 'nullable|email',
             'frequent_flyer_airline' => 'nullable|string',
             'frequent_flyer_number' => 'nullable|string',
-        ]);
+        ], self::TRAVELLER_MESSAGES);
 
         $request->user()->savedTravellers()->create($validated);
 
@@ -332,19 +338,19 @@ class ProfileController extends Controller
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
             'relationship' => 'nullable|string',
-            'dob' => 'nullable|date',
+            'dob' => 'nullable|date|before_or_equal:today|after:1900-01-01',
             'gender' => 'nullable|string',
             'nationality' => 'nullable|string',
             'meal_preference' => 'nullable|string',
             'train_berth_preference' => 'nullable|string',
             'passport_number' => 'nullable|string',
-            'passport_expiry' => 'nullable|date',
+            'passport_expiry' => 'nullable|date|after:today',
             'passport_issuing_country' => 'nullable|string',
-            'phone' => 'nullable|string',
+            'phone' => ['nullable', 'regex:/^\+?[\d\s-]{7,18}$/'],
             'email' => 'nullable|email',
             'frequent_flyer_airline' => 'nullable|string',
             'frequent_flyer_number' => 'nullable|string',
-        ]);
+        ], self::TRAVELLER_MESSAGES);
 
         $traveller->update($validated);
 

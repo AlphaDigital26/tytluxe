@@ -164,6 +164,7 @@ body {
   <h3 id="online-group-packages">Group packages booked and paid online</h3>
   <p>These terms apply to group packages booked on tytluxe.in, and are shown to you before payment:</p>
   <ul>
+    <li><strong>Infants:</strong> children up to {{ \App\Services\PackageBookingService::FREE_INFANT_MAX_AGE }} years travel free with a paying adult and do not take a separate seat. Travellers older than {{ \App\Services\PackageBookingService::FREE_INFANT_MAX_AGE }} pay the per-person price.</li>
     <li><strong>Booking amount:</strong> you may reserve your seats by paying the booking amount per person shown on the package page, or pay the full price at the time of booking. GST and the online payment charge are included in each payment.</li>
     <li><strong>Balance due date:</strong> the balance must be paid {{ \App\Services\PackageBookingService::BALANCE_DUE_DAYS_BEFORE }} days before the departure date. You can pay it at any time from your booking page; we also send reminder emails.</li>
     <li><strong>Unpaid balance:</strong> if the balance has not been paid by the departure date, the booking is cancelled automatically and the booking amount is not refundable.</li>

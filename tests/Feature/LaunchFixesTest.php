@@ -26,6 +26,20 @@ class LaunchFixesTest extends TestCase
         }
     }
 
+    public function test_hotel_gst_slab_is_per_room_per_night(): void
+    {
+        $price = fn (float $total, int $roomNights) => \App\Services\HotelPricingService::price($total, $roomNights)['gst_slab'];
+
+        $this->assertSame(6, \App\Services\HotelPricingService::roomNights('2026-11-01', '2026-11-04', 2));
+        $this->assertSame(1, \App\Services\HotelPricingService::roomNights(null, null, 0));
+
+        $this->assertSame(0.05, $price(9000, 3));   // 3 nights × ₹3,000 → 5%
+        $this->assertSame(0.18, $price(9000, 1));   // 1 night at ₹9,000 → 18%
+        $this->assertSame(0.18, $price(16000, 2));  // 2 rooms × ₹8,000 → 18%
+        $this->assertSame(0.05, $price(14999, 2));  // ₹7,499.50 per room-night → 5%
+        $this->assertSame(0.18, $price(15000, 2));  // exactly ₹7,500 → 18%
+    }
+
     public function test_pages_send_security_headers(): void
     {
         $this->get('/')->assertHeader('X-Frame-Options', 'SAMEORIGIN')
@@ -92,6 +106,51 @@ class LaunchFixesTest extends TestCase
         $this->post(route('package.reviews.store', $p->slug), $review)->assertSessionHas('success');
         $this->post(route('package.reviews.store', $p->slug), $review)->assertSessionHas('error');
         $this->assertSame(1, \App\Models\Review::count());
+    }
+
+    public function test_emails_typed_with_capitals_work_for_login(): void
+    {
+        User::factory()->create(['email' => 'ananya@gmail.com', 'password' => bcrypt('Str0ng!Pass2026')]);
+
+        $this->post('/login', ['email' => 'Ananya@Gmail.com', 'password' => 'Str0ng!Pass2026']);
+        $this->assertAuthenticated();
+    }
+
+    public function test_profile_and_saved_travellers_refuse_impossible_values(): void
+    {
+        $user = User::factory()->create();
+        $this->actingAs($user);
+
+        $this->patch('/profile', ['name' => 'Z', 'email' => $user->email, 'phone' => 'abc-not-a-phone'])->assertSessionHasErrors('phone');
+        $this->patch('/profile', ['name' => 'Z', 'email' => $user->email, 'dob' => now()->addYear()->toDateString()])->assertSessionHasErrors('dob');
+        $this->patch('/profile', ['name' => 'Z', 'email' => $user->email, 'phone' => '+91 98765-43210'])->assertSessionHasNoErrors();
+        $this->assertSame('9876543210', $user->fresh()->phone);
+
+        $this->post('/profile/traveller', ['first_name' => 'A', 'last_name' => 'K', 'dob' => now()->addMonth()->toDateString()])->assertSessionHasErrors('dob');
+        $this->post('/profile/traveller', ['first_name' => 'A', 'last_name' => 'K', 'passport_expiry' => now()->subDay()->toDateString()])->assertSessionHasErrors('passport_expiry');
+    }
+
+    public function test_enquiries_need_a_real_phone_and_a_known_type(): void
+    {
+        $ok = ['vertical' => 'general', 'reference_id' => 0, 'name' => 'Pooja', 'phone' => '+91 98765 43210', 'message' => 'Hi'];
+        $this->postJson('/enquiries', $ok)->assertOk();
+        $this->postJson('/enquiries', ['phone' => 'call me maybe'] + $ok)->assertStatus(422)->assertJsonValidationErrors('phone');
+        $this->postJson('/enquiries', ['vertical' => 'spaceship'] + $ok)->assertStatus(422)->assertJsonValidationErrors('vertical');
+    }
+
+    public function test_wishlist_list_is_capped(): void
+    {
+        $this->postJson('/wishlist/lookup', ['slugs' => array_map(fn ($i) => 's'.$i, range(1, 101))])->assertStatus(422);
+        $this->postJson('/wishlist/lookup', ['slugs' => ['a', 'b']])->assertOk();
+    }
+
+    public function test_blocked_booking_shows_the_branded_page(): void
+    {
+        $owner = User::factory()->create();
+        Booking::create(['reference' => 'TYTOWN00001', 'user_id' => $owner->id, 'vertical' => 'package', 'pax_adults' => 1, 'lead_guest_name' => 'G', 'base_amount' => 1, 'total_amount' => 1, 'status' => 'confirmed']);
+
+        $this->actingAs(User::factory()->create())->get('/booking/TYTOWN00001')
+            ->assertForbidden()->assertSee('belongs to a different account')->assertSee('Go to My Trips');
     }
 
     public function test_account_with_an_upcoming_trip_cannot_be_deleted(): void

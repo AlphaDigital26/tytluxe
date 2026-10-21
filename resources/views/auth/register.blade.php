@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Create your free TYT Luxe account to book luxury hotels, flights and curated holiday packages.">
     <title>Register - TYT Luxe</title>
     <link rel="icon" type="image/png" href="{{ asset('assets/images/favicon.png') }}">
     <!-- Fonts -->
@@ -135,7 +136,7 @@
         
         <div class="auth-form-container">
             
-            <h2>Travel With Us</h2>
+            <h1>Travel With Us</h1>
             <p class="auth-modal-subtitle">Create your account</p>
 
             <form method="POST" action="{{ route('register') }}">

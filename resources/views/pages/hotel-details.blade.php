@@ -3454,7 +3454,7 @@ html { scroll-behavior: smooth; }
 
       <input type="hidden" id="hdModCheckInIso" name="check_in" value="{{ $checkIn ?? '' }}">
       <input type="hidden" id="hdModCheckOutIso" name="check_out" value="{{ $checkOut ?? '' }}">
-      <input type="text" id="hdModRangePicker" style="position:absolute; width:0; height:0; opacity:0; pointer-events:none;" tabindex="-1">
+      <input type="text" id="hdModRangePicker" aria-hidden="true" style="position:absolute; width:0; height:0; opacity:0; pointer-events:none;" tabindex="-1">
 
       <!-- Rooms & Guests -->
       <div class="htl-sb-field" id="hdModGuestField">
@@ -4738,7 +4738,7 @@ html { scroll-behavior: smooth; }
         <label>Check In *</label>
         <div style="position:relative;">
             <input type="text" id="hdCheckin" class="hd-date-input" placeholder="Check in date" readonly required />
-            <input type="text" id="hdDates" style="position:absolute; width:0; height:0; opacity:0; pointer-events:none; padding:0; border:none; top:0; left:0;" tabindex="-1" />
+            <input type="text" id="hdDates" aria-hidden="true" style="position:absolute; width:0; height:0; opacity:0; pointer-events:none; padding:0; border:none; top:0; left:0;" tabindex="-1" />
             <svg style="position:absolute; right:16px; top:13px; pointer-events:none; color:var(--gold);" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
         </div>
       </div>
@@ -4949,15 +4949,17 @@ html { scroll-behavior: smooth; }
           if (window.hdRoomsData) formData.append('guest_data', JSON.stringify(window.hdRoomsData));
           else formData.append('guest_data', guestData);
 
-          const res = await fetch("{{ route('enquiries.store') }}", {
+          await postEnquiry("{{ route('enquiries.store') }}", {
               method: 'POST',
               body: formData
           });
-          if (!res.ok) {
-              console.error('Failed to save enquiry to db:', res.status, await res.text());
-          }
       } catch (err) {
-          console.error('Failed to save enquiry to db:', err);
+          // Not saved (e.g. an invalid phone number): say why and stay on the
+          // form, instead of claiming the enquiry was sent.
+          showToast('Please check your details', err.message, 'error');
+          submitBtn.innerHTML = originalBtnText;
+          submitBtn.disabled = false;
+          return;
       }
 
       // 2. Open WhatsApp

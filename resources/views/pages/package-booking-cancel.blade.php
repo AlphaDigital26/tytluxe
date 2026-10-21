@@ -38,7 +38,7 @@
     @endif
 
     <div class="pk-row"><span>Travel dates</span><strong>{{ \Carbon\Carbon::parse($booking->check_in)->format('d M Y') }}{{ $booking->check_out ? ' – '.\Carbon\Carbon::parse($booking->check_out)->format('d M Y') : '' }}</strong></div>
-    <div class="pk-row"><span>Travellers</span><strong>{{ $booking->pax_adults }}</strong></div>
+    <div class="pk-row"><span>Travellers</span><strong>{{ $booking->packageTravellersLabel() }}</strong></div>
     <div class="pk-row"><span>Paid so far</span><strong>&#8377;{{ number_format($paid, 2) }}</strong></div>
 
     <div class="pk-policy">

@@ -2413,6 +2413,7 @@ input:checked+.profile-slider:before {
     height: 35px;
 }
 
+.auth-form-container h1,
 .auth-form-container h2 {
     font-family: 'Playfair Display', serif;
     font-size: 26px;

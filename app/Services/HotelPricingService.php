@@ -12,7 +12,8 @@ use App\Support\HotelSettings;
  *   1. The client's margin — 10% unless changed in the admin's Hotels →
  *      Hotel Settings page (HotelSettings::markupPercent()).
  *   2. GST on that margin only (5% below ₹7,500, 18% at/above ₹7,500 —
- *      checked against the raw TripJack price, before any markup).
+ *      checked per room per night against the raw TripJack price, before
+ *      any markup).
  *   (Then, after step 3: our flat management fee (MANAGEMENT_FEE, once per
  *   booking) plus 18% GST, added as is. The ₹50 is never refunded; its
  *   GST is — see RefundPolicy.)
@@ -52,6 +53,16 @@ class HotelPricingService
         return round(self::MANAGEMENT_FEE * (1 + self::MANAGEMENT_FEE_GST_RATE), 2);
     }
 
+    /** Rooms × nights for a stay, never below 1 — the divisor for the GST slab. */
+    public static function roomNights(?string $checkIn, ?string $checkOut, int|string|null $rooms): int
+    {
+        $nights = ($checkIn && $checkOut)
+            ? (int) \Illuminate\Support\Carbon::parse($checkIn)->startOfDay()->diffInDays(\Illuminate\Support\Carbon::parse($checkOut)->startOfDay())
+            : 1;
+
+        return max(1, $nights) * max(1, (int) $rooms);
+    }
+
     /**
      * The formula's fixed rates, for the admin's Hotel Settings price
      * example (which previews a markup before it is saved).
@@ -85,11 +96,14 @@ class HotelPricingService
      *   customer_price: float,
      * }
      */
-    public static function price(float $tripjackTotalPrice): array
+    public static function price(float $tripjackTotalPrice, int $roomNights = 1): array
     {
-        // The ₹7,500 threshold is checked against TripJack's raw price,
-        // before any markup — never against the marked-up customer price.
-        $gstSlab = $tripjackTotalPrice < self::GST_THRESHOLD
+        // The ₹7,500 threshold is checked per room per night (client's CA,
+        // 2026-10-15) against TripJack's raw price, before any markup —
+        // never against the stay total or the marked-up customer price.
+        // $roomNights = rooms × nights of the stay (see roomNights()).
+        $perRoomNight = $tripjackTotalPrice / max(1, $roomNights);
+        $gstSlab = $perRoomNight < self::GST_THRESHOLD
             ? self::GST_RATE_BELOW_THRESHOLD
             : self::GST_RATE_AT_OR_ABOVE_THRESHOLD;
 

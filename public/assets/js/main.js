@@ -1,3 +1,25 @@
+/**
+ * Sends an enquiry and fails loudly: asks for a JSON reply (so validation
+ * errors come back as 422 instead of a silent redirect) and throws an Error
+ * carrying the server's own message, e.g. "Please enter a valid phone number".
+ * Same arguments as fetch().
+ */
+window.postEnquiry = async function (url, options) {
+    options = options || {};
+    options.headers = Object.assign({ 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, options.headers || {});
+    const res = await fetch(url, options);
+    if (res.ok) return res;
+    let message = 'Something went wrong. Please try again.';
+    if (res.status === 429) message = 'Too many attempts. Please wait a minute and try again.';
+    if (res.status === 419) message = 'This page has expired. Please refresh and try again.';
+    try {
+        const data = await res.json();
+        const errors = data && data.errors ? Object.values(data.errors).flat() : [];
+        if (errors.length) message = errors[0];
+    } catch (e) { /* not JSON */ }
+    throw new Error(message);
+};
+
 document.addEventListener('DOMContentLoaded', function() {
     const mobileToggle = document.querySelector('.mobile-toggle');
     const navMenu = document.querySelector('.nav-menu');

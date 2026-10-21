@@ -1,6 +1,10 @@
 <x-guest-layout>
+    <x-slot:title>Forgot Password</x-slot:title>
+    <x-slot:description>Reset your TYT Luxe account password — we will email you a secure link.</x-slot:description>
+
+    <h1 style="font-size:1.4rem;margin:0 0 10px;">Forgot your password?</h1>
     <div class="mb-4 text-sm" style="color:var(--white-60)">
-        {{ __('Forgot your password? No problem. Just let us know your email address and we will email you a password reset link that will allow you to choose a new one.') }}
+        {{ __('No problem. Enter the email address of your account and we will email you a link to choose a new password.') }}
     </div>
 
     <!-- Session Status -->
@@ -22,4 +26,5 @@
             </x-primary-button>
         </div>
     </form>
+    <p style="text-align:center;margin-top:18px;font-size:14px;"><a href="{{ route('login') }}" style="color:var(--gold, #c9a84c);">&larr; Back to login</a></p>
 </x-guest-layout>

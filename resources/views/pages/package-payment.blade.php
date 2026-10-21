@@ -58,7 +58,7 @@
       <a href="{{ route('package.checkout', $booking->package->slug) }}" class="pay-btn visible">Choose another date</a>
     @else
       <h1 class="pay-title">{{ $isBalance ? 'Pay Your Balance' : 'Complete Your Booking' }}</h1>
-      <p class="pay-sub">{{ $booking->package->title }}<br>{{ $dates }} · {{ $booking->pax_adults }} traveller{{ $booking->pax_adults > 1 ? 's' : '' }}{{ $booking->package_option && $booking->package_option !== 'Per person' ? ' · '.$booking->package_option : '' }}</p>
+      <p class="pay-sub">{{ $booking->package->title }}<br>{{ $dates }} · {{ $booking->packageTravellersLabel() }}{{ $booking->package_option && $booking->package_option !== 'Per person' ? ' · '.$booking->package_option : '' }}</p>
 
       <div class="pay-rows">
         @if($isBalance)

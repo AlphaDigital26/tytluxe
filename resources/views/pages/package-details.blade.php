@@ -1060,12 +1060,21 @@ document.getElementById('itineraryDownloadForm').addEventListener('submit', func
     headers: {
       'X-CSRF-TOKEN': csrfToken,
       'X-Requested-With': 'XMLHttpRequest', // Lets Laravel detect this as an AJAX request
+      'Accept': 'application/pdf, application/json', // validation errors come back as JSON
     },
     body: formData,
   })
   .then(function(response) {
     if (response.status === 429) {
       throw new Error('Too many requests. Please wait a minute and try again.');
+    }
+    if (response.status === 422) {
+      // Show the first problem with what was typed (e.g. an invalid phone number).
+      return response.json().then(function(data) {
+        var errors = (data && data.errors) || {};
+        var first = Object.keys(errors).map(function(k) { return errors[k][0]; })[0];
+        throw new Error(first || 'Please check your details and try again.');
+      });
     }
     if (!response.ok) {
       return response.text().then(function() {
@@ -1112,7 +1121,7 @@ document.getElementById('itineraryDownloadForm').addEventListener('submit', func
 {{-- Image Modal --}}
 <div id="reviewImageModal" style="display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.9); align-items: center; justify-content: center;">
   <span onclick="closeReviewImageModal()" style="position: absolute; top: 20px; right: 35px; color: #f1f1f1; font-size: 40px; font-weight: bold; cursor: pointer;">&times;</span>
-  <img id="reviewModalImage" style="max-width: 90%; max-height: 90%; object-fit: contain; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
+  <img id="reviewModalImage" alt="Traveller review photo, enlarged" style="max-width: 90%; max-height: 90%; object-fit: contain; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
 </div>
 
 <script>

@@ -680,7 +680,7 @@
     const orig = btn.textContent;
     btn.textContent = 'Sending…'; btn.disabled = true;
     try {
-      await fetch("{{ route('enquiries.store') }}", {
+      await postEnquiry("{{ route('enquiries.store') }}", {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
         body: JSON.stringify({
@@ -696,7 +696,7 @@
       setTimeout(() => { btn.textContent = orig; btn.style.background = ''; btn.disabled = false; }, 4000);
     } catch (err) {
       btn.textContent = orig; btn.disabled = false;
-      showToast?.('Error', 'Something went wrong. Please try again.', 'error');
+      showToast?.('Error', err.message, 'error');
     }
   }
 

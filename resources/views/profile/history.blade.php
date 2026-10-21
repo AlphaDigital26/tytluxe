@@ -1,5 +1,8 @@
 @extends('layouts.frontend')
 
+@section('meta_title', 'My Trips | TYT Luxe')
+@section('meta_description', 'Your hotel, flight, package and cruise bookings with TYT Luxe.')
+
 @section('content')
 
 <!-- Profile Hero Section -->

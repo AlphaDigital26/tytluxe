@@ -1,5 +1,7 @@
 @extends('layouts.frontend')
 
+@section('meta_title', 'My Profile | TYT Luxe')
+
 @push('styles')
 <style>
 /* Dark Theme Profile Settings Adjustments */
@@ -582,7 +584,7 @@
                             {{-- Row 2: Gender | Date of Birth | Nationality --}}
                             <div class="pf-field">
                                 <label class="pf-label">Gender</label>  
-                                <select name="gender" class="pf-input pf-select">
+                                <select name="gender" aria-label="Gender" class="pf-input pf-select">
                                     <option value="">Select Gender</option>
                                     <option value="Male"   {{ old('gender', auth()->user()->gender) == 'Male'   ? 'selected' : '' }}>Male</option>
                                     <option value="Female" {{ old('gender', auth()->user()->gender) == 'Female' ? 'selected' : '' }}>Female</option>
@@ -592,13 +594,13 @@
                             </div>
                             <div class="pf-field">
                                 <label class="pf-label">Date of Birth</label>
-                                <input type="date" name="dob" class="pf-input"
+                                <input type="date" name="dob" aria-label="Date of birth" class="pf-input"
                                     value="{{ old('dob', auth()->user()->dob ? auth()->user()->dob->format('Y-m-d') : '') }}">
                                 @error('dob') <span class="pf-error">{{ $message }}</span> @enderror
                             </div>
                             <div class="pf-field">
                                 <label class="pf-label">Nationality</label>
-                                <select name="nationality" class="pf-input pf-select">
+                                <select name="nationality" aria-label="Nationality" class="pf-input pf-select">
                                     <option value="">Select Nationality</option>
                                     @php
                                         $countries = ['Indian','American','British','Australian','Canadian','French','German','Japanese','Chinese','Singaporean','Emirati','South African','Brazilian','Mexican','Italian','Spanish','Russian','Korean','Dutch','Swedish','Swiss','Norwegian','Danish','Finnish','Belgian','Austrian','Portuguese','Greek','Polish','Czech','Hungarian','Romanian','Turkish','Egyptian','Kenyan','Nigerian','Ghanaian','Bangladeshi','Pakistani','Sri Lankan','Nepali','Bhutanese','Maldivian','Thai','Malaysian','Indonesian','Filipino','Vietnamese','Burmese','Cambodian','Laotian'];
@@ -614,7 +616,7 @@
                             {{-- Row 3: Marital Status | Anniversary --}}
                             <div class="pf-field">
                                 <label class="pf-label">Marital Status</label>
-                                <select name="marital_status" class="pf-input pf-select" id="marital-status-select">
+                                <select name="marital_status" aria-label="Marital status" class="pf-input pf-select" id="marital-status-select">
                                     <option value="">Select Marital Status</option>
                                     <option value="Single"   {{ old('marital_status', auth()->user()->marital_status) == 'Single'   ? 'selected' : '' }}>Single</option>
                                     <option value="Married"  {{ old('marital_status', auth()->user()->marital_status) == 'Married'  ? 'selected' : '' }}>Married</option></select>
@@ -622,7 +624,7 @@
                             </div>
                             <div class="pf-field" id="anniversary-field" style="{{ old('marital_status', auth()->user()->marital_status) == 'Married' ? '' : 'opacity:0.4; pointer-events:none;' }}">
                                 <label class="pf-label">Anniversary</label>
-                                <input type="date" name="anniversary" class="pf-input"
+                                <input type="date" name="anniversary" aria-label="Anniversary" class="pf-input"
                                     value="{{ old('anniversary', auth()->user()->anniversary ? auth()->user()->anniversary->format('Y-m-d') : '') }}">
                                 @error('anniversary') <span class="pf-error">{{ $message }}</span> @enderror
                             </div>
@@ -734,12 +736,12 @@
                             </div>
                             <div class="pf-field">
                                 <label class="pf-label">EXPIRY DATE</label>
-                                <input type="date" name="passport_expiry" class="pf-input" value="{{ old('passport_expiry', auth()->user()->passport_expiry ? auth()->user()->passport_expiry->format('Y-m-d') : '') }}">
+                                <input type="date" name="passport_expiry" aria-label="Passport expiry date" class="pf-input" value="{{ old('passport_expiry', auth()->user()->passport_expiry ? auth()->user()->passport_expiry->format('Y-m-d') : '') }}">
                                 @error('passport_expiry') <span class="pf-error">{{ $message }}</span> @enderror
                             </div>
                             <div class="pf-field">
                                 <label class="pf-label">ISSUING COUNTRY</label>
-                                <select name="passport_issuing_country" class="pf-input pf-select">
+                                <select name="passport_issuing_country" aria-label="Passport issuing country" class="pf-input pf-select">
                                     <option value="">Select Country</option>
                                     @php
                                         $userPPCountry = old('passport_issuing_country', auth()->user()->passport_issuing_country);
@@ -767,7 +769,7 @@
                                     @foreach($govtIds as $index => $id)
                                         <div class="govt-id-row" data-index="{{ $index }}" style="display:flex; gap:15px; align-items:flex-end; margin-bottom: 15px;">
                                             <div style="flex:1;">
-                                                <select name="govt_ids[{{ $index }}][type]" class="pf-input pf-select govt-id-type" onchange="updateGovtIdValidation(this)">
+                                                <select name="govt_ids[{{ $index }}][type]" aria-label="ID type" class="pf-input pf-select govt-id-type" onchange="updateGovtIdValidation(this)">
                                                     <option value="">Select ID Type</option>
                                                     <option value="Aadhaar Card" {{ ($id['type'] ?? '') == 'Aadhaar Card' ? 'selected' : '' }}>Aadhaar Card</option>
                                                     <option value="PAN Card" {{ ($id['type'] ?? '') == 'PAN Card' ? 'selected' : '' }}>PAN Card</option>
@@ -1338,7 +1340,7 @@
         row.style.cssText = 'display:flex; gap:15px; align-items:flex-end; margin-bottom: 15px;';
         row.innerHTML = `
             <div style="flex:1;">
-                <select name="govt_ids[${govtIdIndex}][type]" class="pf-input pf-select govt-id-type" onchange="updateGovtIdValidation(this)">
+                <select name="govt_ids[${govtIdIndex}][type]" aria-label="ID type" class="pf-input pf-select govt-id-type" onchange="updateGovtIdValidation(this)">
                     <option value="">Select ID Type</option>
                     <option value="Aadhaar Card">Aadhaar Card</option>
                     <option value="PAN Card">PAN Card</option>

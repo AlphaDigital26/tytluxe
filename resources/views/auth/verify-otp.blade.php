@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Enter the 6-digit code we emailed you to finish creating your TYT Luxe account.">
     <title>Verify Email - TYT Luxe</title>
     <link rel="icon" type="image/png" href="{{ asset('assets/images/favicon.png') }}">
     <!-- Fonts -->
@@ -151,7 +152,7 @@
                 </div>
             </div>
 
-            <h2 style="text-align: center;">Verify Your Email</h2>
+            <h1 style="text-align: center;">Verify Your Email</h1>
             <p class="auth-modal-subtitle" style="text-align: center;">Enter the 6-digit code we sent to your email</p>
 
             {{-- Session alerts --}}
