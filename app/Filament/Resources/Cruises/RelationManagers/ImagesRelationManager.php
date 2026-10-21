@@ -50,7 +50,7 @@ class ImagesRelationManager extends RelationManager
                     ->default(null),
 
                 TextInput::make('sort_order')
-                    ->label('Sort Order')
+                    ->label('Position in the list')
                     ->numeric()
                     ->default(0)
                     ->helperText('Lower numbers appear first in the carousel.'),
@@ -77,11 +77,11 @@ class ImagesRelationManager extends RelationManager
                 TextColumn::make('alt_text')
                     ->searchable(),
                 TextColumn::make('created_at')
-                    ->dateTime('M j, Y h:i A')
+                    ->dateTime('j M Y, g:i A')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('updated_at')
-                    ->dateTime('M j, Y h:i A')
+                    ->dateTime('j M Y, g:i A')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])

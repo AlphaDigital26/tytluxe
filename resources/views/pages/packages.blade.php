@@ -194,6 +194,20 @@ Discover curated domestic and international travel packages with TYT Luxe. Honey
   margin-bottom: 24px; padding-bottom: 4px;
 }
 .state-filter-wrap::-webkit-scrollbar { display: none; }
+/* ‹ › arrows either side of the destination pills (added by script). */
+.state-slider { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; }
+.state-slider .state-filter-wrap { flex: 1; min-width: 0; margin-bottom: 0; scroll-behavior: smooth; }
+.state-arrow {
+  flex-shrink: 0; width: 36px; height: 36px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--gold); background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(201,168,76,0.45); cursor: pointer;
+  transition: background .2s, color .2s, opacity .2s;
+}
+.state-arrow:hover:not(:disabled) { background: var(--gold); color: #111; }
+.state-arrow:disabled { opacity: .3; cursor: default; }
+.state-arrow[hidden] { display: none; }
+@media (max-width: 600px) { .state-arrow { width: 30px; height: 30px; font-size: 12px; } .state-slider { gap: 6px; } }
 .state-tab {
   flex-shrink: 0; padding: 6px 16px; font-size: 0.88rem; font-weight: 500;
   color: var(--white-60); background: rgba(255,255,255,0.03);
@@ -553,7 +567,7 @@ Discover curated domestic and international travel packages with TYT Luxe. Honey
                           @if($pkg->price_from)
                             From &#8377;{{ number_format($pkg->price_from) }} <span style="font-size: 10px; font-weight: 400; color: var(--white-60); margin-left: 4px;">(inclusive of all taxes)</span>
                           @else
-                            Price on Enquiry
+                            {{ $pkg->tour_type === 'custom' ? 'Custom Package · Price on Request' : 'Price on Request' }}
                           @endif
                         </span>
                       </div>
@@ -667,7 +681,7 @@ Discover curated domestic and international travel packages with TYT Luxe. Honey
                           @if($pkg->price_from)
                             From &#8377;{{ number_format($pkg->price_from) }} <span style="font-size: 10px; font-weight: 400; color: var(--white-60); margin-left: 4px;">(inclusive of all taxes)</span>
                           @else
-                            Price on Enquiry
+                            {{ $pkg->tour_type === 'custom' ? 'Custom Package · Price on Request' : 'Price on Request' }}
                           @endif
                         </span>
                       </div>
@@ -781,7 +795,7 @@ Discover curated domestic and international travel packages with TYT Luxe. Honey
                           @if($pkg->price_from)
                             From &#8377;{{ number_format($pkg->price_from) }} <span style="font-size: 10px; font-weight: 400; color: var(--white-60); margin-left: 4px;">(inclusive of all taxes)</span>
                           @else
-                            Price on Enquiry
+                            {{ $pkg->tour_type === 'custom' ? 'Custom Package · Price on Request' : 'Price on Request' }}
                           @endif
                         </span>
                       </div>
@@ -838,9 +852,17 @@ Discover curated domestic and international travel packages with TYT Luxe. Honey
     <!-- Price & Duration -->
     <div class="pkg-price-row">
       <div>
-        <div class="pkg-price-from">Starting From</div>
-        <div class="pkg-price-val"><span class="curr">&#8377;</span><span id="drawerPrice"></span> <span style="font-size: 13px; font-weight: 500; color: var(--white-80); margin-left: 6px;">(inclusive of all taxes)</span></div>
-        <div class="pkg-price-pp">per person</div>
+        <div id="drawerPriceBox">
+          <div class="pkg-price-from">Starting From</div>
+          <div class="pkg-price-val"><span class="curr">&#8377;</span><span id="drawerPrice"></span> <span style="font-size: 13px; font-weight: 500; color: var(--white-80); margin-left: 6px;">(inclusive of all taxes)</span></div>
+          <div class="pkg-price-pp">per person</div>
+        </div>
+        {{-- No price set (usually a custom tour): say so instead of "₹0". --}}
+        <div id="drawerNoPriceBox" hidden>
+          <div class="pkg-price-from" id="drawerNoPriceLabel">Custom Package</div>
+          <div class="pkg-price-val" style="font-size: 22px;">Price on Request</div>
+          <div class="pkg-price-pp">Tailored to your dates, group size &amp; budget</div>
+        </div>
       </div>
       <div class="pkg-duration-badge">
         <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--white-60);margin-bottom:4px;">Duration</div>
@@ -870,7 +892,8 @@ foreach($packages as $p) {
         'category'  => $p->category,
         'title'     => $p->title,
         'nights'    => $p->duration_nights,
-        'price'     => $p->price_from,
+        'price'     => $p->price_from > 0 ? (float) $p->price_from : null,
+        'custom'    => $p->tour_type === 'custom',
         'short_desc'=> $p->short_desc ?? '',
         'country'   => $p->destination?->name,
         'image'     => $p->hero_image_url,
@@ -945,16 +968,24 @@ function openDrawer(id) {
   document.getElementById('drawerEyebrow').textContent = pkg.country;
   document.getElementById('drawerTitle').textContent   = pkg.title;
   document.getElementById('drawerDesc').textContent    = pkg.short_desc;
-  document.getElementById('drawerPrice').textContent   = Number(pkg.price).toLocaleString('en-IN');
-  document.getElementById('drawerDuration').textContent = pkg.nights + 'N ' + (pkg.nights + 1) + 'D';
+  // A custom tour may have no price or no fixed length — never show ₹0 / "nullN".
+  const hasPrice  = pkg.price > 0;
+  const hasNights = pkg.nights > 0;
+  document.getElementById('drawerPriceBox').hidden   = !hasPrice;
+  document.getElementById('drawerNoPriceBox').hidden = hasPrice;
+  document.getElementById('drawerNoPriceLabel').textContent = pkg.custom ? 'Custom Package' : 'Price';
+  if (hasPrice) document.getElementById('drawerPrice').textContent = Number(pkg.price).toLocaleString('en-IN');
+  document.getElementById('drawerDuration').textContent = hasNights ? pkg.nights + 'N ' + (pkg.nights + 1) + 'D' : 'Flexible';
 
   // Pills
   const pillsEl = document.getElementById('drawerPills');
   pillsEl.innerHTML = `
-    <span class="pkg-drawer-pill"><i class="fa-regular fa-moon"></i> ${pkg.nights} Nights</span>
-    <span class="pkg-drawer-pill"><i class="fa-solid fa-sun"></i> ${pkg.nights + 1} Days</span>
-    <span class="pkg-drawer-pill"><i class="fa-solid fa-location-dot"></i> ${pkg.country}</span>
-    <span class="pkg-drawer-pill gold"><i class="fa-solid fa-indian-rupee-sign"></i> From &#8377;${Number(pkg.price).toLocaleString('en-IN')}</span>
+    ${hasNights ? `<span class="pkg-drawer-pill"><i class="fa-regular fa-moon"></i> ${pkg.nights} Nights</span>
+    <span class="pkg-drawer-pill"><i class="fa-solid fa-sun"></i> ${pkg.nights + 1} Days</span>` : ''}
+    ${pkg.country ? `<span class="pkg-drawer-pill"><i class="fa-solid fa-location-dot"></i> ${pkg.country}</span>` : ''}
+    ${hasPrice
+      ? `<span class="pkg-drawer-pill gold"><i class="fa-solid fa-indian-rupee-sign"></i> From &#8377;${Number(pkg.price).toLocaleString('en-IN')}</span>`
+      : `<span class="pkg-drawer-pill gold"><i class="fa-solid fa-wand-magic-sparkles"></i> ${pkg.custom ? 'Custom Package' : 'Price on Request'}</span>`}
   `;
 
   // Inclusions
@@ -1025,6 +1056,44 @@ document.querySelectorAll('.state-filter-wrap').forEach(slider => {
     const walk = (x - startX) * 2; // scroll speed multiplier
     slider.scrollLeft = scrollLeft - walk;
   });
+});
+
+// --- ‹ › Arrows for State Filters ---------------------------------------------
+// Shown only when the pills don't all fit; greyed out at either end.
+document.querySelectorAll('.state-filter-wrap').forEach(strip => {
+  const box = document.createElement('div');
+  box.className = 'state-slider';
+  strip.parentNode.insertBefore(box, strip);
+
+  const arrow = (dir) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'state-arrow';
+    b.setAttribute('aria-label', dir < 0 ? 'Scroll destinations left' : 'Scroll destinations right');
+    b.innerHTML = '<i class="fa-solid fa-chevron-' + (dir < 0 ? 'left' : 'right') + '" aria-hidden="true"></i>';
+    b.addEventListener('click', () => strip.scrollBy({ left: dir * strip.clientWidth * 0.7 }));
+    return b;
+  };
+  const prev = arrow(-1), next = arrow(1);
+  box.append(prev, strip, next);
+
+  const update = () => {
+    const overflow = strip.scrollWidth > strip.clientWidth + 2;
+    prev.hidden = next.hidden = !overflow;
+    prev.disabled = strip.scrollLeft <= 2;
+    next.disabled = strip.scrollLeft + strip.clientWidth >= strip.scrollWidth - 2;
+  };
+  strip.addEventListener('scroll', update, { passive: true });
+  // Re-check when a hidden tab's panel is shown, the window resizes, or the
+  // pills change width (the web font loading in makes them wider).
+  if (window.ResizeObserver) {
+    const ro = new ResizeObserver(update);
+    ro.observe(strip);
+    strip.querySelectorAll('.state-tab').forEach(t => ro.observe(t));
+  }
+  window.addEventListener('resize', update);
+  if (document.fonts) document.fonts.ready.then(update);
+  update();
 });
 </script>
 

@@ -31,6 +31,17 @@ class EnquiryResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'name';
 
+    /** The top search bar finds an enquiry by the guest's name, phone or email. */
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['name', 'phone', 'email'];
+    }
+
+    public static function getGlobalSearchResultDetails(\Illuminate\Database\Eloquent\Model $record): array
+    {
+        return array_filter(['Phone' => $record->phone, 'Received' => $record->created_at?->format('j M Y')]);
+    }
+
     /** Red badge on the menu item: enquiries nobody has contacted yet. */
     public static function getNavigationBadge(): ?string
     {
@@ -163,7 +174,7 @@ class EnquiryResource extends Resource
                             ->default('-'),
                         TextEntry::make('resolved_at')
                             ->label('Resolved On')
-                            ->dateTime('M j, Y h:i A')
+                            ->dateTime('j M Y, g:i A')
                             ->icon('heroicon-m-clock')
                             ->default('-'),
                         TextEntry::make('admin_notes')

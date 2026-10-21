@@ -913,7 +913,8 @@ class FrontendController extends Controller
      */
     protected function refreshHotelReview(TripJackClient $client, Hotel $hotel, array $draft): array|\Illuminate\Http\RedirectResponse
     {
-        $optionId = $draft['option']['optionId'] ?? null;
+        // The Detail optionId the guest picked — not Review's, which can differ.
+        $optionId = $draft['detail_option_id'] ?? $draft['option']['optionId'] ?? null;
         if (empty($draft['reviewHash']) || ! $optionId) {
             return $draft; // a draft from before this check existed
         }
@@ -1067,6 +1068,10 @@ class FrontendController extends Controller
             // Kept so the rate can be re-reviewed right before payment
             // (TripJack: call Review immediately before Book).
             'reviewHash' => $pricingContext['reviewHash'],
+            // The optionId from Detail. Review can answer with a different
+            // optionId (seen on multi-room rates), and a re-review must
+            // reference the Detail one or TripJack rejects it with 6505.
+            'detail_option_id' => $optionId,
             'reviewed_at' => now()->timestamp,
             'price_change' => $priceChange,
             'check_in' => $pricingContext['check_in'],

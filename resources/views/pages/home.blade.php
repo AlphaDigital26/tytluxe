@@ -22,7 +22,7 @@
   "name": "Take Your Trip",
   "alternateName": ["TYT Luxe", "tytluxe", "Take Your Trip Luxe"],
   "url": "https://tytluxe.in/",
-  "logo": "{{ asset('assets/images/tyt-logo.png') }}",
+  "logo": "{{ asset('assets/images/tyt-logo.webp') }}",
   "image": "{{ asset('assets/images/og-image.jpg') }}",
   "description": "Handpicked luxury hotels and premium cruises for Indian travellers. Personalised travel planning with a 2-hour WhatsApp response guarantee.",
   "telephone": "+91-98750-73788",

@@ -9,7 +9,7 @@
 
                 <div class="footer-logo">
                     <a href="{{ url('/') }}" aria-label="Take Your Trip (TYT Luxe) — Go to homepage">
-                        <img src="{{ asset('assets/images/tyt-logo.png') }}"
+                        <img src="{{ asset('assets/images/tyt-logo.webp') }}"
                              alt="Take Your Trip — TYT Luxe logo"
                              width="140"
                              height="48"

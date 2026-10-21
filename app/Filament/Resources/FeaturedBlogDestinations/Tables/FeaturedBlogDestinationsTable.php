@@ -27,6 +27,7 @@ class FeaturedBlogDestinationsTable
                     ->sortable(),
 
                 TextColumn::make('slug')
+                    ->label('Web address')
                     ->searchable()
                     ->copyable()
                     ->color('gray'),
@@ -38,7 +39,7 @@ class FeaturedBlogDestinationsTable
                     ->color('info'),
 
                 TextColumn::make('sort_order')
-                    ->label('Order')
+                    ->label('Position')
                     ->sortable(),
 
                 IconColumn::make('is_featured')
@@ -48,7 +49,7 @@ class FeaturedBlogDestinationsTable
                     ->trueColor('warning'),
 
                 TextColumn::make('created_at')
-                    ->dateTime('M j, Y h:i A')
+                    ->dateTime('j M Y, g:i A')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])

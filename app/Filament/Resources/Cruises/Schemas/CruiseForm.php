@@ -30,7 +30,7 @@ class CruiseForm
                     ->nullable(),
 
                 TextInput::make('slug')
-                    ->label('URL Slug')
+                    ->label('Web address')
                     ->helperText('Auto-filled — only change if needed')
                     ->required()
                     ->unique(ignoreRecord: true),

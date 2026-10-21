@@ -3,7 +3,11 @@
 namespace App\Filament\Pages;
 
 use App\Models\Setting;
+use App\Services\FlightBookingService;
 use App\Services\FlightPricingService;
+use App\Services\TripJack\TripJackFlightClient;
+use App\Support\DashboardData;
+use Filament\Actions\Action;
 use App\Support\FlightSettings as Settings;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Textarea;
@@ -50,7 +54,6 @@ class FlightSettings extends Page
             'booking_enabled' => Settings::bookingEnabled(),
             'disabled_message' => Settings::disabledMessage(),
             'markup_percent' => Settings::markupPercent(),
-            'allow_hold' => Settings::allowHold(),
             'allow_guest_cancel' => Settings::allowGuestCancel(),
             'allow_guest_reschedule' => Settings::allowGuestReschedule(),
             'allow_guest_extras' => Settings::allowGuestExtras(),
@@ -100,11 +103,8 @@ class FlightSettings extends Page
 
                 Section::make('🧳 What Guests Can Do Themselves')
                     ->description('Turn an option off if you\'d rather your team handles it. Guests will then see a "please contact our support team" message instead.')
-                    ->columns(2)
+                    ->columns(3)
                     ->schema([
-                        Toggle::make('allow_hold')
-                            ->label('Reserve now, pay later')
-                            ->helperText('Lets guests block a seat without paying, when the airline allows it. The reservation is released automatically if they don\'t pay in time.'),
                         Toggle::make('allow_guest_cancel')
                             ->label('Cancel online')
                             ->helperText('Guests can cancel their own ticket. The refund is worked out from the airline\'s charges and paid back automatically.'),
@@ -140,7 +140,6 @@ class FlightSettings extends Page
             'booking_enabled' => (bool) $data['booking_enabled'],
             'disabled_message' => trim((string) ($data['disabled_message'] ?? '')) ?: Settings::DEFAULT_DISABLED_MESSAGE,
             'markup_percent' => round((float) $data['markup_percent'], 2),
-            'allow_hold' => (bool) $data['allow_hold'],
             'allow_guest_cancel' => (bool) $data['allow_guest_cancel'],
             'allow_guest_reschedule' => (bool) $data['allow_guest_reschedule'],
             'allow_guest_extras' => (bool) $data['allow_guest_extras'],
@@ -186,10 +185,40 @@ class FlightSettings extends Page
     {
         $last = Setting::getJson('tripjack_alert.last_balance', []);
         if (! isset($last['amount'])) {
-            return 'Not checked yet — it is checked automatically every 15 minutes.';
+            return 'Not checked yet. Click "Check wallet now" at the top. It should also be checked automatically every 15 minutes — if it never is, the server\'s scheduled tasks (cron) are not set up; tell your developer.';
         }
 
-        return '₹'.number_format((float) $last['amount'], 2)
-            .' (checked '.Carbon::parse($last['checked_at'])->diffForHumans().')';
+        $at = Carbon::parse($last['checked_at']);
+
+        return '₹'.number_format((float) $last['amount'], 2).' (checked '.$at->diffForHumans().')'
+            .($at->lt(now()->subMinutes(DashboardData::WALLET_STALE_MINUTES))
+                ? ' — automatic checks seem to have stopped; the server\'s scheduled tasks (cron) may not be running. Tell your developer.'
+                : '');
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Action::make('checkWallet')
+                ->label('Check wallet now')
+                ->icon('heroicon-o-arrow-path')
+                ->color('gray')
+                ->action(function (): void {
+                    try {
+                        $amount = FlightBookingService::tripJackBalance(app(TripJackFlightClient::class)->userDetail());
+                    } catch (\Throwable $e) {
+                        $amount = null;
+                    }
+
+                    if ($amount === null) {
+                        Notification::make()->title('Couldn\'t read the wallet')->body('TripJack did not answer. Please try again in a few minutes.')->danger()->send();
+
+                        return;
+                    }
+
+                    Setting::setJson('tripjack_alert.last_balance', ['amount' => $amount, 'checked_at' => now()->toIso8601String()]);
+                    Notification::make()->title('TripJack wallet: ₹'.number_format($amount, 2))->success()->send();
+                }),
+        ];
     }
 }

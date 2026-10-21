@@ -25,18 +25,18 @@ class TripjackBookingReconciliation extends Page
 
     protected static string|\UnitEnum|null $navigationGroup = 'Bookings & Leads';
 
-    protected static ?int $navigationSort = 5;
+    protected static ?int $navigationSort = 6;
 
-    protected static ?string $navigationLabel = 'Check Bookings with TripJack';
+    protected static ?string $navigationLabel = 'Check Hotel Bookings with TripJack';
     protected string $view = 'filament.pages.tripjack-booking-reconciliation';
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-clipboard-document-check';
 
-    protected static ?string $title = 'Check Bookings with TripJack';
+    protected static ?string $title = 'Check Hotel Bookings with TripJack';
 
     public function getSubheading(): ?string
     {
-        return 'Compares the hotel bookings TripJack has on record with the ones on your website, so you can spot any booking that is missing or has a different status. Pick a date range (up to 7 days, within the last 15 days) and click "Fetch from TripJack".';
+        return 'Hotel bookings only — a flight is checked from its own booking page with "Check status with airline". This asks TripJack for the hotel bookings it has on record and shows them next to the ones on your website, so you can spot a booking that is missing here or shows a different status. Useful when a guest says they paid but you cannot find their booking.';
     }
 
     /** Compares bookings with TripJack — for the team that handles bookings and money. */
@@ -65,11 +65,14 @@ class TripjackBookingReconciliation extends Page
         return $schema
             ->statePath('data')
             ->components([
-                Section::make('Date Range')
-                    ->description('TripJack returns bookings created within this window (IST dates). TripJack allows at most 7 days per request, starting no more than 15 days ago.')
+                Section::make('Which days?')
+                    ->description('Pick the days the guests booked on (Indian time). TripJack only allows up to 7 days at a time, and nothing older than 15 days — for a booking made 10 days ago, pick from 12 days ago to 6 days ago.')
                     ->schema([
-                        DatePicker::make('start_date')->required()->native(false),
-                        DatePicker::make('end_date')->required()->native(false),
+                        // The calendar only offers days TripJack will accept.
+                        DatePicker::make('start_date')->label('Booked from')->required()->native(false)
+                            ->minDate(now('Asia/Kolkata')->subDays(15))->maxDate(now('Asia/Kolkata')),
+                        DatePicker::make('end_date')->label('Booked until')->required()->native(false)
+                            ->minDate(now('Asia/Kolkata')->subDays(15))->maxDate(now('Asia/Kolkata')),
                     ])
                     ->columns(2),
             ]);

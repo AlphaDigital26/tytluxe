@@ -165,7 +165,7 @@ class HotelForm
                                         ->label('Hotel Name')
                                         ->required()
                                         ->live(onBlur: true)
-                                        ->afterStateUpdated(fn ($set, ?string $state) => $set('slug', Str::slug($state)))
+                                        ->afterStateUpdated(fn ($set, ?string $state, string $operation) => $operation === 'create' ? $set('slug', Str::slug($state)) : null) // only on create: a new slug breaks old links
                                         ->columnSpan(2)
                                         ->visible(fn (?Hotel $record) => $record === null),
                                     Placeholder::make('title_view')
@@ -222,14 +222,14 @@ class HotelForm
                                         ->columnSpan(2),
 
                                     TextInput::make('slug')
-                                        ->label('Web Address (URL Slug)')
-                                        ->helperText('Auto-generated web address for this hotel.')
+                                        ->label('Web address')
+                                        ->helperText(fn (string $operation) => $operation === 'create' ? 'Auto-generated web address for this hotel.' : 'This is the web address of the page. Changing it breaks links people already have (Google, WhatsApp shares) — only change it if you must.')
                                         ->required()
                                         ->unique(ignoreRecord: true)
                                         ->columnSpan(2)
                                         ->visible(fn (?Hotel $record) => $record === null),
                                     Placeholder::make('slug_view')
-                                        ->label('Web Address (URL Slug)')
+                                        ->label('Web address')
                                         ->content(fn (?Hotel $record) => $record?->slug ? '/hotels/'.$record->slug : '—')
                                         ->columnSpan(2)
                                         ->visible(fn (?Hotel $record) => $record !== null),

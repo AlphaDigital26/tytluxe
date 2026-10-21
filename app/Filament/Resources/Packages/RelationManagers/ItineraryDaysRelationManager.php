@@ -40,7 +40,7 @@ class ItineraryDaysRelationManager extends RelationManager
                 ->placeholder('Add activity and press Enter')
                 ->columnSpanFull(),
             TextInput::make('sort_order')
-                ->label('Sort Order')
+                ->label('Position in the list')
                 ->numeric()
                 ->minValue(0)
                 ->default(0),

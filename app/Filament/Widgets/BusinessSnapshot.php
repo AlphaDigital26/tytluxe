@@ -10,7 +10,7 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
 
 /**
  * This month's money and activity, each compared with last month and with a
- * 6-month trend line. Sales = hotel + flight bookings that went ahead.
+ * 6-month trend line. Sales = hotel, flight and package bookings that went ahead.
  */
 class BusinessSnapshot extends BaseWidget
 {
@@ -37,23 +37,25 @@ class BusinessSnapshot extends BaseWidget
     protected function getStats(): array
     {
         $m = DashboardData::monthly(6);
-        $sales = array_map(fn ($h, $f) => $h + $f, $m['hotel'], $m['flight']);
+        // Same three as the sales chart below, so the two always agree.
+        $sales = array_map(fn ($h, $f, $p) => $h + $f + $p, $m['hotel'], $m['flight'], $m['package']);
 
-        $wallet = DashboardData::walletBalance();
+        $wallet = DashboardData::walletStatus();
         $bookingOn = HotelSettings::bookingEnabled() && FlightSettings::bookingEnabled();
 
         return [
             $this->stat('Sales', $sales, money: true)
-                ->description($this->change($sales).' · hotels ₹'.number_format(end($m['hotel']), 0).', flights ₹'.number_format(end($m['flight']), 0)),
-            $this->stat('Your earnings', $m['earning'], money: true),
+                ->description($this->change($sales).' · hotels ₹'.number_format(end($m['hotel']), 0).', flights ₹'.number_format(end($m['flight']), 0).', packages ₹'.number_format(end($m['package']), 0)),
+            // Packages are your own trips: what they cost you isn't recorded
+            // here, so there is no mark-up to count — only hotels and flights.
+            $this->stat('Your earnings (hotels & flights)', $m['earning'], money: true),
             $this->stat('Bookings', $m['bookings']),
             $this->stat('Enquiries received', $m['enquiries']),
-            Stat::make('TripJack wallet', $wallet ? '₹'.number_format($wallet['amount'], 0) : 'Not checked yet')
-                ->description($wallet
-                    ? ($wallet['low'] ? 'Low — please top up' : 'Enough for new bookings')
-                    : 'Checked automatically every 15 minutes')
-                ->descriptionIcon($wallet && $wallet['low'] ? 'heroicon-m-exclamation-triangle' : 'heroicon-m-wallet')
-                ->color($wallet && $wallet['low'] ? 'danger' : 'gray'),
+            Stat::make('TripJack wallet', $wallet['value'])
+                ->description($wallet['hint'])
+                ->descriptionIcon($wallet['problem'] ? 'heroicon-m-exclamation-triangle' : 'heroicon-m-wallet')
+                ->color($wallet['problem'] ? 'danger' : 'gray')
+                ->url($wallet['url']),
             Stat::make('Online booking', $bookingOn ? 'ON' : 'Partly OFF')
                 ->description($bookingOn ? 'Guests can book hotels and flights' : (HotelSettings::bookingEnabled() ? 'Flights are switched off' : (FlightSettings::bookingEnabled() ? 'Hotels are switched off' : 'Hotels and flights are switched off')))
                 ->descriptionIcon($bookingOn ? 'heroicon-m-check-circle' : 'heroicon-m-pause-circle')

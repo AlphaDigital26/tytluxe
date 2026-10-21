@@ -43,7 +43,7 @@ class UsersTable
                     ->getStateUsing(fn (User $record) => $record->email_verified_at ? 'Verified' : 'Unverified'),
                 TextColumn::make('created_at')
                     ->label('Registered On')
-                    ->dateTime('M d, Y h:i A')
+                    ->dateTime('j M Y, g:i A')
                     ->sortable(),
                 IconColumn::make('status')
                     ->label('Status')

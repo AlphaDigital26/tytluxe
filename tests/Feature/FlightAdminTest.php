@@ -121,7 +121,6 @@ class FlightAdminTest extends TestCase
 
         Livewire::test(FlightSettingsPage::class)
             ->set('data.markup_percent', 8)
-            ->set('data.allow_hold', false)
             ->set('data.allow_guest_cancel', false)
             ->call('save')
             ->assertHasNoErrors();
@@ -129,7 +128,6 @@ class FlightAdminTest extends TestCase
         app()->forgetInstance(FlightSettings::class);
         $this->assertSame(400.0, FlightPricingService::price(5000)['margin_amount']);
         $this->assertSame(0.08, FlightPricingService::formula()['marginRate']);
-        $this->assertFalse(FlightSettings::allowHold());
         $this->assertFalse(FlightSettings::allowGuestCancel());
         $this->assertTrue(FlightSettings::allowGuestReschedule());
     }
