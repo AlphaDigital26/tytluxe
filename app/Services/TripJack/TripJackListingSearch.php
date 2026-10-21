@@ -57,7 +57,7 @@ class TripJackListingSearch
 
         $response = $this->client->listing($checkIn, $checkOut, $rooms, $hidsToPrice, $correlationId, $currency, $nationality);
 
-        return ['correlationId' => $correlationId, 'options' => $this->mapOptions($response['hotels'] ?? [], $currency)];
+        return ['correlationId' => $correlationId, 'options' => $this->mapOptions($response['hotels'] ?? [], $currency, HotelPricingService::roomNights($checkIn, $checkOut, count($rooms)))];
     }
 
     /**
@@ -88,7 +88,7 @@ class TripJackListingSearch
 
                 continue;
             }
-            $options = $options->union($this->mapOptions($response['hotels'] ?? [], $currency));
+            $options = $options->union($this->mapOptions($response['hotels'] ?? [], $currency, HotelPricingService::roomNights($checkIn, $checkOut, count($rooms))));
         }
 
         return ['correlationId' => $correlationId, 'options' => $options, 'batches' => count($batches), 'failedBatches' => $failed, 'firstError' => $this->client->lastBatchError];
@@ -99,10 +99,10 @@ class TripJackListingSearch
      *
      * @return Collection<string, array>
      */
-    private function mapOptions(array $hotels, string $currency): Collection
+    private function mapOptions(array $hotels, string $currency, int $roomNights = 1): Collection
     {
         return collect($hotels)
-            ->mapWithKeys(function ($hotel) use ($currency) {
+            ->mapWithKeys(function ($hotel) use ($currency, $roomNights) {
                 $tjHotelId = (string) ($hotel['hotelId'] ?? $hotel['tjHotelId'] ?? '');
                 if ($tjHotelId === '' || empty($hotel['options'])) {
                     return [];
@@ -110,7 +110,7 @@ class TripJackListingSearch
 
                 $cheapest = collect($hotel['options'])->sortBy('pricing.totalPrice')->first();
                 $tripjackTotalPrice = $cheapest['pricing']['totalPrice'] ?? null;
-                $pricing = $tripjackTotalPrice !== null ? HotelPricingService::price((float) $tripjackTotalPrice) : null;
+                $pricing = $tripjackTotalPrice !== null ? HotelPricingService::price((float) $tripjackTotalPrice, $roomNights) : null;
 
                 return [$tjHotelId => [
                     'optionId' => $cheapest['optionId'] ?? null,

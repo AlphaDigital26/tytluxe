@@ -26,7 +26,7 @@ class ViewPackageBooking extends ViewRecord
 
         return trim(($r->lead_guest_name ?: 'Guest').' · '.($r->package?->title ?? 'Package')
             .($r->check_in ? ' · '.\Illuminate\Support\Carbon::parse($r->check_in)->format('j M Y') : '')
-            .' · '.$r->pax_adults.' '.((int) $r->pax_adults === 1 ? 'traveller' : 'travellers'));
+            .' · '.$r->packageTravellersLabel());
     }
 
     protected function resolveRecord(int|string $key): Booking

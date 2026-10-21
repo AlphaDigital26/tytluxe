@@ -40,6 +40,18 @@ class PackageBookingService
 
     public const PURPOSE_BALANCE = 'package_balance';
 
+    /**
+     * Infants up to and including this age travel free (client, 2026-10-16):
+     * no price, no booking amount, and no seat of their own. Everyone older
+     * pays the per-person price.
+     */
+    public const FREE_INFANT_MAX_AGE = 3;
+
+    public static function isFreeInfant(int $age): bool
+    {
+        return $age <= self::FREE_INFANT_MAX_AGE;
+    }
+
     public function __construct(protected RazorpayService $razorpay) {}
 
     /**
@@ -68,7 +80,12 @@ class PackageBookingService
                 throw new RuntimeException('Sorry, this departure date is no longer open for booking. Please choose another date.');
             }
 
-            $count = count($travellers);
+            // Only paying travellers take a seat and are charged.
+            $infants = count(array_filter($travellers, fn ($t) => self::isFreeInfant((int) $t['age'])));
+            $count = count($travellers) - $infants;
+            if ($count < 1) {
+                throw new RuntimeException('Please add at least one traveller older than '.self::FREE_INFANT_MAX_AGE.' years — infants travel free with an adult.');
+            }
             $left = $departure->seatsLeft();
             if ($left !== null && $count > $left) {
                 throw new RuntimeException($left === 0
@@ -91,9 +108,11 @@ class PackageBookingService
                 'package_balance_due_on' => $departure->start_date->copy()->subDays(self::BALANCE_DUE_DAYS_BEFORE),
                 'check_in' => $departure->start_date->toDateString(),
                 'check_out' => $departure->end_date?->toDateString(),
-                'pax_adults' => $count,
+                'pax_adults' => $count, // paying travellers (seats)
                 'pax_children' => 0,
-                'lead_guest_name' => $travellers[0]['full_name'],
+                'pax_infants' => $infants, // free, no seat
+                // The lead traveller is the first one who isn't an infant.
+                'lead_guest_name' => collect($travellers)->first(fn ($t) => ! self::isFreeInfant((int) $t['age']))['full_name'],
                 'guest_email' => $contact['email'],
                 'guest_phone' => $contact['phone'],
                 'guest_phone_code' => $contact['phone_code'],
@@ -112,7 +131,7 @@ class PackageBookingService
                     'full_name' => $t['full_name'],
                     'gender' => $t['gender'],
                     'age' => $t['age'],
-                    'traveler_type' => 'adult',
+                    'traveler_type' => self::isFreeInfant((int) $t['age']) ? 'infant' : 'adult',
                 ]);
             }
 

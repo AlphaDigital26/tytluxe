@@ -151,7 +151,7 @@
       <div class="pb-meta">
         <span class="pb-chip"><i class="fa-solid fa-suitcase-rolling"></i> {{ $booking->package->title }}</span>
         <span class="pb-chip"><i class="fa-regular fa-calendar"></i> {{ $start->format('d M') }}{{ $end ? ' – '.$end->format('d M Y') : ' '.$start->format('Y') }}</span>
-        <span class="pb-chip"><i class="fa-solid fa-user-group"></i> {{ $booking->pax_adults }} traveller{{ $booking->pax_adults > 1 ? 's' : '' }}</span>
+        <span class="pb-chip"><i class="fa-solid fa-user-group"></i> {{ $booking->packageTravellersLabel() }}</span>
         @if($booking->package_option && $booking->package_option !== 'Per person')
           <span class="pb-chip"><i class="fa-solid fa-bed"></i> {{ $booking->package_option }}</span>
         @endif
@@ -205,7 +205,7 @@
               <div class="pb-avatar">{{ $initials($t->full_name) }}</div>
               <div>
                 <div class="pb-person-name">{{ $t->full_name }}@if($i === 0)<span class="pb-lead">Lead</span>@endif</div>
-                <div class="pb-person-sub">{{ $t->age ? $t->age.' yrs' : '' }}{{ $t->age && $t->gender ? ' · ' : '' }}{{ $t->gender ? ucfirst($t->gender) : '' }}</div>
+                <div class="pb-person-sub">{{ $t->age ? $t->age.' yrs' : '' }}{{ $t->age && $t->gender ? ' · ' : '' }}{{ $t->gender ? ucfirst($t->gender) : '' }}{{ $t->traveler_type === 'infant' ? ' · Infant (free)' : '' }}</div>
               </div>
             </div>
           @endforeach

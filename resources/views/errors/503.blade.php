@@ -1,6 +1,6 @@
 @extends('layouts.frontend')
 
-@section('title', 'Website Under Maintenance - TYT Luxe')
+@section('meta_title', 'Website Under Maintenance | TYT Luxe')
 
 @section('content')
 <style>

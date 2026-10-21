@@ -148,7 +148,7 @@
         {{-- 3. Travellers --}}
         <div class="pc-card">
           <h2>{{ count($options) === 1 ? '2' : '3' }}. Travellers</h2>
-          <p class="pc-sub">Enter names exactly as on a government photo ID.</p>
+          <p class="pc-sub">Enter names exactly as on a government photo ID. Infants up to {{ \App\Services\PackageBookingService::FREE_INFANT_MAX_AGE }} years travel free (enter 0 for babies under 1).</p>
           <div class="pc-counter" style="margin-bottom:18px;">
             <button type="button" id="pcMinus" aria-label="Remove a traveller">−</button>
             <output id="pcCount" aria-live="polite">{{ $count }}</output>
@@ -300,20 +300,31 @@
     return row;
   }
 
+  // Infants up to this age are free and need no seat (same rule as the server).
+  var freeInfantMaxAge = @json(\App\Services\PackageBookingService::FREE_INFANT_MAX_AGE);
+  function infants() {
+    return [].filter.call(list.querySelectorAll('input[name$="[age]"]'), function (i) {
+      return i.value !== '' && parseInt(i.value, 10) <= freeInfantMaxAge;
+    }).length;
+  }
+
   function setCount(n) {
-    var max = maxFor(departure());
-    n = Math.max(1, Math.min(max, n));
+    // Rows can include free infants, so cap rows at the overall limit;
+    // seats are checked against paying travellers in update().
+    n = Math.max(1, Math.min(maxTravellers, n));
     while (count() < n) list.appendChild(travellerRow(count()));
     while (count() > n) list.removeChild(list.lastElementChild);
     update();
   }
 
   function update() {
-    var d = departure(), o = option(), n = count(), max = maxFor(d);
-    countEl.textContent = n;
-    minus.disabled = n <= 1;
-    plus.disabled = n >= max;
-    seatsNote.textContent = d.seatsLeft !== null && n >= d.seatsLeft ? 'Only ' + d.seatsLeft + ' seat' + (d.seatsLeft === 1 ? '' : 's') + ' left on this date' : '';
+    var d = departure(), o = option(), rows = count(), free = infants(), n = Math.max(0, rows - free);
+    countEl.textContent = rows;
+    minus.disabled = rows <= 1;
+    plus.disabled = rows >= maxTravellers;
+    seatsNote.textContent = d.seatsLeft !== null && n > d.seatsLeft
+      ? 'Only ' + d.seatsLeft + ' seat' + (d.seatsLeft === 1 ? '' : 's') + ' left on this date — please remove ' + (n - d.seatsLeft)
+      : (d.seatsLeft !== null && n === d.seatsLeft ? 'That takes the last seat' + (d.seatsLeft === 1 ? '' : 's') + ' on this date' : '');
 
     var perPerson = round2(o.price + d.extra);
     var subtotal = round2(perPerson * n);
@@ -325,7 +336,7 @@
     document.getElementById('sDate').textContent = d.label;
     document.getElementById('sPerLabel').textContent = options.length > 1 ? 'Per person (' + o.label + ')' : 'Per person';
     document.getElementById('sPer').textContent = inr(perPerson);
-    document.getElementById('sPax').textContent = n;
+    document.getElementById('sPax').textContent = n + (free ? ' + ' + free + ' infant' + (free === 1 ? '' : 's') + ' (free)' : '');
     document.getElementById('sTotal').textContent = inr(round2(subtotal * (1 + formula.gstRate)));
     document.getElementById('sNow').textContent = inr(now.total);
     document.getElementById('sBalanceNote').textContent = part
@@ -341,6 +352,8 @@
     if (e.target.name === 'departure_id') { setCount(count()); return; }
     if (['option', 'plan'].indexOf(e.target.name) !== -1) update();
   });
+  // Ages decide who is a free infant, so re-price as they are typed.
+  form.addEventListener('input', function (e) { if (/\[age\]$/.test(e.target.name || '')) update(); });
   form.addEventListener('submit', function () {
     var btn = document.getElementById('pcSubmit');
     btn.disabled = true;

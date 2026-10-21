@@ -69,6 +69,13 @@ class Booking extends Model
     public function package() { return $this->belongsTo(Package::class); }
     public function packageDeparture() { return $this->belongsTo(PackageDeparture::class); }
 
+    /** "2 travellers + 1 infant (free)" — package travellers as guests read them. */
+    public function packageTravellersLabel(): string
+    {
+        $n = (int) $this->pax_adults;
+        $inf = (int) $this->pax_infants;
+
+        return $n.' traveller'.($n === 1 ? '' : 's').($inf ? ' + '.$inf.' infant'.($inf === 1 ? '' : 's').' (free)' : '');
     /** After this long on the payment page without paying, the guest has left. */
     public const ABANDONED_AFTER_MINUTES = 60;
 

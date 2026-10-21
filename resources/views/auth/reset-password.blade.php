@@ -1,4 +1,7 @@
 <x-guest-layout>
+    <x-slot:title>Choose a New Password</x-slot:title>
+
+    <h1 style="font-size:1.4rem;margin:0 0 14px;">Choose a new password</h1>
     <style>
         .password-checklist {
             margin-top: 10px;

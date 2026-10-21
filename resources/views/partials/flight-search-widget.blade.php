@@ -251,6 +251,7 @@
 .tyt-sb-check-group{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .tyt-sb-check{display:flex;align-items:center;gap:6px;font-family:'Poppins',sans-serif;font-size:11.5px;color:#bbb;cursor:pointer}
 .tyt-sb-check input{accent-color:#C9A84C;width:14px;height:14px;cursor:pointer}
+@media (max-width:768px){.tyt-sb-check input{width:20px;height:20px}}
 .tyt-sb-spacer{flex:1}
 
 @media(max-width:980px){

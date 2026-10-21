@@ -5,7 +5,8 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>{{ config('app.name', 'Laravel') }}</title>
+        <title>{{ isset($title) ? $title.' | TYT Luxe' : 'TYT Luxe' }}</title>
+        <meta name="description" content="{{ $description ?? 'Your TYT Luxe account — luxury hotels, flights and curated holiday packages.' }}">
         <link rel="icon" type="image/png" href="{{ asset('assets/images/favicon.png') }}">
 
         <link rel="stylesheet" href="{{ asset('assets/css/admin.css') }}">

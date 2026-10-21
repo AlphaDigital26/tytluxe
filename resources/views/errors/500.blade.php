@@ -1,6 +1,6 @@
 @extends('layouts.frontend')
 
-@section('title', 'Server Error - TYT Luxe')
+@section('meta_title', 'Server Error | TYT Luxe')
 
 @section('content')
 <style>

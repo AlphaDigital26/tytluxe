@@ -375,7 +375,7 @@
     btn.disabled = true;
     
     try {
-        await fetch("{{ route('enquiries.store') }}", {
+        await postEnquiry("{{ route('enquiries.store') }}", {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -398,7 +398,7 @@
         console.error(error);
         btn.textContent = originalText;
         btn.disabled = false;
-        showToast('Error', 'Something went wrong. Please try again.', 'error');
+        showToast('Error', error.message, 'error');
     }
   }
 </script>

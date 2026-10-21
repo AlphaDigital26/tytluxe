@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Log in to your TYT Luxe account to manage your hotel, flight and holiday bookings.">
     <title>Login - TYT Luxe</title>
     <link rel="icon" type="image/png" href="{{ asset('assets/images/favicon.png') }}">
     <!-- Fonts -->
@@ -125,7 +126,7 @@
         
         <div class="auth-form-container">
             
-            <h2>Welcome To TYT Luxe</h2>
+            <h1>Welcome To TYT Luxe</h1>
             <p class="auth-modal-subtitle">Login to your account</p>
 
             <form method="POST" action="{{ route('login') }}">

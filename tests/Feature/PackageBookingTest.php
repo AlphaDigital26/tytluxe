@@ -171,6 +171,42 @@ class PackageBookingTest extends TestCase
         $this->get(route('package.balance', $booking->reference))->assertRedirect(route('hotel.booking.confirmation', $booking->reference));
     }
 
+    public function test_infants_up_to_three_travel_free_without_a_seat(): void
+    {
+        $package = $this->package();
+        $departure = $this->departure($package, seats: 2);
+        $this->actingAs(User::factory()->create());
+
+        $form = $this->bookingForm($departure, ['plan' => 'full', 'travellers' => [
+            ['full_name' => 'Mother Rao', 'gender' => 'female', 'age' => 31],
+            ['full_name' => 'Father Rao', 'gender' => 'male', 'age' => 34],
+            ['full_name' => 'Baby Rao', 'gender' => 'female', 'age' => 0],
+            ['full_name' => 'Toddler Rao', 'gender' => 'male', 'age' => 3],
+        ]]);
+        $this->post(route('package.book', $package->slug), $form);
+
+        $booking = Booking::where('vertical', 'package')->firstOrFail();
+        $this->assertSame(2, (int) $booking->pax_adults, 'only paying travellers take seats');
+        $this->assertSame(2, (int) $booking->pax_infants);
+        $this->assertSame(40000.0, (float) $booking->base_amount, '2 × ₹20,000 — infants free');
+        $this->assertSame(2, $booking->travelers()->where('traveler_type', 'infant')->count());
+        $this->assertSame('Mother Rao', $booking->lead_guest_name);
+        $this->assertSame('2 travellers + 2 infants (free)', $booking->packageTravellersLabel());
+
+        // A 4-year-old pays.
+        $p2 = $this->package(['slug' => 'spiti-2']);
+        $d2 = $this->departure($p2);
+        $this->post(route('package.book', $p2->slug), $this->bookingForm($d2, ['plan' => 'full', 'travellers' => [
+            ['full_name' => 'Mother Rao', 'gender' => 'female', 'age' => 31],
+            ['full_name' => 'Kid Rao', 'gender' => 'male', 'age' => 4],
+        ]]));
+        $this->assertSame(2, (int) Booking::where('package_id', $p2->id)->value('pax_adults'));
+
+        // Infants alone can't book.
+        $this->post(route('package.book', $p2->slug), $this->bookingForm($d2, ['travellers' => [['full_name' => 'Baby Solo', 'gender' => 'male', 'age' => 1]]]))
+            ->assertSessionHas('booking_error');
+    }
+
     public function test_seat_limit_blocks_overbooking(): void
     {
         $package = $this->package();

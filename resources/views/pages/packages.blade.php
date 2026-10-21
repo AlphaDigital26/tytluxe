@@ -457,7 +457,7 @@ Discover curated domestic and international travel packages with TYT Luxe. Honey
 
       <div class="pkg-header">
         <div class="pkg-eyebrow">Our Collection</div>
-        <h1 class="pkg-title">Discover <em>Your Next</em> Adventure</h1>
+        <h2 class="pkg-title">Discover <em>Your Next</em> Adventure</h2>
         <p class="pkg-desc">Choose your journey - explore iconic international destinations or uncover the hidden gems of incredible India.</p>
       </div>
 

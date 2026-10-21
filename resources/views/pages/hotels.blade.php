@@ -1238,7 +1238,7 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
 
         <input type="hidden" id="htlCheckInIso" name="check_in" value="{{ $checkIn ?? '' }}">
         <input type="hidden" id="htlCheckOutIso" name="check_out" value="{{ $checkOut ?? '' }}">
-        <input type="text" id="htlDateRangePicker" style="position:absolute; width:0; height:0; opacity:0; pointer-events:none;" tabindex="-1">
+        <input type="text" id="htlDateRangePicker" aria-hidden="true" style="position:absolute; width:0; height:0; opacity:0; pointer-events:none;" tabindex="-1">
 
         <div class="htl-sb-field" id="htlGuestField">
           <label class="htl-sb-label">
@@ -1426,7 +1426,7 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
              @php $maxPrice = ($filters['max_price'] ?? 0) > 0 ? min((int) $filters['max_price'], 250000) : 250000; @endphp
              <!-- Visual Slider -->
              <div style="margin-bottom: 12px; padding:0 2px;">
-               <input type="range" id="filterPriceSlider" min="0" max="250000" step="5000" value="{{ $maxPrice }}" style="width:100%; accent-color:var(--gold); cursor:pointer;">
+               <input type="range" id="filterPriceSlider" aria-label="Maximum price per night" min="0" max="250000" step="5000" value="{{ $maxPrice }}" style="width:100%; accent-color:var(--gold); cursor:pointer;">
                <div style="display:flex; justify-content:space-between; font-family:'Jost',sans-serif; font-size:12px; color:var(--white-60); margin-top:6px;">
                  <span>₹0</span>
                  <span id="filterPriceLabel">{{ $maxPrice >= 250000 ? '₹250,000+' : 'Up to ₹'.number_format($maxPrice) }}</span>
@@ -2713,7 +2713,7 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
       const wa = `Hi TYT Luxe! I'd like to enquire about a hotel stay.\n\nName: ${name}\nPhone: ${phone}${email ? '\nEmail: ' + email : ''}\nDestination: ${dest}\nCheck-in: ${checkin}\nGuests: ${guests}${message ? '\nRequirements: ' + message : ''}`;
 
       try {
-          await fetch("{{ route('enquiries.store') }}", {
+          await postEnquiry("{{ route('enquiries.store') }}", {
               method: 'POST',
               headers: {
                   'Content-Type': 'application/json',
@@ -2740,7 +2740,7 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
           console.error(error);
           submitBtn.innerHTML = originalHtml;
           submitBtn.disabled = false;
-          showToast('Error', 'Something went wrong. Please try again.', 'error');
+          showToast('Error', error.message, 'error');
       }
     });
   }

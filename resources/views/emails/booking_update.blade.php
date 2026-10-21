@@ -163,7 +163,7 @@
           @if($booking->package_option && $booking->package_option !== 'Per person')
           <tr><td class="label">Room sharing</td><td class="value">{{ $booking->package_option }}</td></tr>
           @endif
-          <tr><td class="label">Travellers</td><td class="value">{{ (int) $booking->pax_adults }}</td></tr>
+          <tr><td class="label">Travellers</td><td class="value">{{ $booking->packageTravellersLabel() }}</td></tr>
           @if($balanceCharge && in_array($kind, [M::CONFIRMED, M::BALANCE_REMINDER], true))
           <tr><td class="label">Balance to pay</td><td class="value highlight">{{ $money($balanceCharge['total']) }}<br><span style="color:#888;">incl. GST and online payment charge</span></td></tr>
           <tr><td class="label">Pay by</td><td class="value highlight">{{ $date($booking->package_balance_due_on) }}</td></tr>

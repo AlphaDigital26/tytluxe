@@ -1,6 +1,6 @@
 @extends('layouts.frontend')
 
-@section('title', 'Page Not Found - TYT Luxe')
+@section('meta_title', 'Page Not Found | TYT Luxe')
 
 @section('content')
 <style>
