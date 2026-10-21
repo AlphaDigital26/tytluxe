@@ -76,6 +76,8 @@ class Booking extends Model
         $inf = (int) $this->pax_infants;
 
         return $n.' traveller'.($n === 1 ? '' : 's').($inf ? ' + '.$inf.' infant'.($inf === 1 ? '' : 's').' (free)' : '');
+    }
+
     /** After this long on the payment page without paying, the guest has left. */
     public const ABANDONED_AFTER_MINUTES = 60;
 
