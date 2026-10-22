@@ -88,6 +88,7 @@ class Package extends Model
     public function highlights()    { return $this->hasMany(PackageHighlight::class)->orderBy('sort_order'); }
     public function exclusions()    { return $this->hasMany(PackageExclusion::class)->orderBy('sort_order'); }
     public function departures()    { return $this->hasMany(PackageDeparture::class)->orderBy('start_date'); }
+    public function stays()         { return $this->hasMany(PackageStay::class)->orderBy('sort_order'); }
     public function amenities()     { return $this->belongsToMany(Amenity::class, 'amenity_package'); }
 
     public function getHeroImageUrlAttribute()

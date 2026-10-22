@@ -305,6 +305,184 @@ class PackageForm
                         ]),
 
                     // ──────────────────────────────────────────────────────────
+                    // TAB — Hotels & Stays ("Where You'll Stay" on the website)
+                    // ──────────────────────────────────────────────────────────
+                    Tab::make('Hotels & Stays')
+                        ->icon('heroicon-o-building-office-2')
+                        ->schema([
+
+                            Repeater::make('stays')
+                                ->relationship('stays')
+                                ->label('Where guests stay')
+                                ->helperText(function ($get) {
+                                    $text = 'Add one row per hotel, camp or homestay, in trip order. Pick a hotel from your hotel list and its photo, stars and page link come with it — or just type the name for a camp or homestay. Shown as "Where You\'ll Stay" on the package page.';
+                                    $limit = (int) $get('duration_nights');
+                                    if ($limit < 1) {
+                                        return $text.' Fill in "Duration (number of nights)" in the Pricing tab and the nights here are checked against it.';
+                                    }
+                                    $used = static::stayNights($get('stays'));
+                                    $line = 'Nights used: '.$used.' of '.$limit.' ('.$limit.'-night package).';
+
+                                    return new HtmlString(e($text).'<br><strong style="color:'.($used > $limit ? '#dc2626' : '#16a34a').';">'.e($line)
+                                        .($used > $limit ? ' That is '.($used - $limit).' too many — lower the nights before saving.' : '').'</strong>');
+                                })
+                                // All the stays' nights together can't be more than the
+                                // package's "Duration (number of nights)" in the Pricing
+                                // tab — the same nights the website advertises.
+                                ->rule(fn ($get) => function (string $attribute, $value, \Closure $fail) use ($get) {
+                                    $limit = (int) $get('duration_nights');
+                                    $used = static::stayNights($value);
+                                    if ($limit > 0 && $used > $limit) {
+                                        $fail('The stays add up to '.$used.' nights, but this is a '.$limit.'-night package (Duration in the Pricing tab). Lower the nights here, or change the duration.');
+                                    }
+                                })
+                                ->schema([
+
+                                    // One or the other, never both: pick a hotel from the
+                                    // list — its name, place, stars and type fill in by
+                                    // themselves and are locked, so nobody can overwrite
+                                    // them — OR type the details in by hand (typing a name
+                                    // locks the hotel list). The locked copies are saved
+                                    // empty: the website always reads the hotel itself.
+                                    Select::make('hotel_id')
+                                        ->label('Choose from your hotel list')
+                                        ->relationship('hotel', 'title')
+                                        ->getOptionLabelFromRecordUsing(fn (\App\Models\Hotel $record) => $record->title.($record->destination?->name ? ' — '.$record->destination->name : ''))
+                                        ->searchable()
+                                        ->live()
+                                        ->disabled(fn ($get) => blank($get('hotel_id')) && filled($get('name')))
+                                        ->afterStateUpdated(function ($state, $set) {
+                                            $hotel = filled($state) ? \App\Models\Hotel::with('destination')->find($state) : null;
+                                            $set('name', $hotel?->title);
+                                            $set('location', $hotel?->destination?->name);
+                                            $set('star_rating', $hotel?->star_rating ?: null);
+                                            if ($hotel) {
+                                                $set('stay_type', static::stayTypeFor($hotel->title));
+                                            }
+                                        })
+                                        ->helperText(fn ($get) => blank($get('hotel_id')) && filled($get('name'))
+                                            ? 'Locked because a name is typed in below. Clear the name to choose a hotel from the list instead.'
+                                            : 'Its name, place, stars and photo fill in by themselves. Leave empty for a camp, homestay or any place not in your list.')
+                                        ->columnSpan(2),
+
+                                    TextInput::make('name')
+                                        ->label('OR type the name')
+                                        ->placeholder('e.g.  Riverside Camps, Kasol')
+                                        ->live(debounce: 500)
+                                        ->disabled(fn ($get) => filled($get('hotel_id')))
+                                        ->afterStateHydrated(fn ($component, $get) => filled($get('hotel_id')) ? $component->state(\App\Models\Hotel::find($get('hotel_id'))?->title) : null)
+                                        ->dehydrated()
+                                        ->dehydrateStateUsing(fn ($state, $get) => filled($get('hotel_id')) ? null : $state)
+                                        ->helperText(fn ($get) => filled($get('hotel_id'))
+                                            ? 'Filled in from the hotel and locked. Clear the hotel to type a name instead.'
+                                            : 'For a camp, homestay or any place not in your hotel list.')
+                                        ->required(fn ($get) => blank($get('hotel_id')))
+                                        ->maxLength(255)
+                                        ->columnSpan(2),
+
+                                    Select::make('stay_type')
+                                        ->label('Type')
+                                        ->options(\App\Models\PackageStay::TYPES)
+                                        ->default('hotel')
+                                        ->required(),
+
+                                    TextInput::make('location')
+                                        ->label('Place')
+                                        ->placeholder('e.g.  Manali')
+                                        ->disabled(fn ($get) => filled($get('hotel_id')))
+                                        ->afterStateHydrated(fn ($component, $get) => filled($get('hotel_id')) ? $component->state(\App\Models\Hotel::with('destination')->find($get('hotel_id'))?->destination?->name) : null)
+                                        ->dehydrated()
+                                        ->dehydrateStateUsing(fn ($state, $get) => filled($get('hotel_id')) ? null : $state)
+                                        ->maxLength(255),
+
+                                    TextInput::make('nights')
+                                        ->label('Nights here')
+                                        ->numeric()
+                                        ->minValue(1)
+                                        ->maxValue(60)
+                                        ->live(onBlur: true) // keeps "Nights used: x of y" above up to date
+                                        ->placeholder('e.g.  2'),
+
+                                    Select::make('star_rating')
+                                        ->label('Stars  (optional)')
+                                        ->options([1 => '1 star', 2 => '2 stars', 3 => '3 stars', 4 => '4 stars', 5 => '5 stars'])
+                                        ->placeholder(fn ($get) => filled($get('hotel_id')) ? 'The hotel has no star rating' : 'Not shown')
+                                        ->disabled(fn ($get) => filled($get('hotel_id')))
+                                        ->afterStateHydrated(fn ($component, $get) => filled($get('hotel_id')) ? $component->state(\App\Models\Hotel::find($get('hotel_id'))?->star_rating ?: null) : null)
+                                        ->dehydrated()
+                                        ->dehydrateStateUsing(fn ($state, $get) => filled($get('hotel_id')) ? null : $state),
+
+                                    TextInput::make('room_type')
+                                        ->label('Room  (optional)')
+                                        ->placeholder('e.g.  Deluxe room, triple sharing')
+                                        // Suggestions from the chosen hotel's own room types.
+                                        ->datalist(fn ($get) => filled($get('hotel_id'))
+                                            ? \App\Models\RoomType::where('hotel_id', $get('hotel_id'))->orderBy('name')->limit(50)->pluck('name')->filter()->unique()->values()->all()
+                                            : [])
+                                        ->helperText(fn ($get) => filled($get('hotel_id')) ? 'Start typing to pick one of this hotel\'s rooms, or write your own.' : null)
+                                        ->maxLength(255)
+                                        ->columnSpan(2),
+
+                                    TextInput::make('meal_plan')
+                                        ->label('Meals here  (optional)')
+                                        ->placeholder('e.g.  Breakfast & dinner')
+                                        ->maxLength(255)
+                                        ->columnSpan(2),
+
+                                    // The photo guests will see when nothing is uploaded below.
+                                    \Filament\Forms\Components\Placeholder::make('hotel_photo')
+                                        ->label('Hotel photo shown to guests')
+                                        ->visible(fn ($get) => filled($get('hotel_id')))
+                                        ->content(function ($get) {
+                                            $path = \App\Models\HotelImage::where('hotel_id', $get('hotel_id'))->where('is_hidden', false)->orderBy('sort_order')->value('path');
+                                            if (! $path) {
+                                                return new HtmlString('<span style="color:#d97706;">This hotel has no photos in your hotel list. Upload one in "Photo" below, or add photos to the hotel.</span>');
+                                            }
+                                            $url = Str::startsWith($path, ['http://', 'https://']) ? $path : \Illuminate\Support\Facades\Storage::disk('public')->url($path);
+
+                                            return new HtmlString('<img src="'.e($url).'" alt="" style="height:110px;border-radius:8px;object-fit:cover;">');
+                                        })
+                                        ->columnSpan(2),
+
+                                    FileUpload::make('image')
+                                        ->disk('public')
+                                        ->label('Photo  (optional)')
+                                        ->helperText(fn ($get) => filled($get('hotel_id')) ? 'Only if you want a different photo from the hotel\'s own.' : 'A photo of the place.')
+                                        ->image()
+                                        ->imagePreviewHeight('120')
+                                        ->saveUploadedFileUsing(fn ($file) => app(\App\Services\ImageOptimizer::class)->optimizeAndSave($file, 'thumbnail', 'packages/stays'))
+                                        ->columnSpan(2),
+
+                                    Toggle::make('or_similar')
+                                        ->label('Show "Subject to availability"')
+                                        ->helperText('Tells guests this hotel depends on availability on their dates. Turn off when the hotel is confirmed.')
+                                        ->default(true)
+                                        ->columnSpan(2),
+
+                                    Textarea::make('note')
+                                        ->label('Short note  (optional)')
+                                        ->placeholder('e.g.  River-facing tents with attached washrooms')
+                                        ->rows(2)
+                                        ->maxLength(500)
+                                        ->columnSpanFull(),
+
+                                ])
+                                ->columns(4)
+                                ->addActionLabel('+ Add a Stay')
+                                ->reorderable('sort_order')
+                                ->orderColumn('sort_order')
+                                ->collapsible()
+                                ->collapsed(false)
+                                ->itemLabel(fn (array $state): string => trim(
+                                    (filled($state['nights'] ?? null) ? $state['nights'].'N  ·  ' : '')
+                                    .($state['name'] ?? null ?: (filled($state['hotel_id'] ?? null) ? (\App\Models\Hotel::find($state['hotel_id'])?->title ?? 'Hotel') : 'New Stay'))
+                                    .(filled($state['location'] ?? null) ? '  —  '.$state['location'] : '')
+                                ))
+                                ->columnSpanFull(),
+
+                        ]),
+
+                    // ──────────────────────────────────────────────────────────
                     // TAB 5 — Departures
                     // ──────────────────────────────────────────────────────────
                     Tab::make('Departures')
@@ -568,6 +746,27 @@ class PackageForm
                 ->columnSpanFull(),
 
         ]);
+    }
+
+    /** All the stays' nights added up, as the form holds them. */
+    public static function stayNights($stays): int
+    {
+        return (int) collect(is_array($stays) ? $stays : [])->sum(fn ($s) => max(0, (int) ($s['nights'] ?? 0)));
+    }
+
+    /** A stay's type from the hotel's name: "… Resort" → Resort, "… Camps" → Camp; else Hotel (staff can change it). */
+    public static function stayTypeFor(?string $title): string
+    {
+        $title = strtolower((string) $title);
+
+        return match (true) {
+            str_contains($title, 'resort') => 'resort',
+            str_contains($title, 'camp') => 'camp',
+            str_contains($title, 'homestay') || str_contains($title, 'home stay') => 'homestay',
+            str_contains($title, 'cottage') => 'cottage',
+            str_contains($title, 'houseboat') => 'houseboat',
+            default => 'hotel',
+        };
     }
 
     // ─────────────────────────────────────────────────────────────────────────
