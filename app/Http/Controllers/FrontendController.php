@@ -2639,6 +2639,8 @@ class FrontendController extends Controller
             'itineraryDays',
             'highlights',
             'departures',
+            'stays.hotel.destination',
+            'stays.hotel.images' => \App\Models\Hotel::visibleImagesConstraint(),
             'reviews' => fn ($q) => $q->where('is_published', true),
         ])->where('slug', $slug)
             // Switched-off packages are hidden from guests; admins can still preview them.

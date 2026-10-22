@@ -343,6 +343,43 @@
 .pd-gallery-item img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s ease; display: block; }
 .pd-gallery-item:hover img { transform: scale(1.06); }
 
+/* ===== WHERE YOU'LL STAY ===== */
+.pd-stay-summary { font-family: 'Jost', sans-serif; font-size: 15px; color: var(--white-60); margin: -18px 0 24px; }
+.pd-stays { display: flex; flex-direction: column; gap: 16px; }
+.pd-stay {
+  display: grid; grid-template-columns: 220px 1fr; overflow: hidden;
+  background: var(--dark-3); border: 1px solid var(--white-10); border-radius: var(--radius);
+  transition: border-color var(--transition);
+}
+.pd-stay:hover { border-color: var(--gold-dim); }
+.pd-stay-photo { position: relative; min-height: 170px; background: var(--dark-2); }
+.pd-stay-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.pd-stay-photo-empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--gold); font-size: 34px; opacity: .55; }
+.pd-stay-nights {
+  position: absolute; left: 12px; top: 12px; background: var(--gold); color: var(--dark);
+  font-family: 'Jost', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: .06em;
+  padding: 4px 10px; border-radius: 999px;
+}
+.pd-stay-body { padding: 20px 24px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.pd-stay-top { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.pd-stay-type { font-family: 'Jost', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: var(--gold); }
+.pd-stay-stars { color: var(--gold-light); font-size: 11px; letter-spacing: 1px; }
+.pd-stay-name { font-family: 'Cormorant Garamond', serif; font-size: 1.55rem; font-weight: 500; color: #fff; line-height: 1.15; overflow-wrap: anywhere; }
+.pd-stay-similar { font-family: 'Jost', sans-serif; font-size: 12px; color: var(--white-60); font-style: italic; }
+.pd-stay-place { font-family: 'Jost', sans-serif; font-size: 14px; color: var(--white-60); }
+.pd-stay-place i { color: var(--gold); margin-right: 6px; font-size: 12px; }
+.pd-stay-facts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.pd-stay-fact {
+  display: inline-flex; align-items: center; gap: 6px; font-family: 'Jost', sans-serif; font-size: 13px; color: var(--white-80, #e5e5e5);
+  background: rgba(255,255,255,.05); border: 1px solid var(--white-10); border-radius: 999px; padding: 5px 12px;
+}
+.pd-stay-fact i { color: var(--gold); font-size: 11px; }
+.pd-stay-note { font-family: 'Jost', sans-serif; font-size: 14px; color: var(--white-60); line-height: 1.6; margin-top: 4px; }
+.pd-stay-link { margin-top: 8px; font-family: 'Jost', sans-serif; font-size: 13px; font-weight: 600; color: var(--gold); text-decoration: none; align-self: flex-start; }
+.pd-stay-link:hover { color: var(--gold-light); text-decoration: underline; }
+.pd-inc-stay-link { color: var(--gold); font-size: 13px; text-decoration: none; white-space: nowrap; }
+.pd-inc-stay-link:hover { text-decoration: underline; }
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 900px) {
   .pd-layout { grid-template-columns: 1fr; }
@@ -361,6 +398,9 @@
   .pd-highlights { grid-template-columns: 1fr; }
   .pd-payment-grid { grid-template-columns: 1fr; }
   .pd-dates-grid { grid-template-columns: 1fr; }
+  .pd-stay { grid-template-columns: 1fr; }
+  .pd-stay-photo { min-height: 180px; }
+  .pd-stay-body { padding: 18px 18px 20px; }
 }
 </style>
 @endpush
@@ -425,6 +465,9 @@
     <a href="#overview" class="pd-nav-link active">Overview</a>
     @if($package->itineraryDays && $package->itineraryDays->count() > 0)
       <a href="#itinerary" class="pd-nav-link">Itinerary</a>
+    @endif
+    @if($package->stays->isNotEmpty())
+      <a href="#stays" class="pd-nav-link">Stays</a>
     @endif
     @if($package->departures->isNotEmpty())
       <a href="#dates" class="pd-nav-link">Dates</a>
@@ -496,6 +539,72 @@
                     @endif
                   </div>
                 </div>
+              @endforeach
+            </div>
+          </div>
+        @endif
+
+        {{-- WHERE YOU'LL STAY — the package's hotels/camps in trip order
+             (admin: package → "Hotels & Stays" tab). --}}
+        @if($package->stays->isNotEmpty())
+          @php
+            $stayNights = $package->stays->sum('nights');
+            $stayPlaces = $package->stays->map(fn ($s) => $s->displayLocation())->filter()->unique()->values();
+          @endphp
+          <div class="pd-section" id="stays">
+            <div class="pd-section-label">Your Hotels</div>
+            <h2 class="pd-section-title">Where You'll <em>Stay</em></h2>
+            <p class="pd-stay-summary">{{ collect([
+              $package->stays->count().' '.($package->stays->count() === 1 ? 'stay' : 'stays'),
+              $stayNights ? $stayNights.' '.($stayNights === 1 ? 'night' : 'nights') : null,
+              $stayPlaces->implode(', ') ?: null,
+            ])->filter()->implode(' · ') }}</p>
+            <div class="pd-stays">
+              @foreach($package->stays as $stay)
+                @php
+                  $photo = $stay->imageUrl();
+                  $stars = $stay->displayStars();
+                  $url = $stay->hotelUrl();
+                @endphp
+                <article class="pd-stay">
+                  <div class="pd-stay-photo">
+                    {{-- Icon underneath: shows when there is no photo or its link is broken. --}}
+                    <div class="pd-stay-photo-empty"><i class="fa-solid {{ $stay->stay_type === 'camp' ? 'fa-campground' : 'fa-hotel' }}"></i></div>
+                    @if($photo)
+                      <img src="{{ $photo }}" alt="{{ $stay->displayName() }}" loading="lazy" onerror="this.remove()">
+                    @endif
+                    @if($stay->nights)
+                      <span class="pd-stay-nights">{{ $stay->nights }} {{ $stay->nights === 1 ? 'NIGHT' : 'NIGHTS' }}</span>
+                    @endif
+                  </div>
+                  <div class="pd-stay-body">
+                    <div class="pd-stay-top">
+                      <span class="pd-stay-type">{{ $stay->typeLabel() }}</span>
+                      @if($stars)
+                        <span class="pd-stay-stars" aria-label="{{ $stars }} star">{{ str_repeat('★', $stars) }}</span>
+                      @endif
+                    </div>
+                    <div class="pd-stay-name">{{ $stay->displayName() }}</div>
+                    @if($stay->or_similar)
+                      <div class="pd-stay-similar">Subject to availability</div>
+                    @endif
+                    @if($place = $stay->displayLocation())
+                      <div class="pd-stay-place"><i class="fa-solid fa-location-dot"></i>{{ $place }}</div>
+                    @endif
+                    @if($stay->room_type || $stay->meal_plan)
+                      <div class="pd-stay-facts">
+                        @if($stay->room_type)<span class="pd-stay-fact"><i class="fa-solid fa-bed"></i> {{ $stay->room_type }}</span>@endif
+                        @if($stay->meal_plan)<span class="pd-stay-fact"><i class="fa-solid fa-utensils"></i> {{ $stay->meal_plan }}</span>@endif
+                      </div>
+                    @endif
+                    @if($stay->note)
+                      <div class="pd-stay-note">{{ $stay->note }}</div>
+                    @endif
+                    @if($url)
+                      <a href="{{ $url }}" class="pd-stay-link" target="_blank" rel="noopener">View hotel <i class="fa-solid fa-arrow-right-long"></i></a>
+                    @endif
+                  </div>
+                </article>
               @endforeach
             </div>
           </div>
@@ -603,7 +712,11 @@
                   <div class="pd-box-title">✓ What's Included</div>
                   <ul class="pd-inc-list">
                     @foreach($package->inclusions as $inc)
-                      <li><i class="fa-solid fa-check-circle"></i> <span>{{ $inc->label ?? $inc->name ?? $inc->title }}</span></li>
+                      <li><i class="fa-solid fa-check-circle"></i> <span>{{ $inc->label ?? $inc->name ?? $inc->title }}
+                        @if($inc->category === 'hotel' && $package->stays->isNotEmpty())
+                          · <a href="#stays" class="pd-inc-stay-link">See the hotels</a>
+                        @endif
+                      </span></li>
                     @endforeach
                   </ul>
                 </div>
@@ -783,7 +896,13 @@
           </div>
 
           {{-- Quick Info Card --}}
-          @if($package->destination || $package->transport_info || $package->stay_info)
+          @php
+            // "Stay" line: what the admin typed, else a summary of the stays.
+            $stayLine = $package->stay_info ?: ($package->stays->isNotEmpty()
+              ? $package->stays->map(fn ($s) => $s->displayName())->take(2)->implode(', ').($package->stays->count() > 2 ? ' + '.($package->stays->count() - 2).' more' : '')
+              : null);
+          @endphp
+          @if($package->destination || $package->transport_info || $stayLine)
             <div class="pd-sidebar-card">
               <div class="pd-price-card-body">
                 <div class="pd-section-label" style="margin-bottom:16px;">Quick Info</div>
@@ -806,10 +925,10 @@
                       <div><div class="pd-info-label">Transport</div><div class="pd-info-val">{{ $package->transport_info }}</div></div>
                     </div>
                   @endif
-                  @if($package->stay_info)
+                  @if($stayLine)
                     <div class="pd-info-row">
                       <div class="pd-info-icon"><i class="fa-solid fa-hotel"></i></div>
-                      <div><div class="pd-info-label">Stay</div><div class="pd-info-val">{{ $package->stay_info }}</div></div>
+                      <div><div class="pd-info-label">Stay</div><div class="pd-info-val">{{ $stayLine }}@if($package->stays->isNotEmpty()) · <a href="#stays" class="pd-inc-stay-link">see hotels</a>@endif</div></div>
                     </div>
                   @endif
                   @if($package->meals_info)
