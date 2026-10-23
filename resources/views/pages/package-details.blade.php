@@ -345,7 +345,9 @@
 
 /* ===== WHERE YOU'LL STAY ===== */
 .pd-stay-summary { font-family: 'Jost', sans-serif; font-size: 15px; color: var(--white-60); margin: -18px 0 24px; }
-.pd-stays { display: flex; flex-direction: column; gap: 16px; }
+/* Every card as tall as the tallest one, so each full-height photo is cropped
+   the same way (a two-line name or a "View hotel" link made cards differ). */
+.pd-stays { display: grid; grid-auto-rows: 1fr; gap: 16px; }
 .pd-stay {
   display: grid; grid-template-columns: 220px 1fr; overflow: hidden;
   background: var(--dark-3); border: 1px solid var(--white-10); border-radius: var(--radius);
@@ -399,6 +401,7 @@
   .pd-payment-grid { grid-template-columns: 1fr; }
   .pd-dates-grid { grid-template-columns: 1fr; }
   .pd-stay { grid-template-columns: 1fr; }
+  .pd-stays { grid-auto-rows: auto; } /* photo sits on top at a fixed height here */
   .pd-stay-photo { min-height: 180px; }
   .pd-stay-body { padding: 18px 18px 20px; }
 }
