@@ -31,8 +31,8 @@ class RegistrationTest extends TestCase
         $this->post('/register', [
             'name' => 'Test User',
             'email' => 'test@example.com',
-            'password' => 'password',
-            'password_confirmation' => 'password',
+            'password' => 'Strong@123',
+            'password_confirmation' => 'Strong@123',
         ])->assertRedirect(route('otp.verify'));
 
         $this->assertGuest();
@@ -55,8 +55,8 @@ class RegistrationTest extends TestCase
         $this->from('/register')->post('/register', [
             'name' => 'Test User',
             'email' => 'test@example.com',
-            'password' => 'password',
-            'password_confirmation' => 'password',
+            'password' => 'Strong@123',
+            'password_confirmation' => 'Strong@123',
         ])
             ->assertRedirect('/register')
             ->assertSessionHasErrors(['email' => \App\Http\Controllers\Auth\OtpController::EMAIL_FAILED_MESSAGE]);
@@ -72,8 +72,8 @@ class RegistrationTest extends TestCase
         $this->post('/register', [
             'name' => 'Test User',
             'email' => 'test@example.com',
-            'password' => 'password',
-            'password_confirmation' => 'password',
+            'password' => 'Strong@123',
+            'password_confirmation' => 'Strong@123',
         ]);
 
         $wrong = $this->sentCode('test@example.com') === '000000' ? '111111' : '000000';
@@ -87,7 +87,7 @@ class RegistrationTest extends TestCase
     public function test_the_database_never_holds_the_code_itself(): void
     {
         Mail::fake();
-        $this->post('/register', ['name' => 'Test User', 'email' => 'test@example.com', 'password' => 'password', 'password_confirmation' => 'password']);
+        $this->post('/register', ['name' => 'Test User', 'email' => 'test@example.com', 'password' => 'Strong@123', 'password_confirmation' => 'Strong@123']);
 
         $stored = EmailOtp::where('email', 'test@example.com')->value('otp');
         $this->assertNotSame($this->sentCode('test@example.com'), $stored);
@@ -97,7 +97,7 @@ class RegistrationTest extends TestCase
     public function test_an_email_gets_at_most_5_codes_an_hour(): void
     {
         Mail::fake();
-        $this->post('/register', ['name' => 'Test User', 'email' => 'test@example.com', 'password' => 'password', 'password_confirmation' => 'password']);
+        $this->post('/register', ['name' => 'Test User', 'email' => 'test@example.com', 'password' => 'Strong@123', 'password_confirmation' => 'Strong@123']);
         for ($i = 0; $i < 4; $i++) {
             $this->travel(2)->minutes(); // past the per-minute route throttle
             $this->post(route('otp.resend'))->assertSessionHasNoErrors();
@@ -119,8 +119,8 @@ class RegistrationTest extends TestCase
         $this->post('/register', [
             'name' => 'Test User',
             'email' => 'test@example.com',
-            'password' => 'password',
-            'password_confirmation' => 'password',
+            'password' => 'Strong@123',
+            'password_confirmation' => 'Strong@123',
         ]);
         $otp = $this->sentCode('test@example.com');
 

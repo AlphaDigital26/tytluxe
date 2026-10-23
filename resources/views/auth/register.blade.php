@@ -169,6 +169,8 @@
                     </div>
                     @error('password')
                         <span class="auth-error-msg">{{ $message }}</span>
+                    @else
+                        <span style="display:block;margin-top:6px;font-size:12px;opacity:.7;">At least 8 characters, with a capital letter, a small letter, a number and a symbol.</span>
                     @enderror
                 </div>
 
