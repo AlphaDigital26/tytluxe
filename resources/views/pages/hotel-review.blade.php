@@ -285,6 +285,7 @@
     'rooms'       => $draft['rooms'] ?? null,
     'child_ages'  => ! empty($draft['child_ages']) ? implode(',', $draft['child_ages']) : null,
     'nationality' => $draft['nationality'] ?? null,
+    'room_config' => $draft['room_config'] ?? null,
   ]));
 
   // Per-slot room names (TripJack best practice for CROSS options:

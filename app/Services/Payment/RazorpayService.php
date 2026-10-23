@@ -31,12 +31,25 @@ class RazorpayService
      */
     public function createOrder(float $amountRupees, string $receipt): array
     {
-        $order = $this->api->order->create([
-            'amount' => $this->toPaise($amountRupees),
-            'currency' => 'INR',
-            'receipt' => $receipt,
-            'payment_capture' => 1,
-        ]);
+        try {
+            $order = $this->api->order->create([
+                'amount' => $this->toPaise($amountRupees),
+                'currency' => 'INR',
+                'receipt' => $receipt,
+                'payment_capture' => 1,
+            ]);
+        } catch (\Razorpay\Api\Errors\Error $e) {
+            // e.g. "Amount exceeds maximum amount allowed" on a very large
+            // booking: tell the guest plainly instead of an error page.
+            \Illuminate\Support\Facades\Log::warning('razorpay_order_failed', ['receipt' => $receipt, 'amount' => $amountRupees, 'error' => $e->getMessage()]);
+
+            throw new PaymentOrderException(
+                str_contains(strtolower($e->getMessage()), 'exceeds maximum amount')
+                    ? PaymentOrderException::OVER_LIMIT_MESSAGE
+                    : PaymentOrderException::GENERIC_MESSAGE,
+                previous: $e,
+            );
+        }
 
         return $order->toArray();
     }
