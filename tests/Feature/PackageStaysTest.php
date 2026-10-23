@@ -43,7 +43,7 @@ class PackageStaysTest extends TestCase
         $package->inclusions()->create(['label' => '4 nights in hotels and camps', 'category' => 'hotel']);
 
         $package->stays()->create(['hotel_id' => $hotel->id, 'nights' => 2, 'room_type' => 'Deluxe room, triple sharing', 'meal_plan' => 'Breakfast & dinner', 'sort_order' => 1]);
-        $package->stays()->create(['name' => 'Riverside Camps', 'stay_type' => 'camp', 'location' => 'Kasol', 'nights' => 2, 'or_similar' => false, 'note' => 'River-facing tents', 'sort_order' => 2]);
+        $package->stays()->create(['name' => 'Riverside Camps', 'stay_type' => 'camp', 'location' => 'kasol', 'nights' => 2, 'or_similar' => false, 'note' => 'River-facing tents', 'check_in_time' => '13:00', 'check_out_time' => '10:30', 'sort_order' => 2]);
 
         $this->get(route('package.details', $package->slug))->assertOk()
             ->assertSee('Where You', false)
@@ -55,6 +55,8 @@ class PackageStaysTest extends TestCase
             ->assertSee('Deluxe room, triple sharing')
             ->assertSee('River-facing tents')
             ->assertSee('Subject to availability')
+            ->assertSeeInOrder(['Check-in 2:00 PM', 'Check-out 11:00 AM', 'Check-in 1:00 PM', 'Check-out 10:30 AM']) // hotel's own times, then the camp's
+            ->assertSeeInOrder(['Day 1 → Day 3', 'Day 3 → Day 5']) // worked out from the nights
             ->assertSee('See the hotels');                                   // from the hotel inclusion
     }
 
@@ -80,7 +82,7 @@ class PackageStaysTest extends TestCase
         Livewire::test(EditPackage::class, ['record' => $package->getRouteKey()])
             ->set('data.stays', [
                 'a' => ['hotel_id' => $hotel->id, 'name' => null, 'stay_type' => 'hotel', 'nights' => 2, 'or_similar' => true],
-                'b' => ['hotel_id' => null, 'name' => 'Riverside Camps', 'stay_type' => 'camp', 'location' => 'Kasol', 'nights' => 2, 'or_similar' => false],
+                'b' => ['hotel_id' => null, 'name' => 'Riverside Camps', 'stay_type' => 'camp', 'location' => 'Kasol', 'nights' => 2, 'or_similar' => false, 'check_in_time' => '13:00', 'check_out_time' => '10:30'],
             ])
             ->call('save')
             ->assertHasNoFormErrors();
@@ -88,6 +90,8 @@ class PackageStaysTest extends TestCase
         $stays = $package->stays()->get();
         $this->assertSame(['Snow Valley Resort', 'Riverside Camps'], $stays->map->displayName()->all());
         $this->assertSame(['Manali', 'Kasol'], $stays->map->displayLocation()->all());
+        $this->assertSame(['13:00', '10:30'], [$stays[1]->check_in_time, $stays[1]->check_out_time]);
+        $this->assertSame(['2:00 PM', '1:00 PM'], $stays->map->checkInTime()->all()); // the hotel's own, then the camp's
     }
 
     public function test_stay_nights_cannot_add_up_to_more_than_the_package_nights(): void
@@ -121,6 +125,85 @@ class PackageStaysTest extends TestCase
         $this->assertSame(4, (int) PackageStay::sum('nights'));
     }
 
+    public function test_trip_days_follow_on_unless_set_and_cannot_end_after_the_trip(): void
+    {
+        // Worked out in order; a set day restarts the count from there.
+        $this->assertSame(
+            [['in' => 1, 'out' => 3], ['in' => 3, 'out' => 4], ['in' => 5, 'out' => 6], ['in' => 6, 'out' => null]],
+            PackageStay::dayPlan([['nights' => 2], ['nights' => 1], ['nights' => 1, 'check_in_day' => 5], ['nights' => null]])
+        );
+
+        $this->actingAs(Admin::create(['name' => 'Ops', 'email' => 'ops5@example.com', 'password' => 'secret-pass', 'role' => 'Operations', 'status' => 'Active']), 'admin');
+        $package = $this->package(); // 4 nights: the trip ends on Day 5
+        $stay = fn (int $nights, ?int $day = null) => ['hotel_id' => null, 'name' => 'Stay', 'stay_type' => 'hotel', 'nights' => $nights, 'check_in_day' => $day, 'or_similar' => true];
+
+        Livewire::test(EditPackage::class, ['record' => $package->getRouteKey()])
+            ->set('data.stays', ['a' => $stay(2), 'b' => $stay(2, 4)]) // Day 4 → Day 6
+            ->assertSee('2 nights here (Day 4 → Day 6). The trip ends on Day 5')  // red warning straight away
+            ->assertSee('Latest: Day 4.')                               // a 4-night trip ends on Day 5
+            ->call('save')
+            ->assertHasFormErrors(['stays']);
+
+        // A 1-night stay can start on Day 4 at the latest.
+        $this->assertSame(4, \App\Filament\Resources\Packages\Schemas\PackageForm::latestCheckInDay(4, 1));
+        $this->assertSame(2, \App\Filament\Resources\Packages\Schemas\PackageForm::latestCheckInDay(2, 1)); // your 2N/3D Udaipur trip
+
+        Livewire::test(EditPackage::class, ['record' => $package->getRouteKey()])
+            ->set('data.stays', ['a' => $stay(2), 'b' => $stay(2)])     // Day 1 → 3, Day 3 → 5
+            ->call('save')
+            ->assertHasNoFormErrors();
+        $this->assertSame([['in' => 1, 'out' => 3], ['in' => 3, 'out' => 5]], PackageStay::dayPlan($package->stays()->get()->all()));
+    }
+
+    public function test_check_in_day_fills_check_out_as_the_next_day_and_check_out_can_be_changed(): void
+    {
+        $this->actingAs(Admin::create(['name' => 'Ops', 'email' => 'ops6@example.com', 'password' => 'secret-pass', 'role' => 'Operations', 'status' => 'Active']), 'admin');
+        $package = $this->package(); // 4 nights: Day 1 → Day 5
+        $package->stays()->create(['name' => 'Manali Inn', 'nights' => 1, 'sort_order' => 1]);
+        $package->stays()->create(['name' => 'Kasol Camps', 'nights' => 1, 'sort_order' => 2]);
+
+        $form = Livewire::test(EditPackage::class, ['record' => $package->getRouteKey()]);
+        [$a, $b] = array_keys($form->get('data.stays'));
+        $form->assertSet("data.stays.$a.check_out_day", 2)->assertSet("data.stays.$b.check_out_day", 3)
+            ->assertFormFieldDisabled("stays.$a.nights"); // worked out from the days, never typed
+
+        // Check-in Day 1 → check-out fills in as Day 2.
+        $form->set("data.stays.$a.check_in_day", 1)
+            ->assertSet("data.stays.$a.check_out_day", 2)
+            ->assertSet("data.stays.$a.nights", 1);
+
+        // Check-out changed to Day 4 → 3 nights there; the next stay follows on, Day 4 → 5.
+        $form->set("data.stays.$a.check_out_day", 4)
+            ->assertSet("data.stays.$a.nights", 3)
+            ->assertSet("data.stays.$b.check_out_day", 5)
+            ->call('save')
+            ->assertHasNoFormErrors();
+        $this->assertSame([3, 1], $package->stays()->pluck('nights')->all());
+
+        // A new check-in day starts over at one night: Day 2 → Day 3.
+        $form->set("data.stays.$a.check_in_day", 2)
+            ->assertSet("data.stays.$a.check_out_day", 3)
+            ->assertSet("data.stays.$a.nights", 1);
+
+        // Check-out can't be on/before check-in, or after the trip's last day.
+        $form->set("data.stays.$b.check_out_day", 3)->call('save')->assertHasFormErrors(["stays.$b.check_out_day" => 'min']);
+        $form->set("data.stays.$b.check_out_day", 7)->call('save')->assertHasFormErrors(["stays.$b.check_out_day" => 'max']);
+    }
+
+    public function test_two_stays_cannot_overlap(): void
+    {
+        $this->actingAs(Admin::create(['name' => 'Ops', 'email' => 'ops7@example.com', 'password' => 'secret-pass', 'role' => 'Operations', 'status' => 'Active']), 'admin');
+        $package = $this->package(); // 4 nights — 2 + 1 nights fits, so only the overlap is wrong
+        $row = fn (string $name, int $nights, ?int $day = null) => ['hotel_id' => null, 'name' => $name, 'stay_type' => 'hotel', 'nights' => $nights, 'check_in_day' => $day, 'or_similar' => true];
+
+        Livewire::test(EditPackage::class, ['record' => $package->getRouteKey()])
+            ->set('data.stays', ['a' => $row('Manali Inn', 2), 'b' => $row('Kasol Camps', 1, 2)]) // Day 1 → 3, then Day 2?
+            ->call('save')
+            ->assertHasFormErrors(['stays'])
+            ->assertSee('"Kasol Camps" checks in on Day 2, but the stay above it checks out on Day 3.');
+        $this->assertSame(0, PackageStay::count());
+    }
+
     public function test_a_typed_in_stay_needs_a_name(): void
     {
         $this->actingAs(Admin::create(['name' => 'Ops', 'email' => 'ops2@example.com', 'password' => 'secret-pass', 'role' => 'Operations', 'status' => 'Active']), 'admin');
@@ -151,6 +234,9 @@ class PackageStaysTest extends TestCase
             ->assertSet('data.stays.a.location', 'Manali')
             ->assertSet('data.stays.a.star_rating', 4)
             ->assertSet('data.stays.a.stay_type', 'resort')
+            ->tap(fn ($c) => $this->assertStringContainsString('14:00', (string) $c->get('data.stays.a.check_in_time')))  // the hotel's 2:00 PM
+            ->tap(fn ($c) => $this->assertStringContainsString('11:00', (string) $c->get('data.stays.a.check_out_time'))) // the hotel's 11:00 AM
+            ->assertFormFieldDisabled('stays.a.check_in_time')
             ->assertFormFieldDisabled('stays.a.name')
             ->assertFormFieldDisabled('stays.a.location')
             ->assertFormFieldDisabled('stays.a.star_rating');

@@ -549,7 +549,8 @@
         @if($package->stays->isNotEmpty())
           @php
             $stayNights = $package->stays->sum('nights');
-            $stayPlaces = $package->stays->map(fn ($s) => $s->displayLocation())->filter()->unique()->values();
+            $stayPlaces = $package->stays->map(fn ($s) => $s->displayLocation())->filter()->unique(fn ($p) => mb_strtolower($p))->values();
+            $stayDays = \App\Models\PackageStay::dayPlan($package->stays->values()->all());
           @endphp
           <div class="pd-section" id="stays">
             <div class="pd-section-label">Your Hotels</div>
@@ -560,7 +561,7 @@
               $stayPlaces->implode(', ') ?: null,
             ])->filter()->implode(' · ') }}</p>
             <div class="pd-stays">
-              @foreach($package->stays as $stay)
+              @foreach($package->stays->values() as $i => $stay)
                 @php
                   $photo = $stay->imageUrl();
                   $stars = $stay->displayStars();
@@ -591,10 +592,21 @@
                     @if($place = $stay->displayLocation())
                       <div class="pd-stay-place"><i class="fa-solid fa-location-dot"></i>{{ $place }}</div>
                     @endif
-                    @if($stay->room_type || $stay->meal_plan)
+                    @php
+                      $checkIn = $stay->checkInTime();
+                      $checkOut = $stay->checkOutTime();
+                    @endphp
+                    @php
+                      $days = $stayDays[$i] ?? null;
+                      $dayLabel = $days ? ($days['out'] !== null ? 'Day '.$days['in'].' → Day '.$days['out'] : 'From Day '.$days['in']) : null;
+                    @endphp
+                    @if($dayLabel || $stay->room_type || $stay->meal_plan || $checkIn || $checkOut)
                       <div class="pd-stay-facts">
+                        @if($dayLabel)<span class="pd-stay-fact"><i class="fa-regular fa-calendar"></i> {{ $dayLabel }}</span>@endif
                         @if($stay->room_type)<span class="pd-stay-fact"><i class="fa-solid fa-bed"></i> {{ $stay->room_type }}</span>@endif
                         @if($stay->meal_plan)<span class="pd-stay-fact"><i class="fa-solid fa-utensils"></i> {{ $stay->meal_plan }}</span>@endif
+                        @if($checkIn)<span class="pd-stay-fact"><i class="fa-solid fa-right-to-bracket"></i> Check-in {{ $checkIn }}</span>@endif
+                        @if($checkOut)<span class="pd-stay-fact"><i class="fa-solid fa-right-from-bracket"></i> Check-out {{ $checkOut }}</span>@endif
                       </div>
                     @endif
                     @if($stay->note)

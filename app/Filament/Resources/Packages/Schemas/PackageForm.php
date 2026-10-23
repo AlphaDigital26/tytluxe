@@ -11,6 +11,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\TimePicker;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
@@ -335,6 +336,21 @@ class PackageForm
                                     if ($limit > 0 && $used > $limit) {
                                         $fail('The stays add up to '.$used.' nights, but this is a '.$limit.'-night package (Duration in the Pricing tab). Lower the nights here, or change the duration.');
                                     }
+                                    $lastDay = collect(\App\Models\PackageStay::dayPlan(is_array($value) ? $value : []))->max(fn ($d) => $d['out'] ?? $d['in']);
+                                    // A stay can't start before the one above it has checked out.
+                                    $plan = array_values(\App\Models\PackageStay::dayPlan(is_array($value) ? $value : []));
+                                    $names = array_values(array_map(fn ($row) => (string) ($row['name'] ?? '') ?: 'the next stay', is_array($value) ? $value : []));
+                                    foreach ($plan as $i => $days) {
+                                        $before = $plan[$i - 1] ?? null;
+                                        if ($before && $before['out'] !== null && $days['in'] < $before['out']) {
+                                            $fail('"'.$names[$i].'" checks in on Day '.$days['in'].', but the stay above it checks out on Day '.$before['out'].'. Two stays cannot overlap — change the days.');
+
+                                            return;
+                                        }
+                                    }
+                                    if ($limit > 0 && $used <= $limit && $lastDay > $limit + 1) {
+                                        $fail('A stay ends on Day '.$lastDay.', but this '.$limit.'-night trip ends on Day '.($limit + 1).'. Check the "Check-in on day" boxes.');
+                                    }
                                 })
                                 ->schema([
 
@@ -356,6 +372,8 @@ class PackageForm
                                             $set('name', $hotel?->title);
                                             $set('location', $hotel?->destination?->name);
                                             $set('star_rating', $hotel?->star_rating ?: null);
+                                            $set('check_in_time', static::timeForPicker($hotel?->check_in_time));
+                                            $set('check_out_time', static::timeForPicker($hotel?->check_out_time));
                                             if ($hotel) {
                                                 $set('stay_type', static::stayTypeFor($hotel->title));
                                             }
@@ -395,13 +413,17 @@ class PackageForm
                                         ->dehydrateStateUsing(fn ($state, $get) => filled($get('hotel_id')) ? null : $state)
                                         ->maxLength(255),
 
+                                    // Worked out from the days below (check-out − check-in),
+                                    // never typed — so the days and nights can't disagree.
                                     TextInput::make('nights')
                                         ->label('Nights here')
                                         ->numeric()
+                                        ->default(1)
                                         ->minValue(1)
                                         ->maxValue(60)
-                                        ->live(onBlur: true) // keeps "Nights used: x of y" above up to date
-                                        ->placeholder('e.g.  2'),
+                                        ->disabled()
+                                        ->dehydrated()
+                                        ->helperText('Worked out from the check-in and check-out days below.'),
 
                                     Select::make('star_rating')
                                         ->label('Stars  (optional)')
@@ -428,6 +450,96 @@ class PackageForm
                                         ->placeholder('e.g.  Breakfast & dinner')
                                         ->maxLength(255)
                                         ->columnSpan(2),
+
+                                    // Which trip days: left empty, a stay starts on the day
+                                    // the one before it ends (the first on Day 1). Set it
+                                    // only when the trip isn't back-to-back, e.g. a night
+                                    // on the bus before this stay.
+                                    TextInput::make('check_in_day')
+                                        ->label('Check-in on day')
+                                        ->numeric()
+                                        ->minValue(0)
+                                        // The latest day a stay can start and still check out by
+                                        // the trip's last day (a 2-night trip ends on Day 3, so
+                                        // Day 2 at the latest).
+                                        ->maxValue(fn ($get) => static::latestCheckInDay($get('../../duration_nights'), 1))
+                                        ->validationMessages(['max' => 'This stay would end after the trip. The latest it can start is Day :max.'])
+                                        ->prefix('Day')
+                                        ->live(onBlur: true)
+                                        // A new check-in day: check-out becomes the next day (1
+                                        // night) — change the check-out day for a longer stay.
+                                        ->afterStateUpdated(function ($get, $set) {
+                                            $set('nights', 1);
+                                            static::refreshCheckOutDays($get, $set);
+                                        })
+                                        ->placeholder(fn ($component, $get) => (string) (static::stayDays($component, $get)['in'] ?? 1))
+                                        ->helperText(fn ($get) => (int) $get('../../duration_nights') > 0
+                                            ? 'Empty = right after the stay before. Latest: Day '.static::latestCheckInDay($get('../../duration_nights'), 1).'.'
+                                            : 'Empty = right after the stay before.'),
+
+                                    // Editable, and kept in step with "Nights here": typing a
+                                    // check-out day sets the nights (check-out − check-in),
+                                    // changing the nights moves the check-out day. Not saved
+                                    // itself — the nights are.
+                                    TextInput::make('check_out_day')
+                                        ->label('Check-out on day')
+                                        ->numeric()
+                                        ->prefix('Day')
+                                        ->dehydrated(false)
+                                        ->live(onBlur: true)
+                                        ->afterStateHydrated(fn ($component, $get) => $component->state(static::stayDays($component, $get)['out']))
+                                        ->afterStateUpdated(function ($state, $component, $get, $set) {
+                                            $in = static::stayDays($component, $get)['in'];
+                                            if (filled($state) && (int) $state > $in) {
+                                                $set('nights', (int) $state - $in);
+                                                static::refreshCheckOutDays($get, $set);
+                                            }
+                                            // On/before check-in: left as typed, so the error below shows.
+                                        })
+                                        ->minValue(fn ($component, $get) => static::stayDays($component, $get)['in'] + 1)
+                                        ->maxValue(fn ($get) => (int) $get('../../duration_nights') > 0 ? (int) $get('../../duration_nights') + 1 : 61)
+                                        ->validationMessages([
+                                            'min' => 'Check-out must be after the check-in day (Day :min at the earliest).',
+                                            'max' => 'The trip ends on Day :max — check-out can\'t be later.',
+                                        ])
+                                        ->helperText(function ($component, $get) {
+                                            $days = static::stayDays($component, $get);
+                                            $lastDay = (int) $get('../../duration_nights') + 1;
+                                            $nights = (int) $get('nights');
+                                            // Say what the check-out day means, so a changed
+                                            // "Nights here" is never a surprise.
+                                            $meaning = $days['out'] !== null
+                                                ? $nights.' '.($nights === 1 ? 'night' : 'nights').' here (Day '.$days['in'].' → Day '.$days['out'].').'
+                                                : 'Type the day the guests check out.';
+                                            if ($days['out'] !== null && $lastDay > 1 && $days['out'] > $lastDay) {
+                                                return new HtmlString('<span style="color:#dc2626;font-weight:600;">'.e($meaning).' The trip ends on Day '.$lastDay.' — pick an earlier check-out day.</span>');
+                                            }
+
+                                            return $meaning.' Fills in as the next day — change it for a longer stay.';
+                                        }),
+
+                                    // Typed in for a camp/homestay; a hotel from the list
+                                    // uses its own times (filled in and locked).
+                                    ...collect(['check_in_time' => 'Check-in time', 'check_out_time' => 'Check-out time'])
+                                        ->map(fn (string $label, string $field) => TimePicker::make($field)
+                                            ->label($label.'  (optional)')
+                                            // The browser's own time picker: hour, minute and
+                                            // AM/PM columns to scroll and tap.
+                                            ->seconds(false)
+                                            ->native()
+                                            ->format('H:i')
+                                            // Open the hour/minute/AM-PM columns on a click anywhere
+                                            // in the box, not only on the small clock icon.
+                                            ->extraInputAttributes(['onclick' => 'try { this.showPicker(); } catch (e) {}', 'style' => 'cursor: pointer;'], merge: true)
+                                            ->disabled(fn ($get) => filled($get('hotel_id')))
+                                            ->afterStateHydrated(fn ($component, $get) => filled($get('hotel_id'))
+                                                ? $component->state(static::timeForPicker(\App\Models\Hotel::find($get('hotel_id'))?->{$field}))
+                                                : null)
+                                            ->helperText(fn ($get) => filled($get('hotel_id')) ? 'The hotel\'s own time, locked.' : null)
+                                            ->dehydrated()
+                                            ->dehydrateStateUsing(fn ($state, $get) => filled($get('hotel_id')) ? null : $state)
+                                            ->columnSpan(1))
+                                        ->values()->all(),
 
                                     // The photo guests will see when nothing is uploaded below.
                                     \Filament\Forms\Components\Placeholder::make('hotel_photo')
@@ -746,6 +858,58 @@ class PackageForm
                 ->columnSpanFull(),
 
         ]);
+    }
+
+    /**
+     * Re-works out every stay's "Check-out on day" box after a nights or day
+     * change, so the rows below follow on. Called from a field inside a stay.
+     */
+    public static function refreshCheckOutDays($get, $set): void
+    {
+        $rows = $get('../../stays');
+        if (! is_array($rows)) {
+            return;
+        }
+        foreach (\App\Models\PackageStay::dayPlan($rows) as $key => $days) {
+            $set('../../stays.'.$key.'.check_out_day', $days['out']);
+        }
+    }
+
+    /** Last day a stay of $nights can start and still check out by the trip's last day (nights + 1). */
+    public static function latestCheckInDay($packageNights, $nights): int
+    {
+        $packageNights = (int) $packageNights;
+        if ($packageNights < 1) {
+            return 60; // duration not set yet: nothing to check against
+        }
+
+        return max(1, $packageNights + 1 - max(1, (int) $nights));
+    }
+
+    /**
+     * This stay's trip days ({in, out}) from the whole list as the form holds
+     * it — the row's key is the second-last part of the field's state path.
+     */
+    public static function stayDays($component, $get): array
+    {
+        $rows = $get('../../stays') ?? [];
+        $parts = explode('.', (string) $component->getStatePath());
+        $key = $parts[count($parts) - 2] ?? null;
+
+        return \App\Models\PackageStay::dayPlan(is_array($rows) ? $rows : [])[$key] ?? ['in' => 1, 'out' => null];
+    }
+
+    /** A hotel's "2:00 PM" as the time picker holds it ("14:00"); null if unreadable. */
+    public static function timeForPicker(?string $time): ?string
+    {
+        if (blank($time)) {
+            return null;
+        }
+        try {
+            return \Illuminate\Support\Carbon::parse($time)->format('H:i');
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     /** All the stays' nights added up, as the form holds them. */
