@@ -1252,6 +1252,7 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
           <input type="hidden" id="htlChildren" name="children" value="{{ $children ?? 0 }}">
           <input type="hidden" id="htlRooms" name="rooms" value="{{ $roomCount ?? 1 }}">
           <input type="hidden" id="htlChildAges" name="child_ages" value="{{ implode(',', $childAges ?? []) }}">
+          <input type="hidden" id="htlRoomConfig" name="room_config" value="{{ $roomConfig ?? '' }}">
 
           <div class="htl-guest-popover" id="htlGuestPopover" onclick="event.stopPropagation()">
             <div id="htlRoomBlocks"></div>
@@ -1538,6 +1539,7 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
             'children' => $children ?? null,
             'rooms' => $roomCount ?? null,
             'child_ages' => !empty($childAges) ? implode(',', $childAges) : null,
+            'room_config' => $roomConfig ?? null,
          ])) }}"
          target="_blank" rel="noopener"
          class="htl-card"
@@ -1821,7 +1823,15 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
   // Distribute the flat adults/children/rooms (and any server-provided ages,
   // e.g. from a prior search) across N room blocks for initial display.
   let rooms = [];
-  {
+  // The guest's own per-room layout ("1-5.8|2") when there is one.
+  const initialConfig = (document.getElementById('htlRoomConfig')?.value || '').trim();
+  if (initialConfig) {
+    rooms = initialConfig.split('|').map(p => {
+      const [a, ages] = p.split('-');
+      const childAges = ages ? ages.split('.').map(v => parseInt(v, 10)) : [];
+      return { adults: parseInt(a, 10), children: childAges.length, childAges };
+    });
+  } else {
     let remA = initialAdults, remC = initialChildren;
     let ageCursor = 0;
     for (let i = 0; i < initialRoomCount; i++) {
@@ -1937,6 +1947,7 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
     document.getElementById('htlAdults').value = totalAdults;
     document.getElementById('htlChildren').value = totalChildren;
     document.getElementById('htlChildAges').value = allAges.join(',');
+    document.getElementById('htlRoomConfig').value = rooms.map(r => r.adults + (r.childAges.length ? '-' + r.childAges.join('.') : '')).join('|');
     let summary = rooms.length + (rooms.length === 1 ? ' Room, ' : ' Rooms, ') + totalAdults + (totalAdults === 1 ? ' Adult' : ' Adults');
     if (totalChildren > 0) summary += ', ' + totalChildren + (totalChildren === 1 ? ' Child' : ' Children');
     if (guestSummary) guestSummary.textContent = summary;
@@ -2142,6 +2153,8 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
       if (children && children.value) params.set('children', children.value);
       if (rooms && rooms.value) params.set('rooms', rooms.value);
       if (childAges && childAges.value) params.set('child_ages', childAges.value);
+      const roomConfig = document.getElementById('htlRoomConfig');
+      if (roomConfig && roomConfig.value) params.set('room_config', roomConfig.value);
       window.location.href = '{{ route('hotels') }}?' + params.toString();
     }
     // Shared with the guest-picker's Apply handler further down the page
@@ -2274,6 +2287,15 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
           nextDay.setDate(nextDay.getDate() + 1);
           instance.setDate([selectedDates[0], nextDay], true);
           return;
+        }
+        // TripJack accepts at most 30 nights: once check-in is picked,
+        // grey out check-out dates beyond that (cleared again after).
+        if (selectedDates.length === 1) {
+          const lastOut = new Date(selectedDates[0]);
+          lastOut.setDate(lastOut.getDate() + 30);
+          instance.set('maxDate', lastOut);
+        } else {
+          instance.set('maxDate', null);
         }
         if (selectedDates.length >= 1) {
           checkInDisplay.value = instance.formatDate(selectedDates[0], 'D, j M Y');

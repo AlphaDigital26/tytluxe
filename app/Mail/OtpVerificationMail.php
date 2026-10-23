@@ -15,7 +15,10 @@ class OtpVerificationMail extends Mailable
     /**
      * Create a new message instance.
      */
-    /** $purpose: 'register' (new account) or 'email_change' (confirming a new address on the profile). */
+    /**
+     * $purpose: 'register' (new account), 'email_change' (confirming a new address on the
+     * profile) or 'account_exists' (sign-up tried with an address that has an account; no code).
+     */
     public function __construct(
         public string $otp,
         public string $userName,
@@ -28,7 +31,9 @@ class OtpVerificationMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Your TYT Luxe Verification Code',
+            subject: $this->purpose === 'account_exists'
+                ? 'You already have a TYT Luxe account'
+                : 'Your TYT Luxe Verification Code',
         );
     }
 

@@ -577,6 +577,21 @@ class TripJackClient
         return $responseBody;
     }
 
+    /**
+     * PAN and passport numbers never go into the log file in full — only the
+     * last 4 characters, enough to tell guests apart when debugging.
+     */
+    public static function maskIdentityNumbers(array $payload): array
+    {
+        array_walk_recursive($payload, function (&$value, $key) {
+            if (in_array($key, ['pan', 'pNum', 'panNumber', 'passportNumber'], true) && is_string($value) && $value !== '') {
+                $value = str_repeat('*', max(0, strlen($value) - 4)).substr($value, -4);
+            }
+        });
+
+        return $payload;
+    }
+
     protected function log(string $method, string $url, ?int $status, float $startedAt, array $requestPayload, array $responseBody, bool $includeFullResponse = false): void
     {
         Log::channel('tripjack')->info('tripjack_request', [
@@ -585,7 +600,7 @@ class TripJackClient
             'status' => $status,
             'duration_ms' => (int) round((microtime(true) - $startedAt) * 1000),
             'correlationId' => $requestPayload['correlationId'] ?? null,
-            'request' => $requestPayload,
+            'request' => self::maskIdentityNumbers($requestPayload),
             // Full body only on failure (for diagnostics); success responses can nest
             // deeply enough to hit Monolog's normalization depth limit, so just summarize.
             'response' => $includeFullResponse ? $responseBody : [

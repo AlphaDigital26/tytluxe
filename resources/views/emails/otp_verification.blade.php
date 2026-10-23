@@ -59,6 +59,17 @@
             <!-- Body -->
             <div class="body">
                 <p class="greeting">Hello, {{ $userName }}</p>
+                @if(($purpose ?? 'register') === 'account_exists')
+                <p class="intro">
+                    Someone just tried to create a new TYT Luxe account with this email address,
+                    but you already have an account with us, so no new account was made.
+                </p>
+                <p class="intro">
+                    If it was you, simply <a href="{{ route('login') }}" style="color:#b8935a;">log in here</a>.
+                    Forgot your password? <a href="{{ route('password.request') }}" style="color:#b8935a;">Reset it here</a>.
+                    If it wasn't you, you can ignore this email. Your account is safe and nothing has changed.
+                </p>
+                @else
                 <p class="intro">
                     @if(($purpose ?? 'register') === 'email_change')
                     You asked to change the email address on your TYT Luxe account to this one.
@@ -91,6 +102,7 @@
                 <p style="font-size: 13px; color: #888; text-align: center;">
                     This code is valid for {{ \App\Http\Controllers\Auth\OtpController::CODE_VALID_MINUTES }} minutes and can be used once only.
                 </p>
+                @endif
             </div>
 
             <!-- Footer -->

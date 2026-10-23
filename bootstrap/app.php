@@ -25,6 +25,8 @@ return Application::configure(basePath: dirname(__DIR__))
         // in one request.
         // On/off switches from the admin's Flight Settings / Hotel Settings pages.
         $middleware->alias([
+            // One counter per route instead of one shared by every route.
+            'throttle' => \App\Http\Middleware\ThrottlePerRoute::class,
             'flight.enabled' => \App\Http\Middleware\EnsureFlightFeatureEnabled::class,
             'hotel.enabled' => \App\Http\Middleware\EnsureHotelBookingEnabled::class,
         ]);
@@ -39,5 +41,11 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        // Razorpay refused the payment order (e.g. over its amount limit):
+        // back to the previous page with the reason, not an error page.
+        $exceptions->render(function (\App\Services\Payment\PaymentOrderException $e, \Illuminate\Http\Request $request) {
+            return $request->expectsJson()
+                ? response()->json(['success' => false, 'message' => $e->getMessage()], 422)
+                : back()->withInput()->with('booking_error', $e->getMessage());
+        });
     })->create();

@@ -27,6 +27,14 @@ class TripJackErrorCatalog
                 'logLevel' => 'warning',
                 'action' => 'none',
             ],
+            // Confirmed on sandbox (Book): "Duplicate Booking. Existing booking
+            // was done using Credit Line or Wallet. Do not rebook." — the same
+            // lead guest, hotel and dates are already booked.
+            '2631' => [
+                'message' => 'You already have a booking at this hotel for these dates under the same guest name, so we didn’t book it twice. Please check My Trips — any amount paid for this attempt is refunded automatically.',
+                'logLevel' => 'warning',
+                'action' => 'none',
+            ],
             '6502' => [ // SEARCH_SESSION_EXPIRED
                 'message' => 'Your search has expired. Please search again to see current rates.',
                 'logLevel' => 'info',

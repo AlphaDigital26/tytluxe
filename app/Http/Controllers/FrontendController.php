@@ -60,6 +60,7 @@ class FrontendController extends Controller
             ->all();
         $minRating = $minRatings[0] ?? 0;
         $childAges = $input['childAges'];
+        $roomConfig = $input['roomConfig'];
 
         $hasSearched = $request->has('destination') || $request->has('hotel') || $request->has('check_in') || $request->has('min_rating');
         $searchActive = ($destinationQuery !== '' || $hotelSlug !== '') && $checkIn && $checkOut;
@@ -117,7 +118,7 @@ class FrontendController extends Controller
                 $searchError = $input['error'];
             } elseif ($searchActive) {
                 try {
-                    $rooms = $this->distributeGuestsAcrossRooms($adults, $children, $roomCount, $childAges);
+                    $rooms = $this->roomsForSearch($input);
                     $result = $this->cityListingSearch($listingSearch, $searchDestination, $checkIn, $checkOut, $rooms, $nationality);
                     $liveOptions = $result['options'];
                     $livePriced = $liveOptions->isNotEmpty();
@@ -148,6 +149,10 @@ class FrontendController extends Controller
                         'rooms' => $roomCount,
                         'nationality' => $nationality,
                         'child_ages' => $childAges,
+                        'room_config' => $input['roomConfig'],
+                        // TripJack's search id can't be renewed: once it's this
+                        // old, the hotel page starts a new search (see hotelDetails).
+                        'searched_at' => now()->timestamp,
                     ]]);
                 } catch (TripJackException $e) {
                     Log::channel('tripjack')->warning('listing_search_failed', ['message' => $e->getMessage()]);
@@ -236,7 +241,7 @@ class FrontendController extends Controller
 
         return view('pages.hotels', compact(
             'hotels', 'hotelsPage', 'liveOptions', 'searchActive', 'hasSearched', 'searchError',
-            'destinationQuery', 'checkIn', 'checkOut', 'adults', 'children', 'roomCount', 'childAges',
+            'destinationQuery', 'checkIn', 'checkOut', 'adults', 'children', 'roomCount', 'childAges', 'roomConfig',
             'nationality', 'nationalities', 'minRating', 'minRatings', 'destinations',
             'filters', 'starCounts', 'livePriced', 'sort', 'searchDestination'
         ));
@@ -414,6 +419,9 @@ class FrontendController extends Controller
     /** Re-search prompt after a Detail/Review (TripJack best practice: ~12 of its ~15 minutes). */
     protected const HOTEL_SESSION_SECONDS = 720;
 
+    /** Longest stay TripJack accepts in one booking. */
+    protected const HOTEL_MAX_NIGHTS = 30;
+
     /** PAN: AAAAA9999A where the 4th letter is a valid holder type (TripJack error 1092 otherwise). */
     public const PAN_REGEX = 'regex:/^[A-Za-z]{3}[ABCFGHJLPTKEabcfghjlptke][A-Za-z][0-9]{4}[A-Za-z]$/';
 
@@ -477,12 +485,34 @@ class FrontendController extends Controller
             ? $this->parseChildAges((string) $request->query('child_ages', ''))
             : array_values(array_map('intval', (array) ($fallback['child_ages'] ?? [])));
 
-        $error ??= match (true) {
+        // The guest's own per-room layout from the picker ("1-5.8|2-7|1"),
+        // used exactly instead of an even split. Taken from the session only
+        // when the link carries no guest counts of its own.
+        $rawConfig = $request->query('room_config');
+        if ($rawConfig === null && ! $request->hasAny(['rooms', 'adults', 'children'])) {
+            $rawConfig = $fallback['room_config'] ?? null;
+        }
+        $roomConfig = null;
+        if (filled($rawConfig)) {
+            $parsedRooms = self::parseRoomConfig((string) $rawConfig);
+            if ($parsedRooms === null) {
+                $error = 'Please check the guests in each room and search again.';
+            } else {
+                $roomCount = count($parsedRooms);
+                $adults = array_sum(array_column($parsedRooms, 'adults'));
+                $children = array_sum(array_map(fn ($r) => count($r['childAge'] ?? []), $parsedRooms));
+                $childAges = array_merge(...array_map(fn ($r) => $r['childAge'] ?? [], $parsedRooms));
+                $roomConfig = self::roomConfigString($parsedRooms);
+            }
+        }
+
+        $error ??= $roomConfig !== null ? null : match (true) {
             (int) $param('rooms', 1) > self::HOTEL_MAX_ROOMS => 'You can book up to '.self::HOTEL_MAX_ROOMS.' rooms at a time.',
             $adults < $roomCount => 'Each room needs at least one adult — please add adults or choose fewer rooms.',
             $adults > $roomCount * self::HOTEL_MAX_ADULTS_PER_ROOM => 'A room can have at most '.self::HOTEL_MAX_ADULTS_PER_ROOM.' adults — please add another room.',
             $children > $roomCount * self::HOTEL_MAX_CHILDREN_PER_ROOM => 'A room can have at most '.self::HOTEL_MAX_CHILDREN_PER_ROOM.' children — please add another room.',
             $children > 0 && count($childAges) !== $children => 'Please select the age of each child — hotels price children by age.',
+            collect($childAges)->contains(fn ($a) => $a < 0 || $a > 17) => 'Children must be 0 to 17 years old — please add guests aged 18 or over as adults.',
             default => null,
         };
 
@@ -494,8 +524,55 @@ class FrontendController extends Controller
             'roomCount' => $roomCount,
             'childAges' => array_slice($childAges, 0, $children),
             'nationality' => $this->validNationality((string) $param('nationality', '106')),
+            'roomConfig' => $roomConfig,
             'error' => $error,
         ];
+    }
+
+    /**
+     * "1-5.8|2-7|1" → [['adults'=>1,'children'=>2,'childAge'=>[5,8]], ...]
+     * (TripJack's rooms shape). Null when anything is out of range: 1-9
+     * rooms, 1-6 adults and 0-4 children per room, ages 0-17.
+     */
+    public static function parseRoomConfig(string $raw): ?array
+    {
+        $parts = explode('|', trim($raw));
+        if (count($parts) < 1 || count($parts) > self::HOTEL_MAX_ROOMS) {
+            return null;
+        }
+        $rooms = [];
+        foreach ($parts as $part) {
+            if (! preg_match('/^(\d)(?:-(\d{1,2}(?:\.\d{1,2}){0,3}))?$/', trim($part), $m)) {
+                return null;
+            }
+            $adults = (int) $m[1];
+            $ages = isset($m[2]) && $m[2] !== '' ? array_map('intval', explode('.', $m[2])) : [];
+            if ($adults < 1 || $adults > self::HOTEL_MAX_ADULTS_PER_ROOM || count($ages) > self::HOTEL_MAX_CHILDREN_PER_ROOM
+                || collect($ages)->contains(fn ($a) => $a < 0 || $a > 17)) {
+                return null;
+            }
+            $room = ['adults' => $adults];
+            if ($ages) {
+                $room['children'] = count($ages);
+                $room['childAge'] = $ages;
+            }
+            $rooms[] = $room;
+        }
+
+        return $rooms;
+    }
+
+    public static function roomConfigString(array $rooms): string
+    {
+        return collect($rooms)->map(fn ($r) => $r['adults'].(! empty($r['childAge']) ? '-'.implode('.', $r['childAge']) : ''))->implode('|');
+    }
+
+    /** TripJack's rooms for a search: the guest's own layout, else an even split. */
+    protected function roomsForSearch(array $input): array
+    {
+        return $input['roomConfig'] !== null
+            ? self::parseRoomConfig($input['roomConfig'])
+            : $this->distributeGuestsAcrossRooms($input['adults'], $input['children'], $input['roomCount'], $input['childAges']);
     }
 
     /**
@@ -557,8 +634,15 @@ class FrontendController extends Controller
             return [$in->format('Y-m-d'), $out->format('Y-m-d'), 'Check-in can’t be in the past — please choose a date from today onwards.'];
         }
 
+        // Said plainly rather than quietly corrected, so the guest knows
+        // which dates are being priced.
         if ($out->lessThanOrEqualTo($in)) {
-            $out = $in->copy()->addDay();
+            return [$in->format('Y-m-d'), $out->format('Y-m-d'), 'Check-out must be at least one day after check-in — please choose your dates again.'];
+        }
+
+        // TripJack refuses longer stays; say so before asking it.
+        if ($in->diffInDays($out) > self::HOTEL_MAX_NIGHTS) {
+            return [$in->format('Y-m-d'), $out->format('Y-m-d'), 'You can book up to '.self::HOTEL_MAX_NIGHTS.' nights at a time — for a longer stay, please make two bookings or contact our team.'];
         }
 
         return [$in->format('Y-m-d'), $out->format('Y-m-d'), null];
@@ -569,7 +653,8 @@ class FrontendController extends Controller
         return collect(explode(',', $raw))
             ->map(fn ($v) => trim($v))
             ->filter(fn ($v) => $v !== '' && is_numeric($v))
-            ->map(fn ($v) => max(0, min(17, (int) $v)))
+            // Out-of-range ages are kept as typed; hotelSearchInput() refuses them.
+            ->map(fn ($v) => (int) $v)
             ->values()
             ->all();
     }
@@ -646,7 +731,11 @@ class FrontendController extends Controller
         }
 
         // TripJack's roomInfo didn't include per-room adults/children (some
-        // response variants omit it) — fall back to our own even split.
+        // response variants omit it) — use the guest's own layout, else an even split.
+        if (! empty($draft['room_config']) && ($own = self::parseRoomConfig($draft['room_config']))) {
+            return array_map(fn ($r) => array_intersect_key($r, ['adults' => 1, 'children' => 1]), $own);
+        }
+
         return $this->distributeGuestsAcrossRooms($draft['adults'], $draft['children'], $draft['rooms']);
     }
 
@@ -759,6 +848,7 @@ class FrontendController extends Controller
         $children = $input['children'];
         $roomCount = $input['roomCount'];
         $childAges = $input['childAges'];
+        $roomConfig = $input['roomConfig'];
         $nationality = $input['nationality'];
 
         $liveOptions = collect();
@@ -783,17 +873,25 @@ class FrontendController extends Controller
                 && (int) ($sessionSearch['children'] ?? 0) === $children
                 && (int) ($sessionSearch['rooms'] ?? 0) === $roomCount
                 && array_values(array_map('intval', $sessionSearch['child_ages'] ?? [])) === $childAges
-                && (string) ($sessionSearch['nationality'] ?? '106') === $nationality;
+                && (string) ($sessionSearch['nationality'] ?? '106') === $nationality
+                && ($sessionSearch['room_config'] ?? null) === $input['roomConfig']
+                // An expired search id must not be reused (TripJack: "not
+                // renewable — a new Search must be called").
+                && now()->timestamp - (int) ($sessionSearch['searched_at'] ?? 0) < self::HOTEL_SESSION_SECONDS;
             $correlationId = $sameSearch ? $sessionSearch['correlationId'] : TripJackClient::newCorrelationId();
 
             try {
-                $rooms = $this->distributeGuestsAcrossRooms($adults, $children, $roomCount, $childAges);
+                $rooms = $this->roomsForSearch($input);
                 $response = $client->pricing($hotel->tripjack_hotel_id, $checkIn, $checkOut, $rooms, $correlationId, nationality: $nationality);
                 // Add the customer-facing price (TripJack's raw totalPrice + TYTLUXE markup)
                 // to every option here, once, so every view downstream reads it rather than
                 // re-deriving it from the raw TripJack price.
                 $roomNights = HotelPricingService::roomNights($checkIn, $checkOut, $roomCount);
-                $liveOptions = collect($response['options'] ?? [])->map(fn ($option) => $this->withCustomerPricing($option, $roomNights));
+                $liveOptions = collect($response['options'] ?? [])
+                    // TripJack: never show an option whose inventory is gone.
+                    ->reject(fn ($option) => ($option['inventory']['available'] ?? true) === false)
+                    ->values()
+                    ->map(fn ($option) => $this->withCustomerPricing($option, $roomNights));
                 $reviewHash = $response['reviewHash'] ?? null;
 
                 session(["tripjack_pricing.{$hotel->tripjack_hotel_id}" => [
@@ -808,6 +906,7 @@ class FrontendController extends Controller
                     // Carried into Review / the back link so a retry re-prices
                     // the same guests (H3-6/H3-7) instead of defaults.
                     'child_ages' => $childAges,
+                    'room_config' => $input['roomConfig'],
                     'nationality' => $nationality,
                     // The price each option was shown at, so Review can tell
                     // the guest if it moved since they picked it.
@@ -835,7 +934,7 @@ class FrontendController extends Controller
             : null;
 
         return view('pages.hotel-details', compact(
-            'hotel', 'liveOptions', 'pricingError', 'checkIn', 'checkOut', 'adults', 'children', 'roomCount', 'childAges', 'nationality', 'destinations', 'pricingExpiresAt'
+            'hotel', 'liveOptions', 'pricingError', 'checkIn', 'checkOut', 'adults', 'children', 'roomCount', 'childAges', 'roomConfig', 'nationality', 'destinations', 'pricingExpiresAt'
         ));
     }
 
@@ -985,6 +1084,7 @@ class FrontendController extends Controller
             'rooms' => $context['rooms'] ?? $request?->input('rooms'),
             'child_ages' => ! empty($context['child_ages']) ? implode(',', $context['child_ages']) : $request?->input('child_ages'),
             'nationality' => $context['nationality'] ?? $request?->input('nationality'),
+            'room_config' => $context['room_config'] ?? $request?->input('room_config'),
         ];
 
         return array_filter($params, fn ($v) => $v !== null && $v !== '');
@@ -1080,6 +1180,7 @@ class FrontendController extends Controller
             'children' => $pricingContext['children'],
             'rooms' => $pricingContext['rooms'],
             'child_ages' => $pricingContext['child_ages'] ?? [],
+            'room_config' => $pricingContext['room_config'] ?? null,
             'nationality' => $pricingContext['nationality'] ?? '106',
         ]]);
 
@@ -1256,10 +1357,26 @@ class FrontendController extends Controller
                 }
             }
         }
+        // Plain names in messages ("Room 1, guest 2: first name"), never the
+        // raw field key ("rooms.0.travelers.1.first_name").
+        $attributes = ['contact_email' => 'email', 'contact_phone' => 'mobile number', 'pan_name' => 'name as per PAN',
+            'pan_number' => 'PAN', 'gst_number' => 'GSTIN', 'gst_registered_name' => 'registered company name', 'special_requests' => 'special requests'];
+        foreach ($roomSlots as $ri => $slot) {
+            for ($ti = 0; $ti < $slot['adults'] + ($slot['children'] ?? 0); $ti++) {
+                $who = 'Room '.($ri + 1).', guest '.($ti + 1);
+                foreach (['title' => 'title', 'first_name' => 'first name', 'last_name' => 'last name', 'passport_number' => 'passport number'] as $field => $label) {
+                    $attributes["rooms.{$ri}.travelers.{$ti}.{$field}"] = "{$who}: {$label}";
+                }
+            }
+        }
         $validated = $request->validate($rules, [
             'pan_number.regex' => 'Please enter a valid PAN, e.g. ABCPE1234F — the 4th letter is the holder type (P for an individual).',
             'gst_number.regex' => 'Please enter a valid 15-character GSTIN.',
-        ]);
+            'rooms.*.travelers.*.first_name.regex' => ':attribute can only have letters, spaces, dots, apostrophes and hyphens.',
+            'rooms.*.travelers.*.last_name.regex' => ':attribute can only have letters, spaces, dots, apostrophes and hyphens.',
+            'rooms.*.travelers.*.title.in' => ':attribute must be Mr, Mrs or Ms for an adult, and Master or Miss for a child.',
+            'rooms.*.travelers.*.passport_number.regex' => ':attribute must be 6 to 20 letters and numbers.',
+        ], $attributes);
         // Saved whenever given (it goes on our invoice); sent to TripJack
         // only for a rate that requires it (see confirmBookingAfterPayment).
         $gstInfo = ! empty($validated['gst_number']) ? [
@@ -1437,11 +1554,21 @@ class FrontendController extends Controller
 
         $this->syncProfileFromBooking($request->user(), $validated, $panRequired);
 
+        try {
+            $order = $razorpay->createOrder((float) $booking->total_amount, $booking->reference);
+        } catch (\App\Services\Payment\PaymentOrderException $e) {
+            // Nothing was paid or booked: undo the unpaid booking so the
+            // guest can change their choice, and keep their draft.
+            $booking->travelers()->delete();
+            $booking->delete();
+
+            return redirect()->route('hotel.review.show', $slug)->withInput()->with('booking_error', $e->getMessage());
+        }
+
         // Everything needed to complete the booking now lives on the Booking
         // row itself — the review draft has served its purpose.
         session()->forget('tripjack_booking_draft');
 
-        $order = $razorpay->createOrder((float) $booking->total_amount, $booking->reference);
         Payment::create([
             'booking_id' => $booking->id,
             'razorpay_order_id' => $order['id'],

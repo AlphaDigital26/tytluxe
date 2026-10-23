@@ -32,11 +32,17 @@ class RegisteredUserController extends Controller
     public function store(Request $request): RedirectResponse
     {
         // People type "Ananya@Gmail.com"; accounts are stored in lowercase.
-        $request->merge(['email' => strtolower(trim((string) $request->input('email')))]);
+        // Only for text: a list sent as email= must fail validation, not crash.
+        if (is_string($request->input('email'))) {
+            $request->merge(['email' => strtolower(trim($request->input('email')))]);
+        }
 
         $request->validate([
             'name'     => ['required', 'string', 'max:255'],
-            'email'    => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
+            // No "already taken" check here: saying so would tell anyone which
+            // emails have an account. Existing addresses get the same next
+            // page, and their owner is emailed instead of getting a code.
+            'email'    => ['required', 'string', 'lowercase', 'email', 'max:255'],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
@@ -45,16 +51,19 @@ class RegisteredUserController extends Controller
                 ->withErrors(['email' => $limit]);
         }
 
+        $existing = User::where('email', $request->email)->exists();
+
         // Store pending registration data in session (password already hashed)
         $request->session()->put('pending_registration', [
             'name'                 => $request->name,
             'email'                => $request->email,
             'password'             => Hash::make($request->password),
             'subscribe_newsletter' => $request->has('subscribe_newsletter'),
+            'existing'             => $existing,
         ]);
 
         // Generate OTP and send verification email
-        if (OtpController::generateAndSendOtp($request->email, $request->name) === null) {
+        if (OtpController::generateAndSendOtp($request->email, $request->name, $existing ? 'account_exists' : 'register') === null) {
             $request->session()->forget('pending_registration');
 
             return back()->withInput($request->except('password', 'password_confirmation'))

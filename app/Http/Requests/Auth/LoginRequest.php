@@ -28,7 +28,10 @@ class LoginRequest extends FormRequest
     /** Accounts are stored in lowercase; accept "Name@Gmail.com" too. */
     protected function prepareForValidation(): void
     {
-        $this->merge(['email' => strtolower(trim((string) $this->input('email')))]);
+        // Only for text: a list sent as email= must fail validation, not crash.
+        if (is_string($this->input('email'))) {
+            $this->merge(['email' => strtolower(trim($this->input('email')))]);
+        }
     }
 
     public function rules(): array

@@ -3469,6 +3469,7 @@ html { scroll-behavior: smooth; }
         <input type="hidden" id="hdModChildren" name="children" value="{{ $children ?? 0 }}">
         <input type="hidden" id="hdModRooms" name="rooms" value="{{ $roomCount ?? 1 }}">
         <input type="hidden" id="hdModChildAges" name="child_ages" value="{{ implode(',', $childAges ?? []) }}">
+        <input type="hidden" id="hdModRoomConfig" name="room_config" value="{{ $roomConfig ?? '' }}">
 
         <div class="htl-guest-popover" id="hdModGuestPopover" onclick="event.stopPropagation()">
           <div id="hdModRoomBlocks"></div>
@@ -3904,7 +3905,7 @@ html { scroll-behavior: smooth; }
     @if(session('booking_error'))
     <script>
       document.addEventListener('DOMContentLoaded', function () {
-        showToast('Something Went Wrong', @json(session('booking_error')), 'error');
+        showToast('Please choose again', @json(session('booking_error')), 'error');
       });
     </script>
     @endif
@@ -3946,6 +3947,27 @@ html { scroll-behavior: smooth; }
     <div class="hd-room-empty" id="hdRoomEmpty" hidden>
       No room options match these filters. <button type="button" class="hd-room-clear" data-clear>Clear all filters</button>
     </div>
+    @if(! empty($pricingExpiresAt))
+    <style>
+      .hd-price-timer { display:inline-flex; align-items:center; gap:8px; margin:0 0 14px; padding:7px 14px; border-radius:100px; border:1px solid rgba(201,168,76,0.35); background:rgba(201,168,76,0.08); font-family:'Jost',sans-serif; font-size:12.5px; color:rgba(255,255,255,0.75); }
+      .hd-price-timer strong { color:var(--gold); font-variant-numeric:tabular-nums; }
+      .hd-price-timer.urgent { border-color:rgba(220,120,80,0.6); background:rgba(220,120,80,0.1); }
+      .hd-price-expired { display:none; position:fixed; inset:0; z-index:9999; align-items:center; justify-content:center; padding:16px; background:rgba(0,0,0,0.7); }
+      .hd-price-expired-box { max-width:420px; width:100%; padding:28px 24px; border-radius:18px; text-align:center; background:#141414; border:1px solid rgba(201,168,76,0.35); font-family:'Jost',sans-serif; color:rgba(255,255,255,0.8); }
+      .hd-price-expired-box h3 { font-family:'Cormorant Garamond',serif; font-size:1.6rem; color:#fff; margin:0 0 10px; }
+      .hd-price-expired-box p { font-size:14px; line-height:1.6; margin:0 0 20px; }
+    </style>
+    <div class="hd-price-timer" id="hdPriceTimer">
+      Prices held for <strong id="hdPriceTimerLeft">12:00</strong> — after that we'll fetch fresh prices.
+    </div>
+    <div class="hd-price-expired" id="hdPriceExpired" role="dialog" aria-modal="true" aria-labelledby="hdPriceExpiredTitle">
+      <div class="hd-price-expired-box">
+        <h3 id="hdPriceExpiredTitle">Prices may have changed</h3>
+        <p>Room prices and availability are only held for a short time. Please refresh to see the latest prices before you book.</p>
+        <button type="button" class="hd-room-btn" style="border-radius:100px; padding:12px 28px;" onclick="window.location.reload()">Refresh prices</button>
+      </div>
+    </div>
+    @endif
     <div class="hd-room-list">
       @php
         $groupedOptions = collect($liveOptions)->groupBy(function($option) {
@@ -5133,6 +5155,15 @@ html { scroll-behavior: smooth; }
             instance.setDate([selectedDates[0], nextDay], true);
             return;
           }
+          // TripJack accepts at most 30 nights: once check-in is picked,
+          // grey out check-out dates beyond that (cleared again after).
+          if (selectedDates.length === 1) {
+            const lastOut = new Date(selectedDates[0]);
+            lastOut.setDate(lastOut.getDate() + 30);
+            instance.set('maxDate', lastOut);
+          } else {
+            instance.set('maxDate', null);
+          }
           if(selectedDates.length > 0) {
             checkinInput.value = instance.formatDate(selectedDates[0], "d M Y");
           } else {
@@ -5666,20 +5697,31 @@ html { scroll-behavior: smooth; }
       });
     });
 
-    /* ===== PRICE FRESHNESS AUTO-RELOAD (silent — no visible countdown) ===== */
+    /* ===== PRICE FRESHNESS COUNTDOWN ===== */
     // TripJack's search/pricing session is valid for ~15 minutes; their best
-    // practice is to prompt a re-search at ~12 ($pricingExpiresAt, set in
-    // FrontendController::hotelDetails). Reload then to pull fresh prices
-    // rather than let a guest pick a rate that expires at Review.
+    // practice is a visible timer and a prompt to re-search at ~12
+    // ($pricingExpiresAt, set in FrontendController::hotelDetails), so a
+    // guest never picks a rate that expires at Review.
     @if(! empty($pricingExpiresAt))
     (function () {
-      const remainingMs = ({{ (int) $pricingExpiresAt }} * 1000) - Date.now();
-      setTimeout(function () {
-        if (typeof showToast === 'function') {
-          showToast('Price is outdated', 'Reloading to get the latest prices...', 'error');
+      const pill = document.getElementById('hdPriceTimer');
+      const left = document.getElementById('hdPriceTimerLeft');
+      const prompt = document.getElementById('hdPriceExpired');
+      if (!pill || !prompt) return;
+      // Server-relative: the guest's clock may be off.
+      const remaining = {{ (int) $pricingExpiresAt }} - {{ now()->timestamp }};
+      const start = Date.now();
+      (function tick() {
+        const secs = Math.max(0, Math.round(remaining - (Date.now() - start) / 1000));
+        if (secs <= 0) {
+          pill.style.display = 'none';
+          prompt.style.display = 'flex';
+          return;
         }
-        setTimeout(() => window.location.reload(), 1500);
-      }, Math.max(0, remainingMs));
+        left.textContent = Math.floor(secs / 60) + ':' + ('0' + (secs % 60)).slice(-2);
+        pill.classList.toggle('urgent', secs <= 120);
+        setTimeout(tick, 1000);
+      })();
     })();
     @endif
 
@@ -5970,6 +6012,15 @@ html { scroll-behavior: smooth; }
             instance.setDate([selectedDates[0], nextDay], true);
             return;
           }
+          // TripJack accepts at most 30 nights: once check-in is picked,
+          // grey out check-out dates beyond that (cleared again after).
+          if (selectedDates.length === 1) {
+            const lastOut = new Date(selectedDates[0]);
+            lastOut.setDate(lastOut.getDate() + 30);
+            instance.set('maxDate', lastOut);
+          } else {
+            instance.set('maxDate', null);
+          }
           if (selectedDates.length >= 1) {
             checkInDisplay.value = instance.formatDate(selectedDates[0], 'D, j M Y');
             checkInIso.value = instance.formatDate(selectedDates[0], 'Y-m-d');
@@ -6021,7 +6072,15 @@ html { scroll-behavior: smooth; }
         .split(',').map(v => v.trim()).filter(v => v !== '').map(v => parseInt(v, 10));
 
       let rooms = [];
-      {
+      // The guest's own per-room layout ("1-5.8|2") when there is one.
+      const initialConfig = (document.getElementById('hdModRoomConfig')?.value || '').trim();
+      if (initialConfig) {
+        rooms = initialConfig.split('|').map(p => {
+          const [a, ages] = p.split('-');
+          const childAges = ages ? ages.split('.').map(v => parseInt(v, 10)) : [];
+          return { adults: parseInt(a, 10), children: childAges.length, childAges };
+        });
+      } else {
         let remA = initialAdults, remC = initialChildren;
         let ageCursor = 0;
         for (let i = 0; i < initialRoomCount; i++) {
@@ -6137,6 +6196,7 @@ html { scroll-behavior: smooth; }
         document.getElementById('hdModAdults').value = totalAdults;
         document.getElementById('hdModChildren').value = totalChildren;
         document.getElementById('hdModChildAges').value = allAges.join(',');
+        document.getElementById('hdModRoomConfig').value = rooms.map(r => r.adults + (r.childAges.length ? '-' + r.childAges.join('.') : '')).join('|');
         let summary = rooms.length + (rooms.length === 1 ? ' Room, ' : ' Rooms, ') + totalAdults + (totalAdults === 1 ? ' Adult' : ' Adults');
         if (totalChildren > 0) summary += ', ' + totalChildren + (totalChildren === 1 ? ' Child' : ' Children');
         if (guestSummary) guestSummary.textContent = summary;
@@ -6219,6 +6279,7 @@ html { scroll-behavior: smooth; }
           searchUrl.searchParams.set('rooms', document.getElementById('hdModRooms').value);
           const ca = document.getElementById('hdModChildAges').value;
           if (ca) searchUrl.searchParams.set('child_ages', ca);
+          searchUrl.searchParams.set('room_config', document.getElementById('hdModRoomConfig').value);
           window.location.href = searchUrl.toString();
           return;
         }
@@ -6232,6 +6293,7 @@ html { scroll-behavior: smooth; }
         detailUrl.searchParams.set('rooms', document.getElementById('hdModRooms').value);
         const childAgesVal = document.getElementById('hdModChildAges').value;
         if (childAgesVal) detailUrl.searchParams.set('child_ages', childAgesVal);
+        detailUrl.searchParams.set('room_config', document.getElementById('hdModRoomConfig').value);
         @if($hotel->source === 'tripjack')
         detailUrl.hash = 'htl-room-section';
         @else

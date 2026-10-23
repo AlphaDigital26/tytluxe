@@ -76,8 +76,10 @@ class OtpController extends Controller
             return back()->withErrors(['otp' => self::CODE_EXPIRED_MESSAGE]);
         }
 
-        // Verify OTP
-        if (! $otpRecord->matches($request->otp)) {
+        // Verify OTP. An address that already has an account never gets a
+        // new one (its code was never sent; this also covers a sign-up race).
+        if (! $otpRecord->matches($request->otp) || ! empty($pending['existing'])
+            || User::where('email', $email)->exists()) {
             $remaining = 5 - $otpRecord->fresh()->attempts;
             return back()->withErrors([
                 'otp' => "Invalid verification code. {$remaining} attempt(s) remaining.",
@@ -137,7 +139,8 @@ class OtpController extends Controller
         EmailOtp::where('email', $email)->delete();
 
         // Generate and send a new OTP
-        if ($this->generateAndSendOtp($email, $pending['name']) === null) {
+        $purpose = empty($pending['existing']) ? 'register' : 'account_exists';
+        if ($this->generateAndSendOtp($email, $pending['name'], $purpose) === null) {
             return back()->withErrors(['otp' => self::EMAIL_FAILED_MESSAGE]);
         }
 
@@ -202,7 +205,9 @@ class OtpController extends Controller
         ]);
 
         try {
-            Mail::to($email)->send(new OtpVerificationMail($otp, $name, $purpose));
+            // 'account_exists': the code is stored (so the code page behaves the
+            // same) but never sent, so it can't be used.
+            Mail::to($email)->send(new OtpVerificationMail($purpose === 'account_exists' ? '' : $otp, $name, $purpose));
         } catch (\Throwable $e) {
             EmailOtp::where('email', $email)->delete();
             \Illuminate\Support\Facades\Log::error('otp_email_send_failed', ['email' => $email, 'error' => $e->getMessage()]);
