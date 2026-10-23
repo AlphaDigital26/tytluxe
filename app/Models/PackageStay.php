@@ -49,7 +49,57 @@ class PackageStay extends Model
 
     public function displayLocation(): ?string
     {
-        return $this->hotel ? $this->hotel->destination?->name : $this->location;
+        // Typed-in places get a capital letter: "udaipur" → "Udaipur".
+        return $this->hotel ? $this->hotel->destination?->name : (filled($this->location) ? Str::ucfirst(trim($this->location)) : null);
+    }
+
+    /**
+     * Which trip days each stay covers, in trip order: a stay starts on its
+     * own "check-in day" if one is set, else on the day the stay before it
+     * ends (the first on Day 1); it ends that many nights later.
+     *
+     * @param  iterable<int|string, array{nights?: mixed, check_in_day?: mixed}|self>  $stays  form rows or models, in order
+     * @return array<int|string, array{in: int, out: ?int}>  keyed like $stays
+     */
+    public static function dayPlan(iterable $stays): array
+    {
+        $plan = [];
+        $next = 1;
+        foreach ($stays as $key => $stay) {
+            $row = $stay instanceof self ? $stay->only(['nights', 'check_in_day']) : (array) $stay;
+            $in = filled($row['check_in_day'] ?? null) ? max(0, (int) $row['check_in_day']) : $next;
+            $nights = (int) ($row['nights'] ?? 0);
+            $out = $nights > 0 ? $in + $nights : null;
+            $plan[$key] = ['in' => $in, 'out' => $out];
+            $next = $out ?? $in;
+        }
+
+        return $plan;
+    }
+
+    /** "2:00 PM" — the linked hotel's own time, else the one typed in here. */
+    public function checkInTime(): ?string
+    {
+        return self::niceTime($this->hotel ? $this->hotel->check_in_time : $this->check_in_time);
+    }
+
+    public function checkOutTime(): ?string
+    {
+        return self::niceTime($this->hotel ? $this->hotel->check_out_time : $this->check_out_time);
+    }
+
+    /** "14:00" / "14:00:00" / "2:00 PM" → "2:00 PM"; anything unreadable is shown as typed. */
+    protected static function niceTime(?string $time): ?string
+    {
+        $time = trim((string) $time);
+        if ($time === '') {
+            return null;
+        }
+        try {
+            return \Illuminate\Support\Carbon::parse($time)->format('g:i A');
+        } catch (\Throwable) {
+            return $time;
+        }
     }
 
     public function typeLabel(): string
