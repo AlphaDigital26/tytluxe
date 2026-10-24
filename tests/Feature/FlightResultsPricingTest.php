@@ -123,6 +123,40 @@ class FlightResultsPricingTest extends TestCase
         $this->assertStringContainsString('class="frx-groups"', $oneway);
     }
 
+    public function test_domestic_multi_city_shows_one_tab_per_flight_with_a_booking_bar(): void
+    {
+        $first = now()->addDays(30)->toDateString();
+        $second = now()->addDays(31)->toDateString();
+        $leg = fn ($id, $from, $to, $date, $no, $tf) => ['sI' => [['id' => $id, 'fD' => ['aI' => ['code' => '6E', 'name' => 'IndiGo'], 'fN' => $no], 'da' => ['code' => $from], 'aa' => ['code' => $to],
+            'dt' => $date.'T06:00', 'at' => $date.'T08:10', 'duration' => 130, 'stops' => 0, 'sN' => 0]],
+            'totalPriceList' => [['id' => 'P'.$id, 'fareIdentifier' => 'PUBLISHED', 'fd' => ['ADULT' => ['fC' => ['TF' => $tf, 'BF' => $tf - 800, 'TAF' => 800], 'rT' => 1, 'cc' => 'ECONOMY']]]]];
+        Http::fake(['*/air-search-all' => Http::response([
+            'searchResult' => ['tripInfos' => [
+                0 => [$leg('1', 'DEL', 'BOM', $first, '101', 5000)],
+                1 => [$leg('2', 'BOM', 'BLR', $second, '202', 4000)],
+            ]],
+            'status' => ['success' => true],
+        ])]);
+
+        $html = $this->get(route('flights.search', ['trip_type' => 'multi', 'adults' => 1, 'legs' => [
+            ['from' => 'DEL', 'to' => 'BOM', 'date' => $first],
+            ['from' => 'BOM', 'to' => 'BLR', 'date' => $second],
+        ]]))->assertOk()->getContent();
+
+        $this->assertStringContainsString('id="frxMcTabs"', $html);
+        $this->assertSame(2, substr_count($html, 'class="frx-mc-tab '));
+        $this->assertStringContainsString('class="frx-mc-tab active" data-leg="0"', $html);
+        // Only the first flight's list is on screen to start with.
+        $this->assertStringContainsString('<section class="frx-group" data-leg="0" >', $html);
+        $this->assertStringContainsString('<section class="frx-group" data-leg="1"  hidden >', $html);
+        $this->assertStringContainsString('id="frxRtBar" style="--frx-bar-legs: 2;"', $html);
+        $this->assertStringContainsString('data-group="price_ids[0]"', $html);
+        $this->assertStringContainsString('data-group="price_ids[1]"', $html);
+        // Same form and fare radios as before: one price per flight goes to Review.
+        $this->assertStringContainsString('name="price_ids[1]" value="P2"', $html);
+        $this->assertStringContainsString('class="frx-groups"', $html);
+    }
+
     public function test_fare_calendar_shows_the_marked_up_fare(): void
     {
         FlightSettings::save(['markup_percent' => 10]);
