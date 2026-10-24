@@ -1169,6 +1169,10 @@
 
   @if($results === null && ! $displayError)
     <div class="frx-empty">Enter your route and travel date above to see live fares.</div>
+  @elseif(! $cardGroups && $displayError)
+    {{-- The search itself failed (error shown above) — flights may well
+         exist, so don't say "no flights". --}}
+    <div class="frx-empty">We couldn't load flights just now. Please search again in a minute.</div>
   @elseif(! $cardGroups)
     <div class="frx-empty">No flights found for this route and date. Try adjusting your search.</div>
   @else
