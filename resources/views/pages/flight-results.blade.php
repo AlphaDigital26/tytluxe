@@ -270,6 +270,10 @@
   // side, with the cheapest fare of each picked up front and a bottom bar
   // holding both picks, the total and Book — like TripJack's own page.
   $splitReturn = $searchParams['tripType'] === 'return' && ! $isCombo && count($cardGroups) === 2;
+  // Domestic Multi-City (one list per flight): one tab per flight, one list
+  // on screen at a time, and the same bottom bar holding every pick.
+  $multiTabs = $searchParams['tripType'] === 'multi' && ! $isCombo && count($cardGroups) >= 2;
+  $bottomBar = $splitReturn || $multiTabs;
 
   $allPrices = collect($cardGroups)->flatMap(fn ($g) => collect($g['flights'])->pluck('minPrice'));
   $minPrice = $allPrices->isNotEmpty() ? (int) floor($allPrices->min()) : 0;
@@ -751,6 +755,29 @@
   .frx-rt-book { padding: 14px 34px; border: none; border-radius: 10px; background: linear-gradient(90deg, #c9a84c, #e8c96b); color: var(--dark); font-family: 'Jost', sans-serif; font-size: 13px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s; }
   .frx-rt-book:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(201,168,76,0.35); }
   .frx-rt-book.frx-rt-book-wait { opacity: 0.55; }
+  .frx-rt-bar { grid-template-columns: repeat(var(--frx-bar-legs, 2), minmax(0, 1fr)) auto auto; }
+  /* Four or more flights: just airline, flight and fare in each pick. */
+  .frx-rt-bar:has(.frx-rt-pick:nth-of-type(4)) .frx-rt-pick img,
+  .frx-rt-bar:has(.frx-rt-pick:nth-of-type(4)) .frx-rt-pick-times { display: none; }
+  .frx-rt-pick.active { border-color: var(--gold); box-shadow: inset 0 -2px 0 var(--gold); }
+
+  /* ── Domestic Multi-City: one tab per flight ───────────────────────── */
+  .frx-mc-tabs { scroll-margin-top: calc(var(--frx-sticky-h, 90px) + 16px); display: flex; gap: 6px; margin: 4px 0 14px; border-bottom: 1px solid rgba(255,255,255,0.08); overflow-x: auto; scrollbar-width: none; }
+  .frx-mc-tabs::-webkit-scrollbar { display: none; }
+  .frx-mc-tab { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; flex-shrink: 0; padding: 10px 18px 12px; background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -1px; font-family: 'Jost', sans-serif; text-align: left; cursor: pointer; transition: color var(--tr), border-color var(--tr); }
+  .frx-mc-tab-route { font-size: 15px; font-weight: 600; color: var(--white-80); white-space: nowrap; }
+  .frx-mc-tab-date { font-size: 11.5px; letter-spacing: 0.02em; color: var(--white-30); white-space: nowrap; }
+  .frx-mc-tab:hover .frx-mc-tab-route { color: #fff; }
+  .frx-mc-tab.active { border-bottom-color: var(--gold); }
+  .frx-mc-tab.active .frx-mc-tab-route { color: var(--gold-light); }
+  .frx-mc-tab.active .frx-mc-tab-date { color: var(--white-60); }
+  .frx-mc .frx-group-title { display: none; }
+  .frx-mc .frx-group + .frx-group { margin-top: 0; }
+  .frx-mc { padding-bottom: var(--frx-bar-h, 110px); }
+  @media (max-width: 640px) {
+    .frx-mc-tab { padding: 8px 12px 10px; }
+    .frx-mc-tab-route { font-size: 14px; }
+  }
 
   /* Too narrow for three columns side by side: fares drop below. */
   @media (max-width: 1280px) {
@@ -781,7 +808,7 @@
   }
   @media (max-width: 900px) {
     .frx-rt-grid .frx-group + .frx-group { margin-top: 24px; }
-    .frx-rt-bar { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; padding: 10px 12px; }
+    .frx-rt-bar, .frx-rt-bar[style] { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; padding: 10px 12px; }
     .frx-rt-pick { padding: 6px 8px; gap: 8px; }
     .frx-rt-pick img, .frx-rt-pick-times { display: none; }
     .frx-rt-pick-body { flex: 1 1 auto; }
@@ -1490,6 +1517,23 @@
 
         {{-- A direct child of .frx-main (not of .frx-main-head) so it can stay
              pinned for the whole length of the flight list. --}}
+        @if($multiTabs)
+          {{-- Multi-City: one tab per flight; the list below shows that flight only. --}}
+          <div class="frx-mc-tabs" id="frxMcTabs" role="tablist" aria-label="Your flights">
+            @foreach($cardGroups as $key => $group)
+              @php
+                $tabFirst = collect($group['flights'])->first();
+                $tabFrom = $tabFirst['fromCity'] ?? '' ?: $group['meta']['from'];
+                $tabTo = $tabFirst['toCity'] ?? '' ?: $group['meta']['to'];
+              @endphp
+              <button type="button" role="tab" class="frx-mc-tab {{ $loop->first ? 'active' : '' }}" data-leg="{{ $key }}" aria-selected="{{ $loop->first ? 'true' : 'false' }}">
+                <span class="frx-mc-tab-route">{{ $tabFrom }} <span aria-hidden="true">&rarr;</span> {{ $tabTo }}</span>
+                <span class="frx-mc-tab-date">{{ $group['meta']['label'] }}{{ $group['meta']['date'] ? ' · '.\Carbon\Carbon::parse($group['meta']['date'])->format('D, d M Y') : '' }}</span>
+              </button>
+            @endforeach
+          </div>
+        @endif
+
         {{-- Round trip: each column has its own sort row instead. --}}
         @unless($splitReturn)
         <div class="frx-sortbar-sentinel" id="frxSortSentinel"></div>
@@ -1503,12 +1547,12 @@
             </div>        </div>
         @endunless
 
-        <form method="POST" action="{{ route('flights.review') }}" id="frReviewForm" target="_blank" @class(['frx-rt' => $splitReturn]) data-fares-shown="{{ $splitReturn ? 3 : 4 }}">
+        <form method="POST" action="{{ route('flights.review') }}" id="frReviewForm" target="_blank" @class(['frx-rt' => $splitReturn, 'frx-mc' => $multiTabs]) data-fares-shown="{{ $splitReturn ? 3 : 4 }}">
           @csrf
 
           <div @class(['frx-groups', 'frx-rt-grid' => $splitReturn])>
           @foreach($cardGroups as $key => $group)
-            <section class="frx-group">
+            <section class="frx-group" data-leg="{{ $key }}" @if($multiTabs && ! $loop->first) hidden @endif>
             @if($splitReturn)
               @php
                 // TripJack's layout: this leg's Cheapest / Fastest, its route
@@ -1689,7 +1733,7 @@
                   </div>
 
                   <div class="frx-col-actions">
-                    <button type="button" class="frx-row-continue-btn frx-book-btn" data-group="{{ $key }}">Book</button>
+                    <button type="button" class="frx-row-continue-btn frx-book-btn" data-group="{{ $key }}">{{ $multiTabs && ! $loop->parent->last ? 'Select' : 'Book' }}</button>
                     @if(count($flight['options']) > 1)
                       <button type="button" class="frx-details-toggle frx-compare-btn" data-row="{{ $rowId }}" data-group="{{ $key }}">Compare <span aria-hidden="true">&#9662;</span></button>
                     @endif
@@ -1717,11 +1761,11 @@
           @endforeach
           </div>
 
-          @if($splitReturn)
-            {{-- Both picks, the total and Book (filled in by frxRtBar). --}}
-            <div class="frx-rt-bar" id="frxRtBar">
+          @if($bottomBar)
+            {{-- Every pick, the total and Book (filled in by frxRtBar). --}}
+            <div class="frx-rt-bar" id="frxRtBar" style="--frx-bar-legs: {{ count($cardGroups) }};">
               @foreach($cardGroups as $key => $group)
-                <button type="button" class="frx-rt-pick" data-group="price_ids[{{ $key }}]" data-title="frxGroupTitle_{{ $key }}" aria-label="{{ $group['meta']['label'] }}: change">
+                <button type="button" class="frx-rt-pick" data-group="price_ids[{{ $key }}]" data-title="frxGroupTitle_{{ $key }}" data-leg="{{ $key }}" aria-label="{{ $group['meta']['label'] }}: change">
                   <img alt="" width="30" height="30" hidden>
                   <span class="frx-rt-pick-body">
                     <span class="frx-rt-pick-label">{{ $group['meta']['label'] }}</span>
@@ -1993,6 +2037,7 @@
     document.getElementById('frxNoMatch').style.display = visibleCount ? 'none' : 'block';
     resetWindow();
     syncFilterUi();
+    document.getElementById('frReviewForm').dispatchEvent(new Event('frx:filtered'));
   }
 
   // ── Load more on scroll ──────────────────────────────────────────
@@ -2750,6 +2795,33 @@
   });
   updateSelection();
 
+  // ── Multi-City tabs (domestic, one list per flight) ────────────────
+  // Only the chosen flight's list is on screen; the tab bar and the picks
+  // in the bottom bar both switch it.
+  var mcTabs = Array.prototype.slice.call(document.querySelectorAll('.frx-mc-tab'));
+  var mcLegs = mcTabs.map(function (t) { return t.dataset.leg; });
+  function frxShowLeg(leg, scroll) {
+    mcTabs.forEach(function (t) {
+      var on = t.dataset.leg === leg;
+      t.classList.toggle('active', on);
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    document.querySelectorAll('.frx-mc .frx-group[data-leg]').forEach(function (s) { s.hidden = s.dataset.leg !== leg; });
+    document.querySelectorAll('#frxRtBar .frx-rt-pick').forEach(function (p) { p.classList.toggle('active', p.dataset.leg === leg); });
+    // "No fares match" is about the list on screen.
+    var shown = document.querySelector('.frx-group-list[data-group="' + leg + '"] .frx-flight[data-match="1"]');
+    document.getElementById('frxNoMatch').style.display = shown ? 'none' : 'block';
+    renderWindow();
+    if (scroll) document.getElementById('frxMcTabs').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  if (mcTabs.length) {
+    mcTabs.forEach(function (t) { t.addEventListener('click', function () { frxShowLeg(t.dataset.leg, false); }); });
+    frReviewForm.addEventListener('frx:filtered', function () {
+      var active = mcTabs.find(function (t) { return t.classList.contains('active'); });
+      if (active) frxShowLeg(active.dataset.leg, false);
+    });
+  }
+
   // Per-row "Select & Continue" — books the flight the guest is already
   // looking at instead of forcing a scroll to the shared bar at the very
   // bottom of a long results list. Oneway searches (the common case, one
@@ -2765,6 +2837,14 @@
         checked = rowRadios[0];
         checked.checked = true;
         checked.dispatchEvent(new Event('change'));
+      }
+
+      // Multi-City tabs: on to the next flight's tab; Book on the last one.
+      if (mcTabs.length) {
+        var at = mcLegs.indexOf(btn.dataset.group);
+        if (at > -1 && at < mcLegs.length - 1) { frxShowLeg(mcLegs[at + 1], true); return; }
+        document.getElementById('frxRtBook').click();
+        return;
       }
 
       var nextGroup = groupKeys.find(function (name) {
@@ -2849,6 +2929,7 @@
     // A pick in the bar jumps to its list, to change it.
     picks.forEach(function (pick) {
       pick.addEventListener('click', function () {
+        if (mcTabs.length) { frxShowLeg(pick.dataset.leg, true); return; }
         var title = document.getElementById(pick.dataset.title);
         if (title) title.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
@@ -2873,6 +2954,14 @@
       if (best) { best.checked = true; best.dispatchEvent(new Event('change')); }
     });
     window.frxRtSync();
+
+    // Multi-City: room under the list for the bar, however many rows it wraps to.
+    if (mcTabs.length) {
+      var padForBar = function () { frReviewForm.style.setProperty('--frx-bar-h', (bar.offsetHeight + 20) + 'px'); };
+      window.addEventListener('resize', padForBar);
+      padForBar();
+      frxShowLeg(mcLegs[0], false);
+    }
   })();
 
   // Expandable "View Details" panel (Flight Details / Fare Details / Fare
