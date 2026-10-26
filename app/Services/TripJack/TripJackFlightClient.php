@@ -185,18 +185,15 @@ class TripJackFlightClient
     }
 
     /**
-     * Book API — POST /oms/v1/air/book. Pass $amount for Instant Book
-     * (payment already captured via Razorpay before this is ever called,
-     * mirroring the hotel flow); pass null for Hold (Without Payment) —
-     * confirmed against a live sandbox call that omitting paymentInfos
-     * entirely blocks the PNR without charging anything. Only attempt Hold
-     * when Review's conditions.isBA is true.
+     * Book API — POST /oms/v1/air/book. Always Instant Book with
+     * paymentInfos: payment is captured via Razorpay before this is ever
+     * called, mirroring the hotel flow. The site never holds a fare.
      *
      * @param  array<int, array>  $travellerInfo
      */
     public function book(
         string $bookingId,
-        ?float $amount,
+        float $amount,
         array $travellerInfo,
         array $emails,
         array $contacts,
@@ -205,7 +202,7 @@ class TripJackFlightClient
     ): array {
         $payload = array_filter([
             'bookingId' => $bookingId,
-            'paymentInfos' => $amount !== null ? [['amount' => $amount]] : null,
+            'paymentInfos' => [['amount' => $amount]],
             'deliveryInfo' => [
                 'emails' => $emails,
                 'contacts' => $contacts,
@@ -216,47 +213,6 @@ class TripJackFlightClient
         ], fn ($v) => $v !== null);
 
         return $this->request('oms', 'POST', '/air/book', $payload, retry: false);
-    }
-
-    /**
-     * Confirm Fare Before Ticket — POST /oms/v1/air/fare-validate. Call
-     * before Confirm-Book to check a held fare hasn't expired/changed.
-     * Response (confirmed live): {bookingId, iobfe, status} — iobfe ("is
-     * old booking fare expired") true means the hold's fare is stale and a
-     * new search/booking is needed instead of confirming.
-     */
-    public function fareValidateHold(string $bookingId): array
-    {
-        return $this->request('oms', 'POST', '/air/fare-validate', ['bookingId' => $bookingId]);
-    }
-
-    /**
-     * Confirm-Book — POST /oms/v1/air/confirm-book. Tickets a held booking
-     * after payment is captured. Response only echoes {status} (no
-     * bookingId) — confirmed live; poll bookingDetails() for the resulting
-     * PNR/ticket the same way Instant Book's own response is poll-only.
-     */
-    public function confirmBook(string $bookingId, float $amount): array
-    {
-        return $this->request('oms', 'POST', '/air/confirm-book', [
-            'bookingId' => $bookingId,
-            'paymentInfos' => [['amount' => $amount]],
-        ], retry: false);
-    }
-
-    /**
-     * Release PNR — POST /oms/v1/air/unhold. Releases a held (unpaid)
-     * booking's PNR with the supplier. Doc: verify via bookingDetails()
-     * afterwards — order.status becomes UNCONFIRMED (confirmed live).
-     *
-     * @param  string[]  $pnrs
-     */
-    public function unhold(string $bookingId, array $pnrs): array
-    {
-        return $this->request('oms', 'POST', '/air/unhold', [
-            'bookingId' => $bookingId,
-            'pnrs' => $pnrs,
-        ], retry: false);
     }
 
     /**
@@ -349,8 +305,8 @@ class TripJackFlightClient
      * Optional confirmation that the fare/class is still available before an
      * Instant Book — recommended when there's a payment step between Review
      * and Book. Takes the same traveller/SSR structure as book(). Not to be
-     * confused with fareValidateHold() above, a differently-pathed endpoint
-     * (/air/fare-validate, no "book/") used only for the Hold flow.
+     * confused with TripJack's hold-only /air/fare-validate (no "book/"),
+     * which the site doesn't use.
      */
     public function fareValidatePreBook(array $payload): array
     {

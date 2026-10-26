@@ -114,14 +114,19 @@ class FlightETicketTest extends TestCase
         $booking = $this->ticketed();
         $this->actingAs(User::factory()->create())->get(route('flight.booking.eticket', $booking->reference))->assertForbidden();
 
-        // Not ticketed yet, cancelled, or a hotel: no e-ticket.
+        // Not ticketed yet or cancelled: no PDF, but the guest is told why
+        // on their booking page instead of a bare "not found".
         $notTicketed = $this->ticketed();
         $notTicketed->update(['tripjack_flight_pnr' => null]);
-        $this->actingAs($notTicketed->user)->get(route('flight.booking.eticket', $notTicketed->reference))->assertNotFound();
+        $this->actingAs($notTicketed->user)->get(route('flight.booking.eticket', $notTicketed->reference))
+            ->assertRedirect(route('hotel.booking.confirmation', $notTicketed->reference))
+            ->assertSessionHas('booking_error', fn ($m) => str_contains($m, 'ready in a few minutes'));
 
         $cancelled = $this->ticketed();
         $cancelled->update(['status' => 'cancelled']);
-        $this->actingAs($cancelled->user)->get(route('flight.booking.eticket', $cancelled->reference))->assertNotFound();
+        $this->actingAs($cancelled->user)->get(route('flight.booking.eticket', $cancelled->reference))
+            ->assertRedirect(route('hotel.booking.confirmation', $cancelled->reference))
+            ->assertSessionHas('booking_error', fn ($m) => str_contains($m, 'cancelled'));
     }
 
     public function test_confirmation_page_offers_the_download(): void

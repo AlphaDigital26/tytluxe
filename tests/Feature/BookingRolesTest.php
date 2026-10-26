@@ -98,24 +98,22 @@ class BookingRolesTest extends TestCase
     {
         Filament::setCurrentPanel(Filament::getPanel('admin'));
         $booking = $this->flight();
-        $hold = $this->flight(['status' => 'on_hold', 'manual_refund_due_at' => null]);
 
-        // [checkStatus, addNote, cancelFlight, releaseReservation, recordManualRefund]
+        // [checkStatus, addNote, cancelFlight, recordManualRefund]
         $matrix = [
-            'Super Admin' => [true, true, true, true, true],
-            'Operations' => [true, true, true, true, false],
-            'Support' => [true, true, false, false, false],
-            'Finance' => [true, true, false, false, true],
+            'Super Admin' => [true, true, true, true],
+            'Operations' => [true, true, true, false],
+            'Support' => [true, true, false, false],
+            'Finance' => [true, true, false, true],
         ];
 
-        foreach ($matrix as $role => [$check, $note, $cancel, $release, $refund]) {
+        foreach ($matrix as $role => [$check, $note, $cancel, $refund]) {
             $this->as($role);
             $list = Livewire::test(ListFlightBookings::class);
 
             foreach (['checkStatus' => $check, 'addNote' => $note, 'cancelFlight' => $cancel, 'recordManualRefund' => $refund] as $action => $allowed) {
                 $allowed ? $list->assertTableActionVisible($action, $booking) : $list->assertTableActionHidden($action, $booking);
             }
-            $release ? $list->assertTableActionVisible('releaseReservation', $hold) : $list->assertTableActionHidden('releaseReservation', $hold);
         }
     }
 

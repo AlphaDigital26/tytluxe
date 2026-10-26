@@ -123,7 +123,6 @@ class FlightBookingsTable
                     FlightBookingActions::downloadInvoice(),
                     FlightBookingActions::addNote(),
                     RecordManualRefundAction::make(),
-                    FlightBookingActions::releaseReservation(),
                     FlightBookingActions::cancelAndRefund(),
                 ])->label('More')->button()->color('gray')
                     // Phones: every button is on the booking page a tap away.

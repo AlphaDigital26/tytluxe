@@ -14,7 +14,7 @@ use Tests\Doubles\FakeRazorpayService;
 use Tests\TestCase;
 
 /**
- * TripJack Flights doc rules around Fare Validate, Hold / Release PNR and
+ * TripJack Flights doc rules around Fare Validate, and
  * amendments (SUCCESS-only).
  */
 class FlightBookingRulesTest extends TestCase
@@ -150,68 +150,6 @@ class FlightBookingRulesTest extends TestCase
         $response = $this->submit();
         $this->assertStringContainsString('notice=unavailable', $response->headers->get('Location'));
         $this->assertSame(0, Booking::count());
-    }
-
-    public function test_hold_is_refused_server_side_when_fare_does_not_allow_it(): void
-    {
-        Http::fake();
-
-        $this->submit(['intent' => 'hold'], ['isBA' => false])->assertSessionHasErrors('intent');
-        Http::assertNotSent(fn (Request $r) => str_contains($r->url(), '/air/book'));
-        $this->assertSame(0, Booking::count());
-    }
-
-    /** "Reserve now, pay later" is switched off, even on fares the airline lets us hold. */
-    public function test_hold_is_refused_even_when_the_fare_allows_it(): void
-    {
-        Http::fake();
-
-        $this->submit(['intent' => 'hold'], ['isBA' => true])->assertSessionHasErrors('intent');
-        Http::assertNotSent(fn (Request $r) => str_contains($r->url(), '/air/book'));
-        $this->assertSame(0, Booking::count());
-    }
-
-    public function test_changed_held_fare_is_repriced_before_payment(): void
-    {
-        $booking = $this->confirmedBooking(['status' => 'on_hold']);
-        $stale = Payment::create(['booking_id' => $booking->id, 'razorpay_order_id' => 'order_old', 'amount' => 5600, 'currency' => 'INR', 'status' => 'created', 'purpose' => 'flight_confirm_book']);
-        Http::fake(['*/air/fare-validate' => Http::response([
-            'bookingId' => 'TJS300000000001', 'iobfe' => false,
-            'alerts' => [['type' => 'FAREALERT', 'oldFare' => 5000, 'newFare' => 5400]],
-            'status' => ['success' => true],
-        ])]);
-
-        $result = app(FlightBookingService::class)->validateHoldFare($booking);
-
-        $this->assertFalse($result['ok']);
-        $this->assertStringContainsString('changed this fare', $result['message']);
-        $booking->refresh();
-        $this->assertEquals(5400, (float) $booking->tripjack_total_price);
-        $this->assertGreaterThan(5600, (float) $booking->total_amount);
-        $this->assertSame('failed', $stale->fresh()->status);
-
-        // Pressing confirm again at the new price goes through.
-        $this->assertTrue(app(FlightBookingService::class)->validateHoldFare($booking)['ok']);
-    }
-
-    public function test_release_hold_is_verified_as_unconfirmed(): void
-    {
-        $booking = $this->confirmedBooking(['status' => 'on_hold', 'tripjack_flight_pnr' => ['DEL-BOM' => 'PNR1']]);
-        Http::fake([
-            '*/air/unhold' => Http::response(['status' => ['success' => true]]),
-            '*/booking-details' => Http::sequence()
-                ->push(['order' => ['status' => 'UNCONFIRMED'], 'status' => ['success' => true]])
-                ->push(['order' => ['status' => 'ON_HOLD'], 'status' => ['success' => true]]),
-        ]);
-
-        app(FlightBookingService::class)->releaseHold($booking);
-        $this->assertSame('cancelled', $booking->fresh()->status);
-        $this->assertNull($booking->fresh()->admin_note);
-
-        $other = $this->confirmedBooking(['status' => 'on_hold', 'tripjack_booking_id' => 'TJS300000000002', 'tripjack_flight_pnr' => ['DEL-BOM' => 'PNR2']]);
-        app(FlightBookingService::class)->releaseHold($other);
-        $this->assertSame('cancelled', $other->fresh()->status);
-        $this->assertStringContainsString('Release PNR was not confirmed', $other->fresh()->admin_note);
     }
 
     public function test_cancellation_is_blocked_while_tripjack_is_not_success(): void

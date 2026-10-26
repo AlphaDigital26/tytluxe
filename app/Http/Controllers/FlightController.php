@@ -85,6 +85,11 @@ class FlightController extends Controller
             return view('pages.flight-results', ['results' => null, 'searchError' => null, 'searchParams' => $searchParams]);
         }
 
+        // Obvious mistakes are explained here, without asking TripJack.
+        if ($problem = self::searchInputProblem($tripType, $from, $to, $departDate, $returnDate, $legs)) {
+            return view('pages.flight-results', ['results' => null, 'searchError' => $problem, 'searchParams' => $searchParams]);
+        }
+
         $paxInfo = array_filter([
             'ADULT' => $adults,
             'CHILD' => $children ?: null,
@@ -198,6 +203,60 @@ class FlightController extends Controller
         }
 
         return $results;
+    }
+
+    /**
+     * A plain message for a search that can't work: same city both ends, a
+     * date that isn't a real date, in the past or over a year ahead, or
+     * dates out of order. Null when the search looks fine.
+     */
+    public static function searchInputProblem(string $tripType, string $from, string $to, string $departDate, string $returnDate, array $legs): ?string
+    {
+        $routes = $tripType === 'multi'
+            ? array_map(fn ($l) => [$l['from'], $l['to'], $l['date']], $legs)
+            : array_filter([[$from, $to, $departDate], $tripType === 'return' ? [$to, $from, $returnDate] : null]);
+
+        $today = now('Asia/Kolkata')->startOfDay();
+        $previous = null;
+        foreach (array_values($routes) as $i => [$a, $b, $date]) {
+            $label = $tripType === 'multi' ? 'Flight '.($i + 1).': ' : '';
+            if ($a === $b) {
+                return $label.'The departure and arrival cities are the same. Please choose a different destination.';
+            }
+            try {
+                $day = \Illuminate\Support\Carbon::createFromFormat('!Y-m-d', $date, 'Asia/Kolkata');
+            } catch (\Throwable) {
+                $day = null;
+            }
+            if (! $day || $day->format('Y-m-d') !== $date) {
+                return $label.'Please choose a valid travel date.';
+            }
+            if ($day->lt($today)) {
+                return $label.'The travel date has already passed. Please choose today or a later date.';
+            }
+            if ($day->gt($today->copy()->addYear())) {
+                return $label.'Airlines open bookings up to about a year ahead. Please choose an earlier date.';
+            }
+            if ($previous && $day->lt($previous)) {
+                return $tripType === 'return'
+                    ? 'The return date is before the departure date. Please check your dates.'
+                    : $label.'This flight is before the previous one. Please put the flights in date order.';
+            }
+            $previous = $day;
+        }
+
+        return null;
+    }
+
+    /**
+     * Review's passport conditions can need a date of birth with the
+     * passport (pcs.dobe) even when the dob flags don't — without it Book
+     * fails with "Some Passport Details are missing" (UAT, 23 Oct 2026).
+     */
+    public static function passportNeedsDob(array $conditions): bool
+    {
+        return (bool) ($conditions['pcs']['pm'] ?? $conditions['pm'] ?? false)
+            && (bool) ($conditions['pcs']['dobe'] ?? false);
     }
 
     /** TripJack's limit on preferredAirline[] in a search. */
@@ -614,14 +673,11 @@ class FlightController extends Controller
             ];
         })->all();
 
-        // Hold blocks the PNR without payment, so it's only offered when the
-        // airline allows it (isBA) and nothing paid was added.
-        $canHold = (bool) ($conditions['isBA'] ?? false) && $addonsTotal <= 0 && FlightSettings::allowHold();
         $resultsUrl = $draft['resultsUrl'] ?? route('flights.search');
         $sessionExpiresAt = $draft['expiresAt'] ?? null;
         $bookingId = $draft['bookingId'];
 
-        return view('pages.flight-confirm', compact('response', 'context', 'tripInfos', 'summary', 'travellers', 'input', 'canHold', 'resultsUrl', 'sessionExpiresAt', 'bookingId'));
+        return view('pages.flight-confirm', compact('response', 'context', 'tripInfos', 'summary', 'travellers', 'input', 'resultsUrl', 'sessionExpiresAt', 'bookingId'));
     }
 
     /**
@@ -904,6 +960,18 @@ class FlightController extends Controller
     {
         $draft = session('flight_booking_draft');
         if (! $draft) {
+            // A second Pay click (or a second tab) after the first already
+            // created this fare's booking: take the guest to that booking's
+            // payment page — or the booking, once paid — not to search.
+            $existing = filled($request->input('review_booking_id'))
+                ? Booking::where('tripjack_hold_id', $request->input('review_booking_id'))->where('user_id', $request->user()->id)->first()
+                : null;
+            if ($existing) {
+                return $existing->status === 'pending_payment'
+                    ? redirect()->route('hotel.payment.show', $existing->reference)
+                    : redirect()->route('hotel.booking.confirmation', $existing->reference);
+            }
+
             return redirect()->route('flights.search')->with('booking_error', 'Your booking session has expired. Please search again.');
         }
 
@@ -923,10 +991,11 @@ class FlightController extends Controller
         }
 
         // Step 2 posts intent=review (validate + show Step 3, book nothing);
-        // Step 3's Proceed to Pay / Block post intent=pay|hold with
-        // from_review, and the details the guest reviewed are replayed from
-        // the session — every check below runs again on them before booking.
-        $intent = in_array($request->input('intent'), ['review', 'pay', 'hold'], true) ? $request->input('intent') : 'pay';
+        // Step 3's Proceed to Pay posts intent=pay with from_review, and the
+        // details the guest reviewed are replayed from the session — every
+        // check below runs again on them before booking. Flights are always
+        // booked with payment: there is no hold / pay-later.
+        $intent = $request->input('intent') === 'review' ? 'review' : 'pay';
         if ($request->boolean('from_review')) {
             $reviewed = $draft['passengerReview']['input'] ?? null;
             if (! $reviewed) {
@@ -950,9 +1019,10 @@ class FlightController extends Controller
         // Per passenger type (adult / child / infant) — e.g. IndiGo requires
         // DOB for infants only. A senior citizen fare always needs it — the
         // age is checked at Book (doc error 2569).
+        $passportDob = self::passportNeedsDob($conditions);
         $dobFlags = [
-            'ADULT' => (bool) ($conditions['dob']['adobr'] ?? false) || ($context['fareType'] ?? null) === 'SENIOR_CITIZEN',
-            'CHILD' => (bool) ($conditions['dob']['cdobr'] ?? false),
+            'ADULT' => (bool) ($conditions['dob']['adobr'] ?? false) || ($context['fareType'] ?? null) === 'SENIOR_CITIZEN' || $passportDob,
+            'CHILD' => (bool) ($conditions['dob']['cdobr'] ?? false) || $passportDob,
             'INFANT' => true,
         ];
         $gstMandatory = (bool) ($conditions['gst']['igm'] ?? false);
@@ -994,11 +1064,22 @@ class FlightController extends Controller
         ];
         $travelDates = self::travelDates($response['tripInfos'] ?? []);
         $ageMessages = [];
+        $attributes = ['contact_email' => 'email', 'contact_phone' => 'mobile number', 'gst_number' => 'GSTIN', 'gst_registered_name' => 'registered company name', 'gst_address' => 'company address', 'emergency_name' => 'emergency contact name', 'emergency_phone' => 'emergency contact number', 'special_requests' => 'special requests'];
         for ($i = 0; $i < $totalPax; $i++) {
             $paxType = $i < $context['adults'] ? 'ADULT' : ($i < $context['adults'] + $context['children'] ? 'CHILD' : 'INFANT');
             // Doc titles: Mr/Mrs/Ms (adult), Master/Ms (child/infant). "Miss"
             // is still accepted from details entered before this changed and
             // is sent to TripJack as Ms.
+            // "Adult 1: first name", never "travellers.0.first_name".
+            $who = ucfirst(strtolower($paxType)).' '.($i + 1 - ($paxType === 'ADULT' ? 0 : ($paxType === 'CHILD' ? $context['adults'] : $context['adults'] + $context['children'])));
+            foreach (['title' => 'title', 'first_name' => 'first name', 'last_name' => 'last name', 'dob' => 'date of birth',
+                'passport_number' => 'passport number', 'passport_expiry' => 'passport expiry date', 'passport_nationality' => 'passport country',
+                'passport_issue_date' => 'passport issue date', 'document_id' => 'ID number', 'pan' => 'PAN', 'frequent_flyer' => 'frequent flyer number'] as $field => $label) {
+                $attributes["travellers.{$i}.{$field}"] = "{$who}: {$label}";
+            }
+            $ageMessages["travellers.{$i}.title.in"] = $paxType === 'ADULT' ? "{$who}: title must be Mr, Mrs or Ms." : "{$who}: title must be Master or Ms.";
+            $ageMessages["travellers.{$i}.first_name.regex"] = "{$who}: first name can only have letters, spaces, dots, apostrophes and hyphens.";
+            $ageMessages["travellers.{$i}.last_name.regex"] = "{$who}: last name can only have letters, spaces, dots, apostrophes and hyphens.";
             $rules["travellers.{$i}.title"] = 'required|string|in:'.($paxType === 'ADULT' ? 'Mr,Mrs,Ms' : 'Master,Ms,Miss');
             $rules["travellers.{$i}.first_name"] = ['required', 'string', 'max:'.$firstNameMax, $nameRegex];
             $rules["travellers.{$i}.last_name"] = ['required', 'string', 'max:'.$lastNameMax, $nameRegex];
@@ -1058,15 +1139,22 @@ class FlightController extends Controller
         }
         // GST is optional unless the fare mandates it; once started, both
         // fields are needed.
-        $rules['gst_number'] = [$gstMandatory ? 'required' : 'nullable', 'required_with:gst_registered_name', 'string', 'regex:/^[0-9]{2}[A-Za-z0-9]{13}$/'];
+        // TripJack's Book also needs the company's address, email and mobile
+        // with a GSTIN (errors 819/800/804, confirmed in UAT) — the address
+        // is asked for; email and mobile are the booking contact's.
+        $rules['gst_number'] = [$gstMandatory ? 'required' : 'nullable', 'required_with:gst_registered_name,gst_address', 'string', new \App\Rules\Gstin];
         $rules['gst_registered_name'] = [$gstMandatory ? 'required' : 'nullable', 'required_with:gst_number', 'string', 'max:35'];
+        $rules['gst_address'] = [$gstMandatory ? 'required' : 'nullable', 'required_with:gst_number', 'string', 'min:10', 'max:70'];
         $validated = $request->validate($rules, [
-            'gst_number.regex' => 'Please enter a valid 15-character GSTIN.',
+            'travellers.*.*.required' => ':attribute is required.',
+            'gst_address.required_with' => 'Please enter the company’s registered address for the GST invoice.',
+            'gst_address.min' => 'Please enter the company’s full registered address for the GST invoice.',
+            'gst_address.max' => 'Please shorten the company address to 70 characters (the airline’s limit).',
             'travellers.*.pan.regex' => 'Please enter a valid PAN, e.g. ABCPE1234F — the 4th letter is the holder type (P for an individual).',
             'travellers.*.document_id.required' => 'Please enter the ID number for this '.strtolower(str_replace('_', ' ', $context['fareType'] ?? '')).' fare.',
             'travellers.*.passport_issue_date.before_or_equal' => 'The passport issue date can’t be in the future.',
             'travellers.*.passport_expiry.after_or_equal' => 'This passport expires before your trip ends. Please use a passport that is valid for the whole journey.',
-        ] + $ageMessages);
+        ] + $ageMessages, $attributes);
 
         $contactPhone = FlightBookingService::phoneFromInput($validated['contact_dial_code'] ?? null, $validated['contact_phone']);
 
@@ -1192,22 +1280,13 @@ class FlightController extends Controller
             return redirect()->route('flights.confirm.show');
         }
 
-        // Doc (Booking API, Hold): "Check conditions.isBA = true in Review
-        // before attempting" — the Review page hides Block otherwise, but a
-        // crafted/stale post must not reach TripJack either.
-        if ($intent === 'hold' && (! ($conditions['isBA'] ?? false) || ! FlightSettings::allowHold())) {
-            return back()->withInput()->withErrors(['intent' => 'Reserving a flight without payment isn’t available. Please choose Proceed to Pay.']);
-        }
-
-        // A hold blocks the PNR without any payment, so there's nothing to
-        // charge paid add-ons against — free seats/meals are fine.
-        if ($intent === 'hold' && $addonsTotal > 0) {
-            return back()->withInput()->withErrors(['addons' => 'Paid seats, baggage or services can’t be added to a held fare. Remove them to hold, or choose Proceed to Pay.']);
-        }
-
         $gstInfo = ! empty($validated['gst_number']) ? [
             'gstNumber' => strtoupper($validated['gst_number']),
             'registeredName' => $validated['gst_registered_name'],
+            'address' => trim(preg_replace('/\s+/', ' ', $validated['gst_address'])),
+            'email' => $validated['contact_email'],
+            // Digits only, without the country code (TripJack: "Invalid Mobile" otherwise).
+            'mobile' => substr(preg_replace('/\D/', '', $contactPhone), -10),
         ] : null;
 
         // Book's contactInfo (emergency contact) — confirmed live that
@@ -1228,17 +1307,14 @@ class FlightController extends Controller
         // Payment sits between Review and Book, so re-check the fare with
         // TripJack before sending the guest to pay — otherwise a fare that
         // sold out or changed meanwhile is only discovered after payment.
-        // (Holds are re-checked separately at confirm time.)
-        if ($intent !== 'hold') {
-            $fareCheck = $this->validateFareBeforePayment($client, $draft, $travellerInfo, $validated['contact_email'], $contactPhone, $gstInfo, $addonsTotal, $contactInfo);
-            if ($fareCheck !== null) {
-                return $fareCheck;
-            }
+        $fareCheck = $this->validateFareBeforePayment($client, $draft, $travellerInfo, $validated['contact_email'], $contactPhone, $gstInfo, $addonsTotal, $contactInfo);
+        if ($fareCheck !== null) {
+            return $fareCheck;
+        }
 
-            // Don't take payment for a booking TripJack can't pay for.
-            if (! app(FlightBookingService::class)->hasTripJackFunds($totalFare + $addonsTotal)) {
-                return back()->withInput()->withErrors(['booking' => FlightBookingService::INSUFFICIENT_FUNDS_MESSAGE]);
-            }
+        // Don't take payment for a booking TripJack can't pay for.
+        if (! app(FlightBookingService::class)->hasTripJackFunds($totalFare + $addonsTotal)) {
+            return back()->withInput()->withErrors(['booking' => FlightBookingService::INSUFFICIENT_FUNDS_MESSAGE]);
         }
         // Add-ons fold into the same markup formula as the airfare (the
         // Passenger Details page mirrors this exactly for its live total)
@@ -1345,17 +1421,15 @@ class FlightController extends Controller
 
         $this->saveTicketedTravellers($request->user(), $validated['travellers'], $primaryAirlineCode);
 
-        // Hold (Without Payment) — only offered when Review's conditions.isBA
-        // was true (flight-passengers.blade.php gates the option on that). No
-        // Razorpay order at all yet: TripJack blocks the PNR for free, and
-        // payment is only collected later via confirmHold() below.
-        if ($intent === 'hold') {
-            session()->forget(['flight_booking_draft', 'flight_search_context']);
+        try {
+            $order = $razorpay->createOrder((float) $booking->total_amount, $booking->reference);
+        } catch (\App\Services\Payment\PaymentOrderException $e) {
+            // Nothing paid or booked: remove the unpaid booking and keep the
+            // guest's reviewed details so they can change their choice.
+            $booking->delete();
 
-            return $this->submitHold($booking, $client);
+            return redirect()->route('flights.confirm.show')->withErrors(['intent' => $e->getMessage()]);
         }
-
-        $order = $razorpay->createOrder((float) $booking->total_amount, $booking->reference);
         Payment::create([
             'booking_id' => $booking->id,
             'razorpay_order_id' => $order['id'],
@@ -1396,143 +1470,6 @@ class FlightController extends Controller
             ]);
             $existing[] = $name;
         }
-    }
-
-    protected function submitHold(Booking $booking, TripJackFlightClient $client)
-    {
-        $segments = $booking->flight_segments_payload ?? [];
-
-        try {
-            $response = $client->book(
-                $booking->tripjack_hold_id,
-                null, // omit paymentInfos — this is the Hold, not Instant Book
-                $segments['travellerInfo'] ?? [],
-                [$booking->guest_email],
-                [FlightBookingService::e164($booking->guest_phone)],
-                gstInfo: $booking->tripjack_gst_info,
-                contactInfo: $segments['contactInfo'] ?? null,
-            );
-        } catch (TripJackException $e) {
-            $errorCode = $e instanceof TripJackApiException ? $e->errorCode : null;
-            $described = TripJackFlightErrorCatalog::describe($errorCode);
-            Log::channel('tripjack')->{$described['logLevel'] === 'critical' ? 'critical' : 'warning'}('flight_hold_failed', ['booking_id' => $booking->id, 'errorCode' => $errorCode, 'message' => $e->getMessage()]);
-            $booking->delete();
-
-            return redirect()->route('flights.search')->with('booking_error', $described['message']);
-        }
-
-        if (! ($response['status']['success'] ?? false) || empty($response['bookingId'])) {
-            $errorCode = TripJackFlightErrorCatalog::codeFromResponse($response);
-            $described = TripJackFlightErrorCatalog::describe($errorCode, 'This fare could not be held. Please search again.');
-            Log::channel('tripjack')->warning('flight_hold_unsuccessful', ['booking_id' => $booking->id, 'errorCode' => $errorCode, 'response' => $response]);
-            $booking->delete();
-
-            return redirect()->route('flights.search')->with('booking_error', $described['message']);
-        }
-
-        $tripjackBookingId = $response['bookingId'];
-        $expiresAt = null;
-        $pnr = null;
-
-        try {
-            $details = $client->bookingDetails($tripjackBookingId);
-            $expiresAt = $details['itemInfos']['AIR']['timeLimit'] ?? null; // confirmed live — not in the doc's field table
-            $pnr = FlightBookingService::airTravellers($details)[0]['pnrDetails'] ?? null;
-            $orderStatus = $details['order']['status'] ?? null;
-
-            // Doc booking flow: Block → Booking Details → ON_HOLD. A hold that
-            // TripJack reports as failed must not be shown as held (no
-            // payment was taken, so there's nothing to refund).
-            if (in_array($orderStatus, ['FAILED', 'ABORTED', 'UNCONFIRMED', 'CANCELLED'], true)) {
-                Log::channel('tripjack')->warning('flight_hold_not_on_hold', ['booking_id' => $booking->id, 'bookingId' => $tripjackBookingId, 'orderStatus' => $orderStatus]);
-                $booking->delete();
-
-                return redirect()->route('flights.search')->with('booking_error', 'The airline couldn’t hold this fare. Please search again or book it with payment.');
-            }
-            if ($orderStatus !== 'ON_HOLD') {
-                // Usually still PENDING this soon after Block — the hold is
-                // re-checked (Confirm Fare Before Ticket) before any payment.
-                Log::channel('tripjack')->info('flight_hold_status_not_final', ['booking_id' => $booking->id, 'bookingId' => $tripjackBookingId, 'orderStatus' => $orderStatus]);
-            }
-        } catch (TripJackException $e) {
-            Log::channel('tripjack')->warning('flight_hold_details_failed', ['bookingId' => $tripjackBookingId, 'message' => $e->getMessage()]);
-        }
-
-        $booking->update([
-            'tripjack_booking_id' => $tripjackBookingId,
-            'tripjack_flight_pnr' => $pnr,
-            'tripjack_hold_expires_at' => $expiresAt,
-            'status' => 'on_hold',
-        ]);
-
-        return redirect()->route('hotel.booking.confirmation', $booking->reference);
-    }
-
-    /**
-     * POST /booking/{reference}/flight/confirm-hold — guest chooses to pay
-     * for a held fare. Fare-validates first (catches an expired hold before
-     * the guest reaches the payment screen), then creates the Razorpay
-     * order — Confirm-Book itself only runs after payment is captured, via
-     * FlightBookingService::confirmHoldAfterPayment().
-     */
-    public function confirmHold(string $reference, RazorpayService $razorpay, FlightBookingService $flights)
-    {
-        $booking = $this->guardHoldBooking($reference);
-
-        $validation = $flights->validateHoldFare($booking);
-        if (! $validation['ok']) {
-            return redirect()->route('hotel.booking.confirmation', $booking->reference)->with('booking_error', $validation['message']);
-        }
-
-        if (! $flights->hasTripJackFunds((float) $booking->tripjack_total_price)) {
-            return redirect()->route('hotel.booking.confirmation', $booking->reference)->with('booking_error', FlightBookingService::INSUFFICIENT_FUNDS_MESSAGE);
-        }
-
-        $payment = $booking->payments()->where('purpose', 'flight_confirm_book')->where('status', 'created')->latest()->first();
-        if (! $payment) {
-            $order = $razorpay->createOrder((float) $booking->total_amount, $booking->reference.'-HOLD-'.now()->timestamp);
-            $payment = Payment::create([
-                'booking_id' => $booking->id,
-                'razorpay_order_id' => $order['id'],
-                'amount' => $booking->total_amount,
-                'currency' => $booking->currency ?? 'INR',
-                'status' => 'created',
-                'purpose' => 'flight_confirm_book',
-            ]);
-        }
-
-        return view('pages.flight-payment', [
-            'booking' => $booking,
-            'payment' => $payment,
-            'razorpayKeyId' => config('services.razorpay.key_id'),
-        ]);
-    }
-
-    /**
-     * POST /booking/{reference}/flight/release-hold — guest decides not to
-     * proceed. No refund needed (Hold never captured any payment).
-     */
-    public function releaseHold(string $reference, FlightBookingService $flights)
-    {
-        $booking = $this->guardHoldBooking($reference);
-        $flights->releaseHold($booking);
-
-        return redirect()->route('hotel.booking.confirmation', $booking->reference);
-    }
-
-    protected function guardHoldBooking(string $reference): Booking
-    {
-        $booking = Booking::where('reference', $reference)->firstOrFail();
-
-        if ($booking->user_id !== auth()->id()) {
-            abort(403);
-        }
-
-        if ($booking->vertical !== 'flight' || $booking->status !== 'on_hold') {
-            abort(404);
-        }
-
-        return $booking;
     }
 
     /**

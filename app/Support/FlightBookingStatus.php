@@ -39,8 +39,6 @@ class FlightBookingStatus
             $booking->status === 'confirmed' && $booking->cancellation_requested_at !== null => self::isStuck($booking) ? 'cancellation_stuck' : 'cancelling',
             $booking->status === 'confirmed' && blank($booking->tripjack_flight_pnr) => 'ticketing',
             $booking->status === 'confirmed' => 'ticketed',
-            $booking->status === 'on_hold' => 'reserved',
-            $booking->status === 'hold_expired' => 'reservation_expired',
             $booking->status === 'refunded' => 'refunded',
             $booking->status === 'payment_failed' => 'payment_failed',
             $booking->paymentAbandoned() => 'left_without_paying',
@@ -76,13 +74,11 @@ class FlightBookingStatus
     {
         return [
             'confirmed' => 'Confirmed / ticketed',
-            'on_hold' => 'Reserved, not paid yet',
             'pending_payment' => 'Waiting for payment',
             'payment_failed' => 'Payment failed',
             'failed_needs_review' => 'Needs your attention',
             'cancelled' => 'Cancelled',
             'refunded' => 'Booking failed, money refunded',
-            'hold_expired' => 'Reservation expired',
         ];
     }
 
@@ -131,16 +127,6 @@ class FlightBookingStatus
             'label' => 'Needs your attention',
             'color' => 'danger',
             'help' => 'Something went wrong (for example, the airline did not reply in time). The site keeps checking automatically, but please look at the notes below and click "Check status with airline". Contact TripJack support if it stays like this.',
-        ],
-        'reserved' => [
-            'label' => 'Reserved, not paid yet',
-            'color' => 'info',
-            'help' => 'The guest has reserved a seat without paying. It is released automatically if they do not pay before the deadline.',
-        ],
-        'reservation_expired' => [
-            'label' => 'Reservation expired',
-            'color' => 'gray',
-            'help' => 'The guest did not pay in time, so the reserved seat was released. No money was taken.',
         ],
         'refunded' => [
             'label' => 'Booking failed, money refunded',

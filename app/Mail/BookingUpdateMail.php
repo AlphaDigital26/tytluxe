@@ -27,9 +27,7 @@ class BookingUpdateMail extends Mailable implements ShouldQueue
 
     public const RESCHEDULED = 'rescheduled';
 
-    public const HELD = 'held';
 
-    public const HOLD_EXPIRED = 'hold_expired';
 
     public const CANCELLED = 'cancelled';
 
@@ -70,8 +68,6 @@ class BookingUpdateMail extends Mailable implements ShouldQueue
             self::CANCEL_REQUESTED => "We received your cancellation request — {$ref}",
             self::BALANCE_REMINDER => "Reminder: your balance is due — {$ref}",
             self::RESCHEDULED => "Your new flight details — {$ref}",
-            self::HELD => "Your fare is on hold — {$ref}",
-            self::HOLD_EXPIRED => "Your held fare has expired — {$ref}",
             self::CANCELLED => "Your booking has been cancelled — {$ref}",
             self::FAILED_REFUNDED => "We couldn't confirm your booking — {$ref}",
             self::EXTRAS => match ($this->ssrStatus) {

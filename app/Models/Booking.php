@@ -78,6 +78,46 @@ class Booking extends Model
         return $n.' traveller'.($n === 1 ? '' : 's').($inf ? ' + '.$inf.' infant'.($inf === 1 ? '' : 's').' (free)' : '');
     }
 
+    /**
+     * TripJack's Airline Automation Coverage Matrix: airlines whose
+     * cancellation, date change and add-ons can't be done online through
+     * TripJack — staff handle them with the airline.
+     */
+    public const FLIGHT_AIRLINES_OFFLINE = [
+        'FZ', // flydubai
+        'G9', '3O', '3L', // Air Arabia (and Maroc / Abu Dhabi)
+        'VJ', 'VZ', // VietJet Air, Thai VietJet Air
+        'TR', 'TZ', // Scoot
+        'XY', // Flynas
+        'PC', // Pegasus
+        'K6', // Cambodia Angkor Air
+        'DT', // TAAG Angola
+    ];
+
+    /** Matrix: cancellation online, but no date change or add-ons. */
+    public const FLIGHT_AIRLINES_CANCEL_ONLY = ['S5', '9I']; // Star Air, Alliance Air
+
+    /** @return string[] airline codes on this flight booking */
+    public function flightAirlineCodes(): array
+    {
+        return collect($this->flight_itinerary['segments'] ?? [])->pluck('airlineCode')->filter()->unique()->values()->all();
+    }
+
+    /**
+     * Whether TripJack can do this change online for the booking's
+     * airline(s): 'cancel', 'reschedule' or 'extras'. Airlines missing from
+     * the matrix are allowed (TripJack's own reply decides).
+     */
+    public function flightSupportsOnline(string $what): bool
+    {
+        $codes = $this->flightAirlineCodes();
+        if (array_intersect($codes, self::FLIGHT_AIRLINES_OFFLINE)) {
+            return false;
+        }
+
+        return $what === 'cancel' || ! array_intersect($codes, self::FLIGHT_AIRLINES_CANCEL_ONLY);
+    }
+
     /** After this long on the payment page without paying, the guest has left. */
     public const ABANDONED_AFTER_MINUTES = 60;
 

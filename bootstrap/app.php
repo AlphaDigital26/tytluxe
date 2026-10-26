@@ -43,6 +43,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions): void {
         // Razorpay refused the payment order (e.g. over its amount limit):
         // back to the previous page with the reason, not an error page.
+        // Already logged as a warning by RazorpayService; not an app error.
+        $exceptions->dontReport(\App\Services\Payment\PaymentOrderException::class);
         $exceptions->render(function (\App\Services\Payment\PaymentOrderException $e, \Illuminate\Http\Request $request) {
             return $request->expectsJson()
                 ? response()->json(['success' => false, 'message' => $e->getMessage()], 422)

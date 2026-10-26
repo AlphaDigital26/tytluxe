@@ -64,11 +64,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/booking/{reference}/flight/extras', [FlightAncillaryController::class, 'show'])->name('flights.extras.show')->middleware(['flight.enabled:extras', 'throttle:20,1']);
     Route::post('/booking/{reference}/flight/extras', [FlightAncillaryController::class, 'submit'])->name('flights.extras.submit')->middleware(['flight.enabled:extras', 'throttle:10,1']);
 
-    // Hold (Without Payment) → Confirm-Book — payment reuses the shared
-    // callback via Payment.purpose='flight_confirm_book'; see
-    // FlightBookingService::confirmHoldAfterPayment().
-    Route::post('/booking/{reference}/flight/confirm-hold', [FlightController::class, 'confirmHold'])->name('flights.hold.confirm')->middleware('throttle:10,1');
-    Route::post('/booking/{reference}/flight/release-hold', [FlightController::class, 'releaseHold'])->name('flights.hold.release')->middleware('throttle:10,1');
     Route::post('/booking/{reference}/flight/cancel-quote', [FlightController::class, 'cancellationQuote'])->name('flights.cancel.quote')->middleware('throttle:30,1');
 
     // Auto Reissue (reschedule to a new date) — payment reuses the shared

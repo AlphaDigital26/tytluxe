@@ -133,6 +133,14 @@ class FlightReissueController extends Controller
             abort(404);
         }
 
+        // TripJack's airline matrix: this airline's date changes are offline.
+        if (! $booking->flightSupportsOnline('reschedule')) {
+            throw new \Illuminate\Http\Exceptions\HttpResponseException(
+                redirect()->route('hotel.booking.confirmation', $booking->reference)
+                    ->with('booking_error', 'This airline doesn’t allow online date changes. '.\App\Support\FlightSettings::contactUsMessage())
+            );
+        }
+
         return $booking;
     }
 }

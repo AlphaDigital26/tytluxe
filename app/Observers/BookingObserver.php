@@ -83,8 +83,6 @@ class BookingObserver
 
         return match (true) {
             ! $flight && $status === 'confirmed' => BookingUpdateMail::CONFIRMED,
-            $flight && $status === 'on_hold' => BookingUpdateMail::HELD,
-            $flight && $status === 'hold_expired' => BookingUpdateMail::HOLD_EXPIRED,
             $status === 'cancelled' => BookingUpdateMail::CANCELLED,
             $status === 'refunded' => BookingUpdateMail::FAILED_REFUNDED,
             default => null,

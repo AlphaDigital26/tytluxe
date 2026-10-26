@@ -32,5 +32,7 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <!-- Fake TripJack replies must never land in real certification logs. -->
+        <env name="TRIPJACK_CERT_LOGS" value="false" force="true"/>
     </php>
 </phpunit>

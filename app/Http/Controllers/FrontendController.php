@@ -1337,7 +1337,7 @@ class FrontendController extends Controller
             'pan_number' => [$panRequired ? 'required' : 'nullable', 'string', $panRegex],
             // Optional otherwise (business travel, for our invoice) — but
             // once started, both fields.
-            'gst_number' => [$gstRequired ? 'required' : 'nullable', 'required_with:gst_registered_name', 'string', 'regex:/^[0-9]{2}[A-Za-z]{5}[0-9]{4}[A-Za-z][1-9A-Za-z]Z[0-9A-Za-z]$/'],
+            'gst_number' => [$gstRequired ? 'required' : 'nullable', 'required_with:gst_registered_name', 'string', new \App\Rules\Gstin],
             'gst_registered_name' => [$gstRequired ? 'required' : 'nullable', 'required_with:gst_number', 'string', 'max:100'],
             'special_requests' => 'nullable|string|max:500',
             'rooms' => 'required|array',
@@ -1376,6 +1376,7 @@ class FrontendController extends Controller
             'rooms.*.travelers.*.last_name.regex' => ':attribute can only have letters, spaces, dots, apostrophes and hyphens.',
             'rooms.*.travelers.*.title.in' => ':attribute must be Mr, Mrs or Ms for an adult, and Master or Miss for a child.',
             'rooms.*.travelers.*.passport_number.regex' => ':attribute must be 6 to 20 letters and numbers.',
+            'rooms.*.travelers.*.*.required' => ':attribute is required.',
         ], $attributes);
         // Saved whenever given (it goes on our invoice); sent to TripJack
         // only for a rate that requires it (see confirmBookingAfterPayment).
@@ -1828,7 +1829,15 @@ class FrontendController extends Controller
         }
 
         if (! $booking->hasETicket()) {
-            abort(404);
+            // Usually the airline's PNR hasn't arrived yet (it follows a
+            // minute or so after payment): say so rather than "not found".
+            abort_unless($booking->vertical === 'flight', 404);
+
+            return redirect()->route('hotel.booking.confirmation', $booking->reference)->with('booking_error', match (true) {
+                $booking->cancellation_requested_at !== null || $booking->status === 'cancelled' => 'This booking has been cancelled, so there is no e-ticket for it.',
+                $booking->status === 'confirmed' => 'Your e-ticket will be ready in a few minutes, as soon as the airline confirms the PNR. Please refresh this page shortly.',
+                default => 'The e-ticket is available once the booking is confirmed.',
+            });
         }
 
         return \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.e-ticket', compact('booking'))
@@ -2062,12 +2071,6 @@ class FrontendController extends Controller
         // (the column default), so this branch is unreachable for them.
         if ($payment->purpose === 'flight_ssr') {
             app(\App\Services\FlightAncillaryService::class)->confirmAfterPayment($payment, $razorpay);
-
-            return;
-        }
-
-        if ($payment->purpose === 'flight_confirm_book') {
-            app(\App\Services\FlightBookingService::class)->confirmHoldAfterPayment($payment, $razorpay);
 
             return;
         }
@@ -2362,7 +2365,7 @@ class FrontendController extends Controller
             if ($booking->cancellation_requested_at !== null || $booking->status !== 'confirmed' || ! $booking->tripjack_booking_id) {
                 return redirect()->route('hotel.booking.confirmation', $booking->reference);
             }
-            if (! \App\Support\FlightSettings::allowGuestCancel()) {
+            if (! \App\Support\FlightSettings::allowGuestCancel() || ! $booking->flightSupportsOnline('cancel')) {
                 return redirect()->route('hotel.booking.confirmation', $booking->reference)->with('booking_error', \App\Support\FlightSettings::contactUsMessage());
             }
 
@@ -2432,7 +2435,7 @@ class FrontendController extends Controller
             if ($booking->status !== 'confirmed' || ! $booking->tripjack_booking_id) {
                 return redirect()->route('hotel.booking.confirmation', $booking->reference);
             }
-            if (! \App\Support\FlightSettings::allowGuestCancel()) {
+            if (! \App\Support\FlightSettings::allowGuestCancel() || ! $booking->flightSupportsOnline('cancel')) {
                 return redirect()->route('hotel.booking.confirmation', $booking->reference)->with('booking_error', \App\Support\FlightSettings::contactUsMessage());
             }
 
