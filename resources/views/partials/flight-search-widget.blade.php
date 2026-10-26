@@ -284,7 +284,7 @@
   function tytSbToDisplay(d) { return TYT_SB_DAYS[d.getDay()] + ', ' + d.getDate() + ' ' + TYT_SB_MONTHS[d.getMonth()] + ' ' + d.getFullYear(); }
   function tytSbFromIso(iso) { var p = iso.split('-'); return new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10)); }
 
-  function tytSbSetupDatePicker(displayId, hiddenId, calId, getMinDate) {
+  function tytSbSetupDatePicker(displayId, hiddenId, calId, getMinDate, onChange) {
     var display = document.getElementById(displayId);
     var hidden = document.getElementById(hiddenId);
     var cal = document.getElementById(calId);
@@ -296,6 +296,7 @@
       selected = d;
       hidden.value = tytSbToIso(d);
       display.value = tytSbToDisplay(d);
+      if (onChange) onChange();
     }
 
     function render() {
@@ -380,7 +381,7 @@
 
   var departPicker = tytSbSetupDatePicker('tytSbDepartDisplay', 'tytSbDepart', 'tytSbDepartCal', function () {
     return tytSbToIso(todayDate);
-  });
+  }, function () { tytSbSyncMulti(); });
   departPicker.setDate(departHidden.value ? tytSbFromIso(departHidden.value) : todayDate);
 
   var returnPicker = tytSbSetupDatePicker('tytSbReturnDisplay', 'tytSbReturn', 'tytSbReturnCal', function () {
@@ -472,17 +473,57 @@
 
     tytSbSetupAirportField('tytSbMcFrom' + n, 'tytSbMcFromAc' + n);
     tytSbSetupAirportField('tytSbMcTo' + n, 'tytSbMcToAc' + n);
+    // A flight can't leave before the one before it.
     var legPicker = tytSbSetupDatePicker('tytSbMcDateDisplay' + n, 'tytSbMcDate' + n, 'tytSbMcDateCal' + n, function () {
-      return departPicker.getIso() || tytSbToIso(todayDate);
+      return tytSbPrevLeg(row).date() || tytSbToIso(todayDate);
+    }, function () { tytSbSyncMulti(); });
+    row._picker = legPicker;
+    var prev = tytSbPrevLeg(row);
+    legPicker.setDate(prev.date() ? tytSbFromIso(prev.date()) : todayDate);
+    ['tytSbMcFrom' + n, 'tytSbMcTo' + n].forEach(function (id) {
+      document.getElementById(id).addEventListener('change', tytSbSyncMulti);
     });
-    legPicker.setDate(todayDate);
 
     row.querySelector('.tyt-sb-multi-remove').addEventListener('click', function () {
       row.remove();
       tytSbUpdateMultiAddState();
+      tytSbSyncMulti();
     });
 
     tytSbUpdateMultiAddState();
+    tytSbSyncMulti();
+  }
+
+  // The flight before a Multi-City row: the row above it, or the main
+  // From / To / Departure fields for the first row.
+  function tytSbPrevLeg(row) {
+    var before = row.previousElementSibling;
+    if (!before) {
+      return { to: function () { return document.getElementById('tytSbTo').value.trim().toUpperCase(); },
+               date: function () { return departPicker.getIso(); } };
+    }
+    var m = before.dataset.leg;
+    return { to: function () { return document.getElementById('tytSbMcTo' + m).value.trim().toUpperCase(); },
+             date: function () { return before._picker ? before._picker.getIso() : null; } };
+  }
+
+  // Each row starts where the flight before it lands (unless the guest typed
+  // a different From), and a date earlier than the previous flight's moves
+  // up to that date.
+  function tytSbSyncMulti() {
+    if (!multiLegs) return;
+    Array.prototype.forEach.call(multiLegs.children, function (row) {
+      var prev = tytSbPrevLeg(row);
+      var from = document.getElementById('tytSbMcFrom' + row.dataset.leg);
+      if (prev.to() && (!from.value.trim() || from.value === row.dataset.autoFrom)) {
+        from.value = prev.to();
+        row.dataset.autoFrom = from.value;
+      }
+      var min = prev.date();
+      if (row._picker && min && (!row._picker.getIso() || row._picker.getIso() < min)) {
+        row._picker.setDate(tytSbFromIso(min));
+      }
+    });
   }
 
   function tytSbUpdateMultiAddState() {
@@ -497,7 +538,9 @@
     var tmp = from.value;
     from.value = to.value;
     to.value = tmp;
+    tytSbSyncMulti();
   });
+  document.getElementById('tytSbTo').addEventListener('change', tytSbSyncMulti);
 
   // Airport autocomplete (From / To / Multi-City legs).
   //
@@ -639,6 +682,7 @@
           e.preventDefault();
           input.value = a.code;
           ac.classList.remove('open');
+          input.dispatchEvent(new Event('change'));
         });
         ac.appendChild(row);
       });
@@ -696,6 +740,7 @@
         if (hoverIdx >= 0) {
           input.value = matches[hoverIdx].code;
           ac.classList.remove('open');
+          input.dispatchEvent(new Event('change'));
         }
       } else if (e.key === 'Escape') {
         ac.classList.remove('open');

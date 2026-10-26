@@ -259,6 +259,27 @@
               ];
           }
 
+          // Drop flights that start or land in another country from the one
+          // searched — the sandbox once answered MAA→DMK (Bangkok) with a
+          // MAA→RGN (Yangon) flight. Nearby airports in the same country
+          // (NMI for a BOM search) stay, with their "Nearby Airport" tag.
+          // Countries come from the site's own airport list for both sides, so
+          // the names always match; an airport missing from it is let through.
+          $airportCountries ??= collect(json_decode((string) @file_get_contents(public_path('data/airports.json')), true) ?: [])
+              ->mapWithKeys(fn ($row) => [$row[0] => $row[3] ?? null])->all();
+          $sameCountry = function (string $flightCode, ?string $searched) use ($airportCountries) {
+              if ($flightCode === $searched) {
+                  return true;
+              }
+              $a = $airportCountries[$flightCode] ?? null;
+              $b = $airportCountries[$searched] ?? null;
+
+              return ! $a || ! $b || $a === $b;
+          };
+          $flights = array_values(array_filter($flights, fn ($f) =>
+              $sameCountry($f['depAirport'], $meta['from'] ?? null) && $sameCountry($f['arrAirport'], $meta['to'] ?? null)
+          ));
+
           if ($flights) {
               usort($flights, fn ($a, $b) => $a['minPrice'] <=> $b['minPrice']);
               $cardGroups[$key] = ['meta' => $meta, 'flights' => $flights];
@@ -581,7 +602,7 @@
   /* Collapsible sidebar + collapsible filter blocks */
   .frx-body.side-collapsed { grid-template-columns: minmax(0, 1fr); }
   .frx-body.side-collapsed .frx-sidebar { display: none; }
-  .frx-side-toggle { flex-shrink: 0; width: 34px; height: 34px; border-radius: 8px; border: 1px solid rgba(201,168,76,0.4); background: var(--dark-2); color: var(--gold-light); font-size: 16px; line-height: 1; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: background var(--tr); }
+  .frx-side-toggle { flex-shrink: 0; width: auto; padding: 0 12px; font-family: 'Jost', sans-serif; font-size: 12px !important; font-weight: 600; letter-spacing: 0.04em; white-space: nowrap; height: 34px; border-radius: 8px; border: 1px solid rgba(201,168,76,0.4); background: var(--dark-2); color: var(--gold-light); font-size: 16px; line-height: 1; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: background var(--tr); }
   .frx-side-toggle:hover { background: rgba(201,168,76,0.1); }
   .frx-side-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
   .frx-side-head .frx-side-title { margin: 0; }
@@ -625,6 +646,8 @@
   .frx-date-fare.fetch { color: var(--gold); text-decoration: underline dotted; text-underline-offset: 3px; }
   .frx-date-fare.fetch:hover { color: var(--gold-light); }
   .frx-date-fare.priced { color: #fff; }
+  .frx-date-fare.view { color: var(--gold); font-weight: 500; pointer-events: none; }
+  .frx-date:hover .frx-date-fare.view { color: var(--gold-light); }
   .frx-date-fare.muted { color: var(--white-30); cursor: default; font-weight: 500; }
   .frx-date.active { background: rgba(201,168,76,0.1); color: var(--gold-light); }
   .frx-date.active::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: var(--gold); }
@@ -638,12 +661,12 @@
 
   .frx-picks-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 14px; }
   .frx-picks { display: flex; gap: 12px; flex-wrap: wrap; }
-  .frx-pick { display: flex; align-items: center; gap: 12px; min-width: 200px; padding: 11px 16px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: var(--dark-2); cursor: pointer; text-align: left; font-family: 'Jost', sans-serif; color: var(--white-80); transition: all var(--tr); }
+  .frx-pick { display: flex; align-items: center; gap: 12px; min-width: 190px; padding: 10px 18px 10px 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: var(--dark-2); cursor: pointer; text-align: left; font-family: 'Jost', sans-serif; color: var(--white-80); transition: all var(--tr); }
   .frx-pick:hover { border-color: rgba(201,168,76,0.4); }
   .frx-pick.active { border-color: var(--gold); background: rgba(201,168,76,0.08); box-shadow: inset 0 -2px 0 var(--gold); }
   .frx-pick-icon { width: 30px; height: 30px; flex-shrink: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(201,168,76,0.14); color: var(--gold-light); font-size: 15px; font-weight: 700; }
-  .frx-pick-title { font-size: 13px; font-weight: 700; color: #fff; }
-  .frx-pick-line { font-size: 11px; color: var(--white-60); }
+  .frx-pick-title { display: block; font-size: 13.5px; font-weight: 700; color: #fff; line-height: 1.3; }
+  .frx-pick-line { display: block; font-size: 11.5px; color: var(--white-60); margin-top: 1px; }
   .frx-pick-line b { color: var(--gold-light); font-weight: 600; }
 
   @media (max-width: 560px) { .frx-picks { width: 100%; } .frx-pick { flex: 1 1 100%; min-width: 0; } }
@@ -1100,13 +1123,13 @@
         <div class="frx-tb-divider"></div>
         <div>
           <div class="frx-tb-label">Departure Date</div>
-          <div class="frx-tb-value">{{ \Carbon\Carbon::parse($searchParams['departDate'])->format('D, M jS Y') }}</div>
+          <div class="frx-tb-value">{{ \Carbon\Carbon::parse($searchParams['departDate'])->format('D, j M Y') }}</div>
         </div>
         @if($searchParams['tripType'] === 'return' && $searchParams['returnDate'])
           <div class="frx-tb-divider"></div>
           <div>
             <div class="frx-tb-label">Return Date</div>
-            <div class="frx-tb-value">{{ \Carbon\Carbon::parse($searchParams['returnDate'])->format('D, M jS Y') }}</div>
+            <div class="frx-tb-value">{{ \Carbon\Carbon::parse($searchParams['returnDate'])->format('D, j M Y') }}</div>
           </div>
         @endif
       @endif
@@ -1124,13 +1147,15 @@
       <div class="frx-tb-divider"></div>
       <div>
         <div class="frx-tb-label">Passengers &amp; Class</div>
-        <div class="frx-tb-value">{{ implode(', ', $paxParts) }} <span class="frx-tb-sep">|</span> {{ strtoupper(str_replace('_', ' ', $searchParams['cabinClass'])) }}</div>
+        <div class="frx-tb-value">{{ implode(', ', $paxParts) }} <span class="frx-tb-sep">|</span> {{ ucwords(strtolower(str_replace('_', ' ', $searchParams['cabinClass']))) }}</div>
       </div>
+      @if($prefCode !== '')
       <div class="frx-tb-divider"></div>
-      <div class="{{ $prefCode === '' ? 'frx-tb-pref-none' : '' }}">
+      <div>
         <div class="frx-tb-label">Preferred Airline</div>
         <div class="frx-tb-value">{{ $prefName }}</div>
       </div>
+      @endif
       <div class="frx-tb-spacer"></div>
       <button type="button" class="frx-modify-btn" id="frxModifyToggle" aria-expanded="{{ $cardGroups ? 'false' : 'true' }}" aria-controls="frxModifyPanel">Modify Search <span class="frx-modify-chev" aria-hidden="true">&#8964;</span></button>
     </div>
@@ -1466,7 +1491,7 @@
       <main class="frx-main">
         <div class="frx-main-head">
           <div class="frx-head-row">
-            <button type="button" class="frx-side-toggle" id="frxSideToggle" aria-controls="frxSidebar" aria-expanded="true" title="Hide filters">&laquo;</button>
+            <button type="button" class="frx-side-toggle" id="frxSideToggle" aria-controls="frxSidebar" aria-expanded="true" title="Hide filters">&laquo; Filters</button>
             @if($showDateStrip)
               <div class="frx-dates" id="frxDates"
                 data-current="{{ $searchParams['departDate'] }}"
@@ -1488,18 +1513,16 @@
                 <span class="frx-pick-icon">&#8377;</span>
                 <span>
                   <span class="frx-pick-title">Cheapest</span>
-                  @foreach($quickPicks['cheapest'] as $pick)
-                    <span class="frx-pick-line" style="display:block;">{{ $pick['label'] ? $pick['label'].': ' : '' }}<b>&#8377;{{ number_format($pick['price']) }}</b> &middot; Duration: {{ $fmtDuration($pick['duration']) }}</span>
-                  @endforeach
+                  {{-- One short line: per-flight figures for several legs read as clutter. --}}
+                  <span class="frx-pick-line">@include('partials.flight-quick-pick-line', ['picks' => $quickPicks['cheapest'], 'kind' => 'cheapest'])</span>
                 </span>
               </button>
               <button type="button" class="frx-pick" data-sort="duration" data-dir="asc">
                 <span class="frx-pick-icon">&#9889;&#xFE0E;</span>
                 <span>
                   <span class="frx-pick-title">Fastest</span>
-                  @foreach($quickPicks['fastest'] as $pick)
-                    <span class="frx-pick-line" style="display:block;">{{ $pick['label'] ? $pick['label'].': ' : '' }}<b>&#8377;{{ number_format($pick['price']) }}</b> &middot; Duration: {{ $fmtDuration($pick['duration']) }}</span>
-                  @endforeach
+                  {{-- One short line: per-flight figures for several legs read as clutter. --}}
+                  <span class="frx-pick-line">@include('partials.flight-quick-pick-line', ['picks' => $quickPicks['fastest'], 'kind' => 'fastest'])</span>
                 </span>
               </button>
             </div>
@@ -1574,14 +1597,14 @@
                     <span class="frx-pick-icon">{!! $pickIcon !!}</span>
                     <span>
                       <span class="frx-pick-title">{{ $pickTitle }}</span>
-                      <span class="frx-pick-line" style="display:block;"><b>&#8377;{{ number_format($pick['price'], 2) }}</b> &middot; Duration: {{ $fmtDuration($pick['duration']) }}</span>
+                      <span class="frx-pick-line">@include('partials.flight-quick-pick-line', ['picks' => [$pick], 'kind' => $pickKind])</span>
                     </span>
                   </button>
                 @endforeach
               </div>
               <p class="frx-group-title" id="frxGroupTitle_{{ $key }}">
                 {{ $legFromCity }} &rarr; {{ $legToCity }}
-                <span class="frx-group-date">{{ $group['meta']['date'] ? \Carbon\Carbon::parse($group['meta']['date'])->format('D, M jS Y') : '' }}</span>
+                <span class="frx-group-date">{{ $group['meta']['date'] ? \Carbon\Carbon::parse($group['meta']['date'])->format('D, j M Y') : '' }}</span>
               </p>
               <div class="frx-leg-sort" role="group" aria-label="Sort {{ $group['meta']['label'] }} flights">
                 <span class="frx-leg-sort-label">Sort by:</span>
@@ -1649,8 +1672,9 @@
                       </div>
                     </div>
                     <button type="button" class="frx-details-toggle frx-view-details" data-target="{{ $rowId }}">View Details <span class="frx-toggle-icon">+</span></button>
-                    @if($seatsLeft)
-                      <div class="frx-seats-left">Seats left: {{ $seatsLeft }}</div>
+                    {{-- Only worth saying when seats are running out. --}}
+                    @if($seatsLeft && $seatsLeft <= 5)
+                      <div class="frx-seats-left">Only {{ $seatsLeft }} {{ $seatsLeft === 1 ? 'seat' : 'seats' }} left</div>
                     @endif
                   </div>
 
@@ -2406,7 +2430,7 @@
   var frxBody = document.getElementById('frxBody');
   function setSidebar(open) {
     frxBody.classList.toggle('side-collapsed', !open);
-    sideToggle.innerHTML = open ? '&laquo;' : '&raquo;';
+    sideToggle.innerHTML = open ? '&laquo; Filters' : 'Filters &raquo;';
     sideToggle.title = open ? 'Hide filters' : 'Show filters';
     sideToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
   }
@@ -2609,8 +2633,10 @@
           fareEl.className = 'frx-date-fare muted';
           fareEl.textContent = '—';
         } else {
-          fareEl.className = 'frx-date-fare fetch';
-          fareEl.textContent = 'Fetch Fare';
+          // The whole day is a link: tapping it lists that day's flights.
+          fareEl.className = 'frx-date-fare view';
+          fareEl.textContent = 'View flights';
+          fareEl.tabIndex = -1;
         }
         cell.appendChild(fareEl);
         track.appendChild(cell);
@@ -2619,7 +2645,10 @@
       // On a phone only ~3 days fit; keep the searched day in view.
       var active = track.querySelector('.frx-date.active');
       if (active && track.scrollWidth > track.clientWidth) {
-        track.scrollLeft = active.offsetLeft - (track.clientWidth - active.offsetWidth) / 2;
+        // Measured against the track itself (offsetLeft is relative to a
+        // further-out parent, which left the searched day half cut off).
+        var offset = active.getBoundingClientRect().left - track.getBoundingClientRect().left + track.scrollLeft;
+        track.scrollLeft = offset - (track.clientWidth - active.offsetWidth) / 2;
       }
     }
 
@@ -2627,7 +2656,8 @@
       var fareBtn = e.target.closest('.frx-date-fare');
       var cell = e.target.closest('.frx-date');
       if (cell && cell.classList.contains('active')) { e.preventDefault(); return; }
-      if (!fareBtn || !fareBtn.classList.contains('fetch')) return;
+      if (cell && cell.classList.contains('disabled')) { e.preventDefault(); return; }
+      if (!fareBtn || !fareBtn.classList.contains('fetch')) return; // otherwise the link opens that day
       // "Fetch Fare" prices the day without leaving the page.
       e.preventDefault();
       var day = fareBtn.dataset.day;
