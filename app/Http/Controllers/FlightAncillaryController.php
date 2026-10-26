@@ -116,6 +116,13 @@ class FlightAncillaryController extends Controller
             abort(404);
         }
 
+        // TripJack's airline matrix: no online add-ons for this airline.
+        if (! $booking->flightSupportsOnline('extras')) {
+            throw new \Illuminate\Http\Exceptions\HttpResponseException(
+                redirect()->route('hotel.booking.confirmation', $booking->reference)->with('booking_error', self::NOT_OFFERED_MESSAGE)
+            );
+        }
+
         // Until the previous Add SSR resolves, TripJack's "already selected"
         // lists may not show it yet — a second purchase in that gap could
         // repeat a meal/seat TripJack then rejects after payment.

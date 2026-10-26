@@ -84,9 +84,6 @@
             <div>
                 <h2 style="color: {{ $tone[0] }};">{{ $status['label'] }}</h2>
                 <p><strong>What to do:</strong> {{ $status['help'] }}</p>
-                @if($record->status === 'on_hold' && $record->tripjack_hold_expires_at)
-                    <p><strong>Guest must pay by {{ $record->tripjack_hold_expires_at->format('D, j M Y, g:i A') }}</strong> ({{ $record->tripjack_hold_expires_at->diffForHumans() }}).</p>
-                @endif
             </div>
             <div class="tyt-fbv-ids">
                 <span>Booking No.</span><strong>{{ $record->reference }}</strong>

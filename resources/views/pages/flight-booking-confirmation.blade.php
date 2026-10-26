@@ -6,14 +6,12 @@
   $paymentFailed = $booking->status === 'payment_failed';
   $cancellationPending = $booking->cancellation_requested_at !== null && $booking->status !== 'cancelled';
   $terminalGood = $booking->status === 'confirmed' && ! $cancellationPending;
-  $terminalBad = in_array($booking->status, ['refunded', 'failed_needs_review', 'cancelled', 'hold_expired'], true);
-  $onHold = $booking->status === 'on_hold';
-  $holdExpiresAt = $booking->tripjack_hold_expires_at ? \Illuminate\Support\Carbon::parse($booking->tripjack_hold_expires_at) : null;
-  $holdAlreadyExpired = $onHold && $holdExpiresAt && $holdExpiresAt->isPast();
+  $terminalBad = in_array($booking->status, ['refunded', 'failed_needs_review', 'cancelled'], true);
   $canRequestCancellation = $booking->status === 'confirmed' && ! $cancellationPending
       && $booking->flight_departure_date && \Illuminate\Support\Carbon::parse($booking->flight_departure_date)->isFuture();
   // Flight Settings → "Guests can cancel online" off: the guest is pointed to support instead.
-  $cancelViaSupport = $canRequestCancellation && ! \App\Support\FlightSettings::allowGuestCancel();
+  // Off in Flight Settings, or an airline TripJack can't cancel online.
+  $cancelViaSupport = $canRequestCancellation && (! \App\Support\FlightSettings::allowGuestCancel() || ! $booking->flightSupportsOnline('cancel'));
   $canRequestCancellation = $canRequestCancellation && ! $cancelViaSupport;
   $pnr = $booking->tripjack_flight_pnr ?? [];
   $ticketNumbers = $booking->tripjack_flight_ticket_numbers ?? [];
@@ -94,7 +92,7 @@
 @section('content')
 <div class="bc-wrap">
 
-  {{-- Messages from actions that redirect here (hold confirm / fare change,
+  {{-- Messages from actions that redirect here (fare change,
        extras unavailable, …) — previously flashed but never shown. --}}
   @if(session('booking_error'))
     <div class="bc-notice" role="alert">⚠️ {{ session('booking_error') }}</div>
@@ -126,21 +124,6 @@
     @if($booking->cancellation_requested_at->lt(now()->subMinutes(10)))
     <p class="bc-sub">This is taking longer than usual with the airline — our team has been notified and is following it up. Your refund will be processed automatically as soon as the airline confirms.</p>
     @endif
-  @elseif($booking->status === 'hold_expired')
-    <div class="bc-icon-ring bad">⚠️</div>
-    <h1 class="bc-title">Held Fare Expired</h1>
-    <p class="bc-sub">This fare was not confirmed before the airline's hold deadline and is no longer available. No payment was ever taken. Please search again for current fares.</p>
-  @elseif($onHold && $holdAlreadyExpired)
-    <div class="bc-icon-ring bad">⚠️</div>
-    <h1 class="bc-title">Held Fare Expired</h1>
-    <p class="bc-sub">This fare's hold deadline has passed and is no longer available. No payment was ever taken. Please search again for current fares.</p>
-  @elseif($onHold)
-    <div class="bc-icon-ring pending">⏳</div>
-    <h1 class="bc-title">Fare On Hold — Payment Pending</h1>
-    <p class="bc-sub">
-      We've blocked this fare with the airline, no payment taken yet.
-      @if($holdExpiresAt)Confirm and pay before <strong>{{ $holdExpiresAt->format('d M Y, h:i A') }}</strong> or it will be automatically released.@endif
-    </p>
   @elseif($terminalGood)
     <div class="bc-icon-ring good">✅</div>
     <h1 class="bc-title">Booking Confirmed!</h1>
@@ -251,98 +234,78 @@
   </div>
   @endif
 
-  @if($booking->hasETicket())
-  <div style="margin-top:16px;">
-    <a href="{{ route('flight.booking.eticket', $booking->reference) }}"
-       style="display:flex; align-items:center; justify-content:center; gap:8px; padding:13px 24px; border-radius:100px;
-              background:var(--gold); border:1px solid var(--gold); color:#0d0d0d;
-              font-family:'Jost',sans-serif; font-size:12.5px; font-weight:600; letter-spacing:0.06em;
-              text-transform:uppercase; text-decoration:none;">
-      Download E-Ticket
-    </a>
+  <style>
+    .bca-title { font-family:'Jost',sans-serif; font-size:11px; font-weight:600; letter-spacing:0.16em; text-transform:uppercase; color:var(--gold); margin:28px 0 12px; }
+    .bca-docs { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px; }
+    .bca-btn { display:flex; align-items:center; justify-content:center; gap:10px; padding:14px 20px; border-radius:100px; font-family:'Jost',sans-serif; font-size:12.5px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; text-decoration:none; transition:transform .15s ease, background .15s ease; }
+    .bca-btn:hover { transform:translateY(-1px); }
+    .bca-btn.primary { background:linear-gradient(90deg,#c9a84c,#e8c96b); color:#0d0d0d; font-weight:700; }
+    .bca-btn.ghost { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.15); color:#fff; }
+    .bca-btn.ghost:hover { background:rgba(255,255,255,0.09); }
+    .bca-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:12px; }
+    .bca-card { display:flex; gap:14px; align-items:flex-start; padding:16px 18px; border-radius:14px; background:#141414; border:1px solid rgba(255,255,255,0.08); text-decoration:none; transition:border-color .15s ease, transform .15s ease; }
+    .bca-card:hover { border-color:rgba(201,168,76,0.45); transform:translateY(-1px); }
+    .bca-icon { flex-shrink:0; width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:rgba(201,168,76,0.12); color:#e8c96b; font-size:17px; }
+    .bca-card b { display:block; font-family:'Jost',sans-serif; font-size:14px; font-weight:600; color:#fff; margin-bottom:3px; }
+    .bca-card span.d { display:block; font-family:'Jost',sans-serif; font-size:12px; line-height:1.5; color:rgba(255,255,255,0.55); }
+    .bca-card.danger .bca-icon { background:rgba(220,80,80,0.12); color:#f3a3a3; }
+    .bca-card.danger:hover { border-color:rgba(220,80,80,0.45); }
+    .bca-card.danger b { color:#f3a3a3; }
+    .bca-links { display:flex; justify-content:center; flex-wrap:wrap; gap:10px 28px; margin-top:30px; padding-top:20px; border-top:1px solid rgba(255,255,255,0.08); }
+    .bca-links a { font-family:'Jost',sans-serif; font-size:13px; color:rgba(255,255,255,0.6); text-decoration:none; }
+    .bca-links a:hover { color:#e8c96b; }
+  </style>
+
+  @if($paymentFailed)
+  <div style="margin-top:20px;">
+    <a href="{{ route('hotel.payment.show', $booking->reference) }}" class="bca-btn primary">Retry Payment</a>
   </div>
   @endif
 
-  @if($booking->hasInvoice())
-  <div style="margin-top:16px;">
-    <a href="{{ route('hotel.booking.invoice', $booking->reference) }}"
-       style="display:flex; align-items:center; justify-content:center; gap:8px; padding:13px 24px; border-radius:100px;
-              background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15); color:#fff;
-              font-family:'Jost',sans-serif; font-size:12.5px; font-weight:600; letter-spacing:0.06em;
-              text-transform:uppercase; text-decoration:none;">
-      Download Invoice
-    </a>
+  @if($booking->hasETicket() || $booking->hasInvoice())
+  <p class="bca-title">Your documents</p>
+  <div class="bca-docs">
+    @if($booking->hasETicket())
+      <a href="{{ route('flight.booking.eticket', $booking->reference) }}" class="bca-btn primary">&#8681; Download E-Ticket</a>
+    @endif
+    @if($booking->hasInvoice())
+      <a href="{{ route('hotel.booking.invoice', $booking->reference) }}" class="bca-btn ghost">&#8681; Download Invoice</a>
+    @endif
   </div>
   @endif
 
-  @if($onHold && ! $holdAlreadyExpired)
-  <div style="margin-top:16px; display:flex; flex-direction:column; gap:10px;">
-    <form method="POST" action="{{ route('flights.hold.confirm', $booking->reference) }}">
-      @csrf
-      <button type="submit" style="width:100%; padding:15px 24px; border:none; border-radius:100px;
-              background:linear-gradient(90deg, #c9a84c, #e8c96b); color:#0d0d0d;
-              font-family:'Jost',sans-serif; font-size:12.5px; font-weight:800; letter-spacing:0.1em;
-              text-transform:uppercase; cursor:pointer;">
-        Confirm &amp; Pay Now
-      </button>
-    </form>
-    <form method="POST" action="{{ route('flights.hold.release', $booking->reference) }}" onsubmit="return confirm('Release this held fare? This cannot be undone.');">
-      @csrf
-      <button type="submit" style="width:100%; padding:13px 24px; border-radius:100px;
-              background:transparent; border:1px solid rgba(220,80,80,0.35); color:#f3a3a3;
-              font-family:'Jost',sans-serif; font-size:12px; font-weight:600; letter-spacing:0.06em;
-              text-transform:uppercase; cursor:pointer;">
-        Release Hold
-      </button>
-    </form>
-  </div>
-  @endif
-
-  @if($booking->vertical === 'flight' && $terminalGood && \App\Support\FlightSettings::allowGuestExtras())
-  <div style="margin-top:16px;">
-    <a href="{{ route('flights.extras.show', $booking->reference) }}"
-       style="display:flex; align-items:center; justify-content:center; gap:8px; padding:13px 24px; border-radius:100px;
-              background:rgba(201,168,76,0.1); border:1px solid rgba(201,168,76,0.35); color:#e8c96b;
-              font-family:'Jost',sans-serif; font-size:12.5px; font-weight:600; letter-spacing:0.06em;
-              text-transform:uppercase; text-decoration:none;">
-      Add Seats, Meals &amp; Baggage
-    </a>
-  </div>
-  @endif
-
-  @if($booking->vertical === 'flight' && $terminalGood && $booking->flight_reissued_at === null && \App\Support\FlightSettings::allowGuestReschedule())
-  <div style="margin-top:16px;">
-    <a href="{{ route('flights.reissue.show', $booking->reference) }}"
-       style="display:flex; align-items:center; justify-content:center; gap:8px; padding:13px 24px; border-radius:100px;
-              background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15); color:#fff;
-              font-family:'Jost',sans-serif; font-size:12.5px; font-weight:600; letter-spacing:0.06em;
-              text-transform:uppercase; text-decoration:none;">
-      Reschedule Flight
-    </a>
-  </div>
-  @endif
-
-  @if($booking->vertical === 'flight' && $terminalGood)
-  <div style="margin-top:16px;">
-    <a href="{{ route('flights.fare-rules.show', $booking->reference) }}"
-       style="display:flex; align-items:center; justify-content:center; gap:8px; padding:13px 24px; border-radius:100px;
-              background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15); color:#fff;
-              font-family:'Jost',sans-serif; font-size:12.5px; font-weight:600; letter-spacing:0.06em;
-              text-transform:uppercase; text-decoration:none;">
-      View Cancellation &amp; Change Policy
-    </a>
-  </div>
-  @endif
-
-  @if($canRequestCancellation)
-  <div style="margin-top:16px;">
-    <a href="{{ route('hotel.booking.cancel.show', $booking->reference) }}"
-       style="display:flex; align-items:center; justify-content:center; gap:8px; padding:13px 24px; border-radius:100px;
-              background:transparent; border:1px solid rgba(220,80,80,0.35); color:#f3a3a3;
-              font-family:'Jost',sans-serif; font-size:12px; font-weight:600; letter-spacing:0.06em;
-              text-transform:uppercase; text-decoration:none;">
-      Cancel Booking
-    </a>
+  @php
+    $showExtras = $booking->vertical === 'flight' && $terminalGood && \App\Support\FlightSettings::allowGuestExtras() && $booking->flightSupportsOnline('extras');
+    $showReschedule = $booking->vertical === 'flight' && $terminalGood && $booking->flight_reissued_at === null && \App\Support\FlightSettings::allowGuestReschedule() && $booking->flightSupportsOnline('reschedule');
+    $showPolicy = $booking->vertical === 'flight' && $terminalGood;
+  @endphp
+  @if($showExtras || $showReschedule || $showPolicy || $canRequestCancellation)
+  <p class="bca-title">Manage your trip</p>
+  <div class="bca-grid">
+    @if($showExtras)
+      <a href="{{ route('flights.extras.show', $booking->reference) }}" class="bca-card">
+        <span class="bca-icon" aria-hidden="true">&#128186;</span>
+        <span><b>Add Seats, Meals &amp; Baggage</b><span class="d">Pick a seat, pre-book a meal or add extra bags.</span></span>
+      </a>
+    @endif
+    @if($showReschedule)
+      <a href="{{ route('flights.reissue.show', $booking->reference) }}" class="bca-card">
+        <span class="bca-icon" aria-hidden="true">&#128197;</span>
+        <span><b>Reschedule Flight</b><span class="d">Move your trip to another date or flight.</span></span>
+      </a>
+    @endif
+    @if($showPolicy)
+      <a href="{{ route('flights.fare-rules.show', $booking->reference) }}" class="bca-card">
+        <span class="bca-icon" aria-hidden="true">&#128203;</span>
+        <span><b>Cancellation &amp; Change Policy</b><span class="d">See the charges before you change or cancel.</span></span>
+      </a>
+    @endif
+    @if($canRequestCancellation)
+      <a href="{{ route('hotel.booking.cancel.show', $booking->reference) }}" class="bca-card danger">
+        <span class="bca-icon" aria-hidden="true">&#10005;</span>
+        <span><b>Cancel Booking</b><span class="d">Cancel this trip and see your refund amount.</span></span>
+      </a>
+    @endif
   </div>
   @endif
 
@@ -352,33 +315,9 @@
   </p>
   @endif
 
-  @if($paymentFailed)
-  <div style="margin-top:16px;">
-    <a href="{{ route('hotel.payment.show', $booking->reference) }}"
-       style="display:flex; align-items:center; justify-content:center; gap:8px; padding:15px 24px; border-radius:100px;
-              background:linear-gradient(90deg, #c9a84c, #e8c96b); color:#0d0d0d;
-              font-family:'Jost',sans-serif; font-size:12.5px; font-weight:800; letter-spacing:0.1em;
-              text-transform:uppercase; text-decoration:none;">
-      Retry Payment
-    </a>
-  </div>
-  @endif
-
-  <div style="display:flex; flex-direction:column; gap:10px; margin-top:16px;">
-    <a href="{{ route('flights.search') }}"
-       style="display:flex; align-items:center; justify-content:center; gap:8px; padding:13px 24px; border-radius:100px;
-              background:rgba(201,168,76,0.12); border:1px solid rgba(201,168,76,0.3); color:#c9a84c;
-              font-family:'Jost',sans-serif; font-size:12.5px; font-weight:600; letter-spacing:0.08em;
-              text-transform:uppercase; text-decoration:none;">
-      Search More Flights
-    </a>
-    <a href="{{ route('history') }}"
-       style="display:flex; align-items:center; justify-content:center; gap:8px; padding:13px 24px; border-radius:100px;
-              background:transparent; border:1px solid rgba(255,255,255,0.15); color:rgba(255,255,255,0.55);
-              font-family:'Jost',sans-serif; font-size:12.5px; font-weight:500; letter-spacing:0.08em;
-              text-transform:uppercase; text-decoration:none;">
-      Back to My Trips
-    </a>
+  <div class="bca-links">
+    <a href="{{ route('flights.search') }}">&#9992; Search more flights</a>
+    <a href="{{ route('history') }}">&#8592; Back to my trips</a>
   </div>
 
 </div>

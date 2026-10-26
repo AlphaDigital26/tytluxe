@@ -92,7 +92,7 @@ class HotelScenarioFixesTest extends TestCase
         ])->assertSessionHasErrors([
             'rooms.0.travelers.0.title' => 'Room 1, guest 1: title must be Mr, Mrs or Ms for an adult, and Master or Miss for a child.',
             'rooms.0.travelers.0.first_name' => 'Room 1, guest 1: first name can only have letters, spaces, dots, apostrophes and hyphens.',
-            'rooms.0.travelers.1.first_name' => 'The Room 1, guest 2: first name field is required.',
+            'rooms.0.travelers.1.first_name' => 'Room 1, guest 2: first name is required.',
             'special_requests',
         ]);
         $this->assertStringNotContainsString('rooms.0', implode(' ', session('errors')->all()));

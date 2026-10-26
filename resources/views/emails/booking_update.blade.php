@@ -26,8 +26,6 @@
           ? ['Your flight is booked', 'Your tickets have been issued by the airline. Your PNR and ticket numbers are below — keep this email handy for check-in.']
           : ['Your booking is confirmed', 'Your payment was successful and the hotel has confirmed your room. Your booking details are below.'],
       M::RESCHEDULED => ['Your new flight details', 'Your flight has been rescheduled and the airline has issued your new tickets. Please use the details below — your old PNR is no longer valid.'],
-      M::HELD => ['Your fare is on hold', 'We have reserved this fare with the airline. No payment has been taken yet — confirm and pay before the deadline below, or the seats will be released.'],
-      M::HOLD_EXPIRED => ['Your held fare has expired', 'The fare was not confirmed before the airline\'s deadline, so the seats have been released. No payment was taken. You are welcome to search again for current fares.'],
       M::CANCELLED => ['Your booking has been cancelled', $booking->guestCancellationMessage()],
       M::EXTRAS => match ($ssrStatus) {
           'confirmed' => ['Your extras are confirmed', 'The airline has confirmed the seats, meals and baggage you added. You can see them on your booking page.'],
@@ -113,16 +111,13 @@
       @if($isFlight)
         <div class="section-title">Your trip</div>
         <table class="rows">
-          @if($pnrs && in_array($kind, [M::CONFIRMED, M::RESCHEDULED, M::HELD], true))
+          @if($pnrs && in_array($kind, [M::CONFIRMED, M::RESCHEDULED], true))
           <tr><td class="label">Airline PNR</td><td class="value highlight">{{ $pnrs }}</td></tr>
           @endif
           <tr><td class="label">Route</td><td class="value">{{ str_replace('-', ' → ', (string) $booking->flight_route) }}</td></tr>
           <tr><td class="label">Departure</td><td class="value">{{ $date($booking->flight_departure_date) }}</td></tr>
           @if($booking->flight_return_date)
           <tr><td class="label">Return</td><td class="value">{{ $date($booking->flight_return_date) }}</td></tr>
-          @endif
-          @if($kind === M::HELD && $booking->tripjack_hold_expires_at)
-          <tr><td class="label">Pay before</td><td class="value highlight">{{ $dateTime($booking->tripjack_hold_expires_at) }}</td></tr>
           @endif
         </table>
 
@@ -203,11 +198,6 @@
           <tr><td class="label">Refunded</td><td class="value">− {{ $money($totals['refunded']) }}</td></tr>
           @endif
         </table>
-      @elseif($kind === M::HELD)
-        <div class="section-title">Payment</div>
-        <table class="rows">
-          <tr><td class="label">Amount to pay</td><td class="value highlight">{{ $money($booking->total_amount) }}</td></tr>
-        </table>
       @endif
 
       @php $differenceRefunded = $kind === M::RESCHEDULED ? (float) (collect($booking->flight_reissue_history ?? [])->last()['differenceRefunded'] ?? 0) : 0; @endphp
@@ -224,7 +214,7 @@
         @if($balanceCharge && in_array($kind, [M::CONFIRMED, M::BALANCE_REMINDER], true))
           <a class="btn" href="{{ route('package.balance', $booking->reference) }}">Pay balance</a>
         @else
-          <a class="btn" href="{{ route('hotel.booking.confirmation', $booking->reference) }}">{{ $kind === M::HELD ? 'Confirm & pay' : 'View your booking' }}</a>
+          <a class="btn" href="{{ route('hotel.booking.confirmation', $booking->reference) }}">View your booking</a>
         @endif
       </div>
     </div>

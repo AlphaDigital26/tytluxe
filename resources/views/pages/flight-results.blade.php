@@ -462,6 +462,11 @@
      scrolls with the page like normal content. */
   .frx-sticky .frx-modify-panel { margin: 10px 0 0; }
   .frx-sticky.modify-open { position: relative; }
+  /* ...and the Sort By bar and filters, which pin beneath it, move up to
+     the top — otherwise they'd stick a form's height down the screen with
+     results showing through the gap above them. */
+  .frx-modify-open .frx-sortbar { top: 0; }
+  .frx-modify-open .frx-sidebar { top: 12px; max-height: calc(100vh - 24px); }
   .frx-group-title { scroll-margin-top: calc(var(--frx-sticky-h, 90px) + var(--frx-sort-h, 50px) + 16px); }
   @media (max-width: 720px) {
     .frx-sticky { padding: 5px 16px; margin: 0 -16px 12px; }
@@ -1843,11 +1848,15 @@
         // at the top, so bring the page up to it.
         var wasPinned = stickyBar.getBoundingClientRect().top <= 1 && window.scrollY > 0;
         stickyBar.classList.toggle('modify-open', open);
+        document.documentElement.classList.toggle('frx-modify-open', open);
         if (open && wasPinned) stickyBar.scrollIntoView({ block: 'start' });
       }
     };
     modifyBtn.addEventListener('click', function () { setModifyOpen(!modifyPanel.classList.contains('open')); });
-    if (modifyPanel.classList.contains('open') && stickyBar) stickyBar.classList.add('modify-open');
+    if (modifyPanel.classList.contains('open') && stickyBar) {
+      stickyBar.classList.add('modify-open');
+      document.documentElement.classList.add('frx-modify-open');
+    }
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape' && modifyPanel.classList.contains('open') && !document.querySelector('.tyt-sb-autocomplete.open, .tyt-sb-calendar.open, .tyt-sb-pax-panel.open')) setModifyOpen(false);
     });

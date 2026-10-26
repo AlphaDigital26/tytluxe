@@ -618,16 +618,16 @@ class HotelBookingScenariosTest extends TestCase
             '*/hotel/booking-details' => Http::response($this->details('TJ-19', 'SUCCESS'), 200),
         ]);
 
-        $booking = $this->bookThrough($hotel, form: $this->gstForm(['gst_number' => '24abafx1234k1zz', 'gst_registered_name' => 'Acme Travels Pvt Ltd']));
+        $booking = $this->bookThrough($hotel, form: $this->gstForm(['gst_number' => '24abafx1234k1za', 'gst_registered_name' => 'Acme Travels Pvt Ltd']));
 
         $this->assertSame('confirmed', $booking->status);
-        $this->assertSame(['number' => '24ABAFX1234K1ZZ', 'name' => 'Acme Travels Pvt Ltd'], $booking->guestGst());
+        $this->assertSame(['number' => '24ABAFX1234K1ZA', 'name' => 'Acme Travels Pvt Ltd'], $booking->guestGst());
         // A normal (non-passthrough) rate: TripJack doesn't take gstInfo.
         $this->assertArrayNotHasKey('gstInfo', $this->sentTo('/hotel/book')->first()->data());
 
         $invoice = view('pdf.invoice', ['booking' => $booking->load(['hotel.destination', 'roomType', 'travelers'])])->render();
         $this->assertStringContainsString('Acme Travels Pvt Ltd', $invoice);
-        $this->assertStringContainsString('24ABAFX1234K1ZZ', $invoice);
+        $this->assertStringContainsString('24ABAFX1234K1ZA', $invoice);
         $this->assertStringContainsString('Traveller: Ravi Kumar', $invoice);
     }
 
@@ -640,11 +640,11 @@ class HotelBookingScenariosTest extends TestCase
         ]);
 
         // GSTIN without the company name: refused, no booking.
-        $this->assertNull($this->bookThrough($hotel, form: $this->gstForm(['gst_number' => '24ABAFX1234K1ZZ']), pay: false));
+        $this->assertNull($this->bookThrough($hotel, form: $this->gstForm(['gst_number' => '24ABAFX1234K1ZA']), pay: false));
 
-        $this->bookThrough($hotel, form: $this->gstForm(['gst_number' => '24ABAFX1234K1ZZ', 'gst_registered_name' => 'Acme Travels Pvt Ltd']));
+        $this->bookThrough($hotel, form: $this->gstForm(['gst_number' => '24ABAFX1234K1ZA', 'gst_registered_name' => 'Acme Travels Pvt Ltd']));
 
-        $this->assertSame(['gstNumber' => '24ABAFX1234K1ZZ', 'registeredName' => 'Acme Travels Pvt Ltd'], $this->sentTo('/hotel/book')->first()->data()['gstInfo']);
+        $this->assertSame(['gstNumber' => '24ABAFX1234K1ZA', 'registeredName' => 'Acme Travels Pvt Ltd'], $this->sentTo('/hotel/book')->first()->data()['gstInfo']);
     }
 
     public function test_21_invoice_without_company_gst_is_billed_to_the_guest(): void

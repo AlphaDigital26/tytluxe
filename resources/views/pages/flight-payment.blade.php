@@ -15,7 +15,7 @@
   body { background: var(--dark); }
 
   .pay-wrap {
-    max-width: 460px; margin: 0 auto; padding: 105px 24px 90px;
+    max-width: 460px; margin: 0 auto; padding: 150px 24px 90px;
     display: flex; flex-direction: column; align-items: center; text-align: center;
   }
   .pay-card {
@@ -23,7 +23,7 @@
     padding: 40px 36px; box-sizing: border-box;
   }
   @media (max-width: 560px) {
-    .pay-wrap { padding: 90px 16px 60px; }
+    .pay-wrap { padding: 120px 16px 60px; }
     .pay-card { padding: 30px 22px; }
     .pay-title { font-size: 1.6rem; }
     .pay-amount-value { font-size: 2rem; }
@@ -98,8 +98,9 @@
       </div>
 
       <p class="pay-error" id="payFailedNote" style="display:none; margin-top:16px; margin-bottom:0;"></p>
+      <p class="pay-status" id="payClosedNote" style="display:none;">Payment window closed — you have not been charged. Your fare is still held until the timer runs out.</p>
 
-      <button type="button" class="pay-retry-btn" id="payRetryBtn">Retry Payment</button>
+      <button type="button" class="pay-retry-btn" id="payRetryBtn">Pay &#8377;{{ number_format((float) $payment->amount, 2) }}</button>
     @endif
 
     <p class="pay-secure-note">Payments are processed securely by Razorpay. TYTLUXE never stores your card or bank details.</p>
@@ -125,6 +126,8 @@
     var waiting = document.getElementById('payWaiting');
     var retryBtn = document.getElementById('payRetryBtn');
     var failedNote = document.getElementById('payFailedNote');
+    var closedNote = document.getElementById('payClosedNote');
+    var payLabel = retryBtn.textContent;
     var rzp = null;
     var paid = false;
 
@@ -163,6 +166,7 @@
       waiting.style.display = '';
       retryBtn.classList.remove('visible');
       failedNote.style.display = 'none';
+      closedNote.style.display = 'none';
       statusText.textContent = 'Opening secure payment window…';
 
       rzp = new Razorpay({
@@ -188,7 +192,14 @@
         },
         modal: {
           ondismiss: function () {
+            if (paid) return;
             waiting.style.display = 'none';
+            // Closing the window isn't a failure: offer a plain Pay button,
+            // unless a real failure was already reported.
+            if (failedNote.style.display === 'none') {
+              closedNote.style.display = '';
+              retryBtn.textContent = payLabel;
+            }
             retryBtn.classList.add('visible');
           }
         }
@@ -196,6 +207,8 @@
 
       rzp.on('payment.failed', function (response) {
         waiting.style.display = 'none';
+        closedNote.style.display = 'none';
+        retryBtn.textContent = 'Try Payment Again';
         retryBtn.classList.add('visible');
         var desc = (response && response.error && response.error.description) || 'Your payment did not go through. Please try again.';
         failedNote.textContent = '⚠️ ' + desc;

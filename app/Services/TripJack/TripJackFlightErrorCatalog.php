@@ -82,10 +82,108 @@ class TripJackFlightErrorCatalog
                 'logLevel' => 'warning',
                 'action' => 'none',
             ],
-            '1003', '1005' => [ // date/route validation
-                'message' => 'Please check your travel dates and route and try again.',
+            // Each told plainly (confirmed in scenario testing, 24 Oct 2026).
+            '1003' => [ // "Travel date should be in ascending order"
+                'message' => 'Each flight must be on or after the date of the one before it. Please check your dates.',
+                'logLevel' => 'info',
+                'action' => 'none',
+            ],
+            '1004' => [ // "Travel date can't be after year"
+                'message' => 'Airlines open bookings up to about a year ahead. Please choose an earlier date.',
+                'logLevel' => 'info',
+                'action' => 'none',
+            ],
+            '1005' => [ // "Origin and Destination can't be same"
+                'message' => 'The departure and arrival cities are the same. Please choose a different destination.',
+                'logLevel' => 'info',
+                'action' => 'none',
+            ],
+            '1045' => [ // "Invalid airport"
+                'message' => 'We couldn’t find one of those airports. Please choose the city or airport from the list.',
+                'logLevel' => 'info',
+                'action' => 'none',
+            ],
+            '2502' => [ // "Duplicate Booking. This is a duplicate booking of TJS…" (seen in testing)
+                'message' => 'These travellers are already booked on this flight, so we didn’t book it twice. Please check My Trips — any amount paid for this attempt is refunded automatically.',
                 'logLevel' => 'warning',
                 'action' => 'none',
+            ],
+            // Amendments (cancel / reschedule), from TripJack's "Post-Booking
+            // Amendment Errors" reference — each told in the guest's terms.
+            '1152', '8037', '8042', '1162' => [ // too close to departure / no-show window
+                'message' => 'The airline doesn’t allow online changes this close to departure. Please call or WhatsApp our team and we’ll help.',
+                'logLevel' => 'info',
+                'action' => 'contact_support',
+            ],
+            '2603' => [ // journey checked in
+                'message' => 'You’ve already checked in for this flight, so it can’t be changed online. Please contact the airline or our team.',
+                'logLevel' => 'info',
+                'action' => 'contact_support',
+            ],
+            '2512', '2518' => [ // previous amendment in progress / order pending
+                'message' => 'An earlier change on this booking is still being processed. Please try again once it completes.',
+                'logLevel' => 'info',
+                'action' => 'none',
+            ],
+            '2600', '1156', '1165', '1164' => [ // already reissued / reissue limit reached
+                'message' => 'This ticket has already been changed, so further changes are handled by our team. Please call or WhatsApp us.',
+                'logLevel' => 'info',
+                'action' => 'contact_support',
+            ],
+            '1078' => [ // infant's adult must be included
+                'message' => 'An infant travels on an adult’s lap, so please include that adult when cancelling or changing the infant.',
+                'logLevel' => 'info',
+                'action' => 'none',
+            ],
+            '1079', '1084', '1082' => [ // children/infants can't be left without an adult
+                'message' => 'Children and infants can’t be left on the booking without an adult. Please include them as well.',
+                'logLevel' => 'info',
+                'action' => 'none',
+            ],
+            '2506', '1159', '1147', '2607' => [ // partial change not allowed for this fare
+                'message' => 'This fare can only be changed for the whole booking, not for some travellers or flights. Please choose the full booking.',
+                'logLevel' => 'info',
+                'action' => 'none',
+            ],
+            '2621', '2612', '2527', '2644' => [ // void not eligible
+                'message' => 'Same-day free cancellation isn’t available for this booking. Please use the normal cancellation instead.',
+                'logLevel' => 'info',
+                'action' => 'none',
+            ],
+            '1171' => [ // reissue blocked: booking has SSR
+                'message' => 'This booking has added seats, meals or baggage, so the airline doesn’t allow an online date change. Please call or WhatsApp our team.',
+                'logLevel' => 'info',
+                'action' => 'contact_support',
+            ],
+            '1153', '1168', '2599', '2583', '2585', '1167', '2646' => [ // reissue / amendment not allowed for this booking type
+                'message' => 'This booking can’t be changed online. Please call or WhatsApp our team and we’ll arrange it with the airline.',
+                'logLevel' => 'info',
+                'action' => 'contact_support',
+            ],
+            '1154', '1155', '2548' => [ // dates invalid for reissue
+                'message' => 'Please choose a new travel date in the future, before your original flight has departed.',
+                'logLevel' => 'info',
+                'action' => 'none',
+            ],
+            '8113', '1148' => [ // no reissue flights for the date
+                'message' => 'No flights are available on the new date you chose. Please try another date.',
+                'logLevel' => 'info',
+                'action' => 'none',
+            ],
+            '2503' => [ // review expired
+                'message' => 'The new fare has expired. Please search for the new date again.',
+                'logLevel' => 'info',
+                'action' => 're_search',
+            ],
+            '2563' => [ // unable to raise amendment
+                'message' => 'The airline couldn’t process this change right now. Please try again in a little while, or contact our team.',
+                'logLevel' => 'warning',
+                'action' => 'retry',
+            ],
+            '808' => [ // "Keys Passed in the request is already expired"
+                'message' => 'These fares have expired. Please search again to see current prices.',
+                'logLevel' => 'info',
+                'action' => 're_search',
             ],
             '1009' => [
                 'message' => 'Your selection has expired. Please search again.',

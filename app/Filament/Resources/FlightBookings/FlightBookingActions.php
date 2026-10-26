@@ -159,25 +159,6 @@ class FlightBookingActions
             });
     }
 
-    public static function releaseReservation(): Action
-    {
-        return Action::make('releaseReservation')
-            ->label('Release reservation')
-            ->icon('heroicon-o-lock-open')
-            ->color('warning')
-            ->visible(fn (Booking $record) => $record->status === 'on_hold' && static::canManage($record, 'cancel'))
-            ->requiresConfirmation()
-            ->modalHeading('Release this reserved seat?')
-            ->modalDescription('The guest has not paid for this reservation. Releasing it frees the seat with the airline and cancels the booking. No money is involved.')
-            ->modalSubmitActionLabel('Release reservation')
-            ->modalCancelActionLabel('Go back')
-            ->action(function (Booking $record): void {
-                app(FlightBookingService::class)->releaseHold($record, auth('admin')->user()?->name ?? 'admin');
-
-                Notification::make()->title('Reservation released')->success()->send();
-            });
-    }
-
     public static function downloadInvoice(): Action
     {
         return Action::make('downloadInvoice')

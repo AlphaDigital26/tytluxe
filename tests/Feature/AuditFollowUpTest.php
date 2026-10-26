@@ -21,7 +21,7 @@ use Tests\TestCase;
 /**
  * Smaller fixes from the 2026-10-07 audit: sign-up links, the 9-passenger
  * limit, "Check status" permissions, notes not resetting the stuck timer,
- * who released a hold, and the markup fixed for a booking in progress.
+ * and the markup fixed for a booking in progress.
  */
 class AuditFollowUpTest extends TestCase
 {
@@ -95,21 +95,6 @@ class AuditFollowUpTest extends TestCase
 
         $this->assertStringContainsString('Chased TripJack by phone.', $booking->fresh()->admin_note);
         $this->assertSame('confirmation_stuck', HotelBookingStatus::key($booking->fresh()));
-    }
-
-    public function test_hold_released_by_staff_is_not_recorded_as_the_guest(): void
-    {
-        Http::fake([
-            '*/air/unhold' => Http::response(['status' => ['success' => true]]),
-            '*/booking-details' => Http::response(['order' => ['status' => 'UNCONFIRMED'], 'status' => ['success' => true]]),
-        ]);
-        $booking = $this->booking(['status' => 'on_hold']);
-
-        app(FlightBookingService::class)->releaseHold($booking, 'Priya');
-
-        $booking->refresh();
-        $this->assertSame('Hold released by the TYT Luxe team (Priya) before payment.', $booking->cancellation_reason);
-        $this->assertStringNotContainsString('You released', $booking->guestCancellationMessage());
     }
 
     public function test_markup_is_fixed_when_the_guest_picks_the_fare(): void

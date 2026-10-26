@@ -57,7 +57,6 @@
   .flc-actions .flr-submit { width: auto; margin: 0; padding: 15px 30px; }
   .flc-actions a.flr-submit { display: inline-flex; align-items: center; }
   .flc-actions .flc-spacer { flex: 1; }
-  .flc-hold-note { font-family: 'Jost', sans-serif; font-size: 11.5px; color: var(--white-30); margin: 12px 0 0; line-height: 1.55; }
   @media (max-width: 560px) {
     .flc-actions .flc-spacer { display: none; }
     .flc-actions .flr-submit { flex: 1 1 100%; justify-content: center; }
@@ -186,14 +185,8 @@
         <div class="flc-actions">
           <a href="{{ route('flights.passengers.show', ['booking' => $bookingId]) }}" class="flr-submit outline">&laquo; Back</a>
           <span class="flc-spacer"></span>
-          @if($canHold)
-            <button type="submit" class="flr-submit outline" data-intent="hold">&#8987; Block</button>
-          @endif
           <button type="submit" class="flr-submit" data-intent="pay">Proceed to Pay &raquo;</button>
         </div>
-        @if($canHold)
-          <p class="flc-hold-note"><b>Block</b> holds this fare with the airline for a few hours without payment. You'll get a link to confirm and pay before it expires.</p>
-        @endif
       </form>
     </div>
   </div>
@@ -226,8 +219,6 @@
     @endif
     <div class="flr-line total"><span>Amount to Pay</span><span>&#8377;{{ number_format($summary['total'], 2) }}</span></div>
 
-    <button type="submit" form="flcForm" class="flr-submit" data-intent="pay">Proceed to Pay</button>
-    <p class="flr-note">You'll be redirected to our secure payment partner to complete your booking.</p>
   </aside>
 </div>
 @endsection
@@ -265,7 +256,7 @@
     submitting = true;
     document.querySelectorAll('[data-intent]').forEach(function (b) { b.disabled = true; });
     var active = document.querySelector('[data-intent="' + intent.value + '"]');
-    if (active) active.textContent = intent.value === 'hold' ? 'Blocking…' : 'Please wait…';
+    if (active) active.textContent = 'Please wait…';
   });
 
   document.querySelectorAll('.flr-sum-toggle').forEach(function (t) {

@@ -162,7 +162,8 @@
           'age' => ['ADULT' => '12+ yrs', 'CHILD' => '2–12 yrs', 'INFANT' => 'Under 2 yrs'][$type],
           'eligible' => $type !== 'INFANT',
           'dobRequired' => $type === 'INFANT' || (bool) ($conditions['dob'][['ADULT' => 'adobr', 'CHILD' => 'cdobr', 'INFANT' => 'idobr'][$type]] ?? false)
-              || ($type === 'ADULT' && ($context['fareType'] ?? null) === 'SENIOR_CITIZEN'),
+              || ($type === 'ADULT' && ($context['fareType'] ?? null) === 'SENIOR_CITIZEN')
+              || \App\Http\Controllers\FlightController::passportNeedsDob($conditions),
           'dobRange' => $travelDates
               ? \App\Http\Controllers\FlightController::dobRange($type, $travelDates[0], $travelDates[1], $context['fareType'] ?? null)
               : ['min' => null, 'max' => now()->subDay()->format('Y-m-d')],
@@ -242,7 +243,6 @@
   $mgmtFee = (float) ($breakdown['management_fee'] ?? 0);
   $mgmtFeeGst = (float) ($breakdown['management_fee_gst'] ?? 0);
   $convenienceFee = max(0, $breakdown['customer_price'] - $breakdown['tripjack_total_price'] - $mgmtFee - $mgmtFeeGst);
-  $canHold = (bool) ($conditions['isBA'] ?? false) && \App\Support\FlightSettings::allowHold();
   $pricingJs = ['tf' => $breakdown['tripjack_total_price'], 'taxes' => $breakdown['airline_taxes']] + \App\Services\FlightPricingService::formula($breakdown['margin_rate'] ?? null);
 @endphp
 
@@ -464,6 +464,8 @@
           <div class="flr-field" style="margin-bottom:0;"><label for="flpGstNo">GSTIN</label><input type="text" name="gst_number" id="flpGstNo" value="{{ old('gst_number') }}" maxlength="15" style="text-transform:uppercase;" @if($gstMandatory) required @endif></div>
           <div class="flr-field" style="margin-bottom:0;"><label for="flpGstName">Registered Company Name</label><input type="text" name="gst_registered_name" id="flpGstName" value="{{ old('gst_registered_name') }}" maxlength="35" @if($gstMandatory) required @endif></div>
         </div>
+        <div class="flr-field" style="margin:16px 0 0;"><label for="flpGstAddress">Registered Company Address</label><input type="text" name="gst_address" id="flpGstAddress" value="{{ old('gst_address') }}" maxlength="70" placeholder="e.g. 3rd Floor, Surana Supremus, Vesu, Surat, Gujarat 395007" @if($gstMandatory) required @endif></div>
+        <p style="font-size:12px; color:rgba(255,255,255,0.6); margin:8px 0 0;">The airline sends the GST invoice to the contact email and mobile above.</p>
       </div>
 
     </form>
@@ -491,8 +493,6 @@
     <div class="flr-sum-sub" id="flpAddonBreakdown" hidden></div>
     <div class="flr-line total"><span>Amount to Pay</span><span id="flpSumTotal">&#8377;{{ number_format($breakdown['customer_price'], 2) }}</span></div>
 
-    <button type="submit" form="flrForm" class="flr-submit" data-intent="review">Continue &rarr;</button>
-    <p class="flr-note">You'll review your booking before paying{{ $canHold ? ' or blocking this fare' : '' }}.</p>
   </aside>
 </div>
 
@@ -630,9 +630,6 @@
   }
 
   var inputsBox = document.getElementById('flpAddonInputs');
-  var holdBtn = document.getElementById('flpHoldBtn');
-  var holdNote = document.getElementById('flpHoldNote');
-  var holdNoteText = holdNote ? holdNote.textContent : '';
 
   function refresh() {
     inputsBox.innerHTML = '';
@@ -668,11 +665,6 @@
     document.querySelectorAll('.flp-addon[data-addon]').forEach(function (box) {
       box.querySelector('.flp-addon-total').textContent = money(totals[box.dataset.addon]);
     });
-
-    if (holdBtn) {
-      holdBtn.disabled = addons > 0;
-      holdNote.textContent = addons > 0 ? 'Paid add-ons can’t be held — remove them to hold this fare, or proceed to pay.' : holdNoteText;
-    }
   }
 
   // --- seat picker ---

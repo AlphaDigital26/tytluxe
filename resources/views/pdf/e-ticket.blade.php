@@ -108,7 +108,7 @@
       </td>
       <td class="et-right">
         <span class="et-pnr-label">Cabin</span>
-        <span class="et-pnr-small">{{ $title($segments[0]['cabin'] ?? $booking->flight_cabin_class ?? 'Economy') }}</span>
+        <span class="et-pnr-small">{{ $title(($segments[0]['cabin'] ?? null) ?: ($booking->flight_cabin_class ?: 'Economy')) }}</span>
       </td>
     </tr>
   </table>
@@ -188,6 +188,27 @@
       @endforeach
     </tbody>
   </table>
+
+  @php $barcodes = \App\Support\FlightBarcode::forBooking($booking); @endphp
+  @if($barcodes)
+  {{-- TripJack 2D barcode guide: one per passenger per flight (no infants),
+       10px top/right margin, 50px between barcodes. --}}
+  <div class="et-section">Boarding Barcodes</div>
+  <table style="width:100%; border-collapse:collapse; margin-bottom:12px;">
+    @foreach(array_chunk($barcodes, 2) as $pair)
+    <tr>
+      @foreach($pair as $bc)
+      <td style="width:50%; vertical-align:top; padding:10px 10px 50px 0;">
+        <div style="font-size:10px; margin-bottom:4px;"><strong>{{ $bc['passenger'] }}</strong> &middot; {{ $bc['sector'] }} &middot; {{ $bc['flight'] }}</div>
+        <div style="font-size:10px; margin-bottom:6px;">Your Airlines Reference: <strong>{{ $bc['pnr'] }}</strong></div>
+        <img src="{{ \App\Support\FlightBarcode::image($bc['text']) }}" alt="Barcode {{ $bc['pnr'] }}" style="width:110px; height:110px;">
+      </td>
+      @endforeach
+      @if(count($pair) === 1)<td style="width:50%;"></td>@endif
+    </tr>
+    @endforeach
+  </table>
+  @endif
 
   <div class="et-section">Important Information</div>
   <ol class="et-notes">

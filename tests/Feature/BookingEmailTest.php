@@ -134,20 +134,12 @@ class BookingEmailTest extends TestCase
         });
     }
 
-    public function test_failed_booking_refund_and_hold_emails(): void
+    public function test_failed_booking_refund_email(): void
     {
         $failed = $this->booking(['status' => 'confirmed']);
         $this->paid($failed, 5600);
         $failed->update(['status' => 'refunded']);
         Mail::assertQueued(BookingUpdateMail::class, fn ($mail) => $mail->kind === BookingUpdateMail::FAILED_REFUNDED && $mail->booking->is($failed));
-
-        $hold = $this->booking(['tripjack_hold_expires_at' => now()->addHours(6)]);
-        $hold->update(['status' => 'on_hold']);
-        Mail::assertQueued(BookingUpdateMail::class, fn ($mail) => $mail->kind === BookingUpdateMail::HELD && str_contains($mail->render(), 'Pay before'));
-
-        $hold->update(['tripjack_hold_expires_at' => now()->subMinute()]);
-        $this->artisan('flights:expire-holds');
-        Mail::assertQueued(BookingUpdateMail::class, fn ($mail) => $mail->kind === BookingUpdateMail::HOLD_EXPIRED && $mail->booking->is($hold));
     }
 
     public function test_team_gets_a_hidden_copy(): void

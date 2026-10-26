@@ -33,12 +33,10 @@ class ListFlightBookings extends ListRecords
                     ->where('status', 'confirmed')
                     ->whereDate('flight_departure_date', '>=', today())
                     ->reorder('flight_departure_date')),
-            'reserved' => Tab::make('Reserved, not paid')
-                ->modifyQueryUsing(fn (Builder $query) => $query->where('status', 'on_hold')),
             'cancelled' => Tab::make('Cancelled & refunded')
                 ->modifyQueryUsing(fn (Builder $query) => $query->whereIn('status', ['cancelled', 'refunded'])),
             'unpaid' => Tab::make('Not completed')
-                ->modifyQueryUsing(fn (Builder $query) => $query->whereIn('status', ['pending_payment', 'payment_failed', 'hold_expired'])),
+                ->modifyQueryUsing(fn (Builder $query) => $query->whereIn('status', ['pending_payment', 'payment_failed'])),
         ];
     }
 }

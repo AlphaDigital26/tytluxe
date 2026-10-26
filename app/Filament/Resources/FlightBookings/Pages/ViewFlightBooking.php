@@ -73,10 +73,9 @@ class ViewFlightBooking extends ViewRecord
                 RecordManualRefundAction::make(),
             ])->label('More')->icon('heroicon-m-ellipsis-vertical')->button()->color('gray'),
             ActionGroup::make([
-                FlightBookingActions::releaseReservation(),
                 FlightBookingActions::cancelAndRefund(),
             ])->label('Cancel')->icon('heroicon-o-x-circle')->button()->color('danger')
-                ->visible(fn () => in_array($this->record->status, ['confirmed', 'on_hold'], true)),
+                ->visible(fn () => $this->record->status === 'confirmed'),
         ];
     }
 }

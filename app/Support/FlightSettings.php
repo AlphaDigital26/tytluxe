@@ -49,18 +49,6 @@ class FlightSettings
         return self::markupPercent() / 100;
     }
 
-    /**
-     * "Reserve now, pay later" (TripJack hold) is switched off: on a B2C site
-     * free holds block seats in our TripJack account and mostly go unpaid.
-     * The hold code (confirm, release, expiry) is kept for a later B2B use;
-     * to bring it back, read the 'flights.allow_hold' setting here again and
-     * restore its toggle on the Flight Settings page.
-     */
-    public static function allowHold(): bool
-    {
-        return false;
-    }
-
     public static function allowGuestCancel(): bool
     {
         return self::bool('flights.allow_guest_cancel', true);
