@@ -87,6 +87,26 @@ class FlightResultsMergeTest extends TestCase
         Http::assertSent(fn (Request $r) => $r['searchQuery']['searchModifiers'] === ['pfts' => ['REGULAR']]);
     }
 
+    public function test_flights_landing_in_another_country_are_not_shown(): void
+    {
+        // UAT 26 Oct: a MAA→DMK (Bangkok) search came back with only MAA→RGN (Yangon).
+        Http::fake(['*/air-search-all' => Http::response([
+            'searchResult' => ['tripInfos' => ['ONWARD' => [
+                ['sI' => [$this->segment('631', '2026-12-05T09:35', 'MAA', 'RGN')], 'totalPriceList' => [$this->fare('RGN1', 'PUBLISHED', 9000)]],
+                ['sI' => [$this->segment('632', '2026-12-05T11:35', 'MAA', 'BKK')], 'totalPriceList' => [$this->fare('BKK1', 'PUBLISHED', 9500)]],
+            ]]],
+            'status' => ['success' => true],
+        ])]);
+
+        $html = $this->get(route('flights.search', [
+            'from' => 'MAA', 'to' => 'DMK', 'depart_date' => '2026-12-05', 'adults' => 1, 'trip_type' => 'oneway',
+        ]))->assertOk()->getContent();
+
+        $this->assertStringNotContainsString('value="RGN1"', $html);
+        // Another Bangkok airport is still offered, as a nearby airport.
+        $this->assertStringContainsString('value="BKK1"', $html);
+    }
+
     public function test_results_page_shows_one_card_per_flight_with_all_fares(): void
     {
         Http::fake(['*/air-search-all' => Http::response([
