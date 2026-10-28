@@ -72,4 +72,20 @@ class BlogPost extends Model
     {
         return $query->where('is_active', true)->orderBy('sort_order');
     }
+
+    /**
+     * What visitors see: switched on and past its Publish Date (no date =
+     * straight away), so a future date schedules the post.
+     */
+    public function scopeLive($query)
+    {
+        return $query->where('is_active', true)
+            ->where(fn ($q) => $q->whereNull('published_at')->orWhere('published_at', '<=', now()));
+    }
+
+    /** "Position in the list" first; among equal positions, newest first. */
+    public function scopeInListOrder($query)
+    {
+        return $query->orderBy('sort_order')->orderByRaw('COALESCE(published_at, created_at) DESC')->orderByDesc('id');
+    }
 }

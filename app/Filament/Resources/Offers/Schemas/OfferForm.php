@@ -147,8 +147,8 @@ class OfferForm
                             ->unique(ignoreRecord: true),
 
                         TextInput::make('enquire_link')
-                            ->label('Custom Enquire URL (Optional)')
-                            ->helperText('Leave blank to use the default WhatsApp number.')
+                            ->label('Send enquiries to this link instead (optional)')
+                            ->helperText('Leave blank and the Enquire button opens WhatsApp with your usual number.')
                             ->url()
                             ->nullable(),
                     ]),

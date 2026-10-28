@@ -2890,11 +2890,11 @@ class FrontendController extends Controller
     public function blog(\Illuminate\Http\Request $request)
     {
         $categories = \App\Models\BlogCategory::where('is_active', true)->orderBy('sort_order')->get();
-        $trendingPosts = \App\Models\BlogPost::with('category')->where('is_active', true)->where('is_trending', true)->orderBy('sort_order')->get();
+        $trendingPosts = \App\Models\BlogPost::with('category')->live()->where('is_trending', true)->inListOrder()->get();
 
         $activeCategory = $request->query('category');
 
-        $postsQuery = \App\Models\BlogPost::with('category')->where('is_active', true)->orderBy('sort_order');
+        $postsQuery = \App\Models\BlogPost::with('category')->live()->inListOrder();
         if ($activeCategory) {
             $postsQuery->whereHas('category', fn ($q) => $q->where('slug', $activeCategory));
         }
@@ -2907,13 +2907,13 @@ class FrontendController extends Controller
 
     public function blogDetails($slug)
     {
-        $post = \App\Models\BlogPost::with('category')->where('slug', $slug)->where('is_active', true)->firstOrFail();
+        $post = \App\Models\BlogPost::with('category')->where('slug', $slug)->live()->firstOrFail();
 
         $relatedPosts = \App\Models\BlogPost::with('category')
-            ->where('is_active', true)
+            ->live()
             ->where('id', '!=', $post->id)
             ->when($post->blog_category_id, fn ($q) => $q->where('blog_category_id', $post->blog_category_id))
-            ->orderBy('sort_order')
+            ->inListOrder()
             ->take(3)
             ->get();
 

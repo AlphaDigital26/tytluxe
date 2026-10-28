@@ -52,7 +52,8 @@ class FlightBookingsTable
                     ->label('Travellers')
                     ->state(fn (Booking $record) => (int) $record->pax_adults + (int) $record->pax_children + (int) $record->pax_infants),
                 TextColumn::make('tripjack_flight_pnr')->visibleFrom('md')
-                    ->label('PNR')
+                    ->label('Airline PNR')
+                    ->tooltip("The airline's booking code. The guest uses it to check in on the airline's website.")
                     ->state(fn (Booking $record) => collect($record->tripjack_flight_pnr ?? [])->unique()->implode(', ') ?: '—')
                     ->searchable(query: fn (Builder $query, string $search) => $query->where('tripjack_flight_pnr', 'like', '%'.$search.'%'))
                     ->copyable(),

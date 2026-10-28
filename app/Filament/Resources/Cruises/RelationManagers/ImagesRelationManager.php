@@ -37,7 +37,7 @@ class ImagesRelationManager extends RelationManager
                             ->helperText('Upload a high-resolution image (max 8MB, JPG/PNG/WebP). Recommended: 1800×900px or wider.'),
 
                         TextInput::make('image_url')
-                            ->label('Or: External Image URL')
+                            ->label('Or: link to a photo on another website')
                             ->url()
                             ->placeholder('https://images.unsplash.com/...')
                             ->default(null)

@@ -599,19 +599,21 @@
 
     @if($posts->hasPages())
       <div class="blog-pagination">
-        {{ $posts->onEachSide(1)->links() }}
+        {{-- The simple list markup the .blog-pagination styles above are written for. --}}
+        {{ $posts->onEachSide(1)->links('pagination::bootstrap-4') }}
       </div>
     @endif
   </main>
 </div>
 
-{{-- ── DESTINATIONS STRIP ─────────────────────────── --}}
+{{-- ── DESTINATIONS STRIP (only once some are featured) ── --}}
+@if($destinations->isNotEmpty())
 <section class="destinations-strip">
   <div class="destinations-strip-inner">
     <h2>Explore by Destination</h2>
     <p>Find travel stories, tips, and hidden gems across the world's most luxurious destinations.</p>
     <div class="dest-grid">
-      @forelse($destinations as $dest)
+      @foreach($destinations as $dest)
         <div class="dest-card" data-dest="{{ $dest->name }}">
           @if($dest->resolved_image)
             <img src="{{ $dest->resolved_image }}" alt="{{ $dest->name }}" loading="lazy">
@@ -625,14 +627,11 @@
             </div>
           </div>
         </div>
-      @empty
-        <div class="dest-placeholder">
-          <p>No featured destinations yet. Add some from the admin panel!</p>
-        </div>
-      @endforelse
+      @endforeach
     </div>
   </div>
 </section>
+@endif
 
 @push('scripts')
 <script>

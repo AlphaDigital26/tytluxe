@@ -42,7 +42,7 @@ class FeaturedBlogDestinationForm
                     ->helperText('Upload from your computer — takes priority over the URL below.'),
 
                 TextInput::make('image_url')
-                    ->label('Or: External Image URL')
+                    ->label('Or: link to a photo on another website')
                     ->url()
                     ->maxLength(1000)
                     ->helperText('Paste an Unsplash or any public image URL. Used only if no image is uploaded above.'),

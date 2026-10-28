@@ -883,19 +883,23 @@ class TripJackHotelSync
             return;
         }
 
+        $byKey = null;
         $amenityIds = collect($amenitiesMap)
             ->pluck('name')
             ->filter()
             // TripJack sometimes lists a hotel's own (or a sister hotel's)
             // name as an amenity — "Shimla Mountain Resort" isn't a facility.
             ->reject(fn ($name) => Amenity::looksLikeHotelName($name, $hotel->title))
-            ->unique(fn ($name) => strtolower(trim($name)))
-            ->map(function ($name) {
-                $amenity = Amenity::where('type', 'hotel')
-                    ->whereRaw('LOWER(name) = ?', [strtolower(trim($name))])
-                    ->first();
+            // ...and sometimes bare numbers ("1", "2") — not facilities either.
+            ->reject(fn ($name) => Amenity::isMeaningless($name))
+            // "24 Hour Front Desk" and "24-hour front desk" are one amenity.
+            ->unique(fn ($name) => Amenity::matchKey($name))
+            ->map(function ($name) use (&$byKey) {
+                $byKey ??= Amenity::where('type', 'hotel')->get(['id', 'name'])
+                    ->mapWithKeys(fn (Amenity $a) => [Amenity::matchKey($a->name) => $a->id])->all();
+                $key = Amenity::matchKey($name);
 
-                return $amenity?->id ?? Amenity::create(['name' => trim($name), 'type' => 'hotel'])->id;
+                return $byKey[$key] ??= Amenity::create(['name' => trim($name), 'type' => 'hotel'])->id;
             })
             ->values();
 

@@ -62,7 +62,7 @@ class CabinTypesRelationManager extends RelationManager
                             ->helperText('Upload a JPG/PNG/WebP (max 4MB). This takes priority over the URL below.'),
 
                         TextInput::make('image_url')
-                            ->label('Or: External Image URL')
+                            ->label('Or: link to a photo on another website')
                             ->url()
                             ->placeholder('https://images.unsplash.com/...')
                             ->default(null)

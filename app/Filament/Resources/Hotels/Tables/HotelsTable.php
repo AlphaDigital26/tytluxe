@@ -36,6 +36,8 @@ class HotelsTable
 
                         return asset('storage/' . $img->path);
                     })
+                    // Photos come from the supplier's servers; don't hold the list up for them.
+                    ->extraImgAttributes(['loading' => 'lazy'])
                     ->circular(),
 
                 TextColumn::make('title')
@@ -70,11 +72,12 @@ class HotelsTable
                     ->sortable(),
 
                 TextColumn::make('source')
-                    ->label('Source')
+                    ->label('Added by')
+                    ->tooltip('TripJack: brought in and kept up to date by our supplier. Manual: added by your team.')
                     ->badge()
                     ->formatStateUsing(fn (?string $state): string => match ($state) {
-                        'tripjack' => 'TripJack 🔄',
-                        'manual'   => 'Manual ✍️',
+                        'tripjack' => 'TripJack (supplier) 🔄',
+                        'manual'   => 'Your team ✍️',
                         default    => ucfirst((string) $state),
                     })
                     ->color(fn (?string $state): string => match ($state) {

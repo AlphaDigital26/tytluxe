@@ -26,7 +26,7 @@ class ListEnquiries extends ListRecords
                 ->exports([
                     \pxlrbt\FilamentExcel\Exports\ExcelExport::make()->fromModel(),
                 ]),
-            CreateAction::make()->label('Add enquiry (phone / WhatsApp)'),
+            CreateAction::make()->label('New enquiry (phone / WhatsApp)'),
         ];
     }
 

@@ -71,6 +71,9 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('tyt-console')
+            // A save either stores everything or nothing: a package that failed
+            // half-way used to stay behind without its departures.
+            ->databaseTransactions()
             ->login()
             // "Forgot password?" link on the login page; the reset link is
             // emailed to the staff member (see passwords.admins in config/auth.php).
@@ -129,6 +132,9 @@ class AdminPanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
+                // The panel doesn't use the "web" group, so add the site's
+                // headers here: above all, no other site may frame the admin.
+                \App\Http\Middleware\SecurityHeaders::class,
             ])
             ->authMiddleware([
                 Authenticate::class,

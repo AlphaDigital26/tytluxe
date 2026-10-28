@@ -64,6 +64,29 @@ class Amenity extends Model
         static::$hotelTitles = null;
     }
 
+    /**
+     * True for names with no letters at all — TripJack sends bare numbers
+     * ("1", "2", "3") in some hotels' facility lists.
+     */
+    public static function isMeaningless(string $name): bool
+    {
+        return ! preg_match('/\p{L}{2,}/u', $name);
+    }
+
+    /**
+     * Matching key, so "24 Hour Front Desk", "24-hour front desk" and
+     * "24 hour  front-desk" count as one amenity: lower case, dashes and
+     * underscores as spaces, punctuation dropped, spaces collapsed.
+     */
+    public static function matchKey(string $name): string
+    {
+        $key = mb_strtolower(trim($name));
+        $key = preg_replace('/[-_\/]+/u', ' ', $key);
+        $key = preg_replace('/[^\p{L}\p{N}& ]+/u', '', $key);
+
+        return trim(preg_replace('/\s+/u', ' ', $key));
+    }
+
     // ── Scopes ─────────────────────────────────────────────────────────────
     public function scopeForHotels($q)   { return $q->where('type', 'hotel'); }
     public function scopeForCruises($q)  { return $q->where('type', 'cruise'); }

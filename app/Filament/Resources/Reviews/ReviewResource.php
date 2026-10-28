@@ -24,6 +24,10 @@ class ReviewResource extends Resource
 
     protected static ?string $navigationLabel = 'Guest Reviews';
 
+    protected static ?string $modelLabel = 'guest review';
+
+    protected static ?string $pluralModelLabel = 'Guest Reviews';
+
     /** Badge: guest reviews waiting to be approved for the website. */
     public static function getNavigationBadge(): ?string
     {

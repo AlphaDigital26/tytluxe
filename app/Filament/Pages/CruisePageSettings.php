@@ -154,45 +154,46 @@ class CruisePageSettings extends Page
             ->components([
 
                 // ── HERO ─────────────────────────────────────────────
-                Section::make('🌊 Hero Section')
-                    ->description('Controls the full-screen hero banner at the top of the cruise page.')
+                Section::make('🌊 Top Banner')
+                    ->description('The large photo banner at the very top of the cruise page.')
                     ->collapsible()
                     ->schema([
                         TextInput::make('hero_eyebrow')
-                            ->label('Eyebrow Text')
+                            ->label('Small line above the heading')
                             ->required()
                             ->placeholder("Cordelia Cruises · India's Premium Cruise Line")
                             ->columnSpanFull(),
                         TextInput::make('hero_title')
-                            ->label('Hero Title (HTML allowed)')
+                            ->label('Main heading')
                             ->required()
                             ->placeholder('Destination of <br><em>Your Dreams</em>')
-                            ->helperText('You can use basic HTML tags like <br>, <em>, <strong>.')
+                            ->helperText('To start a new line, type <br> where the break should go. To show words in gold italics, put <em> before them and </em> after them.')
                             ->columnSpanFull(),
                         TextInput::make('hero_subtitle')
-                            ->label('Hero Subtitle')
+                            ->label('Line under the heading')
                             ->placeholder('Mumbai &bull; Goa &bull; Kochi &bull; ...')
                             ->columnSpanFull(),
                         TextInput::make('hero_cta_text')
-                            ->label('CTA Button Text')
+                            ->label('Button text')
                             ->required()
                             ->placeholder('Enquire Now'),
                     ]),
 
                 // ── SHIP STATS ────────────────────────────────────────
-                Section::make('📊 Ship Stats Band')
-                    ->description('The 4-column stats bar below the hero (e.g. "48,563 GT — Gross Tonnage").')
+                Section::make('📊 Ship Facts Strip')
+                    ->description('The row of big numbers under the top banner (e.g. "48,563 GT — Gross Tonnage").')
                     ->collapsible()
                     ->schema([
                         Repeater::make('ship_stats')
-                            ->label('Stats')
+                            ->label('Facts')
+                            ->addActionLabel('Add a fact')
                             ->schema([
                                 TextInput::make('value')
-                                    ->label('Big Value')
+                                    ->label('Big number or word')
                                     ->required()
                                     ->placeholder('All-Inclusive'),
                                 TextInput::make('label')
-                                    ->label('Small Label Below')
+                                    ->label('Small text under it')
                                     ->required()
                                     ->placeholder('Dining & Entertainment'),
                             ])
@@ -209,7 +210,7 @@ class CruisePageSettings extends Page
                     ->collapsible()
                     ->schema([
                         TextInput::make('destinations_label')
-                            ->label('Section Label (small caps above heading)')
+                            ->label('Small line above the heading')
                             ->placeholder('Where We Sail'),
                         TextInput::make('destinations_heading')
                             ->label('Section Heading')
@@ -217,6 +218,7 @@ class CruisePageSettings extends Page
 
                         Repeater::make('destination_cards')
                             ->label('Destination Cards')
+                            ->addActionLabel('Add a destination')
                             ->schema([
                                 TextInput::make('city')
                                     ->label('City / Destination Name')
@@ -225,7 +227,7 @@ class CruisePageSettings extends Page
                                     ->label('Tag Line')
                                     ->placeholder('Party Capital of India'),
                                 Section::make('Card Image')
-                                    ->description('Upload OR provide URL. Uploaded file takes priority.')
+                                    ->description('Upload a photo, or paste a link to one. If you do both, the uploaded photo is used.')
                                     ->columnSpanFull()
                                     ->schema([
                                         FileUpload::make('image_path')
@@ -235,7 +237,7 @@ class CruisePageSettings extends Page
                                             ->imagePreviewHeight('160')
                                             ->maxSize(4096),
                                         TextInput::make('image_url')
-                                            ->label('Or: External Image URL')
+                                            ->label('Or: link to a photo on another website')
                                             ->rule('regex:#^(https?://|/)\S+$#')
                                             ->validationMessages(['regex' => 'Enter a full web address (https://…) or a path on this site (/assets/…).'])
                                             ->placeholder('https://images.unsplash.com/...'),
@@ -257,6 +259,7 @@ class CruisePageSettings extends Page
                             ->columnSpanFull(),
                         Repeater::make('dining_items')
                             ->label('Dining Venues')
+                            ->addActionLabel('Add a dining venue')
                             ->schema([
                                 TextInput::make('name')
                                     ->required(),
@@ -273,7 +276,7 @@ class CruisePageSettings extends Page
                                             ->imagePreviewHeight('140')
                                             ->maxSize(4096),
                                         TextInput::make('image_url')
-                                            ->label('Or: External URL')
+                                            ->label('Or: link to a photo on another website')
                                             ->rule('regex:#^(https?://|/)\S+$#')
                                             ->validationMessages(['regex' => 'Enter a full web address (https://…) or a path on this site (/assets/…).']),
                                     ]),
@@ -293,6 +296,7 @@ class CruisePageSettings extends Page
                             ->columnSpanFull(),
                         Repeater::make('entertainment_items')
                             ->label('Entertainment Shows & Activities')
+                            ->addActionLabel('Add a show or activity')
                             ->schema([
                                 TextInput::make('icon')->label('Emoji Icon')->placeholder('🎭'),
                                 TextInput::make('name')->required(),
@@ -314,6 +318,7 @@ class CruisePageSettings extends Page
                             ->columnSpanFull(),
                         Repeater::make('bars_items')
                             ->label('Bars & Lounges')
+                            ->addActionLabel('Add a bar or lounge')
                             ->schema([
                                 TextInput::make('icon')->label('Emoji Icon')->placeholder('🥂'),
                                 TextInput::make('name')->required(),
@@ -335,6 +340,7 @@ class CruisePageSettings extends Page
                             ->columnSpanFull(),
                         Repeater::make('indulgence_items')
                             ->label('Activities & Facilities')
+                            ->addActionLabel('Add an activity')
                             ->schema([
                                 TextInput::make('icon')->label('Emoji Icon')->placeholder('💆'),
                                 TextInput::make('name')->required(),
@@ -352,6 +358,7 @@ class CruisePageSettings extends Page
                     ->schema([
                         Repeater::make('events_items')
                             ->label('Event Types')
+                            ->addActionLabel('Add an event type')
                             ->schema([
                                 TextInput::make('icon')->label('Emoji Icon')->placeholder('💼'),
                                 TextInput::make('name')->required(),
@@ -363,13 +370,14 @@ class CruisePageSettings extends Page
                     ]),
 
                 // ── TRUST STRIP ───────────────────────────────────────
-                Section::make('✅ Trust Strip')
-                    ->description('The dark strip at the bottom with USP badges.')
+                Section::make('✅ Why Book With Us Strip')
+                    ->description('The dark strip at the bottom with reasons to book (e.g. "Best Price Guarantee").')
                     ->collapsible()
                     ->collapsed()
                     ->schema([
                         Repeater::make('trust_items')
-                            ->label('Trust Items')
+                            ->label('Badges')
+                            ->addActionLabel('Add a badge')
                             ->schema([
                                 TextInput::make('icon')->label('Emoji Icon'),
                                 TextInput::make('title')->required(),
@@ -381,19 +389,19 @@ class CruisePageSettings extends Page
                     ]),
 
                 // ── BOOKING FORM ──────────────────────────────────────
-                Section::make('📋 Booking Form Options')
-                    ->description('Lists shown in the booking enquiry form dropdowns.')
+                Section::make('📋 Enquiry Form Choices')
+                    ->description('The choices guests pick from in the cruise enquiry form.')
                     ->collapsible()
                     ->collapsed()
                     ->schema([
                         Textarea::make('booking_ports')
                             ->label('Departure Ports (one per line)')
                             ->rows(4)
-                            ->helperText("Each line becomes one <option> in the Departure Port dropdown."),
+                            ->helperText('Each line becomes one choice in the Departure Port list.'),
                         Textarea::make('booking_destinations')
                             ->label('Destinations (one per line)')
                             ->rows(6)
-                            ->helperText("Each line becomes one <option> in the Destination dropdown."),
+                            ->helperText('Each line becomes one choice in the Destination list.'),
                     ]),
             ]);
     }

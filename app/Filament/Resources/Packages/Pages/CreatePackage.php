@@ -10,6 +10,12 @@ class CreatePackage extends CreateRecord
 {
     protected static string $resource = PackageResource::class;
 
+    // Long form with many tabs: keep Save on screen so a tab isn't left unsaved.
+    public static bool $formActionsAreSticky = true;
+
+    // One clear Save button — no "Create & create another".
+    protected static bool $canCreateAnother = false;
+
     protected function getRedirectUrl(): string
     {
         return $this->getResource()::getUrl('index');

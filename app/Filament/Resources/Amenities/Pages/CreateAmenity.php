@@ -9,6 +9,9 @@ class CreateAmenity extends CreateRecord
 {
     protected static string $resource = AmenityResource::class;
 
+    // One clear Save button — no "Create & create another".
+    protected static bool $canCreateAnother = false;
+
     /**
      * Pre-fill the "type" field based on the active tab the admin was on.
      * e.g. if they were on the Hotels tab, the form opens with "Hotels" pre-selected.

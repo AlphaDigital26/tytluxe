@@ -11,6 +11,9 @@ class CreateUser extends CreateRecord
 {
     protected static string $resource = UserResource::class;
 
+    // One clear Save button — no "Create & create another".
+    protected static bool $canCreateAnother = false;
+
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $data['password'] = \Illuminate\Support\Facades\Hash::make(\Illuminate\Support\Str::random(16));

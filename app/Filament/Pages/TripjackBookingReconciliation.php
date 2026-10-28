@@ -27,16 +27,16 @@ class TripjackBookingReconciliation extends Page
 
     protected static ?int $navigationSort = 6;
 
-    protected static ?string $navigationLabel = 'Check Hotel Bookings with TripJack';
+    protected static ?string $navigationLabel = 'Compare Hotel Bookings with Supplier';
     protected string $view = 'filament.pages.tripjack-booking-reconciliation';
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-clipboard-document-check';
 
-    protected static ?string $title = 'Check Hotel Bookings with TripJack';
+    protected static ?string $title = 'Compare Hotel Bookings with Supplier';
 
     public function getSubheading(): ?string
     {
-        return 'Hotel bookings only — a flight is checked from its own booking page with "Check status with airline". This asks TripJack for the hotel bookings it has on record and shows them next to the ones on your website, so you can spot a booking that is missing here or shows a different status. Useful when a guest says they paid but you cannot find their booking.';
+        return "Use this when a guest says they booked a hotel but you can't find it, or its status looks wrong. Pick the dates, press \"Get supplier's list\", and every hotel booking TripJack (our hotel and flight supplier) has on record appears next to the one on your website. A row marked as different or missing is the one to look at: open it and press \"Check status with TripJack\", or call TripJack support with their booking ID. Flights are checked from each flight booking's own page.";
     }
 
     /** Compares bookings with TripJack — for the team that handles bookings and money. */
@@ -82,7 +82,7 @@ class TripjackBookingReconciliation extends Page
     {
         return [
             Action::make('fetch')
-                ->label('Fetch from TripJack')
+                ->label("Get supplier's list")
                 ->icon('heroicon-o-arrow-path')
                 ->color('primary')
                 ->action('fetch'),

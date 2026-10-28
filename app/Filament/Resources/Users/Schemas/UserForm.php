@@ -108,21 +108,21 @@ class UserForm
                                     ->columnSpanFull(),
                             ]),
 
-                        Tab::make('System Info')
+                        Tab::make('Account')
                             ->schema([
                                 Grid::make(2)->schema([
-                                    TextInput::make('registration_method')
+                                    TextInput::make('registration_method')->hiddenOn('create')
                                         ->label('Registration Method')
                                         ->formatStateUsing(fn ($record) => $record?->google_id ? 'Google' : 'Email (OTP)')
                                         ->disabled()
                                         ->dehydrated(false),
-                                    Toggle::make('is_email_verified')
+                                    Toggle::make('is_email_verified')->hiddenOn('create')
                                         ->label('Email Verified')
                                         ->statePath('email_verified_at')
                                         ->formatStateUsing(fn ($state) => filled($state))
                                         ->disabled()
                                         ->dehydrated(false),
-                                    Toggle::make('is_phone_verified')
+                                    Toggle::make('is_phone_verified')->hiddenOn('create')
                                         ->label('Phone Verified')
                                         ->statePath('phone_verified_at')
                                         ->formatStateUsing(fn ($state) => filled($state))
@@ -137,9 +137,9 @@ class UserForm
                                         ])
                                         ->required()
                                         ->default('Active'),
-                                    DateTimePicker::make('created_at')->disabled()->dehydrated(false),
-                                    DateTimePicker::make('updated_at')->disabled()->dehydrated(false),
-                                    DateTimePicker::make('last_login_at')->disabled()->dehydrated(false),
+                                    DateTimePicker::make('created_at')->disabled()->dehydrated(false)->hiddenOn('create'),
+                                    DateTimePicker::make('updated_at')->disabled()->dehydrated(false)->hiddenOn('create'),
+                                    DateTimePicker::make('last_login_at')->disabled()->dehydrated(false)->hiddenOn('create'),
                                 ]),
                             ]),
                     ])

@@ -12,6 +12,9 @@ class EditHotel extends EditRecord
 {
     protected static string $resource = HotelResource::class;
 
+    // Long form with many tabs: keep Save on screen so a tab isn't left unsaved.
+    public static bool $formActionsAreSticky = true;
+
     // After saving hotel details (and rooms), go back to the hotels list.
     protected function getRedirectUrl(): string
     {

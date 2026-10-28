@@ -90,7 +90,13 @@ class PackageForm
                                 ->searchable()
                                 ->preload()
                                 ->nullable()
-                                ->helperText('Choose the main destination for this package.'),
+                                // Only destinations marked for packages are listed — say so,
+                                // or staff think the place is missing.
+                                ->helperText(new \Illuminate\Support\HtmlString(
+                                    'Choose the main destination for this package. Not in the list? Open <a href="'
+                                    .e(\App\Filament\Resources\Destinations\DestinationResource::getUrl('index'))
+                                    .'" target="_blank" style="text-decoration:underline;">Destinations</a>, edit the place and add “Packages” under Used For (or add a new destination there).'
+                                )),
 
                         ])->columns(2),
 
@@ -200,6 +206,8 @@ class PackageForm
                         ->schema([
 
                             Repeater::make('highlights')
+                                // Start empty: a blank row's required boxes blocked saving a simple package.
+                                ->defaultItems(0)
                                 ->relationship('highlights')
                                 ->label('Trip Highlights')
                                 ->helperText('Add the key selling points — usually the bold bullets or feature cards at the top of the PDF. Drag rows to reorder.')
@@ -246,6 +254,7 @@ class PackageForm
                         ->schema([
 
                             Repeater::make('itineraryDays')
+                                ->defaultItems(0)
                                 ->relationship('itineraryDays')
                                 ->label('Day-by-Day Itinerary')
                                 ->helperText('Copy each day directly from the "Itinerary" section of the PDF. Use the drag handle (⠿) to reorder days.')
@@ -313,6 +322,7 @@ class PackageForm
                         ->schema([
 
                             Repeater::make('stays')
+                                ->defaultItems(0)
                                 ->relationship('stays')
                                 ->label('Where guests stay')
                                 ->helperText(function ($get) {
@@ -602,6 +612,7 @@ class PackageForm
                         ->schema([
 
                             Repeater::make('departures')
+                                ->defaultItems(0)
                                 ->relationship('departures')
                                 ->label('Travel Dates / Batches')
                                 ->helperText('Add fixed departure batches for this tour. They will be automatically grouped by month on the website.')
@@ -671,7 +682,9 @@ class PackageForm
                                         ->numeric()
                                         ->minValue(0)
                                         ->prefix('₹')
-                                        ->default(0),
+                                        ->default(0)
+                                        // Optional: a cleared box means no extra, not a failed save.
+                                        ->dehydrateStateUsing(fn ($state) => filled($state) ? $state : 0),
                                 ])
                                 ->columns(2)
                                 ->addActionLabel('+ Add a Batch')
@@ -697,6 +710,7 @@ class PackageForm
                         ->schema([
 
                             Repeater::make('inclusions')
+                                ->defaultItems(0)
                                 ->relationship('inclusions')
                                 ->label('What\'s Included')
                                 ->helperText('List everything covered in the package price — from the "Inclusions" section of the PDF. Add one item per row.')
@@ -742,6 +756,7 @@ class PackageForm
                         ->schema([
 
                             Repeater::make('exclusions')
+                                ->defaultItems(0)
                                 ->relationship('exclusions')
                                 ->label('What\'s NOT Included')
                                 ->helperText('List things guests need to arrange or pay for themselves — from the "Exclusions" section of the PDF. Add one item per row.')
@@ -782,6 +797,7 @@ class PackageForm
                                 ->columnSpanFull(),
 
                             Repeater::make('images')
+                                ->defaultItems(0)
                                 ->relationship('images')
                                 ->label('Gallery Photos')
                                 ->helperText('Upload all the trip photos. Drag rows to reorder them — the first photo appears first in the gallery.')

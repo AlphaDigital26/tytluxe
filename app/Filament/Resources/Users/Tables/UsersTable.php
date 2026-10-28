@@ -7,7 +7,6 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\ViewAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\Action;
-use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use App\Models\User;
@@ -26,29 +25,31 @@ class UsersTable
                     ->searchable(),
                 TextColumn::make('gender')
                     ->badge()
-                    ->color('success'),
-                IconColumn::make('newsletter')
-                    ->label('Newsletter')
-                    ->boolean()
-                    ->getStateUsing(fn (User $record) => $record->preferences['newsletter'] ?? false),
-                TextColumn::make('registration_method')
-                    ->label('Registration')
-                    ->getStateUsing(fn (User $record) => $record->google_id ? 'Google' : 'Email (OTP)')
-                    ->badge()
-                    ->color(fn ($state) => $state === 'Google' ? 'danger' : 'info'),
-                TextColumn::make('verification')
-                    ->label('Verification')
-                    ->badge()
                     ->color('success')
-                    ->getStateUsing(fn (User $record) => $record->email_verified_at ? 'Verified' : 'Unverified'),
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('newsletter')
+                    ->label('Newsletter')
+                    ->badge()
+                    ->getStateUsing(fn (User $record) => ($record->preferences['newsletter'] ?? false) ? 'Subscribed' : 'No')
+                    ->color(fn (string $state) => $state === 'Subscribed' ? 'success' : 'gray'),
+                TextColumn::make('registration_method')
+                    ->label('Signs in with')
+                    ->getStateUsing(fn (User $record) => $record->google_id ? 'Google' : 'Email code')
+                    ->badge()
+                    ->color('info'),
+                TextColumn::make('verification')
+                    ->label('Email confirmed')
+                    ->badge()
+                    ->color(fn (string $state) => $state === 'Yes' ? 'success' : 'warning')
+                    ->getStateUsing(fn (User $record) => $record->email_verified_at ? 'Yes' : 'Not yet'),
                 TextColumn::make('created_at')
-                    ->label('Registered On')
+                    ->label('Joined')
                     ->dateTime('j M Y, g:i A')
                     ->sortable(),
-                IconColumn::make('status')
-                    ->label('Status')
-                    ->boolean()
-                    ->getStateUsing(fn (User $record) => $record->status === 'Active'),
+                TextColumn::make('status')
+                    ->label('Account')
+                    ->badge()
+                    ->color(fn (?string $state) => $state === 'Active' ? 'success' : 'danger'),
             ])
             ->filters([
                 //

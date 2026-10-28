@@ -2,7 +2,7 @@
     <div class="tyt-hello">
         <div class="tyt-hello-text">
             <p class="tyt-hello-date">{{ $date }}</p>
-            <h2>{{ $greeting }}, {{ $name }} 👋</h2>
+            <h2>{{ $greeting }}{{ $name ? ', '.$name : '' }} 👋</h2>
             <p class="tyt-hello-sub">
                 @if($todoCount === 0)
                     You're all caught up — nothing needs your attention right now.

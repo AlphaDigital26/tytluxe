@@ -11,6 +11,12 @@ class CreateHotel extends CreateRecord
 {
     protected static string $resource = HotelResource::class;
 
+    // Long form with many tabs: keep Save on screen so a tab isn't left unsaved.
+    public static bool $formActionsAreSticky = true;
+
+    // One clear Save button — no "Create & create another".
+    protected static bool $canCreateAnother = false;
+
     // After saving the hotel, take the admin directly to the Edit page
     // where the Room Types tab is visible — so they can add rooms immediately.
     protected function getRedirectUrl(): string

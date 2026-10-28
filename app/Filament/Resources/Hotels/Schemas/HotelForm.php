@@ -90,22 +90,22 @@ class HotelForm
                             ->icon('heroicon-o-photo')
                             ->schema([
                                 Repeater::make('tripjack_images')
-                                    ->label('Synced Photos (TripJack)')
-                                    ->helperText('Turn a photo off to hide it from visitors without losing it — this survives future TripJack resyncs.')
+                                    ->label('Photos from the supplier (TripJack)')
+                                    ->helperText("Switch on 'Hide' under any photo you don't want guests to see. It stays hidden even when TripJack sends the photos again.")
                                     ->visible(fn ($record) => $record && $record->images()->where('path', 'like', 'http%')->exists())
                                     ->relationship('images', modifyQueryUsing: fn ($query) => $query->where('path', 'like', 'http%')->orderBy('sort_order'))
                                     ->schema([
                                         Placeholder::make('preview')
                                             ->hiddenLabel()
                                             ->content(fn (?HotelImage $record) => $record
-                                                ? new HtmlString('<img src="'.e($record->path).'" loading="lazy" style="width:100%; height:110px; object-fit:cover; border-radius:8px; display:block;">')
+                                                ? new HtmlString('<img src="'.e($record->path).'" loading="lazy" style="width:100%; height:90px; object-fit:cover; border-radius:8px; display:block;">')
                                                 : null)
                                             ->columnSpanFull(),
                                         Toggle::make('is_hidden')
-                                            ->label('Hide from visitors')
+                                            ->label('Hide')
                                             ->default(false),
                                     ])
-                                    ->grid(4)
+                                    ->grid(6)
                                     ->columnSpanFull()
                                     ->addable(false)
                                     ->reorderable(false)

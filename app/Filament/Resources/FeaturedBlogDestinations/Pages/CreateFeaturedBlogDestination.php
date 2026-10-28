@@ -8,4 +8,7 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateFeaturedBlogDestination extends CreateRecord
 {
     protected static string $resource = FeaturedBlogDestinationResource::class;
+
+    // One clear Save button — no "Create & create another".
+    protected static bool $canCreateAnother = false;
 }
