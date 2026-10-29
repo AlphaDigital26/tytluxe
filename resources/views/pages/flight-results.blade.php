@@ -834,6 +834,16 @@
     .frx-rt .frx-card-airline { flex-direction: row; align-items: center; }
     .frx-rt .frx-col-fares, .frx-rt .frx-col-actions, .frx-body.side-collapsed .frx-rt .frx-col-fares { grid-column: auto; }
   }
+  /* Outbound | Return tabs: phones and tablets only. */
+  .frx-rt-tabs { display: none; }
+  @media (max-width: 900px) {
+    .frx-rt-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0 0 14px; }
+    .frx-rt-tab { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-height: 52px; padding: 9px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); background: var(--dark-2); color: var(--white-80); font-family: 'Jost', sans-serif; text-align: left; cursor: pointer; }
+    .frx-rt-tab.active { border-color: var(--gold); background: rgba(201,168,76,0.1); box-shadow: inset 0 -2px 0 var(--gold); }
+    .frx-rt-tab-step { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gold); }
+    .frx-rt-tab-route { font-size: 14px; font-weight: 600; color: #fff; }
+    .frx-rt-grid .frx-group.frx-rt-off { display: none; }
+  }
   @media (max-width: 900px) {
     .frx-rt-grid .frx-group + .frx-group { margin-top: 24px; }
     .frx-rt-bar, .frx-rt-bar[style] { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; padding: 10px 12px; }
@@ -1577,6 +1587,19 @@
 
         <form method="POST" action="{{ route('flights.review') }}" id="frReviewForm" target="_blank" @class(['frx-rt' => $splitReturn, 'frx-mc' => $multiTabs]) data-fares-shown="{{ $splitReturn ? 3 : 4 }}">
           @csrf
+
+          @if($splitReturn)
+            {{-- Phones/tablets: one list at a time instead of the outbound list
+                 followed by the whole return list (hidden on wider screens). --}}
+            <div class="frx-rt-tabs" role="tablist" aria-label="Choose your flights">
+              @foreach($cardGroups as $key => $group)
+                <button type="button" role="tab" class="frx-rt-tab {{ $loop->first ? 'active' : '' }}" data-leg="{{ $key }}" aria-selected="{{ $loop->first ? 'true' : 'false' }}">
+                  <span class="frx-rt-tab-step">{{ $loop->first ? '1. Outbound' : '2. Return' }}</span>
+                  <span class="frx-rt-tab-route">{{ $group['meta']['from'] ?? '' }} → {{ $group['meta']['to'] ?? '' }}</span>
+                </button>
+              @endforeach
+            </div>
+          @endif
 
           <div @class(['frx-groups', 'frx-rt-grid' => $splitReturn])>
           @foreach($cardGroups as $key => $group)
@@ -2965,10 +2988,32 @@
       bookBtn.classList.toggle('frx-rt-book-wait', !canSubmit);
     };
 
+    // Phones: Outbound | Return tabs show one list at a time.
+    var rtTabs = Array.prototype.slice.call(document.querySelectorAll('.frx-rt-tab'));
+    var narrow = window.matchMedia('(max-width: 900px)');
+    var rtShow = function (leg, scroll) {
+      rtTabs.forEach(function (t) { var on = t.dataset.leg === leg; t.classList.toggle('active', on); t.setAttribute('aria-selected', on ? 'true' : 'false'); });
+      document.querySelectorAll('.frx-rt-grid > .frx-group').forEach(function (g) { g.classList.toggle('frx-rt-off', g.dataset.leg !== leg); });
+      picks.forEach(function (p) { p.classList.toggle('active', p.dataset.leg === leg); });
+      var tabs = document.querySelector('.frx-rt-tabs');
+      if (scroll && tabs && tabs.getBoundingClientRect().top < 0) tabs.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+    if (rtTabs.length) {
+      rtShow(rtTabs[0].dataset.leg, false);
+      rtTabs.forEach(function (t) { t.addEventListener('click', function () { rtShow(t.dataset.leg, true); }); });
+      // Choosing an outbound flight (a real tap, not the cheapest pre-pick) moves on to Return.
+      var firstGroup = picks[0] && picks[0].dataset.group;
+      document.addEventListener('change', function (e) {
+        if (!narrow.matches || !e.isTrusted || !e.target.name || e.target.name !== firstGroup || !rtTabs[1]) return;
+        setTimeout(function () { rtShow(rtTabs[1].dataset.leg, true); }, 450);
+      });
+    }
+
     // A pick in the bar jumps to its list, to change it.
     picks.forEach(function (pick) {
       pick.addEventListener('click', function () {
         if (mcTabs.length) { frxShowLeg(pick.dataset.leg, true); return; }
+        if (rtTabs.length && narrow.matches) { rtShow(pick.dataset.leg, true); return; }
         var title = document.getElementById(pick.dataset.title);
         if (title) title.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
