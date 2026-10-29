@@ -268,6 +268,24 @@
 @media(max-width:560px){
   .tyt-searchbar{padding:12px}
 }
+/* Phones: a tidy grid instead of squeezed columns —
+   From | To, Departure | Return, then Travellers and Search full width. */
+@media(max-width:640px){
+  .tyt-sb-row{display:grid !important;grid-template-columns:1fr 1fr;gap:8px}
+  .tyt-sb-row>.tyt-sb-field,.tyt-sb-dates .tyt-sb-field{
+    flex:none !important;min-width:0 !important;padding:10px 12px;
+    background:#181818;border:1px solid rgba(255,255,255,0.10) !important;border-radius:10px
+  }
+  .tyt-sb-dates,.tyt-sb-pax-wrap,.tyt-sb-actions{grid-column:1 / -1}
+  .tyt-sb-dates{display:grid !important;grid-template-columns:1fr 1fr;gap:8px;width:auto}
+  .tyt-sb-flabel{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tyt-sb-input{font-size:14px !important;text-overflow:ellipsis}
+  .tyt-sb-actions{padding:4px 0 0}
+}
+@media(max-width:360px){
+  .tyt-sb-row>.tyt-sb-field,.tyt-sb-dates .tyt-sb-field{padding:10px 9px}
+  .tyt-sb-input{font-size:13px !important}
+}
 </style>
 @endpush
 

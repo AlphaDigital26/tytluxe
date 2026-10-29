@@ -102,6 +102,8 @@
 
 @stack('styles')
 
+@include('partials.mobile-readability')
+
 {{-- ══════════════════════════════════════════
      STRUCTURED DATA (JSON-LD) — yielded per page
 ══════════════════════════════════════════ --}}
