@@ -64,13 +64,15 @@ class ViewFlightBooking extends ViewRecord
     {
         return [
             FlightBookingActions::checkStatus(),
+            // Only shown when a refund is owed — then it's the job to do, so it
+            // sits in the row the "What to do" box points at, not in a menu.
+            RecordManualRefundAction::make()->button()->color('danger'),
             FlightBookingActions::downloadETicket(),
             // Grouped so the row fits a laptop screen — side by side, the
             // Cancel button ran off the right edge.
             ActionGroup::make([
                 FlightBookingActions::downloadInvoice(),
                 FlightBookingActions::addNote(),
-                RecordManualRefundAction::make(),
             ])->label('More')->icon('heroicon-m-ellipsis-vertical')->button()->color('gray'),
             ActionGroup::make([
                 FlightBookingActions::cancelAndRefund(),

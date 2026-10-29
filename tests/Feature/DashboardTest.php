@@ -37,8 +37,11 @@ class DashboardTest extends TestCase
             'check_in' => today()->addDays(2), 'check_out' => today()->addDays(5), 'total_amount' => 12000, 'margin_amount' => 1000]);
         Booking::create($base + ['reference' => 'TYT-F1', 'lead_guest_name' => 'Asha Rao', 'vertical' => 'flight', 'flight_route' => 'BOM-DEL',
             'flight_departure_date' => today()->addDay(), 'total_amount' => 6000, 'margin_amount' => 500, 'tripjack_booking_id' => 'TJS1']);
-        Booking::create(['reference' => 'TYT-H2', 'lead_guest_name' => 'Stuck Guest', 'vertical' => 'hotel', 'hotel_id' => $hotel->id,
+        $stuck = Booking::create(['reference' => 'TYT-H2', 'lead_guest_name' => 'Stuck Guest', 'vertical' => 'hotel', 'hotel_id' => $hotel->id,
             'status' => 'failed_needs_review', 'total_amount' => 5000] + $base);
+        // The guest's money is with us — that's what makes it a task.
+        \App\Models\Payment::create(['booking_id' => $stuck->id, 'razorpay_order_id' => 'order_H2', 'razorpay_payment_id' => 'pay_H2',
+            'amount' => 5000, 'currency' => 'INR', 'status' => 'captured', 'purpose' => 'booking']);
 
         Enquiry::factory()->count(2)->create(['status' => 'new']);
         Setting::setJson('tripjack_alert.last_balance', ['amount' => 1500, 'checked_at' => now()->toIso8601String()]);

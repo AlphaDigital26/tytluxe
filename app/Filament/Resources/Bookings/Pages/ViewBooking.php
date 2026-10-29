@@ -31,12 +31,14 @@ class ViewBooking extends ViewRecord
     {
         return [
             HotelBookingActions::checkStatus(fn (Booking $record) => $this->loadPenaltySchedule(fresh: true)),
+            // Only shown when a refund is owed — then it's the job to do, so it
+            // sits in the row the "What to do" box points at, not in a menu.
+            RecordManualRefundAction::make()->button()->color('danger'),
             HotelBookingActions::downloadInvoice(),
             // Grouped so the row fits a laptop screen, as on the flight page.
             ActionGroup::make([
                 HotelBookingActions::addNote(),
                 EditAction::make()->label('Edit contact details'),
-                RecordManualRefundAction::make(),
             ])->label('More')->icon('heroicon-m-ellipsis-vertical')->button()->color('gray'),
             // Same cancel as the list's "More" menu, so staff on a call can
             // cancel from the booking itself.

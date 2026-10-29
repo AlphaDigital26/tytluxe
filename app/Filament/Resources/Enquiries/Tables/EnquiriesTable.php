@@ -155,7 +155,8 @@ class EnquiriesTable
                             'status' => $data['status'],
                             'assigned_agent_id' => $record->assigned_agent_id ?? auth('admin')->id(),
                         ]);
-                    }),
+                    })
+                    ->successNotificationTitle('Stage updated'),
                 Action::make('resolve')
                     ->label('Close')
                     ->icon('heroicon-o-check-circle')
@@ -163,19 +164,22 @@ class EnquiriesTable
                     ->hidden(fn ($record) => $record->status === 'closed')
                     ->form([
                         Textarea::make('admin_notes')
-                            ->label('Resolution Comments')
+                            ->label('How was it handled?')
                             ->required()
                             ->maxLength(1000)
-                            ->helperText('How was this enquiry handled? e.g. "Booked 3 nights at Taj, paid" or "Guest not interested".'),
+                            ->helperText('e.g. "Booked 3 nights at Taj, paid" or "Guest not interested". Added below any earlier notes.'),
                     ])
                     ->action(function (array $data, $record): void {
+                        // Keep the follow-up notes already written; add the outcome below them.
+                        $closing = now()->format('j M Y, g:i A').' — Closed by '.(auth('admin')->user()?->name ?? 'staff').': '.trim($data['admin_notes']);
                         $record->update([
                             'status' => 'closed',
-                            'admin_notes' => $data['admin_notes'],
+                            'admin_notes' => trim(($record->admin_notes ? $record->admin_notes."\n" : '').$closing),
                             'resolved_at' => now(),
                             'assigned_agent_id' => auth('admin')->id(),
                         ]);
-                    }),
+                    })
+                    ->successNotificationTitle('Enquiry closed'),
             ])
             ->bulkActions([
                 BulkActionGroup::make([

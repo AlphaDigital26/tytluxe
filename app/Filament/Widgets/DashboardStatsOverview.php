@@ -51,7 +51,7 @@ class DashboardStatsOverview extends MetricCardsWidget
                 'hint' => $pendingReviews ? $pendingReviews.' waiting for approval' : 'Shown on website', 'tone' => $pendingReviews ? 'amber' : 'violet',
                 'url' => $url(ReviewResource::class)],
             ['icon' => '📞', 'label' => 'Not contacted yet', 'value' => number_format(Enquiry::where('status', 'new')->count()),
-                'hint' => 'New enquiries', 'tone' => 'red', 'url' => EnquiryResource::canViewAny() ? EnquiryResource::getUrl('index').'?activeTab=new' : null],
+                'hint' => 'New enquiries', 'tone' => 'red', 'url' => EnquiryResource::canViewAny() ? EnquiryResource::getUrl('index').'?tab=new' : null],
         ];
     }
 }

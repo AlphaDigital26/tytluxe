@@ -40,10 +40,10 @@ class ViewPackageBooking extends ViewRecord
             PackageBookingActions::markBalanceReceived(),
             HotelBookingActions::addNote(),
             HotelBookingActions::downloadInvoice(),
-            ActionGroup::make([
-                RecordManualRefundAction::make(),
-                PackageBookingActions::cancelAndRefund(),
-            ])->label('Cancel / refund')->icon('heroicon-o-ellipsis-vertical')->button()->color('gray'),
+            // Only shown when a refund is owed — then it's the job to do, so it
+            // sits in the row the "What to do" box points at, not in a menu.
+            RecordManualRefundAction::make()->button()->color('danger'),
+            PackageBookingActions::cancelAndRefund()->button()->color('danger'),
         ];
     }
 }

@@ -48,28 +48,28 @@ class DashboardData
             $items[] = ['icon' => '📞', 'tone' => 'danger', 'count' => $n,
                 'title' => $n === 1 ? 'New enquiry waiting for a call' : 'New enquiries waiting for a call',
                 'text' => 'Guests asked about a trip and nobody has contacted them yet.',
-                'url' => EnquiryResource::getUrl('index').'?activeTab=new', 'button' => 'Call them'];
+                'url' => EnquiryResource::getUrl('index').'?tab=new', 'button' => 'Call them'];
         }
 
         if (BookingResource::canViewAny() && ($n = HotelBookingStatus::applyNeedsAttention(BookingResource::getEloquentQuery())->count())) {
             $items[] = ['icon' => '🏨', 'tone' => 'danger', 'count' => $n,
                 'title' => $n === 1 ? 'Hotel booking needs a look' : 'Hotel bookings need a look',
                 'text' => 'Something is stuck or a refund could not be paid automatically.',
-                'url' => BookingResource::getUrl('index').'?activeTab=attention', 'button' => 'See bookings'];
+                'url' => BookingResource::getUrl('index').'?tab=attention', 'button' => 'See bookings'];
         }
 
         if (FlightBookingResource::canViewAny() && ($n = FlightBookingStatus::applyNeedsAttention(FlightBookingResource::getEloquentQuery())->count())) {
             $items[] = ['icon' => '✈️', 'tone' => 'danger', 'count' => $n,
                 'title' => $n === 1 ? 'Flight booking needs a look' : 'Flight bookings need a look',
                 'text' => 'A ticket, cancellation or refund did not finish by itself.',
-                'url' => FlightBookingResource::getUrl('index').'?activeTab=attention', 'button' => 'See bookings'];
+                'url' => FlightBookingResource::getUrl('index').'?tab=attention', 'button' => 'See bookings'];
         }
 
         if (PackageBookingResource::canViewAny() && ($n = PackageBookingStatus::applyNeedsAttention(PackageBookingResource::getEloquentQuery())->count())) {
             $items[] = ['icon' => '🧳', 'tone' => 'danger', 'count' => $n,
                 'title' => $n === 1 ? 'Package booking needs a look' : 'Package bookings need a look',
                 'text' => 'A guest asked to cancel, a balance is due today or tomorrow, or a refund needs action.',
-                'url' => PackageBookingResource::getUrl('index').'?activeTab=attention', 'button' => 'See bookings'];
+                'url' => PackageBookingResource::getUrl('index').'?tab=attention', 'button' => 'See bookings'];
         }
 
         $balance = self::walletBalance();

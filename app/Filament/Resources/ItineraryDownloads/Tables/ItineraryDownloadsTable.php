@@ -119,7 +119,7 @@ class ItineraryDownloadsTable
             default => 'new',
         };
 
-        return EnquiryResource::getUrl('index', ['activeTab' => $tab, 'tableSearch' => $enquiry->phone]);
+        return EnquiryResource::getUrl('index', ['tab' => $tab, 'search' => $enquiry->phone]);
     }
 
     /** @var array<string, Enquiry|null> per request, so each row asks once */

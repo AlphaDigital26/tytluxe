@@ -31,7 +31,7 @@ class Booking extends Model
         'base_amount', 'tax_amount', 'discount_amount', 'total_amount',
         'tripjack_total_price', 'gst_slab', 'margin_amount', 'gst_on_margin', 'razorpay_recovery',
         'tripjack_mf', 'tripjack_mft', 'management_fee', 'management_fee_gst',
-        'currency', 'offer_id', 'status', 'cancellation_reason', 'cancellation_requested_at', 'admin_note',
+        'currency', 'offer_id', 'status', 'cancellation_reason', 'cancellation_requested_at', 'flight_cancel_amendment_id', 'admin_note',
         'manual_refund_due_at', 'admin_refund_amount',
         'package_departure_id', 'package_option', 'package_price_per_person', 'package_payment_plan',
         'package_balance_amount', 'package_balance_due_on', 'package_balance_reminded_at',

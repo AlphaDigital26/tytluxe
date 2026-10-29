@@ -48,13 +48,13 @@ class PackagesOverview extends MetricCardsWidget
         return [
             ['icon' => $attention ? '⚠️' : '✅', 'label' => 'Needs your attention', 'value' => (string) $attention,
                 'hint' => $attention ? 'Cancellation requests, balances due, refunds' : 'All good', 'tone' => $attention ? 'red' : 'green',
-                'url' => $url.'?activeTab=attention'],
+                'url' => $url.'?tab=attention'],
             ['icon' => '🚌', 'label' => 'Departures in the next 7 days', 'value' => (string) $departures,
                 'hint' => 'Guests travelling soon', 'tone' => 'blue',
-                'url' => $url.'?activeTab=upcoming'],
+                'url' => $url.'?tab=upcoming'],
             ['icon' => '⏳', 'label' => 'Balances due in the next 7 days', 'value' => (string) $balanceCount,
                 'hint' => $balanceCount ? 'Remind these guests to pay' : 'None due', 'tone' => $balanceCount ? 'amber' : 'green',
-                'url' => $url.'?activeTab=balance'],
+                'url' => $url.'?tab=balance'],
             ['icon' => '💰', 'label' => 'Package sales this month', 'value' => '₹'.number_format((float) (clone $month)->sum('total_amount')),
                 'hint' => $monthCount.' booking'.($monthCount === 1 ? '' : 's').' this month', 'tone' => 'gold'],
         ];
