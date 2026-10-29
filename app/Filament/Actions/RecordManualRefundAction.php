@@ -11,6 +11,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 
 /**
  * "Record manual refund" on hotel and flight bookings — for after staff
@@ -46,15 +47,22 @@ class RecordManualRefundAction
                         ->options($payments->mapWithKeys(fn (Payment $p) => [$p->id => self::paymentLabel($p)])->all())
                         ->default($payments->count() === 1 ? $payments->first()->id : null)
                         ->required()
-                        ->live(),
+                        ->live()
+                        // A failed booking owes back the whole payment, so picking it
+                        // fills that in. After a cancellation the supplier may have
+                        // kept charges: staff enter the amount from the notes.
+                        ->afterStateUpdated(fn ($state, Set $set) => $set('amount', self::wholePaymentOwed($record) && ($p = $payments->firstWhere('id', (int) $state)) ? ManualRefundService::remaining($p) : null)),
                     TextInput::make('amount')
                         ->label('Amount refunded')
                         ->prefix($record->currency ?: 'INR')
                         ->numeric()
                         ->required()
+                        ->default(self::wholePaymentOwed($record) && $payments->count() === 1 ? ManualRefundService::remaining($payments->first()) : null)
                         ->minValue(0.01)
                         ->maxValue(fn (Get $get) => ManualRefundService::remaining($payments->firstWhere('id', (int) $get('payment_id')) ?? new Payment))
-                        ->helperText('Cannot be more than what is still unrefunded on that payment.'),
+                        ->helperText(self::wholePaymentOwed($record)
+                            ? 'The booking failed, so the whole payment is owed back. Change it only if you refunded less.'
+                            : 'Enter the amount you refunded: the notes on this booking say how much the guest is owed after any cancellation charges.'),
                     TextInput::make('razorpay_refund_id')
                         ->label('Razorpay refund ID (optional)')
                         ->placeholder('rfnd_…')
@@ -88,6 +96,12 @@ class RecordManualRefundAction
     }
 
     /** The booking is flagged as waiting for a refund someone must make by hand. */
+    /** The booking itself failed (nothing was delivered), so everything paid goes back. */
+    public static function wholePaymentOwed(Booking $record): bool
+    {
+        return $record->status === 'failed_needs_review';
+    }
+
     public static function refundDue(Booking $record): bool
     {
         return $record->manual_refund_due_at !== null

@@ -32,6 +32,11 @@ class FlightBookingStatus
         $manualRefund = str_contains(strtolower((string) $booking->cancellation_reason), 'manual');
 
         return match (true) {
+            // A failed booking: say exactly what's left to do, and never point
+            // at a button the page doesn't show.
+            $booking->status === 'failed_needs_review' && $booking->manual_refund_due_at !== null => 'failed_refund_due',
+            $booking->status === 'failed_needs_review' && blank($booking->tripjack_booking_id) && ! self::charged($booking) => 'failed_not_charged',
+            $booking->status === 'failed_needs_review' && blank($booking->tripjack_booking_id) => 'needs_review_no_id',
             $booking->status === 'failed_needs_review' => 'needs_review',
             $booking->status === 'cancelled' && ($manualRefund || $booking->manual_refund_due_at !== null) => 'cancelled_refund_pending',
             $booking->manual_refund_due_at !== null => 'refund_due',
@@ -48,7 +53,7 @@ class FlightBookingStatus
 
     public static function needsAttention(Booking $booking): bool
     {
-        return in_array(self::key($booking), ['needs_review', 'cancelled_refund_pending', 'cancellation_stuck', 'refund_due'], true)
+        return in_array(self::key($booking), ['needs_review', 'needs_review_no_id', 'failed_refund_due', 'cancelled_refund_pending', 'cancellation_stuck', 'refund_due'], true)
             || $booking->flight_ssr_status === 'needs_review';
     }
 
@@ -56,7 +61,11 @@ class FlightBookingStatus
     public static function applyNeedsAttention(Builder $query): Builder
     {
         return $query->where(fn (Builder $q) => $q
-            ->where('status', 'failed_needs_review')
+            // Failed with nothing charged and nothing booked: not a task.
+            ->where(fn (Builder $q) => $q->where('status', 'failed_needs_review')->where(fn (Builder $q) => $q
+                ->whereNotNull('tripjack_booking_id')
+                ->orWhereNotNull('manual_refund_due_at')
+                ->orWhereHas('payments', fn (Builder $p) => $p->where('status', 'captured'))))
             ->orWhereNotNull('manual_refund_due_at')
             ->orWhere('flight_ssr_status', 'needs_review')
             ->orWhere(fn (Builder $q) => $q->where('status', 'cancelled')->where('cancellation_reason', 'like', '%manual%'))
@@ -106,7 +115,7 @@ class FlightBookingStatus
         'cancellation_stuck' => [
             'label' => 'Cancellation taking too long',
             'color' => 'danger',
-            'help' => 'A cancellation was requested over 2 hours ago and the airline has not finished it. Click "Check status with airline"; if it does not change, contact TripJack support with the TripJack booking ID.',
+            'help' => 'A cancellation was requested over 2 hours ago and the airline has not finished it. Click "Check status with airline": it asks TripJack about the cancellation and finishes it (with the refund) if TripJack is done. If it is still waiting, the message gives the cancellation reference to quote when you call TripJack support.',
         ],
         'cancelled' => [
             'label' => 'Cancelled',
@@ -122,6 +131,21 @@ class FlightBookingStatus
             'label' => 'Refund needs action',
             'color' => 'danger',
             'help' => 'A payment (for example for extra seats/meals or a reschedule) could not be refunded automatically. Read the notes, refund the guest from the Razorpay dashboard, then click "Record manual refund".',
+        ],
+        'failed_refund_due' => [
+            'label' => 'Booking failed, refund needs action',
+            'color' => 'danger',
+            'help' => 'The airline could not confirm this booking, and the automatic refund to the guest also failed. Refund the guest from the Razorpay dashboard (the amount is in the notes below), then click "Record manual refund".',
+        ],
+        'failed_not_charged' => [
+            'label' => 'Did not go through, nothing charged',
+            'color' => 'gray',
+            'help' => 'The booking did not go through and the guest was not charged. Nothing was booked with the airline. Nothing to do.',
+        ],
+        'needs_review_no_id' => [
+            'label' => 'Needs your attention',
+            'color' => 'danger',
+            'help' => 'The guest has paid, but TripJack never sent a booking number, so the site cannot check it. Read the notes below and contact TripJack support with the name and travel date of the guest. If TripJack has no booking, refund the guest from the Razorpay dashboard.',
         ],
         'needs_review' => [
             'label' => 'Needs your attention',
@@ -149,4 +173,10 @@ class FlightBookingStatus
             'help' => 'The guest started booking but has not paid. Nothing is booked with the airline yet.',
         ],
     ];
+
+    /** Money was taken and is still with us (a captured payment). */
+    protected static function charged(Booking $booking): bool
+    {
+        return $booking->payments->contains(fn ($p) => $p->status === 'captured');
+    }
 }

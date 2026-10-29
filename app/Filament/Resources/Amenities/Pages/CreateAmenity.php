@@ -20,7 +20,7 @@ class CreateAmenity extends CreateRecord
     {
         // If type wasn't manually set, try to read it from the URL query param (tab)
         if (empty($data['type'])) {
-            $tab = request()->query('activeTab', 'hotel');
+            $tab = request()->query('tab', request()->query('activeTab', 'hotel'));
             $validTypes = ['hotel', 'cruise', 'package'];
             $data['type'] = in_array($tab, $validTypes) ? $tab : 'hotel';
         }

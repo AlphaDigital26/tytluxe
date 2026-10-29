@@ -31,6 +31,11 @@ class HotelBookingStatus
         $stuck = fn ($since) => $since && Carbon::parse($since)->lt(now()->subHours(self::STUCK_HOURS));
 
         return match (true) {
+            // A failed booking: say exactly what's left to do, and never point
+            // at a button the page doesn't show.
+            $booking->status === 'failed_needs_review' && $booking->manual_refund_due_at !== null => 'failed_refund_due',
+            $booking->status === 'failed_needs_review' && blank($booking->tripjack_booking_id) && ! self::charged($booking) => 'failed_not_charged',
+            $booking->status === 'failed_needs_review' && blank($booking->tripjack_booking_id) => 'needs_review_no_id',
             $booking->status === 'failed_needs_review' => 'needs_review',
             $booking->status === 'cancelled' && ($manualRefund || $booking->manual_refund_due_at !== null) => 'cancelled_refund_pending',
             $booking->manual_refund_due_at !== null => 'refund_due',
@@ -53,7 +58,11 @@ class HotelBookingStatus
         $cutoff = now()->subHours(self::STUCK_HOURS);
 
         return $query->where(fn (Builder $q) => $q
-            ->where('status', 'failed_needs_review')
+            // Failed with nothing charged and nothing booked: not a task.
+            ->where(fn (Builder $q) => $q->where('status', 'failed_needs_review')->where(fn (Builder $q) => $q
+                ->whereNotNull('tripjack_booking_id')
+                ->orWhereNotNull('manual_refund_due_at')
+                ->orWhereHas('payments', fn (Builder $p) => $p->where('status', 'captured'))))
             ->orWhereNotNull('manual_refund_due_at')
             ->orWhere(fn (Builder $q) => $q->where('status', 'cancelled')->where('cancellation_reason', 'like', '%manual%'))
             ->orWhere(fn (Builder $q) => $q->where('status', 'confirmed')->whereNotNull('cancellation_requested_at')->where('cancellation_requested_at', '<', $cutoff))
@@ -117,6 +126,21 @@ class HotelBookingStatus
             'color' => 'danger',
             'help' => 'A payment could not be refunded automatically. Read the notes, refund the guest from the Razorpay dashboard, then click "Record manual refund".',
         ],
+        'failed_refund_due' => [
+            'label' => 'Booking failed, refund needs action',
+            'color' => 'danger',
+            'help' => 'The hotel could not confirm this booking, and the automatic refund to the guest also failed. Refund the guest from the Razorpay dashboard (the amount is in the notes below), then click "Record manual refund".',
+        ],
+        'failed_not_charged' => [
+            'label' => 'Did not go through, nothing charged',
+            'color' => 'gray',
+            'help' => 'The booking did not go through and the guest was not charged. Nothing was booked with the hotel. Nothing to do.',
+        ],
+        'needs_review_no_id' => [
+            'label' => 'Needs your attention',
+            'color' => 'danger',
+            'help' => 'The guest has paid, but TripJack never sent a booking number, so the site cannot check it. Read the notes below and contact TripJack support with the name and travel date of the guest. If TripJack has no booking, refund the guest from the Razorpay dashboard.',
+        ],
         'needs_review' => [
             'label' => 'Needs your attention',
             'color' => 'danger',
@@ -153,4 +177,10 @@ class HotelBookingStatus
             'help' => 'The guest started booking but has not paid. Nothing is booked with the hotel yet.',
         ],
     ];
+
+    /** Money was taken and is still with us (a captured payment). */
+    protected static function charged(Booking $booking): bool
+    {
+        return $booking->payments->contains(fn ($p) => $p->status === 'captured');
+    }
 }

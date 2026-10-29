@@ -45,6 +45,51 @@ class FlightBookingActions
         return (bool) auth('admin')->user()?->can($ability, $record);
     }
 
+    /**
+     * Asks TripJack about a pending full cancellation and finishes it if
+     * TripJack has decided. Returns false when there is no reference to check
+     * (the normal ticket check then runs instead).
+     */
+    protected static function checkPendingCancellation(Booking $record): bool
+    {
+        // Older bookings only have the reference in their notes.
+        $ref = $record->flight_cancel_amendment_id
+            ?: (preg_match('/CANCELLATION amendment \((\w+)\)/', (string) $record->admin_note, $m) ? $m[1] : null);
+        if (! $ref) {
+            return false;
+        }
+
+        try {
+            $details = app(TripJackFlightClient::class)->amendmentDetails($ref);
+        } catch (TripJackException $e) {
+            Notification::make()->title('Couldn\'t reach the airline system')
+                ->body('TripJack did not answer just now. Please try again in a few minutes.')->danger()->send();
+
+            return true;
+        }
+
+        $status = $details['amendmentStatus'] ?? 'UNKNOWN';
+        if (in_array($status, ['SUCCESS', 'REJECTED'], true)) {
+            app(FlightBookingService::class)->finalizeCancellation($record, $details, true, 'CANCELLATION');
+            $record->refresh();
+            Notification::make()
+                ->title($status === 'SUCCESS' ? 'Cancellation completed' : 'The airline refused the cancellation')
+                ->body($status === 'SUCCESS'
+                    ? 'TripJack has finished the cancellation. The refund to the guest has been started; the booking page shows the result.'
+                    : 'TripJack did not accept the cancellation, so the ticket stays valid. Tell the guest, or contact TripJack support with reference '.$ref.'.')
+                ->color($status === 'SUCCESS' ? 'success' : 'warning')->send();
+
+            return true;
+        }
+
+        Notification::make()
+            ->title('Cancellation still waiting at TripJack')
+            ->body('TripJack has not finished this cancellation yet (status: '.ucwords(strtolower(str_replace('_', ' ', $status))).'). Call TripJack support and quote cancellation reference '.$ref.'. Once they finish it, click "Check status with airline" again and the refund goes to the guest.')
+            ->warning()->persistent()->send();
+
+        return true;
+    }
+
     public static function checkStatus(): Action
     {
         return Action::make('checkStatus')
@@ -55,9 +100,31 @@ class FlightBookingActions
             // it needs the same permission as the other booking actions.
             ->visible(fn (Booking $record) => filled($record->tripjack_booking_id) && static::canManage($record, 'checkStatus'))
             ->action(function (Booking $record): void {
+                // A cancellation is pending: the ticket itself still reads
+                // "valid" until it completes, so check the cancellation.
+                if ($record->cancellation_requested_at !== null && $record->status === 'confirmed' && static::checkPendingCancellation($record)) {
+                    return;
+                }
+
                 try {
                     $details = app(TripJackFlightClient::class)->bookingDetails($record->tripjack_booking_id);
                 } catch (TripJackException $e) {
+                    // TripJack did answer: it has no booking under this number,
+                    // so no ticket exists. Retrying won't change that.
+                    if (str_contains(strtolower($e->getMessage()), 'no order found') && in_array($record->status, ['failed_needs_review', 'confirmed'], true) && blank($record->tripjack_flight_pnr)) {
+                        $record->update([
+                            'status' => 'failed_needs_review',
+                            'manual_refund_due_at' => $record->manual_refund_due_at ?? now(),
+                            'admin_note' => $record->adminNoteWith(now()->format('j M Y, g:i A').' — TripJack has no booking under '.$record->tripjack_booking_id.', so no ticket was issued. Confirm with TripJack support, then refund the guest in Razorpay and click "Record manual refund".'),
+                        ]);
+                        Notification::make()
+                            ->title('TripJack has no booking under this number')
+                            ->body('No ticket was issued for this booking. Confirm with TripJack support, then refund the guest from the Razorpay dashboard and click "Record manual refund". A note has been added to the booking.')
+                            ->warning()->persistent()->send();
+
+                        return;
+                    }
+
                     Notification::make()
                         ->title('Couldn\'t reach the airline system')
                         ->body('TripJack did not answer just now. Please try again in a few minutes. ('.$e->getMessage().')')

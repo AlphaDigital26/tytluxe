@@ -868,6 +868,11 @@ class FlightBookingService
         // status is even meaningfully "REQUESTED" — mirrors the doc's
         // 10-second poll interval, offset slightly so the first poll isn't
         // wasted.
+        // Kept so staff can check it from the booking page and quote it to TripJack.
+        if ($isFullBooking) {
+            $booking->update(['flight_cancel_amendment_id' => (string) $response['amendmentId']]);
+        }
+
         PollFlightAmendmentJob::dispatch($booking->id, $response['amendmentId'], attempt: 1, isFullBooking: $isFullBooking, type: $type)
             ->delay(now()->addSeconds(12));
 

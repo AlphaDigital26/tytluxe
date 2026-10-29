@@ -47,10 +47,10 @@ class HotelsOverview extends MetricCardsWidget
         return [
             ['icon' => $attention ? '⚠️' : '✅', 'label' => 'Needs your attention', 'value' => (string) $attention,
                 'hint' => $attention ? 'Click to see which bookings' : 'All good', 'tone' => $attention ? 'red' : 'green',
-                'url' => $url.'?activeTab=attention'],
+                'url' => $url.'?tab=attention'],
             ['icon' => '🛎️', 'label' => 'Check-ins in the next 7 days', 'value' => (string) $checkIns,
                 'hint' => $today.' new booking'.($today === 1 ? '' : 's').' today', 'tone' => 'blue',
-                'url' => $url.'?activeTab=upcoming'],
+                'url' => $url.'?tab=upcoming'],
             ['icon' => '💰', 'label' => 'Hotel sales this month', 'value' => '₹'.number_format((float) (clone $month)->sum('total_amount')),
                 'hint' => 'You earned ₹'.number_format((float) (clone $month)->sum('margin_amount')), 'tone' => 'gold'],
             ['icon' => $on ? '🟢' : '⏸️', 'label' => 'Online hotel booking', 'value' => $on ? 'ON' : 'OFF',
