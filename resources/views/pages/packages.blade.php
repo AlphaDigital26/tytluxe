@@ -422,6 +422,11 @@ Discover curated domestic and international travel packages with TYT Luxe. Honey
   .pkg-drawer-hero { height: 220px; }
   .pkg-drawer-title { font-size: 1.6rem; }
 }
+/* Phones: "All Packages" repeats every Group and Custom card above it,
+   which doubled an already long page. Shown on wider screens only. */
+@media (max-width: 768px) {
+  .pkg-type-heading[data-tour-type="all"], .type-section-grid[data-tour-type="all"] { display: none !important; }
+}
 </style>
 @endpush
 
@@ -497,7 +502,7 @@ Discover curated domestic and international travel packages with TYT Luxe. Honey
                 : $packages->where('region_type', 'domestic')->where('tour_type', $type);
             @endphp
             @if($typePackages->isNotEmpty())
-              <h3 class="pkg-title" style="font-size: 1.8rem; margin: 40px 0 20px; text-align: left;">{{ $title }}</h3>
+              <h3 class="pkg-title pkg-type-heading" data-tour-type="{{ $type }}" style="font-size: 1.8rem; margin: 40px 0 20px; text-align: left;">{{ $title }}</h3>
               <div class="dest-grid type-section-grid" data-tour-type="{{ $type }}">
                 @foreach($typePackages as $pkg)
                 <div class="dest-card" data-state="{{ Str::slug($pkg->destination?->name) }}" onclick="openDrawer({{ $pkg->id }})" tabindex="0" role="button"
@@ -611,7 +616,7 @@ Discover curated domestic and international travel packages with TYT Luxe. Honey
                 : $packages->where('region_type', 'international')->where('tour_type', $type);
             @endphp
             @if($typePackages->isNotEmpty())
-              <h3 class="pkg-title" style="font-size: 1.8rem; margin: 40px 0 20px; text-align: left;">{{ $title }}</h3>
+              <h3 class="pkg-title pkg-type-heading" data-tour-type="{{ $type }}" style="font-size: 1.8rem; margin: 40px 0 20px; text-align: left;">{{ $title }}</h3>
               <div class="dest-grid type-section-grid" data-tour-type="{{ $type }}">
                 @foreach($typePackages as $pkg)
                 <div class="dest-card" data-state="{{ Str::slug($pkg->destination?->name) }}" onclick="openDrawer({{ $pkg->id }})" tabindex="0" role="button"
@@ -725,7 +730,7 @@ Discover curated domestic and international travel packages with TYT Luxe. Honey
                 : $packages->where('region_type', 'spiritual')->where('tour_type', $type);
             @endphp
             @if($typePackages->isNotEmpty())
-              <h3 class="pkg-title" style="font-size: 1.8rem; margin: 40px 0 20px; text-align: left;">{{ $title }}</h3>
+              <h3 class="pkg-title pkg-type-heading" data-tour-type="{{ $type }}" style="font-size: 1.8rem; margin: 40px 0 20px; text-align: left;">{{ $title }}</h3>
               <div class="dest-grid type-section-grid" data-tour-type="{{ $type }}">
                 @foreach($typePackages as $pkg)
                 <div class="dest-card" data-state="{{ Str::slug($pkg->destination?->name) }}" onclick="openDrawer({{ $pkg->id }})" tabindex="0" role="button"
