@@ -8,4 +8,7 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateItineraryDownload extends CreateRecord
 {
     protected static string $resource = ItineraryDownloadResource::class;
+
+    // One clear Save button — no "Create & create another".
+    protected static bool $canCreateAnother = false;
 }

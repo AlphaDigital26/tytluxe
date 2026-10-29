@@ -43,7 +43,11 @@ class AdminsTable
                 TextColumn::make('created_at')->dateTime('j M Y, g:i A')->sortable()->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                TrashedFilter::make(),
+                TrashedFilter::make()
+                    ->label('Removed team members')
+                    ->placeholder('Hide removed')
+                    ->trueLabel('Show everyone, including removed')
+                    ->falseLabel('Only removed'),
             ])
             ->recordActions([
                 EditAction::make(),

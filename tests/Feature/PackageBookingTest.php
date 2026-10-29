@@ -358,4 +358,62 @@ class PackageBookingTest extends TestCase
             ->assertHasNoActionErrors();
         $this->assertFalse($booking->fresh()->packageBalanceDue());
     }
+
+    // ── Fixes from the 30-scenario package test (28 Oct 2026) ──────────────
+
+    public function test_sending_the_same_booking_twice_makes_one_booking(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $departure = $this->departure($package = $this->package());
+
+        $first = $this->post("/packages/{$package->slug}/book", $this->bookingForm($departure));
+        $second = $this->post("/packages/{$package->slug}/book", $this->bookingForm($departure));
+
+        $this->assertSame(1, Booking::count());
+        $second->assertRedirect($first->headers->get('Location'));
+        $this->assertSame(8, $departure->fresh()->seatsLeft()); // 2 held, not 4
+
+        // A real change (another traveller) is a new booking.
+        $this->post("/packages/{$package->slug}/book", $this->bookingForm($departure, [], 3));
+        $this->assertSame(2, Booking::count());
+    }
+
+    public function test_a_baby_under_one_can_be_entered_as_age_0(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $departure = $this->departure($package = $this->package());
+
+        $this->get("/packages/{$package->slug}/book")->assertOk()
+            ->assertSee('type="number" min="0" max="99"', false)
+            ->assertDontSee('min="1" max="99"', false);
+
+        $form = $this->bookingForm($departure, [], 1);
+        $form['travellers'][] = ['full_name' => 'Baby Rao', 'gender' => 'female', 'age' => 0];
+        $this->post("/packages/{$package->slug}/book", $form)->assertRedirect();
+        $this->assertSame(1, Booking::firstOrFail()->pax_infants);
+    }
+
+    public function test_a_mistyped_email_is_caught_with_a_suggestion(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $departure = $this->departure($package = $this->package());
+
+        foreach (['ravi@gmial.com' => 'ravi@gmail.com', 'ravi@gmail.con' => 'ravi@gmail.com', 'ravi@yahooo.com' => 'ravi@yahoo.com'] as $typed => $meant) {
+            $this->post("/packages/{$package->slug}/book", $this->bookingForm($departure, ['email' => $typed]))
+                ->assertSessionHasErrors(['email' => "Please check your email address. Did you mean {$meant}?"]);
+        }
+        foreach (['ravi@mail.com', 'ravi@ymail.com', 'ravi@acme.co.in', 'ravi@zoho.com'] as $real) {
+            $this->assertNull(\App\Rules\BookableEmail::typoFix(substr(strrchr($real, '@'), 1)), $real);
+        }
+        $this->assertSame(0, Booking::count());
+    }
+
+    public function test_too_many_travellers_is_explained_in_plain_words(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $departure = $this->departure($package = $this->package(), 30, 50);
+
+        $this->post("/packages/{$package->slug}/book", $this->bookingForm($departure, [], 21))
+            ->assertSessionHasErrors(['travellers' => 'You can book up to 20 travellers at a time. For a bigger group, please contact us.']);
+    }
 }

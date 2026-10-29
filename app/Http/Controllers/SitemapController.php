@@ -26,7 +26,7 @@ class SitemapController extends Controller
             'pages' => $this->staticPages(),
             'hotels' => Hotel::visibleOnWebsite()->whereNotNull('slug')->orderBy('id')->get(['slug', 'updated_at']),
             'packages' => Package::where('is_active', true)->whereNotNull('slug')->orderBy('id')->get(['slug', 'updated_at']),
-            'posts' => BlogPost::where('is_active', true)->whereNotNull('slug')->orderBy('id')->get(['slug', 'updated_at']),
+            'posts' => BlogPost::live()->whereNotNull('slug')->orderBy('id')->get(['slug', 'updated_at']),
         ])->render());
 
         return response($xml, 200, ['Content-Type' => 'application/xml; charset=UTF-8']);

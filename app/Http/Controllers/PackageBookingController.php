@@ -67,6 +67,7 @@ class PackageBookingController extends Controller
             'special_requests' => 'nullable|string|max:500',
             'terms' => 'accepted',
         ], [
+            'travellers.max' => 'You can book up to '.PackageBookingService::MAX_TRAVELLERS.' travellers at a time. For a bigger group, please contact us.',
             'travellers.*.full_name.required' => 'Please enter the name of every traveller.',
             'travellers.*.full_name.regex' => 'Traveller names can only have letters, spaces, dots, apostrophes and hyphens.',
             'travellers.*.full_name.distinct' => 'Two travellers have the same name. Please enter each traveller\'s full name as on their ID.',

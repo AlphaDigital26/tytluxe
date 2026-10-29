@@ -424,6 +424,13 @@
   }
   .history-type-tag i { color: #c9a84c; }
   .history-filter-group [data-vertical].is-hidden { display: none !important; }
+  .history-filter-group [data-vertical].is-paged-out { display: none !important; }
+  .history-pager { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px; margin: 18px 0 8px; }
+  .history-pager button { min-width: 38px; height: 38px; padding: 0 10px; border-radius: 10px; border: 1px solid rgba(201,168,76,0.3); background: #141414; color: #e8e8e8; font-size: 14px; cursor: pointer; }
+  .history-pager button:hover:not(:disabled) { border-color: #c9a84c; color: #fff; }
+  .history-pager button.active { background: linear-gradient(90deg, #c9a84c, #e8c96b); color: #0d0d0d; border-color: transparent; font-weight: 600; }
+  .history-pager button:disabled { opacity: 0.35; cursor: default; }
+  .history-pager button:focus-visible { outline: 2px solid #c9a84c; outline-offset: 2px; }
   .bd-modal-card {
     background: #171717; border: 1px solid rgba(201,168,76,0.28); border-radius: 20px;
     max-width: 480px; width: 100%; max-height: 90vh; overflow-y: auto; position: relative;
@@ -649,6 +656,43 @@
   var tabs = document.querySelectorAll('.history-tab');
   var words = { all: '', hotel: 'hotel ', flight: 'flight ', package: 'package ', cruise: 'cruise ' };
 
+  // A frequent traveller can have dozens of trips: each section shows
+  // PAGE_SIZE at a time, with page buttons under it. Works with the tabs:
+  // pages count only the cards of the chosen type.
+  var PAGE_SIZE = 10;
+
+  function pager(group, matches, page) {
+    var pages = Math.ceil(matches.length / PAGE_SIZE);
+    var nav = group.nextElementSibling && group.nextElementSibling.classList.contains('history-pager') ? group.nextElementSibling : null;
+    if (pages <= 1) { if (nav) nav.remove(); return; }
+    if (!nav) {
+      nav = document.createElement('nav');
+      nav.className = 'history-pager';
+      nav.setAttribute('aria-label', 'More bookings');
+      group.after(nav);
+    }
+    var html = '<button type="button" data-page="' + (page - 1) + '"' + (page === 1 ? ' disabled' : '') + ' aria-label="Previous page">&lsaquo;</button>';
+    for (var p = 1; p <= pages; p++) {
+      html += '<button type="button" data-page="' + p + '"' + (p === page ? ' class="active" aria-current="page"' : '') + '>' + p + '</button>';
+    }
+    html += '<button type="button" data-page="' + (page + 1) + '"' + (page === pages ? ' disabled' : '') + ' aria-label="Next page">&rsaquo;</button>';
+    nav.innerHTML = html;
+    nav.onclick = function (e) {
+      var b = e.target.closest('button[data-page]');
+      if (!b || b.disabled) return;
+      showPage(group, matches, parseInt(b.dataset.page, 10));
+      var heading = group.previousElementSibling || group;
+      heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+  }
+
+  function showPage(group, matches, page) {
+    matches.forEach(function (card, i) {
+      card.classList.toggle('is-paged-out', i < (page - 1) * PAGE_SIZE || i >= page * PAGE_SIZE);
+    });
+    pager(group, matches, page);
+  }
+
   function apply(filter) {
     tabs.forEach(function (t) {
       var on = t.dataset.filter === filter;
@@ -656,12 +700,13 @@
       t.setAttribute('aria-selected', on ? 'true' : 'false');
     });
     document.querySelectorAll('.history-filter-group').forEach(function (group) {
-      var shown = 0;
+      var shown = 0, matches = [];
       group.querySelectorAll('[data-vertical]').forEach(function (card) {
         var match = filter === 'all' || card.dataset.vertical === filter;
         card.classList.toggle('is-hidden', !match);
-        if (match) shown++;
+        if (match) { shown++; matches.push(card); }
       });
+      showPage(group, matches, 1);
       var empty = group.querySelector('.history-empty');
       if (empty) {
         empty.style.display = shown ? 'none' : '';

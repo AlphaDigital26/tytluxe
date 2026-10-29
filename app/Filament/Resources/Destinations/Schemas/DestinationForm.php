@@ -74,11 +74,14 @@ class DestinationForm
                                 'package' => '📦  Packages',
                             ])
                             ->multiple()
-                            ->default(['hotel'])
+                            // Pre-selected from the Destinations tab the admin came from
+                            // ("Add Destination" on the Packages tab → Packages). Only a
+                            // starting choice: whatever the admin picks is what's saved.
+                            ->default(fn () => in_array($tab = request()->query('tab'), ['hotel', 'cruise', 'package'], true) ? [$tab] : ['hotel'])
                             ->required(),
                     ]),
 
-                Section::make('Visibility & Coordinates')
+                Section::make('Visibility')
                     ->schema([
                         Grid::make(2)->schema([
                             Toggle::make('is_active')
@@ -87,17 +90,22 @@ class DestinationForm
                                 ->default(true)
                                 ->required(),
                         ]),
+                    ]),
 
+                // Rarely needed — tucked away so the form stays short.
+                Section::make('Map position (optional)')
+                    ->description('Only needed if this destination should appear on a map. You can copy the two numbers from Google Maps.')
+                    ->collapsible()
+                    ->collapsed()
+                    ->schema([
                         Grid::make(2)->schema([
                             TextInput::make('lat')
-                                ->label('Latitude (optional)')
-                                ->helperText('Used for map display if needed.')
+                                ->label('Latitude')
                                 ->numeric()
                                 ->default(null),
 
                             TextInput::make('lng')
-                                ->label('Longitude (optional)')
-                                ->helperText('Used for map display if needed.')
+                                ->label('Longitude')
                                 ->numeric()
                                 ->default(null),
                         ]),

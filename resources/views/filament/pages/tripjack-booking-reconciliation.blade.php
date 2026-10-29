@@ -4,7 +4,7 @@
 
         <div class="mt-6 flex justify-end">
             <x-filament::button type="submit" icon="heroicon-o-arrow-path">
-                Fetch from TripJack
+                Get supplier's list
             </x-filament::button>
         </div>
     </form>

@@ -11,22 +11,9 @@ class CreateDestination extends CreateRecord
 {
     protected static string $resource = DestinationResource::class;
 
-    /**
-     * Pre-fill the `for` field based on the active tab the admin was on.
-     * This way, if they clicked "Add Destination" while on the Hotels tab,
-     * the form already knows it's for Hotels — one less thing to worry about.
-     */
-    protected function mutateFormDataBeforeCreate(array $data): array
-    {
-        $tab = request()->query('tab', 'hotel');
+    // One clear Save button — no "Create & create another".
+    protected static bool $canCreateAnother = false;
 
-        // Only accept valid tab values
-        if (in_array($tab, ['hotel', 'cruise', 'package'])) {
-            $data['for'] = [$tab];
-        }
-
-        return $data;
-    }
 
     /**
      * Adding a destination alone pulls in zero hotels — TripJack's mapping

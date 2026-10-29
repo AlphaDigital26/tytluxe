@@ -74,7 +74,8 @@ class ViewFlightBooking extends ViewRecord
             ])->label('More')->icon('heroicon-m-ellipsis-vertical')->button()->color('gray'),
             ActionGroup::make([
                 FlightBookingActions::cancelAndRefund(),
-            ])->label('Cancel')->icon('heroicon-o-x-circle')->button()->color('danger')
+            // "Cancel" alone reads as "close this page" — say what it does.
+            ])->label('Cancel ticket')->icon('heroicon-o-x-circle')->button()->color('danger')
                 ->visible(fn () => $this->record->status === 'confirmed'),
         ];
     }

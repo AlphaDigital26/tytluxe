@@ -8,4 +8,7 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateBlogCategory extends CreateRecord
 {
     protected static string $resource = BlogCategoryResource::class;
+
+    // One clear Save button — no "Create & create another".
+    protected static bool $canCreateAnother = false;
 }

@@ -26,6 +26,11 @@ class UserResource extends Resource
 
     protected static ?string $navigationLabel = 'Customers';
 
+    // One name everywhere: the page, its buttons and the sidebar.
+    protected static ?string $modelLabel = 'customer';
+
+    protected static ?string $pluralModelLabel = 'Customers';
+
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-users';
 
     protected static ?string $recordTitleAttribute = 'name';
@@ -44,6 +49,11 @@ class UserResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return UserForm::configure($schema);
+    }
+
+    public static function infolist(Schema $schema): Schema
+    {
+        return Schemas\UserInfolist::configure($schema);
     }
 
     public static function table(Table $table): Table

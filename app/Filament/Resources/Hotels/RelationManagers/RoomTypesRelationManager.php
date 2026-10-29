@@ -388,7 +388,8 @@ class RoomTypesRelationManager extends RelationManager
             ])
             ->headerActions([
                 Action::make('fetchTripjackRooms')
-                    ->label('Fetch Rooms from TripJack')
+                    ->label('Update rooms from supplier')
+                    ->tooltip("Brings in this hotel's latest room types and room photos from TripJack. Your own room types are not touched.")
                     ->icon('heroicon-o-arrow-path')
                     ->visible(fn () => $this->getOwnerRecord()->source === 'tripjack' && $this->getOwnerRecord()->tripjack_hotel_id)
                     ->action(function () {

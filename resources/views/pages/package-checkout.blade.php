@@ -174,7 +174,7 @@
                 </div>
                 <div>
                   <label class="pc-label" for="t{{ $i }}age">Age</label>
-                  <input class="pc-input" id="t{{ $i }}age" type="number" min="1" max="99" name="travellers[{{ $i }}][age]" value="{{ $oldTravellers[$i]['age'] ?? '' }}" required>
+                  <input class="pc-input" id="t{{ $i }}age" type="number" min="0" max="99" name="travellers[{{ $i }}][age]" value="{{ $oldTravellers[$i]['age'] ?? '' }}" required>
                 </div>
               </div>
             @endfor
@@ -296,7 +296,7 @@
       '<div><label class="pc-label" for="t' + i + 'gender">Gender</label>' +
       '<select class="pc-input" id="t' + i + 'gender" name="travellers[' + i + '][gender]" required><option value="">Select</option><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option></select></div>' +
       '<div><label class="pc-label" for="t' + i + 'age">Age</label>' +
-      '<input class="pc-input" id="t' + i + 'age" type="number" min="1" max="99" name="travellers[' + i + '][age]" required></div>';
+      '<input class="pc-input" id="t' + i + 'age" type="number" min="0" max="99" name="travellers[' + i + '][age]" required></div>';
     return row;
   }
 

@@ -45,7 +45,7 @@ class BusinessSnapshot extends BaseWidget
 
         return [
             $this->stat('Sales', $sales, money: true)
-                ->description($this->change($sales).' · hotels ₹'.number_format(end($m['hotel']), 0).', flights ₹'.number_format(end($m['flight']), 0).', packages ₹'.number_format(end($m['package']), 0)),
+                ->description($this->change($sales, true).' · hotels ₹'.number_format(end($m['hotel']), 0).', flights ₹'.number_format(end($m['flight']), 0).', packages ₹'.number_format(end($m['package']), 0)),
             // Packages are your own trips: what they cost you isn't recorded
             // here, so there is no mark-up to count — only hotels and flights.
             $this->stat('Your earnings (hotels & flights)', $m['earning'], money: true),
@@ -70,21 +70,28 @@ class BusinessSnapshot extends BaseWidget
         $up = count($series) > 1 && $now >= $series[count($series) - 2];
 
         return Stat::make($label, $money ? '₹'.number_format($now, 0) : number_format($now))
-            ->description($this->change($series))
+            ->description($this->change($series, $money))
             ->descriptionIcon($up ? 'heroicon-m-arrow-trending-up' : 'heroicon-m-arrow-trending-down')
             ->chart(array_values($series))
             ->color($up ? 'success' : 'warning');
     }
 
-    /** "Up 12% on last month" in plain words. */
-    protected function change(array $series): string
+    /**
+     * "Up 12% on last month" in plain words. Big jumps from a small month read
+     * as a bug in percent ("Up 18036%"), so those say how many times larger,
+     * or simply what last month was.
+     */
+    protected function change(array $series, bool $money = false): string
     {
         $now = (float) end($series);
         $before = (float) ($series[count($series) - 2] ?? 0);
+        $last = $money ? '₹'.number_format($before, 0) : number_format($before);
 
         return match (true) {
             $before == 0 && $now == 0 => 'Same as last month',
             $before == 0 => 'Up from nothing last month',
+            $now >= $before * 10 => 'Much higher than last month ('.$last.')',
+            $now >= $before * 3 => 'About '.round($now / $before).' times last month',
             default => (($pct = round(($now - $before) / $before * 100)) >= 0 ? 'Up '.$pct : 'Down '.abs($pct)).'% on last month',
         };
     }

@@ -27,14 +27,17 @@ class WelcomeBanner extends Widget
 
         $links = array_values(array_filter([
             ['label' => 'View website', 'icon' => '🌐', 'url' => url('/'), 'new_tab' => true],
-            EnquiryResource::canCreate() ? ['label' => 'Add phone enquiry', 'icon' => '➕', 'url' => EnquiryResource::getUrl('create'), 'new_tab' => false] : null,
+            EnquiryResource::canCreate() ? ['label' => 'New phone enquiry', 'icon' => '➕', 'url' => EnquiryResource::getUrl('create'), 'new_tab' => false] : null,
             HotelListingSettings::canAccess() ? ['label' => 'Hotel settings', 'icon' => '🏨', 'url' => HotelListingSettings::getUrl(), 'new_tab' => false] : null,
             FlightSettings::canAccess() ? ['label' => 'Flight settings', 'icon' => '✈️', 'url' => FlightSettings::getUrl(), 'new_tab' => false] : null,
         ]));
 
         return [
             'greeting' => $hour < 12 ? 'Good morning' : ($hour < 17 ? 'Good afternoon' : 'Good evening'),
-            'name' => strtok((string) auth('admin')->user()?->name, ' ') ?: 'there',
+            // "Super Admin" is a role, not a person — greet without a name then.
+            'name' => preg_match('/\badmin\b/i', (string) auth('admin')->user()?->name)
+                ? null
+                : (strtok((string) auth('admin')->user()?->name, ' ') ?: null),
             'date' => now('Asia/Kolkata')->format('l, j F Y'),
             'todoCount' => count($todo),
             'links' => $links,

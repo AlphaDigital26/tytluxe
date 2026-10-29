@@ -26,8 +26,8 @@ class AdminResource extends Resource
 
     protected static ?string $navigationLabel = 'Team Members';
 
-    protected static ?string $modelLabel = 'Admin';
-    protected static ?string $pluralModelLabel = 'Admins';
+    protected static ?string $modelLabel = 'team member';
+    protected static ?string $pluralModelLabel = 'Team Members';
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
