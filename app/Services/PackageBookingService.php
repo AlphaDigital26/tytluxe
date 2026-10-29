@@ -80,6 +80,15 @@ class PackageBookingService
                 throw new RuntimeException('Sorry, this departure date is no longer open for booking. Please choose another date.');
             }
 
+            // The same form sent twice (double click, slow connection, back
+            // and resubmit): hand back the unpaid booking it already made
+            // instead of a second one holding more seats. The departure lock
+            // above makes simultaneous clicks wait for each other.
+            $again = $this->unpaidDuplicate($user, $package, $departure, $option['label'], $plan, $travellers);
+            if ($again) {
+                return $again;
+            }
+
             // Only paying travellers take a seat and are charged.
             $infants = count(array_filter($travellers, fn ($t) => self::isFreeInfant((int) $t['age'])));
             $count = count($travellers) - $infants;
@@ -137,6 +146,24 @@ class PackageBookingService
 
             return $booking;
         });
+    }
+
+    /** This guest's unpaid booking from the last 10 minutes with exactly these choices and travellers. */
+    protected function unpaidDuplicate(User $user, Package $package, PackageDeparture $departure, string $option, string $plan, array $travellers): ?Booking
+    {
+        $key = fn ($list) => collect($list)->map(fn ($t) => mb_strtolower(trim($t['full_name'])).'|'.(int) $t['age'].'|'.$t['gender'])->sort()->values()->all();
+        $wanted = $key($travellers);
+
+        return Booking::with('travelers')
+            ->where('user_id', $user->id)->where('vertical', 'package')
+            ->where('package_id', $package->id)->where('package_departure_id', $departure->id)
+            ->where('package_option', $option)
+            ->whereIn('status', ['pending_payment', 'payment_failed'])
+            ->where('created_at', '>=', now()->subMinutes(10))
+            ->latest('id')->get()
+            // "part" is stored as "full" when the package has no booking amount.
+            ->first(fn (Booking $b) => ($b->package_payment_plan === $plan || ($plan === 'part' && (float) $package->booking_amount <= 0))
+                && $key($b->travelers->map(fn ($t) => ['full_name' => $t->full_name, 'age' => $t->age, 'gender' => $t->gender])) === $wanted);
     }
 
     /** Amount of the payment for $purpose: the first payment, or the balance. */
