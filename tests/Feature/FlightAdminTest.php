@@ -117,17 +117,27 @@ class FlightAdminTest extends TestCase
     public function test_saving_settings_changes_markup_and_switches(): void
     {
         $this->actingAs($this->admin, 'admin');
-        $this->assertSame(500.0, FlightPricingService::price(5000)['margin_amount']);
+        // Defaults: ₹250 domestic, ₹700 international, ₹100 per infant.
+        $this->assertSame(250.0, FlightSettings::domesticMarkup());
+        $this->assertSame(700.0, FlightSettings::internationalMarkup());
+        $this->assertSame(100.0, FlightSettings::infantMarkup());
 
         Livewire::test(FlightSettingsPage::class)
-            ->set('data.markup_percent', 8)
+            ->assertSee('Guest pays')
+            ->set('data.domestic_markup', 300)
+            ->set('data.international_markup', 900)
+            ->set('data.infant_markup', 120)
             ->set('data.allow_guest_cancel', false)
             ->call('save')
             ->assertHasNoErrors();
 
         app()->forgetInstance(FlightSettings::class);
-        $this->assertSame(400.0, FlightPricingService::price(5000)['margin_amount']);
-        $this->assertSame(0.08, FlightPricingService::formula()['marginRate']);
+        $this->assertSame(300.0, FlightSettings::domesticMarkup());
+        $this->assertSame(900.0, FlightSettings::internationalMarkup());
+        $this->assertSame(120.0, FlightSettings::infantMarkup());
+        $segment = fn ($from, $to, $country) => ['da' => ['code' => $from, 'country' => 'India'], 'aa' => ['code' => $to, 'country' => $country], 'sN' => 0];
+        $this->assertSame(300.0, FlightPricingService::markupPerPassenger([$segment('DEL', 'BOM', 'India')]));
+        $this->assertSame(900.0, FlightPricingService::markupPerPassenger([$segment('DEL', 'DXB', 'United Arab Emirates')]));
         $this->assertFalse(FlightSettings::allowGuestCancel());
         $this->assertTrue(FlightSettings::allowGuestReschedule());
     }

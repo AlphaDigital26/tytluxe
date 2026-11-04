@@ -243,7 +243,7 @@
   $mgmtFee = (float) ($breakdown['management_fee'] ?? 0);
   $mgmtFeeGst = (float) ($breakdown['management_fee_gst'] ?? 0);
   $convenienceFee = max(0, $breakdown['customer_price'] - $breakdown['tripjack_total_price'] - $mgmtFee - $mgmtFeeGst);
-  $pricingJs = ['tf' => $breakdown['tripjack_total_price'], 'taxes' => $breakdown['airline_taxes']] + \App\Services\FlightPricingService::formula($breakdown['margin_rate'] ?? null);
+  $pricingJs = ['tf' => $breakdown['tripjack_total_price'], 'taxes' => $breakdown['airline_taxes']] + \App\Services\FlightPricingService::formula((float) ($breakdown['markup'] ?? 0));
 @endphp
 
 @include('partials.flight-booking-steps', ['current' => 2, 'stepOneUrl' => route('flights.review.show')])
@@ -624,7 +624,7 @@
   // is the amount charged.
   var MGMT = PRICING.managementFee + PRICING.managementFeeGst;
   function customerPrice(tf) {
-    var margin = tf * PRICING.marginRate;
+    var margin = PRICING.markup; // a fixed ₹ amount for the booking, add-ons or not
     var pre = tf + margin + margin * PRICING.gstRate;
     return Math.round(pre / (1 - PRICING.razorpayRate) * 100) / 100 + MGMT;
   }

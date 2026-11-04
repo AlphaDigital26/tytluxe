@@ -12,7 +12,13 @@ use App\Models\Setting;
  */
 class FlightSettings
 {
-    public const DEFAULT_MARKUP_PERCENT = 10.0;
+    /** ₹ markup per passenger, per flight (founder's decision, 2026-11-02). */
+    public const DEFAULT_DOMESTIC_MARKUP = 250.0;
+
+    public const DEFAULT_INTERNATIONAL_MARKUP = 700.0;
+
+    /** ₹ markup per infant, per flight, domestic or international (founder's decision, 2026-11-04). */
+    public const DEFAULT_INFANT_MARKUP = 100.0;
 
     public const DEFAULT_DISABLED_MESSAGE = 'Online flight booking is paused for a short while. Please call or WhatsApp us and our team will book your flight for you.';
 
@@ -36,17 +42,16 @@ class FlightSettings
         return (string) (self::get('flights.disabled_message') ?: self::DEFAULT_DISABLED_MESSAGE);
     }
 
-    public static function markupPercent(): float
+    /** ₹ markup per passenger on each domestic flight. */
+    public static function domesticMarkup(): float
     {
-        $value = self::get('flights.markup_percent');
-
-        return is_numeric($value) ? max(0.0, min(100.0, (float) $value)) : self::DEFAULT_MARKUP_PERCENT;
+        return self::amount('flights.domestic_markup', self::DEFAULT_DOMESTIC_MARKUP);
     }
 
-    /** Markup as a fraction (10% → 0.10), the form FlightPricingService uses. */
-    public static function marginRate(): float
+    /** ₹ markup per passenger on each international flight. */
+    public static function internationalMarkup(): float
     {
-        return self::markupPercent() / 100;
+        return self::amount('flights.international_markup', self::DEFAULT_INTERNATIONAL_MARKUP);
     }
 
     public static function allowGuestCancel(): bool
@@ -86,6 +91,19 @@ class FlightSettings
             Setting::set('flights.'.$key, is_bool($value) ? ($value ? '1' : '0') : (string) $value);
         }
         app()->forgetInstance(self::class);
+    }
+
+    /** ₹ markup per infant (under 2) on each flight, domestic or international. */
+    public static function infantMarkup(): float
+    {
+        return self::amount('flights.infant_markup', self::DEFAULT_INFANT_MARKUP);
+    }
+
+    protected static function amount(string $key, float $default): float
+    {
+        $value = self::get($key);
+
+        return is_numeric($value) ? max(0.0, (float) $value) : $default;
     }
 
     protected static function bool(string $key, bool $default): bool

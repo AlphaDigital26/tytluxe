@@ -151,13 +151,15 @@
               $viaCodes = collect($legSummaries)->flatMap(fn ($l) => $l['via'])->unique()->values()->all();
 
               $options = [];
+              // Our ₹ markup for one adult on this itinerary's flight(s).
+              $markup = \App\Services\FlightPricingService::markupPerPassenger($segments);
               foreach (($itinerary['totalPriceList'] ?? []) as $option) {
                   $fdAll = $option['fd'] ?? $option['fD'] ?? [];
                   $fd = $fdAll['ADULT'] ?? [];
                   $fc = $fd['fC'] ?? [];
                   $bf = (float) ($fc['BF'] ?? 0);
                   // Per adult; the once-per-booking management fee is added at review.
-                  $price = \App\Services\FlightPricingService::price((float) ($fc['TF'] ?? 0), null, false)['customer_price'];
+                  $price = \App\Services\FlightPricingService::price((float) ($fc['TF'] ?? 0), $markup, false)['customer_price'];
 
                   $options[] = [
                       'id' => $option['id'],
