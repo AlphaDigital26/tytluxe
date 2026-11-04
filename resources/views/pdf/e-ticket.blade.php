@@ -166,49 +166,65 @@
     </table>
   @endforeach
 
-  <div class="et-section" style="margin-top:8px;">Passengers</div>
+  @php
+    // TripJack 2D barcode guide: one barcode per passenger per flight (none
+    // for infants), shown under that passenger's row as in the guide's sample.
+    $norm = fn ($s) => preg_replace('/\s+/', ' ', trim((string) $s));
+    $barcodes = collect(\App\Support\FlightBarcode::forBooking($booking))->keyBy(fn ($bc) => $bc['sector'].'|'.$norm($bc['passenger']));
+    $sectors = collect($segments)->map(fn ($s) => [
+        'sector' => ($s['from'] ?? '').'-'.($s['to'] ?? ''),
+        'baggage' => $s['baggage'] ?? [],
+    ]);
+    $row = 0;
+  @endphp
   <table class="et-grid">
     <thead>
-      <tr><th>#</th><th>Passenger</th><th>Type</th><th>E-Ticket Number</th></tr>
+      <tr><th colspan="5" style="font-size:10px; letter-spacing:1px;">Passenger Details</th></tr>
+      <tr style="background:#f4f0e6;">
+        <th style="width:6%; background:#f4f0e6; color:#262626;">Sr</th>
+        <th style="width:30%; background:#f4f0e6; color:#262626;">Name</th>
+        <th style="width:14%; background:#f4f0e6; color:#262626;">Sector</th>
+        <th style="width:28%; background:#f4f0e6; color:#262626;">PNR &amp; Ticket No.</th>
+        <th style="background:#f4f0e6; color:#262626;">Baggage <span style="font-weight:normal; text-transform:none;">(Check-in | Cabin)</span></th>
+      </tr>
     </thead>
     <tbody>
-      @foreach($passengers as $i => $p)
-      <tr>
-        <td>{{ $i + 1 }}</td>
-        <td><strong>{{ $p['name'] }}</strong></td>
-        <td>{{ $p['type'] }}</td>
-        <td>
-          @forelse(collect($p['tickets'])->unique() as $sector => $ticket)
-            {{ $ticket }}@if(count(array_unique($p['tickets'])) > 1) <span class="et-muted">({{ $sector }})</span>@endif<br>
-          @empty
-            <span class="et-muted">Use the airline PNR</span>
-          @endforelse
-        </td>
-      </tr>
-      @endforeach
+    @foreach($sectors as $s)
+        @foreach($passengers as $p)
+          @php
+            $row++;
+            $code = $p['type'] === 'Infant' ? null : $barcodes->get($s['sector'].'|'.$norm($p['name']));
+            $pnr = $pnrBySector[$s['sector']] ?? $singlePnr ?? $pnrBySector->first();
+            $ticket = $p['tickets'][$s['sector']] ?? (collect($p['tickets'])->unique()->count() === 1 ? collect($p['tickets'])->first() : null);
+            $bag = $s['baggage'][strtoupper($p['type'])] ?? null;
+          @endphp
+          {{-- Row and barcode share one table row so dompdf never splits them across pages. --}}
+          <tr>
+            <td colspan="5" style="padding:0;">
+              <table style="width:100%; border-collapse:collapse;">
+                <tr>
+                  <td style="width:6%; border:none;">{{ $row }}</td>
+                  <td style="width:30%; border:none;"><strong>{{ $p['name'] }}</strong> <span class="et-muted">({{ substr($p['type'], 0, 1) }})</span></td>
+                  <td style="width:14%; border:none;">{{ $s['sector'] }}</td>
+                  <td style="width:28%; border:none;">{{ $pnr ?: '—' }}@if($ticket) <span class="et-muted">( {{ $ticket }} )</span>@endif</td>
+                  <td style="width:22%; border:none;">{{ $bag ? ($bag['checkin'] ?: '—').' | '.($bag['cabin'] ?: '—') : '—' }}</td>
+                </tr>
+                @if($code)
+                <tr>
+                  <td style="border:none;"></td>
+                  <td colspan="4" style="border:none; padding:10px 10px 50px 0;">
+                    <div style="font-size:10px; margin-bottom:6px;">Your Airlines Reference: <strong>{{ $code['pnr'] }}</strong></div>
+                    <img src="{{ \App\Support\FlightBarcode::image($code['text']) }}" alt="Barcode {{ $code['pnr'] }}" style="width:270px;">
+                  </td>
+                </tr>
+                @endif
+              </table>
+            </td>
+          </tr>
+        @endforeach
+    @endforeach
     </tbody>
   </table>
-
-  @php $barcodes = \App\Support\FlightBarcode::forBooking($booking); @endphp
-  @if($barcodes)
-  {{-- TripJack 2D barcode guide: one per passenger per flight (no infants),
-       10px top/right margin, 50px between barcodes. --}}
-  <div class="et-section">Boarding Barcodes</div>
-  <table style="width:100%; border-collapse:collapse; margin-bottom:12px;">
-    @foreach(array_chunk($barcodes, 2) as $pair)
-    <tr>
-      @foreach($pair as $bc)
-      <td style="width:50%; vertical-align:top; padding:10px 10px 50px 0;">
-        <div style="font-size:10px; margin-bottom:4px;"><strong>{{ $bc['passenger'] }}</strong> &middot; {{ $bc['sector'] }} &middot; {{ $bc['flight'] }}</div>
-        <div style="font-size:10px; margin-bottom:6px;">Your Airlines Reference: <strong>{{ $bc['pnr'] }}</strong></div>
-        <img src="{{ \App\Support\FlightBarcode::image($bc['text']) }}" alt="Barcode {{ $bc['pnr'] }}" style="width:110px; height:110px;">
-      </td>
-      @endforeach
-      @if(count($pair) === 1)<td style="width:50%;"></td>@endif
-    </tr>
-    @endforeach
-  </table>
-  @endif
 
   <div class="et-section">Important Information</div>
   <ol class="et-notes">
