@@ -2,9 +2,7 @@
 
 namespace App\Support;
 
-use chillerlan\QRCode\Output\QROutputInterface;
-use chillerlan\QRCode\QRCode;
-use chillerlan\QRCode\QROptions;
+use Com\Tecnick\Barcode\Barcode;
 use Illuminate\Support\Carbon;
 
 /**
@@ -44,15 +42,16 @@ class FlightBarcode
             .'00';                                         // variable field size
     }
 
-    /** PNG data URI of the barcode, for <img> in the PDF (dompdf). */
+    /**
+     * PNG data URI of the barcode, for <img> in the PDF (dompdf). PDF417, the
+     * stacked 2D symbol in the guide's sample and the one boarding-pass gate
+     * scanners read. Wide and flat like the sample (aspect ratio 6), modules 2px wide and 3px tall.
+     */
     public static function image(string $text): string
     {
-        return (new QRCode(new QROptions([
-            'outputType' => QROutputInterface::GDIMAGE_PNG,
-            'outputBase64' => true,
-            'scale' => 4,
-            'quietzoneSize' => 1,
-        ])))->render($text);
+        $png = (new Barcode)->getBarcodeObj('PDF417,6', $text, -2, -3, 'black', [0, 0, 0, 0])->getPngData();
+
+        return 'data:image/png;base64,'.base64_encode($png);
     }
 
     /**
