@@ -50,7 +50,7 @@ body {
 /* ── STATS BAND ── */
 .ta-stats-band {
   background: var(--dark-mid);
-  padding: 48px 24px;
+  padding: 22px 24px;
 }
 .ta-stats-inner {
   display: flex; justify-content: center;
@@ -59,7 +59,7 @@ body {
 }
 .ta-stat {
   flex: 1; min-width: 140px; text-align: center;
-  padding: 28px 16px;
+  padding: 16px 16px;
   border-right: 1px solid rgba(184,147,90,.15);
 }
 .ta-stat:last-child { border-right: none; }
@@ -147,36 +147,61 @@ body {
 /* ── VALUES ── */
 .ta-values-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 24px;
   max-width: 1200px; margin: 0 auto;
 }
 .ta-value-card {
-  background: rgba(255,255,255,0.06);
-  border: 1px solid var(--border-gold);
-  padding: 40px 32px;
+  position: relative;
+  background: var(--dark-card);
+  border: 1px solid rgba(184,147,90,0.25);
+  padding: 36px 30px 34px;
   transition: transform .22s, box-shadow .22s, border-color .22s;
+}
+/* A gold line along the top edge on hover. */
+.ta-value-card::before {
+  content: ''; position: absolute; left: -1px; right: -1px; top: -1px; height: 2px;
+  background: var(--gold);
+  transform: scaleX(0); transform-origin: left; transition: transform .3s ease;
 }
 .ta-value-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 16px 48px rgba(0,0,0,.3);
   border-color: rgba(184,147,90,0.5);
 }
-.ta-value-icon { font-size: 2rem; margin-bottom: 18px; display: block; }
+.ta-value-card:hover::before { transform: scaleX(1); }
+.ta-value-num {
+  position: absolute; top: 18px; right: 24px;
+  font-family: 'Playfair Display', serif; font-size: 2.75rem; line-height: 1;
+  color: rgba(184,147,90,0.18);
+}
+.ta-value-icon {
+  width: 54px; height: 54px; border-radius: 50%;
+  border: 1px solid rgba(184,147,90,0.6);
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 24px; color: var(--gold-light);
+  transition: box-shadow .22s, border-color .22s;
+}
+.ta-value-card:hover .ta-value-icon { border-color: var(--gold); box-shadow: 0 0 18px rgba(184,147,90,.35); }
+.ta-value-icon svg { width: 26px; height: 26px; }
 .ta-value-card h3 {
   font-family: 'Playfair Display', serif;
-  font-size: 1.2rem; color: var(--cream);
+  font-size: 1.2rem; line-height: 1.35; color: var(--cream);
   margin-bottom: 12px;
+  /* Two lines tall in every card, so the text below starts level. */
+  min-height: 2.7em;
 }
 .ta-value-card p {
-  font-size: .84rem; color: rgba(245,240,232,.55);
+  font-size: .85rem; color: rgba(245,240,232,.66);
   line-height: 1.8;
 }
 
 /* ── TEAM ── */
+/* Equal cards: a short summary each, the full bio in a popup
+   ("Read full profile"), so a long bio never stretches the row. */
 .ta-team-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 28px;
   max-width: 1200px; margin: 0 auto;
 }
@@ -184,21 +209,32 @@ body {
   background: #fff;
   border: 1px solid var(--border-gold);
   overflow: hidden;
+  display: flex; flex-direction: column;
   transition: transform .22s, box-shadow .22s;
 }
 .ta-team-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 12px 40px rgba(0,0,0,.09);
 }
+/* The photos are 3:4 portraits with the face about 40% down: a box that
+   keeps its shape at any card width, cropped around the face. */
 .ta-team-card img {
-  width: 100%; height: 260px; object-fit: cover;
+  display: block;
+  width: 100%; height: auto; aspect-ratio: 5 / 4; object-fit: cover; object-position: 50% 35%;
 }
 .ta-team-photo-placeholder {
-  width: 100%; height: 260px;
-  background: #f7f3ea;
+  width: 100%; aspect-ratio: 5 / 4;
+  background: #f3ece0;
   border-bottom: 1px solid var(--border-gold);
+  display: flex; align-items: center; justify-content: center;
 }
-.ta-team-card-body { padding: 24px; }
+.ta-team-monogram {
+  width: 120px; height: 120px; border-radius: 50%;
+  border: 1.5px solid var(--gold);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Playfair Display', serif; font-size: 3rem; color: var(--gold);
+}
+.ta-team-card-body { padding: 24px 26px 26px; display: flex; flex-direction: column; flex-grow: 1; }
 .ta-team-role {
   font-size: .65rem; font-weight: 600;
   letter-spacing: .2em; text-transform: uppercase;
@@ -206,13 +242,53 @@ body {
 }
 .ta-team-card h3 {
   font-family: 'Playfair Display', serif;
-  font-size: 1.15rem; color: var(--text-dark);
-  margin-bottom: 8px;
+  font-size: 1.25rem; color: var(--text-dark);
+  margin-bottom: 10px;
 }
 .ta-team-card p {
-  font-size: .82rem; color: var(--text-muted);
+  font-size: .85rem; color: var(--text-muted);
   line-height: 1.7;
 }
+.ta-team-summary {
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+  margin-bottom: 18px;
+}
+.ta-team-more {
+  margin-top: auto; align-self: flex-start;
+  background: none; border: none; border-bottom: 1px solid var(--gold);
+  padding: 10px 0; cursor: pointer;
+  font-family: inherit; font-size: .72rem; font-weight: 600;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--text-dark);
+  transition: color .2s;
+}
+.ta-team-more:hover, .ta-team-more:focus-visible { color: var(--gold); }
+.ta-team-full { display: none; }
+
+/* The full-profile popup */
+.ta-profile {
+  /* The site's reset zeroes every margin; a popup centres on margin: auto. */
+  position: fixed; inset: 0; margin: auto;
+  width: min(880px, calc(100vw - 32px)); height: fit-content; max-height: calc(100vh - 48px);
+  padding: 0; border: none; background: #fff; color: var(--text-dark);
+  box-shadow: 0 24px 80px rgba(0,0,0,.35);
+}
+.ta-profile::backdrop { background: rgba(26,17,8,.6); }
+.ta-profile-inner { display: flex; max-height: calc(100vh - 48px); }
+.ta-profile-photo { width: 300px; flex-shrink: 0; }
+.ta-profile-photo img { display: block; width: 100%; height: 100%; aspect-ratio: auto; object-fit: cover; object-position: 50% 35%; }
+.ta-profile-photo .ta-team-photo-placeholder { height: 100%; aspect-ratio: auto; border-bottom: none; }
+.ta-profile-body { position: relative; padding: 40px 44px; overflow-y: auto; flex-grow: 1; }
+.ta-profile-body h3 {
+  font-family: 'Playfair Display', serif; font-size: 1.8rem; margin: 0 0 8px;
+}
+.ta-profile-rule { width: 40px; height: 2px; background: var(--gold); margin-bottom: 20px; }
+.ta-profile-text p { font-size: .9rem; color: var(--text-muted); line-height: 1.8; margin: 0 0 12px; }
+.ta-profile-close {
+  position: absolute; top: 10px; right: 10px;
+  width: 44px; height: 44px; border: none; background: none; cursor: pointer;
+  font-size: 1.6rem; line-height: 1; color: var(--text-dark);
+}
+.ta-profile-close:hover, .ta-profile-close:focus-visible { color: var(--gold); }
 
 /* ── WHY US ── */
 .ta-why-grid {
@@ -325,22 +401,34 @@ body {
 /* ── TRUST STRIP ── */
 .ta-trust {
   background: var(--dark-mid);
-  padding: 44px 24px;
+  padding: 52px 24px;
 }
+/* Four equal columns with thin gold lines between them. */
 .ta-trust-inner {
-  max-width: 1000px; margin: 0 auto;
-  display: flex; flex-wrap: wrap;
-  justify-content: center; gap: 48px; text-align: center;
+  max-width: 1100px; margin: 0 auto;
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  text-align: center;
 }
-.ta-trust-icon { font-size: 1.5rem; margin-bottom: 12px; display: block; }
+.ta-trust-item { padding: 0 28px; }
+.ta-trust-item + .ta-trust-item { border-left: 1px solid rgba(184,147,90,.25); }
+.ta-trust-icon {
+  width: 52px; height: 52px; margin: 0 auto 16px; border-radius: 50%;
+  border: 1px solid rgba(184,147,90,.6);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--gold-light);
+}
+.ta-trust-icon svg { width: 24px; height: 24px; }
 .ta-trust-title {
-  font-size: .78rem; font-weight: 600;
-  letter-spacing: .12em; text-transform: uppercase;
-  color: var(--gold); margin-bottom: 6px;
+  display: block;
+  font-size: .8rem; font-weight: 600;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: var(--gold-light); margin-bottom: 8px;
+  text-decoration: none;
 }
+a.ta-trust-title:hover { color: var(--cream); }
 .ta-trust-desc {
-  font-size: .82rem; color: rgba(245,240,232,.55);
-  line-height: 1.6; max-width: 160px;
+  font-size: .85rem; color: rgba(245,240,232,.68);
+  line-height: 1.6;
 }
 
 /* ── RESPONSIVE ── */
@@ -350,11 +438,29 @@ body {
   .ta-why-grid { grid-template-columns: 1fr 1fr; }
   .ta-section, .ta-section-dark, .ta-section-cream { padding: 60px 24px; }
   .ta-cta { padding: 60px 24px; }
+  .ta-team-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+  .ta-values-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+  /* Trust strip: two per row, no column lines. */
+  .ta-trust-inner { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 36px; }
+  .ta-trust-item + .ta-trust-item { border-left: none; }
+  .ta-trust-item { padding: 0 12px; }
+}
+@media (max-width: 680px) {
+  /* Popup: photo on top, bio below. */
+  .ta-profile-inner { flex-direction: column; overflow-y: auto; }
+  .ta-profile-photo { width: 100%; height: 260px; }
+  .ta-profile-body { padding: 28px 22px; overflow: visible; }
 }
 @media (max-width: 580px) {
+  .ta-team-grid { grid-template-columns: 1fr; }
+  .ta-values-grid { grid-template-columns: 1fr; }
+  .ta-value-card h3 { min-height: 0; }
   .ta-why-grid { grid-template-columns: 1fr; }
-  .ta-stats-inner { flex-direction: column; align-items: center; }
-  .ta-stat { border-right: none; border-bottom: 1px solid rgba(184,147,90,.15); width: 100%; }
+  /* Stats: 2 × 2 on phones, so the band stays thin. */
+  .ta-stats-inner { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ta-stat { min-width: 0; padding: 14px 8px; border-right: none; }
+  .ta-stat:nth-child(odd) { border-right: 1px solid rgba(184,147,90,.15); }
+  .ta-stat:nth-child(-n+2) { border-bottom: 1px solid rgba(184,147,90,.15); }
 }
 </style>
 @endpush
@@ -426,64 +532,82 @@ body {
     <div class="ta-divider"></div>
     <p style="max-width:760px;color:var(--text-muted);line-height:1.8;">Meet the leadership and partner team shaping TYT Luxe with premium service, dependable operations and thoughtful travel planning.</p>
   </div>
+  @php
+    // One card each: photo (or a gold initial until there is one), role,
+    // name, a short summary, and the full bio for the "Read full profile"
+    // popup. Bios are the full text — nothing is cut, only folded away.
+    $team = [
+        // 'focus': where the crop centres, when the face isn't at the usual height.
+        ['name' => 'Kartik Singhal', 'role' => 'Founder', 'photo' => 'assets/images/Founder.jpeg', 'focus' => '50% 18%', 'alt' => 'Kartik Singhal — Founder, TYT Luxe', 'bio' => [
+            'Kartik Singhal is the visionary founder behind TYT Luxe, a premium travel brand created with the passion to redefine luxury travel experiences. With a strong entrepreneurial mindset and deep understanding of the travel industry, he envisioned a company that delivers not just holidays, but curated journeys designed with elegance, comfort and exclusivity.',
+            'Driven by attention to detail and a commitment to personalized service, Kartik focuses on handpicked luxury stays, seamless travel planning and bespoke itineraries tailored to each client\'s preferences.',
+        ], 'quote' => '"Crafting Luxury Journeys. Creating Timeless Memories."'],
+        ['name' => 'Neha Singhal', 'role' => 'CEO', 'photo' => 'assets/images/CEO.jpeg', 'alt' => 'Neha Singhal — CEO, TYT Luxe', 'bio' => [
+            'Neha Singhal, CEO of TYT Luxe, brings a refined sense of luxury, personalization, and client-centric thinking to the brand. With a keen eye for detail and a passion for curating meaningful travel experiences, she plays a pivotal role in designing journeys that go beyond conventional itineraries and transform into lifelong memories.',
+            'At TYT Luxe, Neha focuses on understanding each traveler\'s unique preferences and translating them into thoughtfully crafted, seamless experiences. From handpicked luxury stays and bespoke itineraries to exclusive on-ground arrangements, her approach blends elegance with comfort, ensuring every journey reflects sophistication and individuality.',
+            'Her dedication to service excellence and commitment to building long-term client relationships has been instrumental in shaping TYT Luxe into a trusted name for premium and bespoke travel. Neha believes that true luxury lies in personalization, attention to detail, and creating experiences that feel effortless yet extraordinary.',
+        ]],
+        ['name' => 'Swati Lohariwal', 'role' => 'Co-Founder', 'photo' => 'assets/images/Co-founder.webp', 'alt' => 'Swati Lohariwal — Co-Founder, TYT Luxe', 'bio' => [
+            'Swati Lohariwal serves as Co-Founder at TYT Luxe with a sharp focus on precision, personalization and service excellence. She helps oversee end-to-end operational management so every journey reflects the brand\'s premium standards.',
+            'Swati brings a strong eye for detail, client servicing expertise and a passion for curated travel experiences. Her approach emphasizes understanding individual preferences and translating them into thoughtfully designed itineraries that deliver comfort, exclusivity and memorable moments.',
+        ]],
+        ['name' => 'Ashish Lohariwal', 'role' => 'Operational Head', 'photo' => 'assets/images/operational-head.webp', 'alt' => 'Ashish Lohariwal — Operational Head, TYT Luxe', 'bio' => [
+            'Ashish complements operations with strategic coordination, vendor partnerships and on-ground execution. His strength lies in streamlining logistics, maintaining quality benchmarks and ensuring smooth travel experiences across destinations.',
+            'His operational leadership ensures that every booking is handled with efficiency and professionalism.',
+        ]],
+        ['name' => 'Shailesh', 'role' => 'Financial & Compliance Partner', 'photo' => null, 'bio' => [
+            'Shailesh leads the financial framework of TYT Luxe with a sharp focus on accuracy, compliance and structured growth. As Financial & Compliance Partner, he oversees budgeting, financial planning, vendor reconciliations and regulatory adherence across all operations.',
+            'His meticulous approach ensures transparent accounting practices, efficient fund management and seamless financial coordination with global partners.',
+        ]],
+        ['name' => 'Mayur', 'role' => 'Accounts & Administration Partner', 'photo' => null, 'bio' => [
+            'Mayur brings operational precision and administrative efficiency to TYT Luxe as Accounts & Administration Partner. He manages day-to-day accounting workflows, financial documentation, invoicing systems and backend administrative processes that keep the organization running smoothly.',
+            'His attention to detail and structured execution ensure timely reporting, streamlined coordination and organized financial operations.',
+        ]],
+    ];
+  @endphp
   <div class="ta-team-grid">
-    <div class="ta-team-card">
-      <img src="{{ asset('assets/images/Founder.jpeg') }}" alt="Kartik Singhal — Founder, TYT Luxe" width="400" height="260" loading="lazy">
-      <div class="ta-team-card-body">
-        <div class="ta-team-role">Founder</div>
-        <h3>Kartik Singhal</h3>
-        <p>Kartik Singhal is the visionary founder behind TYT Luxe, a premium travel brand created with the passion to redefine luxury travel experiences. With a strong entrepreneurial mindset and deep understanding of the travel industry, he envisioned a company that delivers not just holidays, but curated journeys designed with elegance, comfort and exclusivity.</p>
-        <p>Driven by attention to detail and a commitment to personalized service, Kartik focuses on handpicked luxury stays, seamless travel planning and bespoke itineraries tailored to each client's preferences.</p>
-        <p><strong>"Crafting Luxury Journeys. Creating Timeless Memories."</strong></p>
-      </div>
-    </div>
-    <div class="ta-team-card">
-      <img src="{{ asset('assets/images/CEO.jpeg') }}" alt="Neha Singhal — CEO, TYT Luxe" width="400" height="260" loading="lazy">
-      <div class="ta-team-card-body">
-        <div class="ta-team-role">CEO</div>
-        <h3>Neha Singhal</h3>
-        <p>Neha Singhal, CEO of TYT Luxe, brings a refined sense of luxury, personalization, and client-centric thinking to the brand. With a keen eye for detail and a passion for curating meaningful travel experiences, she plays a pivotal role in designing journeys that go beyond conventional itineraries and transform into lifelong memories.</p>
-        <p>At TYT Luxe, Neha focuses on understanding each traveler's unique preferences and translating them into thoughtfully crafted, seamless experiences. From handpicked luxury stays and bespoke itineraries to exclusive on-ground arrangements, her approach blends elegance with comfort, ensuring every journey reflects sophistication and individuality.</p>
-        <p>Her dedication to service excellence and commitment to building long-term client relationships has been instrumental in shaping TYT Luxe into a trusted name for premium and bespoke travel. Neha believes that true luxury lies in personalization, attention to detail, and creating experiences that feel effortless yet extraordinary.</p>
-      </div>
-    </div>
-    <div class="ta-team-card">
-      <img src="{{ asset('assets/images/Co-founder.webp') }}" alt="Swati Lohariwal">
-      <div class="ta-team-card-body">
-        <div class="ta-team-role">Co-Founder</div>
-        <h3>Swati Lohariwal</h3>
-        <p>Swati Lohariwal serves as Co-Founder at TYT Luxe with a sharp focus on precision, personalization and service excellence. She helps oversee end-to-end operational management so every journey reflects the brand's premium standards.</p>
-        <p>Swati brings a strong eye for detail, client servicing expertise and a passion for curated travel experiences. Her approach emphasizes understanding individual preferences and translating them into thoughtfully designed itineraries that deliver comfort, exclusivity and memorable moments.</p>
-      </div>
-    </div>
-    <div class="ta-team-card">
-      <img src="{{ asset('assets/images/operational-head.webp') }}" alt="Ashish Lohariwal">
-      <div class="ta-team-card-body">
-        <div class="ta-team-role">Operational Head</div>
-        <h3>Ashish Lohariwal</h3>
-        <p>Ashish complements operations with strategic coordination, vendor partnerships and on-ground execution. His strength lies in streamlining logistics, maintaining quality benchmarks and ensuring smooth travel experiences across destinations.</p>
-        <p>His operational leadership ensures that every booking is handled with efficiency and professionalism.</p>
-      </div>
-    </div>
-    <div class="ta-team-card">
-      <div class="ta-team-photo-placeholder" aria-label="Financial and compliance partner photo placeholder"></div>
-      <div class="ta-team-card-body">
-        <div class="ta-team-role">Financial &amp; Compliance Partner</div>
-        <h3>Shailesh</h3>
-        <p>Shailesh leads the financial framework of TYT Luxe with a sharp focus on accuracy, compliance and structured growth. As Financial &amp; Compliance Partner, he oversees budgeting, financial planning, vendor reconciliations and regulatory adherence across all operations.</p>
-        <p>His meticulous approach ensures transparent accounting practices, efficient fund management and seamless financial coordination with global partners.</p>
-      </div>
-    </div>
-    <div class="ta-team-card">
-      <div class="ta-team-photo-placeholder" aria-label="Accounts and administration partner photo placeholder"></div>
-      <div class="ta-team-card-body">
-        <div class="ta-team-role">Accounts &amp; Administration Partner</div>
-        <h3>Mayur</h3>
-        <p>Mayur brings operational precision and administrative efficiency to TYT Luxe as Accounts &amp; Administration Partner. He manages day-to-day accounting workflows, financial documentation, invoicing systems and backend administrative processes that keep the organization running smoothly.</p>
-        <p>His attention to detail and structured execution ensure timely reporting, streamlined coordination and organized financial operations.</p>
-      </div>
-    </div>
+    @foreach($team as $person)
+      <article class="ta-team-card">
+        <div class="ta-team-card-photo">
+          @if($person['photo'])
+            <img src="{{ asset($person['photo']) }}" alt="{{ $person['alt'] }}" width="400" height="320" loading="lazy" @if(! empty($person['focus'])) style="object-position: {{ $person['focus'] }}" @endif>
+          @else
+            <div class="ta-team-photo-placeholder" role="img" aria-label="{{ $person['name'] }}">
+              <span class="ta-team-monogram" aria-hidden="true">{{ mb_substr($person['name'], 0, 1) }}</span>
+            </div>
+          @endif
+        </div>
+        <div class="ta-team-card-body">
+          <div class="ta-team-role">{{ $person['role'] }}</div>
+          <h3>{{ $person['name'] }}</h3>
+          <p class="ta-team-summary">{{ $person['bio'][0] }}</p>
+          <button type="button" class="ta-team-more" aria-haspopup="dialog">Read full profile <span aria-hidden="true">&rarr;</span></button>
+          <div class="ta-team-full">
+            @foreach($person['bio'] as $paragraph)
+              <p>{{ $paragraph }}</p>
+            @endforeach
+            @if(! empty($person['quote']))
+              <p><strong>{{ $person['quote'] }}</strong></p>
+            @endif
+          </div>
+        </div>
+      </article>
+    @endforeach
   </div>
+
+  {{-- Full profile popup, filled from the card that opened it. --}}
+  <dialog class="ta-profile" id="taProfile" aria-labelledby="taProfileName">
+    <div class="ta-profile-inner">
+      <div class="ta-profile-photo" id="taProfilePhoto"></div>
+      <div class="ta-profile-body">
+        <button type="button" class="ta-profile-close" id="taProfileClose" aria-label="Close profile">&times;</button>
+        <div class="ta-team-role" id="taProfileRole"></div>
+        <h3 id="taProfileName"></h3>
+        <div class="ta-profile-rule"></div>
+        <div class="ta-profile-text" id="taProfileText"></div>
+      </div>
+    </div>
+  </dialog>
 </section>
 
 <!-- ══════════════════════════════════
@@ -497,22 +621,26 @@ body {
   </div>
   <div class="ta-values-grid">
     <div class="ta-value-card">
-      <span class="ta-value-icon">🎯</span>
+      <span class="ta-value-num" aria-hidden="true">01</span>
+      <span class="ta-value-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polygon points="15.5 8.5 13.5 13.5 8.5 15.5 10.5 10.5"/></svg></span>
       <h3>Curation Over Quantity</h3>
       <p>We don't list everything. We list the best. Every hotel and cruise is handpicked, reviewed, and selected for a specific type of traveller.</p>
     </div>
     <div class="ta-value-card">
-      <span class="ta-value-icon">🤝</span>
+      <span class="ta-value-num" aria-hidden="true">02</span>
+      <span class="ta-value-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m11 17 2 2a1 1 0 1 0 3-3"/><path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4"/><path d="m21 3 1 11h-2"/><path d="M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3"/><path d="M3 4h8"/></svg></span>
       <h3>Personal Relationships</h3>
       <p>We're not a faceless booking engine. We're your travel partner — available on call, on WhatsApp, and always ready to go the extra mile.</p>
     </div>
     <div class="ta-value-card">
-      <span class="ta-value-icon">💎</span>
+      <span class="ta-value-num" aria-hidden="true">03</span>
+      <span class="ta-value-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12l4 6-10 13L2 9Z"/><path d="M11 3 8 9l4 13 4-13-3-6"/><path d="M2 9h20"/></svg></span>
       <h3>Value at Every Level</h3>
       <p>Luxury doesn't always mean expensive. We find you the best experience for your budget — whether that's ₹5,000 or ₹5,00,000 per night.</p>
     </div>
     <div class="ta-value-card">
-      <span class="ta-value-icon">🌍</span>
+      <span class="ta-value-num" aria-hidden="true">04</span>
+      <span class="ta-value-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg></span>
       <h3>Global Reach, Local Heart</h3>
       <p>From Goa to Greece, Maldives to Mediterranean — we cover the world but never forget the nuances of the Indian traveller.</p>
     </div>
@@ -635,23 +763,23 @@ body {
 <div class="ta-trust">
   <div class="ta-trust-inner">
     <div class="ta-trust-item">
-      <span class="ta-trust-icon">🏨</span>
+      <span class="ta-trust-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg></span>
       <div class="ta-trust-title">100+ Hotels</div>
       <div class="ta-trust-desc">Handpicked across India &amp; internationally</div>
     </div>
     <div class="ta-trust-item">
-      <span class="ta-trust-icon">🚢</span>
+      <span class="ta-trust-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 10.189V14"/><path d="M12 2v3"/><path d="M19 13V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6"/><path d="M19.38 20A11.6 11.6 0 0 0 21 14l-8.188-3.639a2 2 0 0 0-1.624 0L3 14a11.6 11.6 0 0 0 2.81 7.76"/><path d="M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1s1.2 1 2.5 1c2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/></svg></span>
       <div class="ta-trust-title">Premium Cruises</div>
       <div class="ta-trust-desc">Cordelia &amp; international cruise lines</div>
     </div>
     <div class="ta-trust-item">
-      <span class="ta-trust-icon">🙏</span>
+      <span class="ta-trust-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg></span>
       <div class="ta-trust-title">Indian Friendly</div>
       <div class="ta-trust-desc">Veg, Jain &amp; family options always available</div>
     </div>
     <div class="ta-trust-item">
-      <span class="ta-trust-icon">📞</span>
-      <div class="ta-trust-title">98750 73788</div>
+      <span class="ta-trust-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg></span>
+      <a class="ta-trust-title" href="tel:+919875073788">98750 73788</a>
       <div class="ta-trust-desc">Call or WhatsApp — Mon to Sat, 10AM–7PM</div>
     </div>
   </div>
@@ -660,3 +788,42 @@ body {
 @endsection
 
 @push('scripts')
+<script>
+  // Founders & Associates: "Read full profile" opens the card's full bio
+  // in a popup. Esc, the × button or a click outside it closes it.
+  (function () {
+    var dialog = document.getElementById('taProfile');
+    if (!dialog || typeof dialog.showModal !== 'function') return;
+    var photo = document.getElementById('taProfilePhoto');
+    var lastButton = null;
+
+    document.querySelectorAll('.ta-team-more').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var card = btn.closest('.ta-team-card');
+        photo.innerHTML = '';
+        var pic = card.querySelector('.ta-team-card-photo > *');
+        if (pic) {
+          var copy = pic.cloneNode(true);
+          if (copy.tagName === 'IMG') copy.removeAttribute('loading');
+          photo.appendChild(copy);
+        }
+        document.getElementById('taProfileRole').textContent = card.querySelector('.ta-team-role').textContent;
+        document.getElementById('taProfileName').textContent = card.querySelector('h3').textContent;
+        var text = document.getElementById('taProfileText');
+        text.innerHTML = '';
+        card.querySelectorAll('.ta-team-full > p').forEach(function (p) { text.appendChild(p.cloneNode(true)); });
+        lastButton = btn;
+        dialog.showModal();
+        document.body.style.overflow = 'hidden';
+      });
+    });
+
+    document.getElementById('taProfileClose').addEventListener('click', function () { dialog.close(); });
+    dialog.addEventListener('click', function (e) { if (e.target === dialog) dialog.close(); });
+    dialog.addEventListener('close', function () {
+      document.body.style.overflow = '';
+      if (lastButton) lastButton.focus();
+    });
+  })();
+</script>
+@endpush
