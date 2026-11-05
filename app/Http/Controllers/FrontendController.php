@@ -2025,6 +2025,25 @@ class FrontendController extends Controller
 
         $payload = json_decode($body, true) ?? [];
         $event = $payload['event'] ?? null;
+
+        // A refund Razorpay accepted can still fail later (closed card,
+        // bank rejection). Flag the booking so the team refunds by hand.
+        if ($event === 'refund.failed') {
+            $refund = $payload['payload']['refund']['entity'] ?? [];
+            $booking = Payment::where('razorpay_payment_id', $refund['payment_id'] ?? '')->first()?->booking;
+            if ($booking) {
+                $amount = number_format(((int) ($refund['amount'] ?? 0)) / 100, 2);
+                $refund['id'] ??= '';
+                $booking->update([
+                    'manual_refund_due_at' => now(),
+                    'admin_note' => $booking->adminNoteWith("Razorpay refund {$refund['id']} of ₹{$amount} failed. Please refund the guest by hand and record it."),
+                ]);
+            }
+            Log::channel('tripjack')->warning('razorpay_refund_failed', ['refund' => $refund['id'] ?? null, 'booking' => $booking?->reference]);
+
+            return response()->json(['status' => $booking ? 'ok' : 'unknown payment']);
+        }
+
         $entity = $payload['payload']['payment']['entity'] ?? null;
         $orderId = $entity['order_id'] ?? null;
 

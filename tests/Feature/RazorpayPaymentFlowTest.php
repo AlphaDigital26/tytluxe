@@ -233,6 +233,26 @@ class RazorpayPaymentFlowTest extends TestCase
         $this->assertSame('confirmed', $booking->fresh()->status);
     }
 
+    public function test_failed_refund_webhook_flags_booking_for_manual_refund(): void
+    {
+        Http::fake();
+        $booking = $this->createPendingBooking('refund-fail-hotel', '888888009');
+        $booking->payments()->first()->update(['razorpay_payment_id' => 'pay_refund_fail', 'status' => 'captured']);
+        $this->razorpay->nextWebhookSignatureValid = true;
+
+        $this->call('POST', '/payment/razorpay/webhook', [], [], [], [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_X-Razorpay-Signature' => 'webhook_sig_fake',
+        ], json_encode([
+            'event' => 'refund.failed',
+            'payload' => ['refund' => ['entity' => ['id' => 'rfnd_X1', 'payment_id' => 'pay_refund_fail', 'amount' => 150050]]],
+        ]))->assertOk()->assertJson(['status' => 'ok']);
+
+        $booking->refresh();
+        $this->assertNotNull($booking->manual_refund_due_at);
+        $this->assertStringContainsString('rfnd_X1 of ₹1,500.50 failed', $booking->admin_note);
+    }
+
     /**
      * Instant Booking (paymentInfos included) is not a guarantee — TripJack
      * can still come back ON_HOLD, which requires a separate confirm-book
