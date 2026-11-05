@@ -14,7 +14,7 @@ BACKUP_DIR=/var/backups/tytluxe
 # instead of stopping silently with the site still in maintenance mode.
 on_error() {
     echo ""
-    echo "❌ Deployment stopped at line $1."
+    echo "ERROR: Deployment stopped at line $1."
     echo "   The site is still in maintenance mode (visitors see the 'back soon' page)."
     echo "   Fix the problem shown above and run 'bash deploy.sh' again,"
     echo "   or bring the old version back online with:  cd $APP_DIR && php artisan up"
@@ -22,25 +22,25 @@ on_error() {
 }
 trap 'on_error $LINENO' ERR
 
-echo "🚀 Starting deployment process for TYT Luxe..."
+echo "Starting deployment process for TYT Luxe..."
 
 # Navigate to the project directory
 cd "$APP_DIR"
 
 # Put application into maintenance mode
-echo "🚧 Putting application into maintenance mode..."
+echo "Putting application into maintenance mode..."
 php artisan down || true
 
 # Pull the latest changes from the git repository
-echo "📥 Pulling latest code from git ($BRANCH)..."
+echo "Pulling latest code from git ($BRANCH)..."
 git pull origin "$BRANCH"
 
 # Install/Update PHP dependencies
-echo "📦 Installing PHP dependencies..."
+echo "Installing PHP dependencies..."
 composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
 
 # Install/Update Node.js dependencies and build assets
-echo "🎨 Building frontend assets..."
+echo "Building frontend assets..."
 npm ci
 npm run build
 # A leftover "hot" file (from running 'npm run dev') makes every page load
@@ -48,7 +48,7 @@ npm run build
 rm -f public/hot
 
 # Back up the database before changing it (keeps the last 10 backups)
-echo "💾 Backing up the database..."
+echo "Backing up the database..."
 mkdir -p "$BACKUP_DIR"
 DB_DATABASE=$(php artisan tinker --execute="echo config('database.connections.mysql.database');" 2>/dev/null)
 DB_USERNAME=$(php artisan tinker --execute="echo config('database.connections.mysql.username');" 2>/dev/null)
@@ -59,14 +59,15 @@ MYSQL_PWD="$DB_PASSWORD" mysqldump --single-transaction --quick -h "$DB_HOST" -u
 ls -1t "$BACKUP_DIR"/tytluxe-*.sql.gz | tail -n +11 | xargs -r rm --
 
 # Run database migrations
-echo "🗄️ Running database migrations..."
+echo "Running database migrations..."
 php artisan migrate --force
 
 # Public link for uploaded photos (packages, blog, hotels). Safe to repeat.
 php artisan storage:link 2>/dev/null || true
 
 # Clear and optimize Laravel & Filament caches
-echo "🧹 Optimizing Laravel and Filament caches..."
+echo "Optimizing Laravel and Filament caches..."
+php artisan config:clear
 php artisan optimize:clear
 php artisan optimize
 php artisan view:cache
@@ -74,19 +75,19 @@ php artisan event:cache
 php artisan filament:optimize
 
 # Restart the queue worker so it picks up code changes
-echo "🔄 Restarting queue workers..."
+echo "Restarting queue workers..."
 php artisan queue:restart
 
 # Fix permissions to the correct directory
-echo "🔒 Setting correct permissions..."
+echo "Setting correct permissions..."
 sudo chown -R www-data:www-data "$APP_DIR"
 sudo chmod -R 775 "$APP_DIR/storage" "$APP_DIR/bootstrap/cache"
 
 # Bring application out of maintenance mode
-echo "✅ Bringing application out of maintenance mode..."
+echo "Bringing application out of maintenance mode..."
 php artisan up
 
-echo "🎉 Deployment completed successfully!"
+echo "Deployment completed successfully!"
 
 # ---------------------------------------------------------------------------
 # One-time steps (run by hand, not on every deploy):

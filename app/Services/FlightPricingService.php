@@ -2,23 +2,32 @@
 
 namespace App\Services;
 
+use App\Services\TripJack\TripJackFlightClient;
 use App\Support\FlightSettings;
 
 /**
- * TYTLUXE's flight markup formula — identical philosophy to
- * HotelPricingService, applied to TripJack's TF (Total Fare) instead of a
- * hotel's totalPrice. Kept as a separate class (not a shared base) since the
- * two verticals' commission/GST rules could diverge later — see that
- * class's docblock for the full reasoning behind the margin/GST/Razorpay
- * gross-up order of operations, which is identical here. The markup % itself
- * is the client's to set, in the admin's Flights → Flight Settings page.
+ * TYTLUXE's flight markup formula — the same margin/GST/Razorpay gross-up
+ * order of operations as HotelPricingService (see its docblock), applied to
+ * TripJack's TF (Total Fare).
  *
- * GST differs from hotels: a flat 18% on our markup (our service fee) at
- * any fare (client's decision, 2026-10-10). The hotels' 5%/18% split at
- * ₹7,500 is a hotel-room rule. The airline's own GST is already inside TF.
+ * Unlike hotels, the markup is a fixed ₹ amount, not a % (founder's
+ * decision, 2026-11-02): per passenger, per flight — ₹250 for a domestic
+ * flight, ₹700 for an international one, both set in Flights → Flight
+ * Settings. A "flight" is one leg of the trip (onward, return, each
+ * Multi-City flight); a connection inside a leg doesn't count again.
+ * Adults and children pay it; infants pay their own amount per flight
+ * (₹100, domestic or international — founder's decision, 2026-11-04).
+ *
+ * GST on the markup is 5% (same decision). Our own fees — the management
+ * fee and the reschedule service charge — keep 18%. The airline's own GST
+ * is already inside TF.
  */
 class FlightPricingService
 {
+    /** GST on our markup. */
+    protected const MARKUP_GST_RATE = 0.05;
+
+    /** GST on our fees (management fee, reschedule service charge). */
     protected const GST_RATE = 0.18;
 
     protected const RAZORPAY_EFFECTIVE_RATE = 0.0236;
@@ -76,15 +85,15 @@ class FlightPricingService
     /**
      * The formula's constants, for pages that must recompute price() live
      * in the browser (e.g. as add-ons are picked) and match it exactly.
-     * $marginRate: see price().
+     * $markup: the booking's ₹ markup (see price()).
      *
-     * @return array{marginRate: float, gstRate: float, razorpayRate: float, managementFee: float, managementFeeGst: float}
+     * @return array{markup: float, gstRate: float, razorpayRate: float, managementFee: float, managementFeeGst: float}
      */
-    public static function formula(?float $marginRate = null): array
+    public static function formula(float $markup = 0.0): array
     {
         return [
-            'marginRate' => $marginRate ?? FlightSettings::marginRate(),
-            'gstRate' => self::GST_RATE,
+            'markup' => $markup,
+            'gstRate' => self::MARKUP_GST_RATE,
             'razorpayRate' => self::RAZORPAY_EFFECTIVE_RATE,
             'managementFee' => self::MANAGEMENT_FEE,
             'managementFeeGst' => round(self::MANAGEMENT_FEE * self::GST_RATE, 2),
@@ -92,12 +101,93 @@ class FlightPricingService
     }
 
     /**
+     * Our ₹ markup for ONE passenger on an itinerary: the domestic or
+     * international amount for each leg in its `sI` segment list (several
+     * legs for a COMBO international return / multi-city itinerary).
+     */
+    public static function markupPerPassenger(array $segments): float
+    {
+        $markup = 0.0;
+        foreach (TripJackFlightClient::itineraryLegs($segments) as $leg) {
+            $markup += self::legIsInternational($leg) ? FlightSettings::internationalMarkup() : FlightSettings::domesticMarkup();
+        }
+
+        return $markup;
+    }
+
+    /**
+     * The whole booking's ₹ markup, from Review's tripInfos: every leg's
+     * domestic/international amount × adults and children, plus the infant
+     * amount × infants on every leg.
+     *
+     * @param  array<int, array>  $tripInfos  Review's tripInfos (each with an `sI` list)
+     */
+    public static function bookingMarkup(array $tripInfos, int $adults, int $children, int $infants = 0): float
+    {
+        $perPassenger = 0.0;
+        $flights = 0;
+        foreach ($tripInfos as $trip) {
+            $perPassenger += self::markupPerPassenger($trip['sI'] ?? []);
+            $flights += count(TripJackFlightClient::itineraryLegs($trip['sI'] ?? []));
+        }
+
+        return round($perPassenger * max(0, $adults + $children) + $flights * FlightSettings::infantMarkup() * max(0, $infants), 2);
+    }
+
+    /** A leg is international when any of its airports is outside India. */
+    public static function legIsInternational(array $leg): bool
+    {
+        foreach ($leg as $segment) {
+            foreach (['da', 'aa'] as $end) {
+                if (! self::isIndianAirport($segment[$end] ?? [])) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * TripJack names the country on each airport ("India"); when it doesn't,
+     * the airport code is looked up in the site's own airport list.
+     */
+    protected static function isIndianAirport(array $airport): bool
+    {
+        $country = strtoupper(trim((string) ($airport['countryCode'] ?? $airport['country'] ?? '')));
+        if ($country !== '') {
+            return in_array($country, ['IN', 'IND', 'INDIA'], true);
+        }
+
+        return isset(self::indianAirportCodes()[strtoupper((string) ($airport['code'] ?? ''))]);
+    }
+
+    /** @return array<string, true> IATA codes of India's airports, from public/data/airports.json */
+    protected static function indianAirportCodes(): array
+    {
+        static $codes = null;
+        if ($codes === null) {
+            $rows = json_decode((string) @file_get_contents(public_path('data/airports.json')), true) ?: [];
+            $codes = [];
+            foreach ($rows as $row) {
+                if (($row[3] ?? null) === 'India' && ! empty($row[0])) {
+                    $codes[$row[0]] = true;
+                }
+            }
+        }
+
+        return $codes;
+    }
+
+    /**
      * Computes the customer-facing price from TripJack's raw TF (Total
      * Fare), with the full breakdown kept traceable for auditing.
      *
-     * $marginRate: the markup fixed when the guest picked the fare (saved in
-     * the booking draft), so a change in Flight Settings mid-booking doesn't
-     * change the price they already saw. Null = today's setting.
+     * $markup: our ₹ markup for the fare being priced — markupPerPassenger()
+     * for a per-adult fare on the results page, bookingMarkup() for a whole
+     * booking. A booking's amount is fixed when the guest picks the fare
+     * (saved in the booking draft), so a change in Flight Settings
+     * mid-booking doesn't change the price they already saw.
      *
      * $withManagementFee: false for per-person fares on search results and
      * the fare calendar — the fee is once per booking, added at review.
@@ -114,11 +204,11 @@ class FlightPricingService
      *   customer_price: float,
      * }
      */
-    public static function price(float $totalFare, ?float $marginRate = null, bool $withManagementFee = true): array
+    public static function price(float $totalFare, float $markup, bool $withManagementFee = true): array
     {
-        $gstSlab = self::GST_RATE;
+        $gstSlab = self::MARKUP_GST_RATE;
 
-        $marginAmount = $totalFare * ($marginRate ?? FlightSettings::marginRate());
+        $marginAmount = max(0.0, $markup);
         $gstOnMargin = $marginAmount * $gstSlab;
         $preRazorpayAmount = $totalFare + $marginAmount + $gstOnMargin;
 

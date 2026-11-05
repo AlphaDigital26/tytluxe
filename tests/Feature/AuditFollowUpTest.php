@@ -104,7 +104,7 @@ class AuditFollowUpTest extends TestCase
         session(['flight_booking_draft' => [
             'bookingId' => 'TJS200000000001',
             'expiresAt' => now()->addMinutes(10)->timestamp,
-            'marginRate' => 0.10, // the markup when the fare was picked
+            'markup' => 250.0, // the ₹ markup when the fare was picked
             'context' => ['tripType' => 'oneway', 'from' => 'DEL', 'to' => 'BOM', 'departDate' => now()->addDays(20)->toDateString(), 'returnDate' => '',
                 'adults' => 1, 'children' => 0, 'infants' => 0, 'cabinClass' => 'ECONOMY', 'fareType' => 'REGULAR', 'legs' => []],
             'response' => ['bookingId' => 'TJS200000000001', 'tripInfos' => [['sI' => [$segment]]], 'conditions' => [],
@@ -112,7 +112,7 @@ class AuditFollowUpTest extends TestCase
         ]]);
 
         // The client raises the markup while the guest is mid-booking.
-        FlightSettings::save(['markup_percent' => 20]);
+        FlightSettings::save(['domestic_markup' => 400]);
 
         $this->post(route('flights.book'), [
             'review_booking_id' => 'TJS200000000001', 'intent' => 'review',
@@ -121,7 +121,7 @@ class AuditFollowUpTest extends TestCase
         ])->assertRedirect(route('flights.confirm.show'));
 
         $summary = $this->get(route('flights.confirm.show'))->assertOk()->viewData('summary');
-        $this->assertSame(FlightPricingService::price(5000, 0.10)['customer_price'], $summary['total']);
-        $this->assertNotSame(FlightPricingService::price(5000)['customer_price'], $summary['total']);
+        $this->assertSame(FlightPricingService::price(5000, 250)['customer_price'], $summary['total']);
+        $this->assertNotSame(FlightPricingService::price(5000, 400)['customer_price'], $summary['total']);
     }
 }
