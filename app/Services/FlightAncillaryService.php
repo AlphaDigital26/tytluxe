@@ -322,13 +322,20 @@ class FlightAncillaryService
             $payment = Payment::whereKey($payment->id)->lockForUpdate()->first();
             $booking = Booking::whereKey($payment->booking_id)->lockForUpdate()->first();
 
-            if (in_array($payment->status, ['captured', 'refunded', 'partially_refunded', 'failed'], true)) {
+            // 'failed' is not final: a guest can retry inside the same checkout
+            // after a declined attempt, and that retry is real money.
+            if (in_array($payment->status, ['captured', 'refunded', 'partially_refunded'], true)) {
                 return; // already processed by a racing callback/webhook
             }
 
             $payment->update(['status' => 'captured']);
 
             $selection = $booking->flight_ssr_pending_selection;
+            if (isset($selection['orderId']) && $selection['orderId'] !== $payment->razorpay_order_id) {
+                \App\Support\UnusedPayment::refund($payment, 'The extras were changed in another tab after this payment was started.');
+
+                return;
+            }
             if (! $selection || empty($selection['segmentInfos'])) {
                 Log::channel('tripjack')->critical('flight_ssr_pending_selection_missing', ['booking_id' => $booking->id, 'payment_id' => $payment->id]);
                 $this->refundAndMarkFailed($booking, $payment, $razorpay, 'Your extras selection could not be found after payment.');

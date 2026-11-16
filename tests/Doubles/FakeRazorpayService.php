@@ -19,6 +19,9 @@ class FakeRazorpayService extends RazorpayService
 
     public bool $nextWebhookSignatureValid = true;
 
+    /** What Razorpay says when asked whether the money was captured. */
+    public bool $nextCaptured = true;
+
     protected int $orderSeq = 0;
 
     public function __construct()
@@ -49,6 +52,11 @@ class FakeRazorpayService extends RazorpayService
     public function verifyWebhookSignature(string $body, string $signature): bool
     {
         return $this->nextWebhookSignatureValid;
+    }
+
+    public function confirmCaptured(string $paymentId, string $orderId, float $amountRupees): bool
+    {
+        return $this->nextCaptured;
     }
 
     public function refund(string $paymentId, ?float $amountRupees = null): array

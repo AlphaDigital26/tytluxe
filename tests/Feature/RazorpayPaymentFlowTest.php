@@ -233,6 +233,67 @@ class RazorpayPaymentFlowTest extends TestCase
         $this->assertSame('confirmed', $booking->fresh()->status);
     }
 
+    public function test_nothing_is_booked_until_razorpay_says_the_money_is_captured(): void
+    {
+        Http::fake();
+        $booking = $this->createPendingBooking('uncaptured-hotel', '888888011');
+        $payment = $booking->payments()->first();
+        $this->razorpay->nextCaptured = false; // authorised only, or a different amount
+
+        $this->post('/payment/razorpay/callback', [
+            'razorpay_payment_id' => 'pay_uncaptured', 'razorpay_order_id' => $payment->razorpay_order_id, 'razorpay_signature' => 'sig',
+        ])->assertRedirect("/booking/{$booking->reference}/pay")->assertSessionHas('booking_error');
+
+        Http::assertNothingSent(); // no hotel booked on money we may never get
+        $this->assertSame('pending_payment', $booking->fresh()->status);
+    }
+
+    public function test_a_second_payment_from_an_old_tab_is_refunded_and_the_booking_left_alone(): void
+    {
+        Http::fake();
+        $booking = $this->createPendingBooking('second-pay-hotel', '888888012');
+        $booking->update(['status' => 'confirmed', 'tripjack_booking_id' => 'TJ-DONE']);
+        $old = $booking->payments()->create(['razorpay_order_id' => 'order_old_tab', 'amount' => $booking->total_amount, 'currency' => 'INR', 'status' => 'failed']);
+
+        $this->post('/payment/razorpay/callback', [
+            'razorpay_payment_id' => 'pay_old_tab', 'razorpay_order_id' => 'order_old_tab', 'razorpay_signature' => 'sig',
+        ]);
+
+        Http::assertNothingSent(); // not booked a second time
+        $this->assertSame([['pay_old_tab', (int) round($booking->total_amount * 100)]], array_map(fn ($r) => [$r['payment_id'], $r['amount']], $this->razorpay->refunds));
+        $this->assertSame('refunded', $old->fresh()->status);
+        $this->assertSame('confirmed', $booking->fresh()->status);
+    }
+
+    public function test_webhook_with_a_different_amount_books_nothing(): void
+    {
+        Http::fake();
+        $booking = $this->createPendingBooking('wrong-amount-hotel', '888888013');
+        $payment = $booking->payments()->first();
+        $this->razorpay->nextWebhookSignatureValid = true;
+
+        $this->call('POST', '/payment/razorpay/webhook', [], [], [], ['CONTENT_TYPE' => 'application/json', 'HTTP_X-Razorpay-Signature' => 'sig'], json_encode([
+            'event' => 'payment.captured',
+            'payload' => ['payment' => ['entity' => ['id' => 'pay_cheap', 'order_id' => $payment->razorpay_order_id, 'amount' => 100, 'currency' => 'INR']]],
+        ]))->assertJson(['status' => 'amount mismatch']);
+
+        Http::assertNothingSent();
+        $this->assertSame('pending_payment', $booking->fresh()->status);
+    }
+
+    public function test_payment_page_after_the_rate_hold_ran_out_says_not_charged(): void
+    {
+        Http::fake();
+        $booking = $this->createPendingBooking('expired-rate-hotel', '888888010');
+
+        $this->travel(13)->minutes();
+
+        $this->get("/booking/{$booking->reference}/pay")
+            ->assertOk()
+            ->assertSee('Rate Hold Expired')
+            ->assertSee('check_in='.$this->checkIn, false);
+    }
+
     public function test_failed_refund_webhook_flags_booking_for_manual_refund(): void
     {
         Http::fake();
