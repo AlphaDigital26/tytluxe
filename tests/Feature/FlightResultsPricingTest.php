@@ -29,39 +29,65 @@ class FlightResultsPricingTest extends TestCase
         ])]);
     }
 
-    public function test_flights_charge_a_flat_18_percent_gst_on_our_markup_at_any_fare(): void
+    public function test_flights_add_a_fixed_markup_with_5_percent_gst(): void
     {
-        FlightSettings::save(['markup_percent' => 10]);
-
-        // ₹5,000 fare: markup ₹500, GST ₹90 (18%, not the hotels' 5% below
-        // ₹7,500), then the payment-gateway gross-up.
-        $cheap = FlightPricingService::price(5000);
-        $this->assertSame(0.18, $cheap['gst_slab']);
-        $this->assertSame(90.0, $cheap['gst_on_margin']);
+        // ₹5,000 domestic fare, 1 passenger, 1 flight: ₹250 markup, ₹12.50
+        // GST (5%), then the payment-gateway gross-up so Razorpay's 2.36%
+        // comes out of the total and the rest is ours in full.
+        $domestic = FlightPricingService::price(5000, 250);
+        $this->assertSame(0.05, $domestic['gst_slab']);
+        $this->assertSame(250.0, $domestic['margin_amount']);
+        $this->assertSame(12.5, $domestic['gst_on_margin']);
         // Plus our ₹100 + ₹18 GST management fee, once per booking.
-        $this->assertSame(118.0, $cheap['management_fee'] + $cheap['management_fee_gst']);
-        $this->assertEqualsWithDelta(5590 / (1 - 0.0236) + 118, $cheap['customer_price'], 0.01);
-        $this->assertEqualsWithDelta(5590 / (1 - 0.0236), FlightPricingService::price(5000, null, false)['customer_price'], 0.01);
-        $this->assertSame(0.18, FlightPricingService::price(20000)['gst_slab']);
+        $this->assertSame(118.0, $domestic['management_fee'] + $domestic['management_fee_gst']);
+        $this->assertEqualsWithDelta(5262.5 / (1 - 0.0236) + 118, $domestic['customer_price'], 0.01);
+        $this->assertEqualsWithDelta(5389.70, FlightPricingService::price(5000, 250, false)['customer_price'], 0.01);
 
-        // One rate at every fare: a domestic return's two legs priced on
-        // their own add up to the two together, so results match review.
-        $this->assertEqualsWithDelta(
-            FlightPricingService::price(8000, null, false)['customer_price'],
-            FlightPricingService::price(4000, null, false)['customer_price'] * 2,
-            0.02,
-        );
+        // International: ₹700 + ₹35 GST.
+        $this->assertSame(35.0, FlightPricingService::price(25000, 700)['gst_on_margin']);
+    }
+
+    public function test_markup_is_per_passenger_per_flight_and_infants_pay_their_own(): void
+    {
+        $seg = fn ($from, $to, $sN = 0) => ['da' => ['code' => $from], 'aa' => ['code' => $to], 'sN' => $sN];
+
+        // Domestic return: 2 flights × (2 adults + 1 child) × ₹250, plus
+        // 2 flights × 1 infant × ₹100.
+        $domesticReturn = [['sI' => [$seg('DEL', 'BOM')]], ['sI' => [$seg('BOM', 'DEL')]]];
+        $this->assertSame(1500.0, FlightPricingService::bookingMarkup($domesticReturn, 2, 1));
+        $this->assertSame(1700.0, FlightPricingService::bookingMarkup($domesticReturn, 2, 1, 1));
+
+        // The infant amount is the same on an international flight, and on
+        // a COMBO itinerary it counts each of its flights.
+        $comboTrip = [['sI' => [$seg('BOM', 'DXB'), $seg('DXB', 'BOM')]]];
+        $this->assertSame(1600.0, FlightPricingService::bookingMarkup($comboTrip, 1, 0, 1));
+
+        FlightSettings::save(['infant_markup' => 150]);
+        $this->assertSame(1800.0, FlightPricingService::bookingMarkup($domesticReturn, 2, 1, 1));
+
+        // A connection inside one flight doesn't count again: DEL→BOM→GOI is one flight.
+        $this->assertSame(250.0, FlightPricingService::markupPerPassenger([$seg('DEL', 'BOM'), $seg('BOM', 'GOI', 1)]));
+
+        // International return in one COMBO itinerary: two flights at ₹700.
+        $combo = [$seg('BOM', 'DXB'), $seg('DXB', 'BOM')];
+        $this->assertSame(1400.0, FlightPricingService::markupPerPassenger($combo));
+
+        // Multi-City mixing both: DEL→BOM domestic, BOM→DXB international.
+        $multi = [['sI' => [$seg('DEL', 'BOM')]], ['sI' => [$seg('BOM', 'DXB')]]];
+        $this->assertSame(950.0, FlightPricingService::bookingMarkup($multi, 1, 0));
+
+        // TripJack's own country name wins over the airport list.
+        $this->assertSame(700.0, FlightPricingService::markupPerPassenger([['da' => ['code' => 'XXX', 'country' => 'India'], 'aa' => ['code' => 'YYY', 'country' => 'Nepal'], 'sN' => 0]]));
     }
 
     public function test_results_show_the_marked_up_fare(): void
     {
-        FlightSettings::save(['markup_percent' => 10]);
         $this->fakeSearch(5000);
 
         $html = $this->get(route('flights.search', ['from' => 'DEL', 'to' => 'BOM', 'depart_date' => now()->addDays(30)->toDateString(), 'adults' => 1, 'trip_type' => 'oneway']))
             ->assertOk()->getContent();
 
-        $marked = FlightPricingService::price(5000, null, false)['customer_price']; // per person, no booking fee
+        $marked = FlightPricingService::price(5000, 250, false)['customer_price']; // per person, no booking fee
         $this->assertStringContainsString('&#8377;'.number_format($marked, 2), $html);
         $this->assertStringContainsString('data-price="'.(int) $marked.'"', $html);
         $this->assertStringNotContainsString('&#8377;5,000.00', $html);
@@ -110,7 +136,7 @@ class FlightResultsPricingTest extends TestCase
         $this->assertStringContainsString('id="frxRtBar"', $html);
         $this->assertStringContainsString('data-group="price_ids[ONWARD]"', $html);
         $this->assertStringContainsString('data-group="price_ids[RETURN]"', $html);
-        $this->assertStringContainsString('data-amount="'.FlightPricingService::price(4000, null, false)['customer_price'].'"', $html);
+        $this->assertStringContainsString('data-amount="'.FlightPricingService::price(4000, 250, false)['customer_price'].'"', $html);
         $this->assertStringContainsString('data-times="06:00 BOM → 08:10 DEL"', $html);
         // TripJack's placement: each column has its own Cheapest / Fastest and sort row.
         $this->assertSame(2, substr_count($html, 'class="frx-leg-sort"'));
@@ -159,11 +185,11 @@ class FlightResultsPricingTest extends TestCase
 
     public function test_fare_calendar_shows_the_marked_up_fare(): void
     {
-        FlightSettings::save(['markup_percent' => 10]);
+        FlightSettings::save(['domestic_markup' => 300]);
         $this->fakeSearch(5000);
 
         $this->getJson(route('flights.fare-calendar.ajax', ['from' => 'DEL', 'to' => 'BOM', 'depart_date' => now()->addDays(30)->toDateString(), 'adults' => 1]))
             ->assertOk()
-            ->assertJson(['success' => true, 'minPrice' => (int) round(FlightPricingService::price(5000, null, false)['customer_price'])]);
+            ->assertJson(['success' => true, 'minPrice' => (int) round(FlightPricingService::price(5000, 300, false)['customer_price'])]);
     }
 }

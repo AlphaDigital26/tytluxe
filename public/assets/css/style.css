@@ -84,6 +84,14 @@ html, body {
     scrollbar-width: none;  /* Firefox */
 }
 
+/* A popup is open (assets/js/scroll-lock.js): the page behind it stays put.
+   <html> is the element that scrolls here (see overflow-x above). */
+html.tyt-scroll-locked,
+html.tyt-scroll-locked body {
+    overflow: hidden !important;
+    overscroll-behavior: none;
+}
+
 /* Hide scrollbar for Chrome, Safari and Opera */
 html::-webkit-scrollbar,
 body::-webkit-scrollbar {
@@ -470,8 +478,12 @@ header {
 
 /* Hero */
 .hero {
-    height: 100vh;
-    min-height: 700px;
+    /* The fixed header sits on top of the hero: keep its height clear at the
+       top so the headline never runs into the logo, and let the hero grow
+       when the screen is too short for its content. */
+    min-height: max(100vh, 700px);
+    box-sizing: border-box;
+    padding: 150px 0 60px;
     background-size: cover;
     background-position: center right;
     display: flex;
@@ -534,17 +546,112 @@ header {
     margin-bottom: 40px;
 }
 
+/* Home hero: "Talk to us" card with Call / WhatsApp buttons. */
 .hero-contact {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 12px;
-    font-size: 16px;
-    font-weight: 600;
+    gap: 16px;
+    max-width: 100%;
+    padding: 14px 16px;
+    background: rgba(15, 12, 8, 0.5);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(212, 175, 120, 0.45);
     color: var(--text-light);
+    text-align: left;
 }
 
-.hero-contact i {
-    font-size: 20px;
+.hero-contact-icon {
+    position: relative;
+    flex-shrink: 0;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 1px solid #d4af78;
+    color: #d4af78;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.hero-contact-icon svg {
+    width: 24px;
+    height: 24px;
+}
+
+.hero-contact-dot {
+    position: absolute;
+    right: 1px;
+    bottom: 2px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #34c759;
+    border: 2px solid #1a1510;
+}
+
+.hero-contact-dot[hidden] {
+    display: none;
+}
+
+.hero-contact-text {
+    flex-grow: 1;
+    min-width: 0;
+}
+
+.hero-contact-title {
+    display: block;
+    font-family: 'Playfair Display', serif;
+    font-size: 19px;
+    font-weight: 700;
+}
+
+.hero-contact-sub {
+    display: block;
+    margin-top: 2px;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.hero-contact-num {
+    white-space: nowrap;
+}
+
+.hero-contact-status.is-open {
+    color: #7ee2a0;
+    font-weight: 600;
+}
+
+.hero-contact-btn {
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.hero-contact-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
+}
+
+.hero-contact-call {
+    background: #c9a35c;
+    color: #0f0c08;
+}
+
+.hero-contact-call svg {
+    width: 18px;
+    height: 18px;
+}
+
+.hero-contact-wa {
+    background: #25d366;
+    color: #fff;
+    font-size: 22px;
 }
 
 /* Categories Grid */
@@ -1273,8 +1380,30 @@ main {
     }
 
     .hero-contact {
-        justify-content: center;
-        font-size: 13px;
+        gap: 12px;
+        padding: 12px;
+    }
+
+    .hero-contact-icon {
+        width: 42px;
+        height: 42px;
+    }
+
+    .hero-contact-title {
+        font-size: 16px;
+    }
+
+    .hero-contact-sub {
+        font-size: 12.5px;
+    }
+
+    /* Status on its own line; the number never splits. */
+    .hero-contact-status {
+        display: block;
+    }
+
+    .hero-contact-sep {
+        display: none;
     }
 
     .hero-btns {

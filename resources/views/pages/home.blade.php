@@ -92,11 +92,27 @@
 
             </div>
 
-            <div class="hero-contact">
+            {{-- "Talk to us" card: "Available now" shows during office
+                 hours (Mon–Sat, 10AM–7PM India time — see the script below). --}}
+            <div class="hero-contact" id="heroContact">
 
-                <i class="fa-brands fa-whatsapp"></i>
+                <span class="hero-contact-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3"/></svg>
+                    <span class="hero-contact-dot" hidden></span>
+                </span>
 
-                Call / WhatsApp : 98750 73788
+                <span class="hero-contact-text">
+                    <span class="hero-contact-title">Talk to us</span>
+                    <span class="hero-contact-sub"><span class="hero-contact-status">Mon–Sat, 10AM–7PM</span><span class="hero-contact-sep"> · </span><span class="hero-contact-num">98750 73788</span></span>
+                </span>
+
+                <a class="hero-contact-btn hero-contact-call" href="tel:+919875073788" aria-label="Call 98750 73788">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                </a>
+
+                <a class="hero-contact-btn hero-contact-wa" href="https://wa.me/919875073788" target="_blank" rel="noopener" aria-label="Chat on WhatsApp">
+                    <i class="fa-brands fa-whatsapp" aria-hidden="true"></i>
+                </a>
 
             </div>
 
@@ -107,7 +123,7 @@
 </section>
 
 <!-- ===========================
-    STAY • SAIL • EXPLORE
+    STAY • FLY • EXPLORE
 ============================ -->
 
 <section id="hotels"
@@ -125,7 +141,7 @@
 
             <h2 class="section-title">
 
-                Stay. Sail. Explore.
+                Stay. Fly. Explore.
 
             </h2>
 
@@ -155,11 +171,11 @@
 
             </a>
 
-            <a href="{{ url('/cruises') }}"
+            <a href="{{ url('/flights') }}"
                 class="cat-card">
 
-                <img src="{{ asset('assets/images/cruise-ship-is-docked-night-with-word-cruise-side_916191-10755.jpg') }}"
-                    alt="Luxury cruise ship docked at night"
+                <img src="{{ asset('assets/images/stock/photo-1436491865332-7a61a109cc05-1400.webp') }}"
+                    alt="Aircraft wing above the clouds at sunset"
                     width="600" height="400"
                     loading="lazy">
 
@@ -167,9 +183,9 @@
 
                     <h3>
 
-                        <i class="fa-solid fa-ship"></i>
+                        <i class="fa-solid fa-plane"></i>
 
-                        Cruises
+                        Flights
 
                     </h3>
 
@@ -301,28 +317,28 @@
     </div>
 </section>
 
-<!-- Cruise Experiences -->
-<section id="cruises" class="section-padding" style="background-color: var(--secondary); color: var(--text-light);">
+<!-- Flight Experiences (same card layout the cruise section used: cruise-grid / cruise-card) -->
+<section id="flights" class="section-padding" style="background-color: var(--secondary); color: var(--text-light);">
     <div class="container">
         <div class="section-header-split">
             <div>
-                <span class="section-subtitle">Cruise Experiences</span>
-                <h2 class="section-title" style="margin-bottom: 0; color: var(--text-light);">Sail Beyond Ordinary</h2>
+                <span class="section-subtitle">Flight Bookings</span>
+                <h2 class="section-title" style="margin-bottom: 0; color: var(--text-light);">Fly Beyond Ordinary</h2>
             </div>
-            <a href="{{ url('/cruises') }}" class="btn btn-outline">View All Cruises</a>
+            <a href="{{ url('/flights') }}" class="btn btn-outline">Search Flights</a>
         </div>
         <div class="items-grid cruise-grid">
-            <a href="{{ url('/cruises') }}" class="item-card cruise-card">
-                <img src="{{ asset('assets/images/Cruise Experiences 1.webp') }}" alt="Scenic coastal cruise getaway" width="400" height="300" loading="lazy">
-                <div class="item-info"><h4>Scenic Getaways</h4></div>
+            <a href="{{ url('/flights') }}" class="item-card cruise-card">
+                <img src="{{ asset('assets/images/stock/photo-1464037866556-6812c9d1c72e-700.webp') }}" alt="Plane at the airport gate at sunset" width="400" height="300" loading="lazy">
+                <div class="item-info"><h4>Domestic Flights</h4></div>
             </a>
-            <a href="{{ url('/cruises') }}" class="item-card cruise-card">
-                <img src="{{ asset('assets/images/Cruise Experiences 2.webp') }}" alt="Luxury cruise ship on open ocean" width="400" height="300" loading="lazy">
-                <div class="item-info"><h4>Luxury Cruises</h4></div>
+            <a href="{{ url('/flights') }}" class="item-card cruise-card">
+                <img src="{{ asset('assets/images/stock/photo-1569154941061-e231b4725ef1-700.webp') }}" alt="Wide-body aircraft outside an international terminal" width="400" height="300" loading="lazy">
+                <div class="item-info"><h4>International Flights</h4></div>
             </a>
-            <a href="{{ url('/cruises') }}" class="item-card cruise-card">
-                <img src="{{ asset('assets/images/Cruise Experiences 3.webp') }}" alt="International cruise at sea" width="400" height="300" loading="lazy">
-                <div class="item-info"><h4>International Cruises</h4></div>
+            <a href="{{ url('/flights') }}" class="item-card cruise-card">
+                <img src="{{ asset('assets/images/stock/photo-1540339832862-474599807836-700.webp') }}" alt="Passengers seated in an aircraft cabin" width="400" height="300" loading="lazy">
+                <div class="item-info"><h4>Round Trip &amp; Multi-City</h4></div>
             </a>
         </div>
     </div>
@@ -405,7 +421,6 @@
         <div class="cta-banner-inner">
             <div>
                 <h2 style="color: var(--text-light); font-size: 40px;">Ready to Plan Your Next Trip?</h2>
-                <p style="margin-top: 10px;">Call / WhatsApp: 98750 73788</p>
             </div>
             <a href="{{ url('/contact') }}" class="btn btn-primary" style="padding: 15px 40px;">Get In Touch</a>
         </div>
@@ -413,3 +428,23 @@
 </section>
 
 @endsection
+
+@push('scripts')
+<script>
+  // Hero "Talk to us" card: "Available now" (and the green
+  // dot) during office hours — Mon–Sat, 10AM–7PM India time, whatever the
+  // visitor's own time zone. Outside them it shows the hours instead.
+  (function () {
+    var card = document.getElementById('heroContact');
+    if (!card) return;
+    var now = new Date();
+    var ist = new Date(now.getTime() + (now.getTimezoneOffset() + 330) * 60000);
+    var open = ist.getDay() !== 0 && ist.getHours() >= 10 && ist.getHours() < 19;
+    if (!open) return;
+    var status = card.querySelector('.hero-contact-status');
+    status.textContent = 'Available now';
+    status.classList.add('is-open');
+    card.querySelector('.hero-contact-dot').hidden = false;
+  })();
+</script>
+@endpush

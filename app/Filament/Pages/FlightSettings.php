@@ -53,7 +53,9 @@ class FlightSettings extends Page
         $this->data = [
             'booking_enabled' => Settings::bookingEnabled(),
             'disabled_message' => Settings::disabledMessage(),
-            'markup_percent' => Settings::markupPercent(),
+            'domestic_markup' => Settings::domesticMarkup(),
+            'international_markup' => Settings::internationalMarkup(),
+            'infant_markup' => Settings::infantMarkup(),
             'allow_guest_cancel' => Settings::allowGuestCancel(),
             'allow_guest_reschedule' => Settings::allowGuestReschedule(),
             'allow_guest_extras' => Settings::allowGuestExtras(),
@@ -84,21 +86,42 @@ class FlightSettings extends Page
                     ]),
 
                 Section::make('💰 Your Earnings on Each Ticket')
-                    ->description('The percentage you add on top of the airline\'s ticket price. The website then adds the GST on your earnings and the online payment (Razorpay) charge automatically — you don\'t need to include those.')
+                    ->description('The fixed amount you add for each passenger on each flight. A round trip is two flights, so a guest pays it twice. Infants (under 2) pay their own, smaller amount. The website then adds 5% GST on your earnings and the online payment (Razorpay) charge automatically — you don\'t need to include those. Changes apply to new searches straight away; bookings already made keep their price.')
+                    ->columns(2)
                     ->schema([
-                        TextInput::make('markup_percent')
-                            ->label('Your markup')
-                            ->suffix('%')
+                        TextInput::make('domestic_markup')
+                            ->label('Domestic flight (within India)')
+                            ->prefix('₹')
+                            ->suffix('per passenger, per flight')
                             ->numeric()
                             ->minValue(0)
-                            ->maxValue(50)
-                            ->step(0.5)
+                            ->maxValue(20000)
                             ->required()
-                            ->live(debounce: 500)
-                            ->helperText('Example: 10 means you earn 10% of the ticket price. Changes apply to new searches straight away; bookings already made keep their price.'),
-                        Placeholder::make('markup_example')
-                            ->label('What this means for a ₹5,000 ticket')
-                            ->content(fn (Get $get) => $this->priceExample((float) $get('markup_percent'))),
+                            ->live(debounce: 500),
+                        TextInput::make('international_markup')
+                            ->label('International flight')
+                            ->prefix('₹')
+                            ->suffix('per passenger, per flight')
+                            ->numeric()
+                            ->minValue(0)
+                            ->maxValue(20000)
+                            ->required()
+                            ->live(debounce: 500),
+                        TextInput::make('infant_markup')
+                            ->label('Infant (under 2), domestic or international')
+                            ->prefix('₹')
+                            ->suffix('per infant, per flight')
+                            ->numeric()
+                            ->minValue(0)
+                            ->maxValue(20000)
+                            ->required()
+                            ->columnSpanFull(),
+                        Placeholder::make('domestic_example')
+                            ->label('What this means for a ₹5,000 domestic ticket (1 adult, 1 flight)')
+                            ->content(fn (Get $get) => $this->priceExample(5000.0, (float) $get('domestic_markup'))),
+                        Placeholder::make('international_example')
+                            ->label('What this means for a ₹25,000 international ticket (1 adult, 1 flight)')
+                            ->content(fn (Get $get) => $this->priceExample(25000.0, (float) $get('international_markup'))),
                     ]),
 
                 Section::make('🧳 What Guests Can Do Themselves')
@@ -139,7 +162,9 @@ class FlightSettings extends Page
         Settings::save([
             'booking_enabled' => (bool) $data['booking_enabled'],
             'disabled_message' => trim((string) ($data['disabled_message'] ?? '')) ?: Settings::DEFAULT_DISABLED_MESSAGE,
-            'markup_percent' => round((float) $data['markup_percent'], 2),
+            'domestic_markup' => round((float) $data['domestic_markup'], 2),
+            'international_markup' => round((float) $data['international_markup'], 2),
+            'infant_markup' => round((float) $data['infant_markup'], 2),
             'allow_guest_cancel' => (bool) $data['allow_guest_cancel'],
             'allow_guest_reschedule' => (bool) $data['allow_guest_reschedule'],
             'allow_guest_extras' => (bool) $data['allow_guest_extras'],
@@ -149,27 +174,26 @@ class FlightSettings extends Page
         Notification::make()
             ->title('Flight settings saved')
             ->body($data['booking_enabled']
-                ? 'Flight booking is ON. New searches now use your '.rtrim(rtrim(number_format((float) $data['markup_percent'], 2), '0'), '.').'% markup.'
+                ? 'Flight booking is ON. New searches now add ₹'.number_format((float) $data['domestic_markup']).' per passenger on each domestic flight and ₹'.number_format((float) $data['international_markup']).' on each international flight (₹'.number_format((float) $data['infant_markup']).' per infant).'
                 : 'Flight booking is now OFF on the website. Existing bookings are not affected.')
             ->success()
             ->send();
     }
 
     /**
-     * The same steps as FlightPricingService::price(), but at the markup
-     * typed into the form (not yet saved), so the example updates live.
+     * FlightPricingService::price() at the ₹ markup typed into the form (not
+     * yet saved), so the example updates live.
      */
-    protected function priceExample(float $markupPercent): HtmlString
+    protected function priceExample(float $airline, float $markup): HtmlString
     {
+        $p = FlightPricingService::price($airline, $markup);
+        $earning = $p['margin_amount'];
+        $gst = $p['gst_on_margin'];
+        $paymentCharge = $p['razorpay_recovery'];
+        $guestPays = $p['customer_price'];
         $f = FlightPricingService::formula();
-        $airline = 5000.0;
-        $earning = $airline * max(0, $markupPercent) / 100;
-        $gst = $earning * $f['gstRate'];
-        $fee = $f['managementFee'] + $f['managementFeeGst'];
-        $paymentCharge = ($airline + $earning + $gst) / (1 - $f['razorpayRate']) - ($airline + $earning + $gst);
-        $guestPays = $airline + $earning + $gst + $paymentCharge + $fee;
 
-        $rupees = fn (float $v) => '₹'.number_format($v, 0);
+        $rupees = fn (float $v) => '₹'.number_format($v, round($v) == $v ? 0 : 2);
 
         return new HtmlString(
             'Guest pays <strong>'.$rupees($guestPays).'</strong> · '

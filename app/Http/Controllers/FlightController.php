@@ -361,7 +361,7 @@ class FlightController extends Controller
 
         // The markup is in the key so a change in Flight Settings isn't
         // hidden behind a cached price.
-        $cacheKey = 'flight_fare_calendar:'.md5(json_encode([$paxInfo, $routeInfos, $cabinClass, $modifiers, $airlines, $directOnly, FlightSettings::marginRate()]));
+        $cacheKey = 'flight_fare_calendar:'.md5(json_encode([$paxInfo, $routeInfos, $cabinClass, $modifiers, $airlines, $directOnly, FlightSettings::domesticMarkup(), FlightSettings::internationalMarkup()]));
         $cached = Cache::get($cacheKey);
         if ($cached !== null) {
             return response()->json(['success' => true, 'minPrice' => $cached]);
@@ -386,9 +386,10 @@ class FlightController extends Controller
                     continue;
                 }
                 // Marked up per adult, exactly as the results page shows it.
+                $markup = FlightPricingService::markupPerPassenger($itinerary['sI'] ?? []);
                 foreach ($itinerary['totalPriceList'] ?? [] as $option) {
                     $tf = (float) (($option['fd'] ?? $option['fD'] ?? [])['ADULT']['fC']['TF'] ?? 0);
-                    $price = $tf > 0 ? FlightPricingService::price($tf, null, false)['customer_price'] : 0;
+                    $price = $tf > 0 ? FlightPricingService::price($tf, $markup, false)['customer_price'] : 0;
                     if ($price > 0 && ($legMin === null || $price < $legMin)) {
                         $legMin = $price;
                     }
@@ -498,9 +499,9 @@ class FlightController extends Controller
             // our own clock from now, rather than parsing TripJack's sct
             // timestamp (whose timezone isn't stated).
             'expiresAt' => ! empty($response['conditions']['st']) ? now()->addSeconds((int) $response['conditions']['st'])->timestamp : null,
-            // Markup fixed for this booking, so a Flight Settings change
+            // ₹ markup fixed for this booking, so a Flight Settings change
             // mid-booking doesn't change the price the guest already saw.
-            'marginRate' => FlightSettings::marginRate(),
+            'markup' => FlightPricingService::bookingMarkup($response['tripInfos'] ?? [], (int) ($context['adults'] ?? 1), (int) ($context['children'] ?? 0), (int) ($context['infants'] ?? 0)),
         ]]);
 
         return redirect()->route('flights.review.show');
@@ -538,7 +539,7 @@ class FlightController extends Controller
         // list) — unlike Search's tripInfos, it is NOT keyed ONWARD/RETURN.
         $tripInfos = $response['tripInfos'] ?? [];
         $conditions = $response['conditions'] ?? [];
-        $breakdown = $this->reviewBreakdown($response, $draft['marginRate'] ?? null);
+        $breakdown = $this->reviewBreakdown($response, self::draftMarkup($draft));
 
         // Best-effort, display-only — never block the page if it fails.
         // flowType=REVIEW with the Review bookingId (confirmed live).
@@ -580,7 +581,7 @@ class FlightController extends Controller
         $context = $draft['context'];
         $tripInfos = $response['tripInfos'] ?? [];
         $conditions = $response['conditions'] ?? [];
-        $breakdown = $this->reviewBreakdown($response, $draft['marginRate'] ?? null);
+        $breakdown = $this->reviewBreakdown($response, self::draftMarkup($draft));
         $addonTrips = $this->addonOptions($response);
 
         // Live seat maps keyed by segment id — best-effort; without one the
@@ -636,8 +637,8 @@ class FlightController extends Controller
 
         // Same formula the Passenger Details page shows live and that
         // submitBooking() charges: add-ons fold into the marked-up total.
-        $fareBreakdown = $this->reviewBreakdown($response, $draft['marginRate'] ?? null);
-        $priced = FlightPricingService::price($fareBreakdown['tripjack_total_price'] + $addonsTotal, $draft['marginRate'] ?? null);
+        $fareBreakdown = $this->reviewBreakdown($response, self::draftMarkup($draft));
+        $priced = FlightPricingService::price($fareBreakdown['tripjack_total_price'] + $addonsTotal, self::draftMarkup($draft));
         $summary = [
             'base_fare' => $fareBreakdown['base_fare'],
             'airline_taxes' => $fareBreakdown['airline_taxes'],
@@ -685,12 +686,27 @@ class FlightController extends Controller
      * freshly re-validated TF (never a figure from the Search step).
      * Confirmed: the total fare lives at totalPriceInfo.totalFareDetail.fC.
      */
-    private function reviewBreakdown(array $response, ?float $marginRate = null): array
+    /**
+     * The ₹ markup fixed when the guest picked the fare. A draft started
+     * before the switch to ₹ markups (still holding a % "marginRate") is
+     * priced at today's ₹ amounts for its flights and passengers.
+     */
+    private static function draftMarkup(array $draft): float
+    {
+        return (float) ($draft['markup'] ?? FlightPricingService::bookingMarkup(
+            $draft['response']['tripInfos'] ?? [],
+            (int) ($draft['context']['adults'] ?? 1),
+            (int) ($draft['context']['children'] ?? 0),
+            (int) ($draft['context']['infants'] ?? 0),
+        ));
+    }
+
+    private function reviewBreakdown(array $response, float $markup): array
     {
         $fc = $response['totalPriceInfo']['totalFareDetail']['fC'] ?? [];
         $afc = $response['totalPriceInfo']['totalFareDetail']['afC']['TAF'] ?? [];
-        $breakdown = FlightPricingService::price((float) ($fc['TF'] ?? 0), $marginRate);
-        $breakdown['margin_rate'] = $marginRate;
+        $breakdown = FlightPricingService::price((float) ($fc['TF'] ?? 0), $markup);
+        $breakdown['markup'] = $markup;
         $breakdown['base_fare'] = round((float) ($fc['BF'] ?? 0), 2);
         $breakdown['airline_taxes'] = round((float) ($fc['TAF'] ?? 0), 2);
         $breakdown['tripjack_mf'] = round((float) ($afc['MF'] ?? 0), 2);
@@ -939,8 +955,8 @@ class FlightController extends Controller
         // submit) use it, and ask the guest to confirm before paying.
         $draft['response']['totalPriceInfo'] = $result['totalPriceInfo'] ?? $draft['response']['totalPriceInfo'];
         session(['flight_booking_draft' => $draft]);
-        $oldPrice = FlightPricingService::price($oldFare + $addonsTotal, $draft['marginRate'] ?? null)['customer_price'];
-        $newPrice = FlightPricingService::price($newFare + $addonsTotal, $draft['marginRate'] ?? null)['customer_price'];
+        $oldPrice = FlightPricingService::price($oldFare + $addonsTotal, self::draftMarkup($draft))['customer_price'];
+        $newPrice = FlightPricingService::price($newFare + $addonsTotal, self::draftMarkup($draft))['customer_price'];
         Log::channel('tripjack')->info('flight_fare_validate_changed', ['bookingId' => $draft['bookingId'], 'old' => $oldFare, 'new' => $newFare]);
 
         return back()->withInput()->withErrors([
@@ -1316,13 +1332,14 @@ class FlightController extends Controller
         if (! app(FlightBookingService::class)->hasTripJackFunds($totalFare + $addonsTotal)) {
             return back()->withInput()->withErrors(['booking' => FlightBookingService::INSUFFICIENT_FUNDS_MESSAGE]);
         }
-        // Add-ons fold into the same markup formula as the airfare (the
+        // Add-ons fold into the same formula as the airfare (no markup of
+        // their own — the ₹ markup is per passenger, per flight; the
         // Passenger Details page mirrors this exactly for its live total)
         // and, critically, into tripjack_total_price — Book's amount must
         // equal TF + add-ons exactly (confirmed live), and that amount is
         // read straight from this breakdown by
         // FlightBookingService::confirmAfterPayment().
-        $breakdown = FlightPricingService::price($totalFare + $addonsTotal, $draft['marginRate'] ?? null);
+        $breakdown = FlightPricingService::price($totalFare + $addonsTotal, self::draftMarkup($draft));
         $customerPrice = $breakdown['customer_price'];
 
         $leadGuestName = trim(($validated['travellers'][0]['first_name'] ?? '').' '.($validated['travellers'][0]['last_name'] ?? ''));
