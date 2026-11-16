@@ -83,7 +83,7 @@
     @if($rateExpired)
       {{-- Nothing was charged; paying now would only end in a refund. --}}
       <p class="pay-status" style="margin-bottom:22px;">The hotel only holds a confirmed rate for a short time, and this one ran out before payment. <b style="color:#fff;">You have not been charged.</b> Please select the room again to get the latest price.</p>
-      <a href="{{ route('hotel.details', ['slug' => $booking->hotel->slug, 'check_in' => $booking->check_in?->format('Y-m-d'), 'check_out' => $booking->check_out?->format('Y-m-d')]) }}" class="pay-retry-btn visible" style="text-decoration:none; text-align:center;">Select Room Again</a>
+      <a href="{{ route('hotel.details', ['slug' => $booking->hotel->slug, 'check_in' => $booking->check_in ? \Illuminate\Support\Carbon::parse($booking->check_in)->format('Y-m-d') : null, 'check_out' => $booking->check_out ? \Illuminate\Support\Carbon::parse($booking->check_out)->format('Y-m-d') : null]) }}" class="pay-retry-btn visible" style="text-decoration:none; text-align:center;">Select Room Again</a>
     @else
       <p class="pay-amount">Amount Payable</p>
       <p class="pay-amount-value">&#8377;{{ number_format((float) $payment->amount, 2) }}</p>

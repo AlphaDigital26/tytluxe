@@ -105,6 +105,8 @@ class FlightReissueController extends Controller
         }
 
         $order = $razorpay->createOrder($priced['total'], $booking->reference.'-REISSUE-'.now()->timestamp);
+        // Ties the chosen new flight to this payment (see FlightReissueService).
+        $booking->update(['flight_reissue_pending' => [...$booking->flight_reissue_pending, 'orderId' => $order['id']]]);
         $payment = Payment::create([
             'booking_id' => $booking->id,
             'razorpay_order_id' => $order['id'],

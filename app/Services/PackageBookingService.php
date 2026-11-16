@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\UnusedPayment;
 use App\Models\Booking;
 use App\Models\Package;
 use App\Models\PackageDeparture;
@@ -229,6 +230,9 @@ class PackageBookingService
             }
 
             if (! in_array($booking->status, ['pending_payment', 'payment_failed'], true)) {
+                // Paid from an old tab after another payment, or cancelled meanwhile.
+                UnusedPayment::refund($payment, 'A payment arrived after this booking was already '.str_replace('_', ' ', $booking->status).'.');
+
                 return null;
             }
 

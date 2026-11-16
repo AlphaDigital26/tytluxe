@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\UnusedPayment;
 use Illuminate\Http\Request;
 use App\Models\Booking;
 use App\Models\Destination;
@@ -1998,6 +1999,13 @@ class FrontendController extends Controller
             'razorpay_signature' => $request->input('razorpay_signature'),
         ]);
 
+        // Book nothing until Razorpay itself says the money is captured, for
+        // this order and amount. If not yet, the webhook finishes the job.
+        if (! $razorpay->confirmCaptured((string) $request->input('razorpay_payment_id'), $payment->razorpay_order_id, (float) $payment->amount)) {
+            return redirect()->route($payment->purpose === 'flight_ssr' ? 'flights.extras.show' : 'hotel.payment.show', $booking->reference)
+                ->with('booking_error', 'Your bank has not confirmed this payment yet. Please do not pay again: if the money was taken, your booking is confirmed automatically within a few minutes, or the amount goes back to you.');
+        }
+
         $this->confirmBookingAfterPayment($payment, $client, $razorpay);
 
         if ($payment->purpose === 'flight_ssr') {
@@ -2057,6 +2065,12 @@ class FrontendController extends Controller
         }
 
         if ($event === 'payment.captured') {
+            // Same order, but never book on a different amount or currency.
+            if ((int) ($entity['amount'] ?? 0) !== (int) round((float) $payment->amount * 100) || ($entity['currency'] ?? '') !== 'INR') {
+                Log::channel('tripjack')->critical('razorpay_webhook_amount_mismatch', ['payment_id' => $payment->id, 'entity_amount' => $entity['amount'] ?? null]);
+
+                return response()->json(['status' => 'amount mismatch']);
+            }
             $payment->update([
                 'razorpay_payment_id' => $entity['id'] ?? $payment->razorpay_payment_id,
                 'raw_response' => $entity,
@@ -2120,9 +2134,16 @@ class FrontendController extends Controller
             $payment = Payment::whereKey($payment->id)->lockForUpdate()->first();
             $booking = Booking::whereKey($payment->booking_id)->lockForUpdate()->first();
 
-            if (in_array($payment->status, ['captured', 'refunded', 'partially_refunded'], true)
-                || in_array($booking->status, ['confirmed', 'refunded', 'failed_needs_review'], true)) {
+            if (in_array($payment->status, ['captured', 'refunded', 'partially_refunded'], true)) {
                 return null; // already processed by a racing callback/webhook
+            }
+            // A real payment for a booking that can't take it any more (paid
+            // from an old tab after another payment, or cancelled meanwhile).
+            if (! in_array($booking->status, ['pending_payment', 'payment_failed'], true)) {
+                $payment->update(['status' => 'captured']);
+                UnusedPayment::refund($payment, 'A payment arrived after this booking was already '.str_replace('_', ' ', $booking->status).'.');
+
+                return null;
             }
 
             $payment->update(['status' => 'captured']);
@@ -3085,6 +3106,8 @@ class FrontendController extends Controller
 
         $cacheFile = $cacheDir . '/' . $package->id . '.pdf';
         $packageTime = $package->updated_at ? $package->updated_at->timestamp : 0;
+        // A change to the itinerary design also makes every saved PDF stale.
+        $packageTime = max($packageTime, (int) @filemtime(resource_path('views/pdf/sample-itinerary.blade.php')));
 
         // If file exists, is not empty, and was generated after the package's last update
         if (!$forceRegenerate && file_exists($cacheFile) && filesize($cacheFile) > 0 && filemtime($cacheFile) >= $packageTime) {

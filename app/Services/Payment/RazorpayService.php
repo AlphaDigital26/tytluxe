@@ -133,6 +133,32 @@ class RazorpayService
         throw $lastException;
     }
 
+    /**
+     * Asks Razorpay itself before anything is booked: is this payment
+     * captured, for this order, for this amount in rupees? A valid checkout
+     * signature only proves the bank authorised it. Auto-capture can still
+     * miss (a late authorisation is left uncaptured and returned to the guest
+     * after a few days), so an authorised payment is captured here.
+     */
+    public function confirmCaptured(string $paymentId, string $orderId, float $amountRupees): bool
+    {
+        try {
+            $payment = $this->api->payment->fetch($paymentId);
+            if ($payment->status === 'authorized') {
+                $payment = $payment->capture(['amount' => $payment->amount, 'currency' => $payment->currency]);
+            }
+
+            return $payment->status === 'captured'
+                && $payment->order_id === $orderId
+                && (int) $payment->amount === $this->toPaise($amountRupees)
+                && $payment->currency === 'INR';
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::channel('tripjack')->warning('razorpay_capture_check_failed', ['payment_id' => $paymentId, 'message' => $e->getMessage()]);
+
+            return false;
+        }
+    }
+
     protected function toPaise(float $amountRupees): int
     {
         return (int) round($amountRupees * 100);

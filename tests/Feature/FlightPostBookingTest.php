@@ -273,6 +273,50 @@ class FlightPostBookingTest extends TestCase
         $this->assertSame('pending', $booking->fresh()->flight_ssr_status);
     }
 
+    public function test_an_old_tab_cannot_pay_for_extras_chosen_later_in_another_tab(): void
+    {
+        Http::fake();
+        // The newer, dearer selection belongs to order_new; the guest pays the old cheap order.
+        $booking = $this->booking(['flight_ssr_pending_selection' => ['segmentInfos' => [['id' => 'S1']], 'tripjackAmount' => 5000, 'orderId' => 'order_new']]);
+        $old = Payment::create(['booking_id' => $booking->id, 'razorpay_order_id' => 'order_old', 'razorpay_payment_id' => 'pay_old',
+            'amount' => 921.75, 'currency' => 'INR', 'status' => 'created', 'purpose' => 'flight_ssr']);
+
+        app(FlightAncillaryService::class)->confirmAfterPayment($old, $this->razorpay);
+
+        Http::assertNothingSent(); // the dearer extras are not added
+        $this->assertSame('refunded', $old->fresh()->status);
+        $this->assertSame('pay_old', $this->razorpay->refunds[0]['payment_id']);
+    }
+
+    public function test_extras_paid_on_a_retry_after_a_declined_attempt_are_added(): void
+    {
+        \Illuminate\Support\Facades\Queue::fake();
+        Http::fake(['*/amendment/add/ssr' => Http::response(['amendmentIds' => ['A9'], 'status' => ['success' => true]])]);
+        $booking = $this->booking(['flight_ssr_pending_selection' => ['segmentInfos' => [['id' => 'S1']], 'tripjackAmount' => 900, 'orderId' => 'order_s2']]);
+        // The webhook marked the first (declined) attempt failed; the retry in the same checkout succeeded.
+        $payment = Payment::create(['booking_id' => $booking->id, 'razorpay_order_id' => 'order_s2', 'razorpay_payment_id' => 'pay_retry',
+            'amount' => 921.75, 'currency' => 'INR', 'status' => 'failed', 'purpose' => 'flight_ssr']);
+
+        app(FlightAncillaryService::class)->confirmAfterPayment($payment, $this->razorpay);
+
+        Http::assertSent(fn ($r) => str_contains($r->url(), 'add/ssr'));
+        $this->assertSame([], $this->razorpay->refunds);
+    }
+
+    public function test_a_second_reschedule_payment_after_the_reschedule_is_refunded(): void
+    {
+        Http::fake();
+        $booking = $this->booking(['flight_reissued_at' => now()]);
+        $late = Payment::create(['booking_id' => $booking->id, 'razorpay_order_id' => 'order_re2', 'razorpay_payment_id' => 'pay_re2',
+            'amount' => 2200, 'currency' => 'INR', 'status' => 'created', 'purpose' => 'flight_reissue']);
+
+        app(\App\Services\FlightReissueService::class)->confirmAfterPayment($late, $this->razorpay);
+
+        Http::assertNothingSent();
+        $this->assertSame('refunded', $late->fresh()->status);
+        $this->assertSame([['pay_re2', 220000]], array_map(fn ($r) => [$r['payment_id'], $r['amount']], $this->razorpay->refunds));
+    }
+
     public function test_failed_reissue_never_refunds_the_original_ticket_payment(): void
     {
         $booking = $this->booking(['flight_reissued_at' => now(), 'tripjack_confirm_attempted_at' => now()->subMinute()]);

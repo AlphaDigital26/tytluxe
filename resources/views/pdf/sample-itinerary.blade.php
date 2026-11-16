@@ -531,7 +531,7 @@
             <span class="meta-lbl">Departure</span>
         </td>
         <td class="meta-cell">
-            <span class="meta-val">{{ $package->meals_info ?? 'B &amp; D' }}</span>
+            <span class="meta-val">{{ $package->meals_info ?? 'B & D' }}</span>
             <span class="meta-lbl">Meals</span>
         </td>
         <td class="meta-cell">
@@ -539,7 +539,7 @@
             <span class="meta-lbl">Transport</span>
         </td>
         <td class="meta-cell">
-            <span class="meta-val">{{ $package->price_from ? '&#8377;'.number_format($package->price_from) : 'On Request' }}</span>
+            <span class="meta-val">@if($package->price_from)&#8377;{{ number_format($package->price_from) }}@else On Request @endif</span>
             <span class="meta-lbl">Starting From</span>
         </td>
     </tr>

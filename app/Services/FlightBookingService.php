@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\UnusedPayment;
 use App\Jobs\PollFlightAmendmentJob;
 use App\Jobs\PollFlightBookingStatusJob;
 use App\Models\Booking;
@@ -55,9 +56,16 @@ class FlightBookingService
             $payment = Payment::whereKey($payment->id)->lockForUpdate()->first();
             $booking = Booking::whereKey($payment->booking_id)->lockForUpdate()->first();
 
-            if (in_array($payment->status, ['captured', 'refunded', 'partially_refunded'], true)
-                || in_array($booking->status, ['confirmed', 'refunded', 'failed_needs_review'], true)) {
+            if (in_array($payment->status, ['captured', 'refunded', 'partially_refunded'], true)) {
                 return; // already processed by a racing callback/webhook
+            }
+            // A real payment for a booking that can't take it any more (paid
+            // from an old tab after another payment, or cancelled meanwhile).
+            if (! in_array($booking->status, ['pending_payment', 'payment_failed'], true)) {
+                $payment->update(['status' => 'captured']);
+                UnusedPayment::refund($payment, 'A payment arrived after this booking was already '.str_replace('_', ' ', $booking->status).'.');
+
+                return;
             }
 
             $payment->update(['status' => 'captured']);

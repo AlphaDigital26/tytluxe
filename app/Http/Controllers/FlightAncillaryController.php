@@ -85,9 +85,10 @@ class FlightAncillaryController extends Controller
         // plus Razorpay's fee (2026-10-13), so we don't pay it. TripJack is
         // sent its own amount (tripjackAmount), never what the guest pays.
         $guestTotal = \App\Services\FlightPricingService::withGatewayFee($built['total']);
-        $booking->update(['flight_ssr_pending_selection' => $built['segmentInfos'] ? ['segmentInfos' => $built['segmentInfos'], 'tripjackAmount' => $built['total']] : null]);
-
         $order = $razorpay->createOrder($guestTotal, $booking->reference.'-SSR-'.now()->timestamp);
+        // The order id ties these extras to this payment: an old tab's order
+        // can never buy a newer, dearer selection.
+        $booking->update(['flight_ssr_pending_selection' => $built['segmentInfos'] ? ['segmentInfos' => $built['segmentInfos'], 'tripjackAmount' => $built['total'], 'orderId' => $order['id']] : null]);
         $payment = Payment::create([
             'booking_id' => $booking->id,
             'razorpay_order_id' => $order['id'],

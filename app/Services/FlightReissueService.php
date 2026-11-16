@@ -269,13 +269,27 @@ class FlightReissueService
             $payment = Payment::whereKey($payment->id)->lockForUpdate()->first();
             $booking = Booking::whereKey($payment->booking_id)->lockForUpdate()->first();
 
-            if (in_array($payment->status, ['captured', 'refunded', 'partially_refunded'], true) || $booking->flight_reissued_at !== null) {
+            if (in_array($payment->status, ['captured', 'refunded', 'partially_refunded'], true)) {
                 return; // already processed by a racing callback/webhook
+            }
+            $real = (float) $payment->amount > 0; // a no-charge reschedule has no Razorpay payment
+            if ($booking->flight_reissued_at !== null) {
+                if ($real) {
+                    $payment->update(['status' => 'captured']);
+                    \App\Support\UnusedPayment::refund($payment, 'A reschedule payment arrived after this flight was already rescheduled.');
+                }
+
+                return;
             }
 
             $payment->update(['status' => 'captured']);
 
             $pending = $booking->flight_reissue_pending;
+            if ($real && isset($pending['orderId']) && $pending['orderId'] !== $payment->razorpay_order_id) {
+                \App\Support\UnusedPayment::refund($payment, 'A different new flight was chosen in another tab after this payment was started.');
+
+                return;
+            }
             if (! $pending) {
                 Log::channel('tripjack')->critical('flight_reissue_pending_missing', ['booking_id' => $booking->id, 'payment_id' => $payment->id]);
                 $this->refundAndFail($booking, $payment, $razorpay, 'Your reschedule selection could not be found after payment.');

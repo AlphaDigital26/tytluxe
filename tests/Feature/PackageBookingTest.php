@@ -171,6 +171,25 @@ class PackageBookingTest extends TestCase
         $this->get(route('package.balance', $booking->reference))->assertRedirect(route('hotel.booking.confirmation', $booking->reference));
     }
 
+    public function test_payment_for_a_booking_cancelled_meanwhile_is_refunded(): void
+    {
+        $package = $this->package();
+        $departure = $this->departure($package);
+        $this->actingAs(User::factory()->create());
+
+        $this->post(route('package.book', $package->slug), $this->bookingForm($departure, ['plan' => 'full'], 1));
+        $booking = Booking::where('vertical', 'package')->firstOrFail();
+        $this->get(route('hotel.payment.show', $booking->reference))->assertOk();
+        $payment = $booking->payments()->firstOrFail();
+        $booking->update(['status' => 'cancelled']); // e.g. the team cancelled the unpaid booking
+
+        $this->post('/payment/razorpay/callback', ['razorpay_payment_id' => 'pay_late', 'razorpay_order_id' => $payment->razorpay_order_id, 'razorpay_signature' => 'sig']);
+
+        $this->assertSame('cancelled', $booking->fresh()->status);
+        $this->assertSame('refunded', $payment->fresh()->status);
+        $this->assertSame('pay_late', $this->razorpay->refunds[0]['payment_id']);
+    }
+
     public function test_infants_up_to_three_travel_free_without_a_seat(): void
     {
         $package = $this->package();
