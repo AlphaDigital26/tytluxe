@@ -54,12 +54,12 @@
 .tc-dest-tag { font-size:.7rem; letter-spacing:.16em; text-transform:uppercase; color:#b8935a; margin-top:4px; display:block; }
 
 /* ── SHIP STATS ── */
-.tc-ship-band { background:#1a1510; padding:48px 24px; }
-.tc-ship-stats { display:flex; justify-content:center; flex-wrap:wrap; gap:0; max-width:900px; margin:0 auto; }
-.tc-ship-stat { flex:1; min-width:140px; text-align:center; padding:28px 16px; border-right:1px solid rgba(184,147,90,.15); }
-.tc-ship-stat:last-child { border-right:none; }
-.tc-ship-stat-num { font-family:'Playfair Display',serif; font-size:2.2rem; font-weight:700; color:#b8935a; display:block; }
-.tc-ship-stat-lbl { font-size:.7rem; letter-spacing:.14em; text-transform:uppercase; color:rgba(245,240,232,.55); margin-top:4px; display:block; }
+.tc-ship-band { background:#1a1510; padding:56px 24px; }
+.tc-ship-stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); align-items:start; max-width:1200px; margin:0 auto; }
+.tc-ship-stat { text-align:center; padding:6px 20px; border-left:1px solid rgba(184,147,90,.22); }
+.tc-ship-stat:first-child { border-left:none; }
+.tc-ship-stat-num { font-family:'Playfair Display',serif; font-size:clamp(1.6rem,2.4vw,2.1rem); font-weight:700; line-height:1.15; color:#c9a84c; display:block; white-space:nowrap; }
+.tc-ship-stat-lbl { font-size:.75rem; font-weight:500; letter-spacing:.16em; text-transform:uppercase; color:rgba(245,240,232,.7); margin-top:10px; display:block; }
 
 /* ── EXPERIENCE TABS ── */
 .tc-exp-tabs { display:flex; gap:0; flex-wrap:wrap; margin-bottom:48px; border-bottom:1px solid rgba(184,147,90,.2); }
@@ -72,7 +72,8 @@
 .tc-exp-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:24px; }
 .tc-exp-card { background:#fff; border:1px solid rgba(184,147,90,.15); padding:32px 28px; transition:transform .22s,box-shadow .22s; }
 .tc-exp-card:hover { transform:translateY(-4px); box-shadow:0 12px 40px rgba(0,0,0,.09); }
-.tc-exp-card-icon { font-size:1.8rem; margin-bottom:14px; }
+.tc-exp-card-icon { height:34px; display:flex; align-items:center; margin-bottom:16px; color:#b8935a; }
+.tc-exp-card-icon svg { width:32px; height:32px; }
 .tc-exp-card h3 { font-family:'Playfair Display',serif; font-size:1.15rem; margin-bottom:10px; color:#1a1108; }
 .tc-exp-card p { font-size:.84rem; color:#777; line-height:1.75; }
 
@@ -114,11 +115,23 @@
 .tc-submit-btn:hover { background:#9a7a47; transform:translateY(-1px); }
 
 /* ── TRUST STRIP ── */
-.tc-trust { background:#1a1510; padding:44px 24px; }
-.tc-trust-inner { max-width:1000px; margin:0 auto; display:flex; flex-wrap:wrap; justify-content:center; gap:48px; text-align:center; }
-.tc-trust-title { font-size:.78rem; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:#b8935a; margin-bottom:6px; }
-.tc-trust-desc { font-size:.82rem; color:rgba(245,240,232,.55); line-height:1.6; max-width:160px; }
-.tc-trust-icon { font-size:1.5rem; margin-bottom:12px; display:block; }
+.tc-trust { background:#1a1510; padding:52px 24px; border-top:1px solid rgba(184,147,90,.18); border-bottom:1px solid rgba(184,147,90,.18); }
+.tc-trust-inner { max-width:1200px; margin:0 auto; display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); }
+.tc-trust-item { display:flex; align-items:flex-start; gap:16px; padding:8px 28px; border-left:1px solid rgba(184,147,90,.18); }
+.tc-trust-item:first-child { border-left:none; }
+.tc-trust-icon { flex-shrink:0; width:48px; height:48px; border-radius:50%; border:1px solid rgba(184,147,90,.55); display:flex; align-items:center; justify-content:center; color:#c9a84c; }
+.tc-trust-icon svg { width:22px; height:22px; }
+.tc-trust-title { font-size:.75rem; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#c9a84c; margin-bottom:8px; }
+.tc-trust-desc { font-size:.88rem; font-weight:300; color:rgba(245,240,232,.72); line-height:1.6; }
+@media(max-width:1000px) {
+  .tc-trust-inner { grid-template-columns:1fr 1fr; row-gap:28px; }
+  .tc-trust-item:nth-child(odd) { border-left:none; }
+}
+@media(max-width:560px) {
+  .tc-trust { padding:36px 20px; }
+  .tc-trust-inner { grid-template-columns:1fr; row-gap:24px; }
+  .tc-trust-item { border-left:none; padding:0; }
+}
 
 
 
@@ -126,8 +139,10 @@
   .tc-dest-grid { grid-template-columns:1fr 1fr; }
   .tc-form-wrap { padding:32px 20px; }
   .tc-hero-stats { gap:24px; }
-  .tc-ship-stats { flex-direction:column; align-items:center; }
-  .tc-ship-stat { border-right:none; border-bottom:1px solid rgba(184,147,90,.15); width:100%; }
+  .tc-ship-band { padding:40px 20px; }
+  .tc-ship-stats { grid-template-columns:1fr 1fr; row-gap:28px; }
+  .tc-ship-stat:nth-child(odd) { border-left:none; }
+  .tc-ship-stat { padding:6px 12px; }
   .tc-exp-tab { padding:10px 16px; font-size:.72rem; }
   .tc-section, .tc-inner { padding-left:24px; padding-right:24px; }
 }
@@ -227,7 +242,7 @@
     <div class="tc-exp-grid">
       @foreach($entertainmentItems as $item)
       <div class="tc-exp-card">
-        <div class="tc-exp-card-icon">{{ $item['icon'] ?? '' }}</div>
+        <div class="tc-exp-card-icon">{!! \App\Support\StripIcons::svg($item['icon'] ?? null) !!}</div>
         <h3>{{ $item['name'] }}</h3>
         <p>{!! $item['description'] !!}</p>
       </div>
@@ -243,7 +258,7 @@
     <div class="tc-exp-grid">
       @foreach($barsItems as $item)
       <div class="tc-exp-card">
-        <div class="tc-exp-card-icon">{{ $item['icon'] ?? '' }}</div>
+        <div class="tc-exp-card-icon">{!! \App\Support\StripIcons::svg($item['icon'] ?? null) !!}</div>
         <h3>{{ $item['name'] }}</h3>
         <p>{!! $item['description'] !!}</p>
       </div>
@@ -259,7 +274,7 @@
     <div class="tc-exp-grid">
       @foreach($indulgenceItems as $item)
       <div class="tc-exp-card">
-        <div class="tc-exp-card-icon">{{ $item['icon'] ?? '' }}</div>
+        <div class="tc-exp-card-icon">{!! \App\Support\StripIcons::svg($item['icon'] ?? null) !!}</div>
         <h3>{{ $item['name'] }}</h3>
         <p>{!! $item['description'] !!}</p>
       </div>
@@ -272,7 +287,7 @@
     <div class="tc-exp-grid">
       @foreach($eventsItems as $item)
       <div class="tc-exp-card">
-        <div class="tc-exp-card-icon">{{ $item['icon'] ?? '' }}</div>
+        <div class="tc-exp-card-icon">{!! \App\Support\StripIcons::svg($item['icon'] ?? null) !!}</div>
         <h3>{{ $item['name'] }}</h3>
         <p>{!! $item['description'] !!}</p>
       </div>
@@ -409,9 +424,11 @@
   <div class="tc-trust-inner">
     @foreach($trustItems as $item)
     <div class="tc-trust-item">
-      <span class="tc-trust-icon">{{ $item['icon'] ?? '' }}</span>
-      <div class="tc-trust-title">{{ $item['title'] }}</div>
-      <div class="tc-trust-desc">{{ $item['desc'] }}</div>
+      <span class="tc-trust-icon">{!! \App\Support\StripIcons::svg($item['icon'] ?? null) !!}</span>
+      <div>
+        <div class="tc-trust-title">{{ $item['title'] }}</div>
+        <div class="tc-trust-desc">{{ $item['desc'] ?? '' }}</div>
+      </div>
     </div>
     @endforeach
   </div>
@@ -429,7 +446,15 @@ function tcTab(btn, panel) {
   document.querySelectorAll('.tc-exp-panel').forEach(p => p.classList.remove('active'));
   btn.classList.add('active');
   document.getElementById('tc-panel-' + panel).classList.add('active');
+  // Keep the open tab in the address (#tab-bars) so a refresh or a shared
+  // link reopens it; replaceState adds no history entry and doesn't scroll.
+  history.replaceState(null, '', panel === 'dining' ? location.pathname + location.search : '#tab-' + panel);
 }
+(function () {
+  var m = location.hash.match(/^#tab-([a-z]+)$/);
+  var btn = m && document.querySelector('.tc-exp-tab[onclick*="\'' + m[1] + '\'"]');
+  if (btn && document.getElementById('tc-panel-' + m[1])) tcTab(btn, m[1]);
+})();
 async function tcSubmit() {
   const req = document.querySelectorAll('.tc-form-wrap input[type="text"], .tc-form-wrap input[type="email"], .tc-form-wrap input[type="tel"]');
   let ok = true;

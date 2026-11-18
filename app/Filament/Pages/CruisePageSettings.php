@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Models\Setting;
+use App\Support\StripIcons;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Repeater;
@@ -114,10 +115,10 @@ class CruisePageSettings extends Page
 
             // Trust Strip
             'trust_items' => Setting::getJson('cruise_page.trust_items', [
-                ['icon' => '🚢', 'title' => "India's #1 Cruise",    'desc' => 'Cordelia — the premium cruise line built for Indians'],
-                ['icon' => '🍽️', 'title' => 'All-Inclusive',        'desc' => 'Dining, entertainment & activities all included'],
-                ['icon' => '🙏', 'title' => 'Jain & Veg Friendly',  'desc' => 'Dedicated pure veg & Jain counters onboard'],
-                ['icon' => '📞', 'title' => 'Expert Support',       'desc' => 'Our team responds within 2 hours on WhatsApp'],
+                ['icon' => 'ship',    'title' => "India's #1 Cruise",    'desc' => 'Cordelia — the premium cruise line built for Indians'],
+                ['icon' => 'dining',  'title' => 'All-Inclusive',        'desc' => 'Dining, entertainment & activities all included'],
+                ['icon' => 'veg',     'title' => 'Jain & Veg Friendly',  'desc' => 'Dedicated pure veg & Jain counters onboard'],
+                ['icon' => 'support', 'title' => 'Expert Support',       'desc' => 'Our team responds within 2 hours on WhatsApp'],
             ]),
 
             // Booking Form Options
@@ -298,7 +299,7 @@ class CruisePageSettings extends Page
                             ->label('Entertainment Shows & Activities')
                             ->addActionLabel('Add a show or activity')
                             ->schema([
-                                TextInput::make('icon')->label('Emoji Icon')->placeholder('🎭'),
+                                self::iconPicker(),
                                 TextInput::make('name')->required(),
                                 Textarea::make('description')->rows(2)->columnSpanFull(),
                             ])
@@ -320,7 +321,7 @@ class CruisePageSettings extends Page
                             ->label('Bars & Lounges')
                             ->addActionLabel('Add a bar or lounge')
                             ->schema([
-                                TextInput::make('icon')->label('Emoji Icon')->placeholder('🥂'),
+                                self::iconPicker(),
                                 TextInput::make('name')->required(),
                                 Textarea::make('description')->rows(2)->columnSpanFull(),
                             ])
@@ -342,7 +343,7 @@ class CruisePageSettings extends Page
                             ->label('Activities & Facilities')
                             ->addActionLabel('Add an activity')
                             ->schema([
-                                TextInput::make('icon')->label('Emoji Icon')->placeholder('💆'),
+                                self::iconPicker(),
                                 TextInput::make('name')->required(),
                                 Textarea::make('description')->rows(2)->columnSpanFull(),
                             ])
@@ -360,7 +361,7 @@ class CruisePageSettings extends Page
                             ->label('Event Types')
                             ->addActionLabel('Add an event type')
                             ->schema([
-                                TextInput::make('icon')->label('Emoji Icon')->placeholder('💼'),
+                                self::iconPicker(),
                                 TextInput::make('name')->required(),
                                 Textarea::make('description')->rows(2)->columnSpanFull(),
                             ])
@@ -379,7 +380,7 @@ class CruisePageSettings extends Page
                             ->label('Badges')
                             ->addActionLabel('Add a badge')
                             ->schema([
-                                TextInput::make('icon')->label('Emoji Icon'),
+                                self::iconPicker(),
                                 TextInput::make('title')->required(),
                                 TextInput::make('desc')->label('Description'),
                             ])
@@ -418,6 +419,17 @@ class CruisePageSettings extends Page
                 ->color('primary')
                 ->action('save'),
         ];
+    }
+
+    /** Gold line icon picker; older saves hold an emoji, shown as its nearest icon. */
+    private static function iconPicker(): Select
+    {
+        return Select::make('icon')
+            ->label('Icon')
+            ->options(StripIcons::options())
+            ->formatStateUsing(fn ($state) => StripIcons::resolve($state))
+            ->default('star')
+            ->selectablePlaceholder(false);
     }
 
     public function save(): void
