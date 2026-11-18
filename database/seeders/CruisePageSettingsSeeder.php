@@ -85,10 +85,10 @@ class CruisePageSettingsSeeder extends Seeder
             ]),
 
             'cruise_page.trust_items' => json_encode([
-                ['icon' => '🚢', 'title' => "India's #1 Cruise",   'desc' => 'Cordelia — the premium cruise line built for Indians'],
-                ['icon' => '🍽️','title' => 'All-Inclusive',        'desc' => 'Dining, entertainment & activities all included'],
-                ['icon' => '🙏', 'title' => 'Jain & Veg Friendly', 'desc' => 'Dedicated pure veg & Jain counters onboard'],
-                ['icon' => '📞', 'title' => 'Expert Support',      'desc' => 'Our team responds within 2 hours on WhatsApp'],
+                ['icon' => 'ship',    'title' => "India's #1 Cruise",   'desc' => 'Cordelia — the premium cruise line built for Indians'],
+                ['icon' => 'dining',  'title' => 'All-Inclusive',       'desc' => 'Dining, entertainment & activities all included'],
+                ['icon' => 'veg',     'title' => 'Jain & Veg Friendly', 'desc' => 'Dedicated pure veg & Jain counters onboard'],
+                ['icon' => 'support', 'title' => 'Expert Support',      'desc' => 'Our team responds within 2 hours on WhatsApp'],
             ]),
 
             'cruise_page.booking_ports'        => "Mumbai\nChennai\nKochi",

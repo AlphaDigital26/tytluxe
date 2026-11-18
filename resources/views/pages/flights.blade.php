@@ -37,18 +37,19 @@
 .tyt-card-label{position:absolute;bottom:20px;left:20px;font-family:'Playfair Display',serif;font-size:17px;font-weight:700;color:#fff}
 .tyt-card-sub{font-family:'Poppins',sans-serif;font-size:11px;font-weight:400;color:rgba(255,255,255,0.75);margin-top:4px}
 
-/* AIRLINE GRID */
-.tyt-airline-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:48px}
-.tyt-airline-card{
-  background:#1a1a1a;
-  border:1px solid rgba(255,255,255,0.07);
-  border-radius:8px;padding:20px 12px 14px;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:10px;transition:transform .2s,border-color .2s;cursor:pointer;min-height:100px;
+/* AIRLINE STRIP (logos scroll sideways in a loop; the list is printed twice so the loop is seamless) */
+.tyt-airlines{text-align:center;padding-bottom:56px}
+.tyt-airlines .tyt-title-light em{font-style:italic;color:#C9A84C}
+.tyt-air-marquee{margin-top:36px;overflow:hidden;-webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
+.tyt-air-track{display:flex;gap:18px;width:max-content;animation:tytAirScroll 40s linear infinite}
+.tyt-air-marquee:hover .tyt-air-track{animation-play-state:paused}
+.tyt-air-tile{flex-shrink:0;width:200px;height:84px;border-radius:12px;background:#f6f1e7;display:flex;align-items:center;justify-content:center;padding:0 26px}
+.tyt-air-tile img{max-width:100%;max-height:40px;object-fit:contain;display:block}
+@keyframes tytAirScroll{from{transform:translateX(0)}to{transform:translateX(calc(-50% - 9px))}}
+@media(prefers-reduced-motion:reduce){
+  .tyt-air-track{animation:none;flex-wrap:wrap;justify-content:center;width:auto}
+  .tyt-air-track [aria-hidden="true"]{display:none}
 }
-.tyt-airline-card:hover{transform:translateY(-3px);border-color:rgba(201,168,76,0.4)}
-.tyt-airline-card img{width:110px;height:48px;object-fit:contain;display:block}
-.tyt-airline-name{font-family:'Poppins',sans-serif;font-size:10px;font-weight:600;color:#888;letter-spacing:1px;text-transform:uppercase}
 
 /* FORM */
 .tyt-form-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
@@ -67,12 +68,12 @@ input[type="date"].tyt-finput::-webkit-calendar-picker-indicator{filter:invert(0
 .tyt-class-btn.active{color:#C9A84C;border-color:#C9A84C}
 
 /* FEATURES BAR */
-.tyt-feat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:0;background:#111;border-top:1px solid rgba(255,255,255,0.06)}
-.tyt-feat{display:flex;align-items:flex-start;gap:14px;padding:36px 28px;border-right:1px solid rgba(255,255,255,0.06)}
+.tyt-feat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:0;background:#0a0a0a;border-top:1px solid rgba(201,168,76,0.18)}
+.tyt-feat{display:flex;align-items:flex-start;gap:16px;padding:32px 32px;border-right:1px solid rgba(201,168,76,0.18)}
 .tyt-feat:last-child{border-right:none}
-.tyt-feat-icon{color:#C9A84C;font-size:18px;flex-shrink:0;margin-top:2px}
-.tyt-feat-title{font-family:'Poppins',sans-serif;font-size:13px;font-weight:600;color:#fff;margin-bottom:5px}
-.tyt-feat-desc{font-size:12px;color:#666;font-weight:300;line-height:1.6}
+.tyt-feat-icon{flex-shrink:0;width:44px;height:44px;border-radius:50%;border:1px solid rgba(201,168,76,0.5);display:flex;align-items:center;justify-content:center;color:#C9A84C}
+.tyt-feat-title{font-family:'Poppins',sans-serif;font-size:14px;font-weight:500;color:#fff;margin:0 0 5px}
+.tyt-feat-desc{font-size:13px;color:rgba(255,255,255,0.65);font-weight:300;line-height:1.55;margin:0}
 
 .tyt-success{display:none;background:#0d1f0d;border:1px solid #2a5a2a;padding:20px;margin-top:20px;text-align:center;color:#7ec87e;font-family:'Poppins',sans-serif;font-size:13px;font-weight:300}
 .tyt-ret{display:none}
@@ -92,12 +93,19 @@ input[type="date"].tyt-finput::-webkit-calendar-picker-indicator{filter:invert(0
   .tyt-dark,.tyt-darker{padding:40px 20px}
   .tyt-flights-hero{padding:120px 24px 60px;min-height:400px}
   .tyt-cards-6{grid-template-columns:1fr 1fr}
-  .tyt-airline-grid{grid-template-columns:repeat(2,1fr)}
+  .tyt-air-tile{width:150px;height:68px;padding:0 18px}
+  .tyt-air-tile img{max-height:32px}
+  .tyt-airlines{padding-bottom:40px}
   .tyt-form-2,.tyt-form-3{grid-template-columns:1fr}
   .tyt-class-row{grid-template-columns:repeat(2,1fr)}
   .tyt-feat-row{grid-template-columns:1fr 1fr}
-  .tyt-feat{border-bottom:1px solid rgba(255,255,255,0.06)}
+  .tyt-feat{padding:24px 20px;border-bottom:1px solid rgba(201,168,76,0.18)}
+  .tyt-feat:nth-child(2n){border-right:none}
   .tyt-title-light{font-size:26px}
+}
+@media(max-width:520px){
+  .tyt-feat-row{grid-template-columns:1fr}
+  .tyt-feat{border-right:none}
 }
 </style>
 @endpush
@@ -176,61 +184,54 @@ input[type="date"].tyt-finput::-webkit-calendar-picker-indicator{filter:invert(0
   </div>
 
   <!-- AIRLINE PARTNERS -->
-  <div class="tyt-darker">
+  @php
+    $airlines = [
+      ['IndiGo', 'indigo.svg'],
+      ['Air India', 'air_india.png'],
+      ['SpiceJet', 'spicejet.png'],
+      ['Emirates', 'emirates.svg'],
+      ['Qatar Airways', 'qatar.svg'],
+      ['Lufthansa', 'lufthansa.svg'],
+      ['British Airways', 'british_airways.svg'],
+      ['Etihad Airways', 'etihad.png'],
+      ['Singapore Airlines', 'singapore.png'],
+      ['Cathay Pacific', 'cathay.svg'],
+    ];
+  @endphp
+  <div class="tyt-darker tyt-airlines">
     <p class="tyt-label">Our Airline Partners</p>
-    <div class="tyt-head-row" style="margin-bottom:24px">
-      <h2 class="tyt-title-light">All Major Airlines. One Call.</h2>
-    </div>
-    <div class="tyt-airline-grid">
-      <div class="tyt-airline-card">
-        <img src="{{ asset('assets/images/airlines/indigo.svg') }}" onerror="this.src='https://logo.clearbit.com/goindigo.in'" alt="IndiGo"/>
-        <div class="tyt-airline-name">IndiGo</div>
-      </div>
-      <div class="tyt-airline-card">
-        <img src="https://images.kiwi.com/airlines/64/AI.png" onerror="this.onerror=function(){this.src='https://ui-avatars.com/api/?name=Air+India&background=1a1a1a&color=C9A84C&size=100'};this.src='https://logo.clearbit.com/airindia.com'" alt="Air India"/>
-        <div class="tyt-airline-name">Air India</div>
-      </div>
-      <div class="tyt-airline-card">
-        <img src="https://images.kiwi.com/airlines/64/SG.png" onerror="this.onerror=function(){this.src='https://ui-avatars.com/api/?name=SpiceJet&background=1a1a1a&color=C9A84C&size=100'};this.src='https://logo.clearbit.com/spicejet.com'" alt="SpiceJet"/>
-        <div class="tyt-airline-name">SpiceJet</div>
-      </div>
-      <div class="tyt-airline-card">
-        <img src="{{ asset('assets/images/airlines/emirates.svg') }}" onerror="this.src='https://logo.clearbit.com/emirates.com'" alt="Emirates"/>
-        <div class="tyt-airline-name">Emirates</div>
-      </div>
-      <div class="tyt-airline-card">
-        <img src="{{ asset('assets/images/airlines/qatar.svg') }}" onerror="this.src='https://logo.clearbit.com/qatarairways.com'" alt="Qatar Airways"/>
-        <div class="tyt-airline-name">Qatar Airways</div>
-      </div>
-      <div class="tyt-airline-card">
-        <img src="{{ asset('assets/images/airlines/lufthansa.svg') }}" onerror="this.src='https://logo.clearbit.com/lufthansa.com'" alt="Lufthansa"/>
-        <div class="tyt-airline-name">Lufthansa</div>
-      </div>
-      <div class="tyt-airline-card">
-        <img src="{{ asset('assets/images/airlines/british_airways.svg') }}" onerror="this.src='https://logo.clearbit.com/britishairways.com'" alt="British Airways"/>
-        <div class="tyt-airline-name">British Airways</div>
-      </div>
-      <div class="tyt-airline-card">
-        <img src="https://images.kiwi.com/airlines/64/EY.png" onerror="this.onerror=function(){this.src='https://ui-avatars.com/api/?name=Etihad&background=1a1a1a&color=C9A84C&size=100'};this.src='https://logo.clearbit.com/etihad.com'" alt="Etihad Airways"/>
-        <div class="tyt-airline-name">Etihad Airways</div>
-      </div>
-      <div class="tyt-airline-card">
-        <img src="https://images.kiwi.com/airlines/64/SQ.png" onerror="this.onerror=function(){this.src='https://ui-avatars.com/api/?name=Singapore+Airlines&background=1a1a1a&color=C9A84C&size=100'};this.src='https://logo.clearbit.com/singaporeair.com'" alt="Singapore Airlines"/>
-        <div class="tyt-airline-name">Singapore Airlines</div>
-      </div>
-      <div class="tyt-airline-card">
-        <img src="{{ asset('assets/images/airlines/cathay.svg') }}" onerror="this.src='https://logo.clearbit.com/cathaypacific.com'" alt="Cathay Pacific"/>
-        <div class="tyt-airline-name">Cathay Pacific</div>
+    <h2 class="tyt-title-light">All Major Airlines. <em>One Search.</em></h2>
+    <div class="tyt-air-marquee">
+      <div class="tyt-air-track">
+        @foreach ([false, true] as $copy)
+          @foreach ($airlines as [$name, $file])
+            <div class="tyt-air-tile" @if($copy) aria-hidden="true" @endif>
+              <img src="{{ asset('assets/images/airlines/'.$file) }}" alt="{{ $copy ? '' : $name }}" loading="lazy"/>
+            </div>
+          @endforeach
+        @endforeach
       </div>
     </div>
   </div>
 
   <!-- FEATURES BAR -->
   <div class="tyt-feat-row">
-    <div class="tyt-feat"><span class="tyt-feat-icon">✦</span><div><p class="tyt-feat-title">Zero Hidden Fees</p><p class="tyt-feat-desc">Transparent pricing, no surprises at checkout</p></div></div>
-    <div class="tyt-feat"><span class="tyt-feat-icon">✦</span><div><p class="tyt-feat-title">24/7 Support</p><p class="tyt-feat-desc">Call or WhatsApp us anytime, even mid-travel</p></div></div>
-    <div class="tyt-feat"><span class="tyt-feat-icon">✦</span><div><p class="tyt-feat-title">Flexible Changes</p><p class="tyt-feat-desc">Hassle-free rescheduling and cancellation help</p></div></div>
-    <div class="tyt-feat"><span class="tyt-feat-icon">✦</span><div><p class="tyt-feat-title">Best Fare Guarantee</p><p class="tyt-feat-desc">We find the best price across all airlines</p></div></div>
+    <div class="tyt-feat">
+      <span class="tyt-feat-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12l-8 8-9-9V3h8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg></span>
+      <div><p class="tyt-feat-title">Zero Hidden Fees</p><p class="tyt-feat-desc">The price you see includes taxes and fees.</p></div>
+    </div>
+    <div class="tyt-feat">
+      <span class="tyt-feat-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 13a8 8 0 0116 0"/><path d="M4 13v4a2 2 0 002 2h1v-6H4zM20 13v4a2 2 0 01-2 2h-1v-6h3z"/></svg></span>
+      <div><p class="tyt-feat-title">Real People, Real Help</p><p class="tyt-feat-desc">Call or WhatsApp us, Mon–Sat, <span style="white-space:nowrap">10 AM – 7 PM</span>.</p></div>
+    </div>
+    <div class="tyt-feat">
+      <span class="tyt-feat-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4v6h6"/><path d="M20 20v-6h-6"/><path d="M5 15a8 8 0 0013.5 3M19 9A8 8 0 005.5 6"/></svg></span>
+      <div><p class="tyt-feat-title">Flexible Changes</p><p class="tyt-feat-desc">Help with rescheduling and cancellations.</p></div>
+    </div>
+    <div class="tyt-feat">
+      <span class="tyt-feat-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6-4.5-4.2 6.1-.7z"/></svg></span>
+      <div><p class="tyt-feat-title">Best Fares, Every Airline</p><p class="tyt-feat-desc">We compare fares across all airlines for you.</p></div>
+    </div>
   </div>
 
 </div>
