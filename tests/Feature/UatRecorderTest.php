@@ -1,0 +1,78 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Support\UatRecorder;
+use Illuminate\Support\Facades\File;
+use Tests\TestCase;
+
+/** TripJack UAT logs, laid out exactly like TripJack's own sample logs. */
+class UatRecorderTest extends TestCase
+{
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // A throwaway folder, never the real storage/uat holding your UAT logs.
+        config(['services.tripjack.env' => 'test', 'services.tripjack.uat_path' => sys_get_temp_dir().'/tyt-uat-test-'.uniqid()]);
+    }
+
+    protected function tearDown(): void
+    {
+        UatRecorder::stop();
+        File::deleteDirectory(UatRecorder::root());
+        parent::tearDown();
+    }
+
+    public function test_flight_calls_are_saved_with_tripjacks_file_names(): void
+    {
+        UatRecorder::start('flight', 'Tripjack API logs/oneway/DEL-BOM-1A-DIRECT');
+
+        UatRecorder::record('flight', '/fms/v1/air-search-all', ['searchQuery' => ['cabinClass' => 'ECONOMY']], '{"searchResult":{}}');
+        UatRecorder::record('flight', '/fms/v1/review', ['priceIds' => ['P1']], '{"bookingId":"TJS1"}');
+        UatRecorder::record('flight', '/oms/v1/air/book', ['bookingId' => 'TJS1'], '{"bookingId":"TJS1"}');
+        UatRecorder::record('flight', '/oms/v1/booking-details', ['bookingId' => 'TJS1'], '{"order":{}}');
+        UatRecorder::record('hotel', '/hotel/book', ['x' => 1], '{}'); // not the open case's vertical
+
+        $dir = UatRecorder::root().'/Tripjack API logs/oneway/DEL-BOM-1A-DIRECT';
+        $this->assertSame([
+            'BookingDetailRequest.json', 'BookingDetailResponse.json', 'BookingRequest.json', 'BookingResponse.json',
+            'ReviewRequest.json', 'ReviewResponse.json', 'SearchRequest.json', 'SearchResponse.json',
+        ], collect(File::files($dir))->map->getFilename()->sort()->values()->all());
+        // The request file is the request body only, as in TripJack's samples.
+        $this->assertSame(['searchQuery' => ['cabinClass' => 'ECONOMY']], json_decode(File::get("$dir/SearchRequest.json"), true));
+    }
+
+    public function test_hotel_hold_book_cancel_and_detail_after_cancel(): void
+    {
+        UatRecorder::start('hotel', 'HOTEL API TEST CASES/Test Case 6');
+        $dir = UatRecorder::root().'/HOTEL API TEST CASES/Test Case 6';
+
+        UatRecorder::record('hotel', '/hotel/listing', ['hids' => [1]], '{"hotels":[]}'); // empty batch: skipped
+        UatRecorder::record('hotel', '/hotel/listing', ['hids' => [2]], '{"hotels":[{"id":2}]}');
+        UatRecorder::record('hotel', '/hotel/listing', ['hids' => [3]], '{"hotels":[{"id":3}]}'); // first one kept
+        UatRecorder::record('hotel', '/hotel/review', ['optionId' => 'O1'], '{"hInfo":{"ops":[{"cnp":{"isRefundable":true}}]}}');
+        UatRecorder::record('hotel', '/hotel/book', ['bookingId' => 'H1'], '{"bookingId":"H1"}'); // no paymentInfos = hold
+        UatRecorder::record('hotel', '/hotel/booking-details', ['bookingId' => 'H1'], '{"order":{"status":"ON_HOLD"}}');
+        UatRecorder::record('hotel', '/hotel/cancel-booking/H1', [], '{"status":{"success":true}}');
+        UatRecorder::record('hotel', '/hotel/booking-details', ['bookingId' => 'H1'], '{"order":{"status":"CANCELLED"}}');
+
+        $this->assertSame(['hids' => [2]], json_decode(File::get("$dir/TJ test Hotel Search Request.json"), true));
+        $this->assertSame(['isRefundable' => true], json_decode(File::get("$dir/TJ test Hotel cancellation policy Response.json"), true));
+        $this->assertFileExists("$dir/TJ test Hotel Hold Request.json");
+        $this->assertFileExists("$dir/TJ Test Hotel Cancel Response.json");
+        $this->assertStringContainsString('ON_HOLD', File::get("$dir/TJ test hotel booking detail Response.json"));
+        $this->assertStringContainsString('CANCELLED', File::get("$dir/TJ test hotel detail after cancel Response.json"));
+
+        UatRecorder::record('hotel', '/hotel/book', ['bookingId' => 'H2', 'paymentInfos' => [['amount' => 1]]], '{}');
+        $this->assertFileExists("$dir/TJ test Hotel Book Request.json");
+    }
+
+    public function test_nothing_is_recorded_in_production(): void
+    {
+        UatRecorder::start('flight', 'Tripjack API logs/oneway/X');
+        config(['services.tripjack.env' => 'production']);
+        UatRecorder::record('flight', '/fms/v1/review', [], '{}');
+
+        $this->assertFileDoesNotExist(UatRecorder::root().'/Tripjack API logs/oneway/X/ReviewRequest.json');
+    }
+}

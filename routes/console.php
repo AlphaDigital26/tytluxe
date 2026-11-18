@@ -62,3 +62,62 @@ Schedule::command('tripjack:refresh-hotel-bookings --cancellations')->dailyAt('0
 // Group packages: balance reminders, and cancelling bookings whose balance
 // is still unpaid on the departure day (booking amount forfeited).
 Schedule::command('packages:balance-check')->hourly()->withoutOverlapping();
+
+// ── TripJack UAT certification logs (see App\Support\UatRecorder) ──────────
+// php artisan uat:start flight oneway DEL-BOM-1A-DIRECT   → Tripjack API logs/oneway/DEL-BOM-1A-DIRECT/
+// php artisan uat:start hotel 2                           → HOTEL API TEST CASES/Test Case 2/
+Artisan::command('uat:start {vertical : flight or hotel} {group : oneway, roundtrip, multicity, or the hotel test case number} {name? : flight case name, e.g. DEL-BOM-1A-DIRECT}', function (string $vertical, string $group, ?string $name = null) {
+    if (config('services.tripjack.env') === 'production') {
+        return $this->error('UAT logs are only for the TripJack test (UAT) system, not production.');
+    }
+    if ($vertical === 'flight') {
+        if (! in_array($group, ['oneway', 'roundtrip', 'multicity'], true) || ! $name) {
+            return $this->error('Use: php artisan uat:start flight oneway|roundtrip|multicity DEL-BOM-1A-DIRECT');
+        }
+        $folder = \App\Support\UatRecorder::FLIGHT_ROOT.'/'.$group.'/'.strtoupper($name);
+    } elseif ($vertical === 'hotel' && ctype_digit($group)) {
+        $folder = \App\Support\UatRecorder::HOTEL_ROOT.'/Test Case '.$group;
+    } else {
+        return $this->error('Use: php artisan uat:start hotel 2   (the hotel test case number)');
+    }
+    $dir = \App\Support\UatRecorder::start($vertical, $folder);
+    $this->info("Recording {$vertical} test case: {$folder}");
+    $this->line("Now do this case on the website. Files are saved in {$dir}");
+})->purpose('Start recording one TripJack UAT test case');
+
+Artisan::command('uat:status', function () {
+    $case = \App\Support\UatRecorder::active();
+    if (! $case) {
+        return $this->line('No test case is being recorded.');
+    }
+    $dir = \App\Support\UatRecorder::root().'/'.$case['folder'];
+    $this->info("Recording: {$case['folder']}");
+    foreach (glob($dir.'/*.json') ?: [] as $f) {
+        $this->line('  '.basename($f));
+    }
+})->purpose('Show the test case being recorded and its files');
+
+Artisan::command('uat:stop', function () {
+    \App\Support\UatRecorder::stop();
+    $this->info('Stopped recording.');
+})->purpose('Stop recording TripJack UAT logs');
+
+Artisan::command('uat:zip', function () {
+    $root = \App\Support\UatRecorder::root();
+    $zipPath = $root.'/TYT-Luxe-TripJack-UAT-Logs-'.now()->format('Y-m-d').'.zip';
+    $zip = new ZipArchive;
+    $zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+    $count = 0;
+    foreach ([\App\Support\UatRecorder::FLIGHT_ROOT, \App\Support\UatRecorder::HOTEL_ROOT] as $top) {
+        if (! is_dir("$root/$top")) {
+            continue;
+        }
+        $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator("$root/$top", FilesystemIterator::SKIP_DOTS));
+        foreach ($files as $file) {
+            $zip->addFile($file->getPathname(), str_replace(DIRECTORY_SEPARATOR, '/', substr($file->getPathname(), strlen($root) + 1)));
+            $count++;
+        }
+    }
+    $zip->close();
+    $this->info("{$count} files zipped: {$zipPath}");
+})->purpose('Zip all recorded UAT test cases for TripJack');

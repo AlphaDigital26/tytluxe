@@ -2,6 +2,7 @@
 
 namespace App\Services\TripJack;
 
+use App\Support\UatRecorder;
 use App\Services\TripJack\Exceptions\TripJackApiException;
 use App\Services\TripJack\Exceptions\TripJackAuthException;
 use App\Services\TripJack\Exceptions\TripJackTimeoutException;
@@ -489,6 +490,7 @@ class TripJackFlightClient
         $businessFailed = array_key_exists('status', $responseBody) && ! ($responseBody['status']['success'] ?? true);
         $this->log($method, $url, $response->status(), $startedAt, $payload, $responseBody, $response->failed() || $businessFailed);
         $this->writeCertificationLog($method, $url, $payload, $response->status(), $response->body());
+        UatRecorder::record('flight', (string) parse_url($url, PHP_URL_PATH), $payload, $response->body());
 
         if ($response->status() === 401 || $response->status() === 403) {
             throw new TripJackAuthException("TripJack flight auth failed ({$response->status()}) on {$url}: ".$response->body());
