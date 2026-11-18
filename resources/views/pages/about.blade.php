@@ -547,11 +547,11 @@ a.ta-trust-title:hover { color: var(--cream); }
             'At TYT Luxe, Neha focuses on understanding each traveler\'s unique preferences and translating them into thoughtfully crafted, seamless experiences. From handpicked luxury stays and bespoke itineraries to exclusive on-ground arrangements, her approach blends elegance with comfort, ensuring every journey reflects sophistication and individuality.',
             'Her dedication to service excellence and commitment to building long-term client relationships has been instrumental in shaping TYT Luxe into a trusted name for premium and bespoke travel. Neha believes that true luxury lies in personalization, attention to detail, and creating experiences that feel effortless yet extraordinary.',
         ]],
-        ['name' => 'Swati Lohariwal', 'role' => 'Co-Founder', 'photo' => 'assets/images/Co-founder.webp', 'alt' => 'Swati Lohariwal — Co-Founder, TYT Luxe', 'bio' => [
-            'Swati Lohariwal serves as Co-Founder at TYT Luxe with a sharp focus on precision, personalization and service excellence. She helps oversee end-to-end operational management so every journey reflects the brand\'s premium standards.',
+        ['name' => 'Swati Lohariwala', 'role' => 'Co-Founder', 'photo' => 'assets/images/Co-founder.webp', 'alt' => 'Swati Lohariwala — Co-Founder, TYT Luxe', 'bio' => [
+            'Swati Lohariwala serves as Co-Founder at TYT Luxe with a sharp focus on precision, personalization and service excellence. She helps oversee end-to-end operational management so every journey reflects the brand\'s premium standards.',
             'Swati brings a strong eye for detail, client servicing expertise and a passion for curated travel experiences. Her approach emphasizes understanding individual preferences and translating them into thoughtfully designed itineraries that deliver comfort, exclusivity and memorable moments.',
         ]],
-        ['name' => 'Ashish Lohariwal', 'role' => 'Operational Head', 'photo' => 'assets/images/operational-head.webp', 'alt' => 'Ashish Lohariwal — Operational Head, TYT Luxe', 'bio' => [
+        ['name' => 'Ashish Lohariwala', 'role' => 'Operational Head', 'photo' => 'assets/images/operational-head.webp', 'alt' => 'Ashish Lohariwala — Operational Head, TYT Luxe', 'bio' => [
             'Ashish complements operations with strategic coordination, vendor partnerships and on-ground execution. His strength lies in streamlining logistics, maintaining quality benchmarks and ensuring smooth travel experiences across destinations.',
             'His operational leadership ensures that every booking is handled with efficiency and professionalism.',
         ]],
