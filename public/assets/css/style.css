@@ -177,6 +177,11 @@ img {
     margin-bottom: 50px;
 }
 
+/* Arrow icon only shows on phones (button text there is hidden). */
+.split-btn-icon {
+    display: none;
+}
+
 .section-header-split {
     display: flex;
     justify-content: space-between;
@@ -1340,10 +1345,40 @@ main {
         gap: 30px;
     }
 
+    /* Title on one line on the left, a round arrow button at the end of the same row. */
     .section-header-split {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 20px;
+        flex-direction: row;
+        align-items: flex-end;
+        gap: 12px;
+    }
+
+    .section-header-split > div {
+        min-width: 0;
+    }
+
+    .section-header-split .section-title {
+        white-space: nowrap;
+        font-size: min(30px, 7vw);
+    }
+
+    .section-header-split > .btn {
+        flex-shrink: 0;
+        width: 44px;
+        height: 44px;
+        padding: 0;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+    }
+
+    .section-header-split .split-btn-text {
+        display: none;
+    }
+
+    .section-header-split .split-btn-icon {
+        display: inline-block;
     }
 
     .cruise-grid {
@@ -1379,31 +1414,60 @@ main {
         margin-bottom: 30px;
     }
 
+    /* The two hero buttons and the "Talk to us" card line up as three
+       equal rows: same width, same 48px height, same gap. */
+    .hero-btns .btn {
+        height: 48px;
+        padding-top: 0;
+        padding-bottom: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-sizing: border-box;
+    }
+
     .hero-contact {
-        gap: 12px;
-        padding: 12px;
+        display: flex;
+        width: 100%;
+        height: 48px;
+        box-sizing: border-box;
+        gap: 10px;
+        padding: 0 6px 0 8px;
+    }
+
+    .hero-btns {
+        margin-bottom: 12px;
     }
 
     .hero-contact-icon {
-        width: 42px;
-        height: 42px;
+        width: 34px;
+        height: 34px;
+    }
+
+    .hero-contact-icon svg {
+        width: 18px;
+        height: 18px;
     }
 
     .hero-contact-title {
-        font-size: 16px;
+        font-size: 15px;
+        line-height: 1.1;
     }
 
     .hero-contact-sub {
-        font-size: 12.5px;
+        font-size: 11.5px;
+        line-height: 1.2;
     }
 
-    /* Status on its own line; the number never splits. */
-    .hero-contact-status {
-        display: block;
-    }
-
+    /* Phones: no number in the card (the call button dials it). */
+    .hero-contact-num,
     .hero-contact-sep {
         display: none;
+    }
+
+    .hero-contact-btn {
+        width: 38px;
+        height: 38px;
     }
 
     .hero-btns {

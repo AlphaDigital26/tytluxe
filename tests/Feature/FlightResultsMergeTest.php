@@ -33,11 +33,11 @@ class FlightResultsMergeTest extends TestCase
     protected function itineraries(): array
     {
         return [
-            ['sI' => [$this->segment('1056', '2026-11-06T17:50')], 'totalPriceList' => [
+            ['sI' => [$this->segment('1056', '2027-03-06T17:50')], 'totalPriceList' => [
                 $this->fare('P1', 'PUBLISHED', 5525.5), $this->fare('P2', 'SME', 6706.5), $this->fare('P3', 'FLEX', 6706.5),
             ]],
-            ['sI' => [$this->segment('1235', '2026-11-06T23:25')], 'totalPriceList' => [$this->fare('Q1', 'PUBLISHED', 5525.5)]],
-            ['sI' => [$this->segment('1056', '2026-11-06T17:50')], 'totalPriceList' => [
+            ['sI' => [$this->segment('1235', '2027-03-06T23:25')], 'totalPriceList' => [$this->fare('Q1', 'PUBLISHED', 5525.5)]],
+            ['sI' => [$this->segment('1056', '2027-03-06T17:50')], 'totalPriceList' => [
                 $this->fare('N1', 'NDC_Xpress Value', 5692.5), $this->fare('N2', 'NDC_Corporate Value', 6915.5), $this->fare('N3', 'NDC_Corporate Flex', 7241.5),
             ]],
         ];
@@ -55,11 +55,11 @@ class FlightResultsMergeTest extends TestCase
     public function test_same_flight_number_on_another_date_or_route_is_not_merged(): void
     {
         $merged = TripJackFlightClient::mergeSameFlights([
-            ['sI' => [$this->segment('1056', '2026-11-06T17:50')], 'totalPriceList' => [$this->fare('A', 'PUBLISHED', 1)]],
-            ['sI' => [$this->segment('1056', '2026-11-07T17:50')], 'totalPriceList' => [$this->fare('B', 'PUBLISHED', 1)]],
-            ['sI' => [$this->segment('1056', '2026-11-06T17:50', 'DEL', 'BLR')], 'totalPriceList' => [$this->fare('C', 'PUBLISHED', 1)]],
+            ['sI' => [$this->segment('1056', '2027-03-06T17:50')], 'totalPriceList' => [$this->fare('A', 'PUBLISHED', 1)]],
+            ['sI' => [$this->segment('1056', '2027-03-07T17:50')], 'totalPriceList' => [$this->fare('B', 'PUBLISHED', 1)]],
+            ['sI' => [$this->segment('1056', '2027-03-06T17:50', 'DEL', 'BLR')], 'totalPriceList' => [$this->fare('C', 'PUBLISHED', 1)]],
             // Connecting journey sharing only its first flight.
-            ['sI' => [$this->segment('1056', '2026-11-06T17:50'), $this->segment('2001', '2026-11-06T22:00', 'BOM', 'GOI')], 'totalPriceList' => [$this->fare('D', 'PUBLISHED', 1)]],
+            ['sI' => [$this->segment('1056', '2027-03-06T17:50'), $this->segment('2001', '2027-03-06T22:00', 'BOM', 'GOI')], 'totalPriceList' => [$this->fare('D', 'PUBLISHED', 1)]],
         ]);
 
         $this->assertCount(4, $merged);
@@ -68,12 +68,12 @@ class FlightResultsMergeTest extends TestCase
     public function test_direct_only_search_asks_tripjack_for_direct_flights(): void
     {
         // DEL→HYD→BOM: the second segment continues the same leg (sN 1).
-        $connecting = ['sI' => [$this->segment('1056', '2026-11-06T06:00', 'DEL', 'HYD'), ['sN' => 1] + $this->segment('2001', '2026-11-06T10:00', 'HYD', 'BOM')], 'totalPriceList' => [$this->fare('C1', 'PUBLISHED', 4000)]];
+        $connecting = ['sI' => [$this->segment('1056', '2027-03-06T06:00', 'DEL', 'HYD'), ['sN' => 1] + $this->segment('2001', '2027-03-06T10:00', 'HYD', 'BOM')], 'totalPriceList' => [$this->fare('C1', 'PUBLISHED', 4000)]];
         Http::fake(['*/air-search-all' => Http::response([
             'searchResult' => ['tripInfos' => ['ONWARD' => [...$this->itineraries(), $connecting]]],
             'status' => ['success' => true],
         ])]);
-        $params = ['from' => 'DEL', 'to' => 'BOM', 'depart_date' => '2026-11-06', 'adults' => 1, 'trip_type' => 'oneway'];
+        $params = ['from' => 'DEL', 'to' => 'BOM', 'depart_date' => '2027-03-06', 'adults' => 1, 'trip_type' => 'oneway'];
 
         $html = $this->get(route('flights.search', $params + ['direct_flight' => 1]))->assertOk()->getContent();
 
@@ -115,7 +115,7 @@ class FlightResultsMergeTest extends TestCase
         ])]);
 
         $html = $this->get(route('flights.search', [
-            'from' => 'DEL', 'to' => 'BOM', 'depart_date' => '2026-11-06', 'adults' => 1, 'trip_type' => 'oneway',
+            'from' => 'DEL', 'to' => 'BOM', 'depart_date' => '2027-03-06', 'adults' => 1, 'trip_type' => 'oneway',
         ]))->assertOk()->getContent();
 
         $this->assertSame(2, substr_count($html, 'frx-book-btn" data-group'));

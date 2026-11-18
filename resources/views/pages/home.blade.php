@@ -294,7 +294,7 @@
                 <span class="section-subtitle">Hotel Collections</span>
                 <h2 class="section-title" style="margin-bottom: 0;">Find Your Perfect Stay</h2>
             </div>
-            <a href="{{ url('/hotels') }}" class="btn btn-outline" style="color: var(--secondary); border-color: var(--secondary);">View All Hotels</a>
+            <a href="{{ url('/hotels') }}" class="btn btn-outline" style="color: var(--secondary); border-color: var(--secondary);" aria-label="View all hotels"><span class="split-btn-text">View All Hotels</span><i class="fa-solid fa-arrow-right split-btn-icon" aria-hidden="true"></i></a>
         </div>
         <div class="items-grid">
             <a href="{{ url('/hotels') }}" class="item-card">
@@ -325,7 +325,7 @@
                 <span class="section-subtitle">Flight Bookings</span>
                 <h2 class="section-title" style="margin-bottom: 0; color: var(--text-light);">Fly Beyond Ordinary</h2>
             </div>
-            <a href="{{ url('/flights') }}" class="btn btn-outline">Search Flights</a>
+            <a href="{{ url('/flights') }}" class="btn btn-outline" aria-label="Search flights"><span class="split-btn-text">Search Flights</span><i class="fa-solid fa-arrow-right split-btn-icon" aria-hidden="true"></i></a>
         </div>
         <div class="items-grid cruise-grid">
             <a href="{{ url('/flights') }}" class="item-card cruise-card">
