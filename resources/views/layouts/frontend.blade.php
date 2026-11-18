@@ -28,6 +28,8 @@
     </main>
 
     @include('partials.footer')
+
+    @include('partials.mobile-tabbar')
     
     <!-- TOAST HTML -->
     <div

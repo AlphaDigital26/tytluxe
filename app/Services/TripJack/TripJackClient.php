@@ -2,6 +2,7 @@
 
 namespace App\Services\TripJack;
 
+use App\Support\UatRecorder;
 use App\Services\TripJack\Exceptions\TripJackApiException;
 use App\Services\TripJack\Exceptions\TripJackAuthException;
 use App\Services\TripJack\Exceptions\TripJackTimeoutException;
@@ -125,6 +126,9 @@ class TripJackClient
         $results = [];
         foreach ($payloads as $i => $payload) {
             $response = $responses[$i] ?? null;
+            if ($response instanceof \Illuminate\Http\Client\Response) {
+                UatRecorder::record('hotel', '/hotel/listing', $payload, $response->body());
+            }
 
             if (! $response instanceof \Illuminate\Http\Client\Response) {
                 $this->log('POST', $url, null, $startedAt, $payload, ['exception' => $response instanceof \Throwable ? $response->getMessage() : 'no response'], true);
@@ -549,6 +553,7 @@ class TripJackClient
         }
 
         $responseBody = $response->json() ?? [];
+        UatRecorder::record('hotel', $path, $payload, $response->body());
         $businessFailed = array_key_exists('status', $responseBody) && ! ($responseBody['status']['success'] ?? true);
         $this->log($method, $url, $response->status(), $startedAt, $payload, $responseBody, $response->failed() || $businessFailed);
 
