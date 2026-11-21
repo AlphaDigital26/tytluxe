@@ -127,7 +127,8 @@ class TripJackBookingFlowTest extends TestCase
         // Step 3: follow to the GET review page — should show guest form with PAN field (compliance said panRequired=true)
         $reviewGet = $this->get("/hotels/{$hotel->slug}/review");
         $reviewGet->assertStatus(200);
-        $reviewGet->assertSee('PAN Number');
+        $reviewGet->assertSee('PAN Information');
+        $reviewGet->assertSee('Personal PAN');
         $reviewGet->assertSee('Deluxe King Room');
         $reviewGet->assertSee(number_format($expectedCustomerPrice, 2));
 
