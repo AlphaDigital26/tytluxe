@@ -1330,12 +1330,34 @@ class FrontendController extends Controller
             $request->merge(['gst_number' => strtoupper(trim((string) $request->input('gst_number')))]);
         }
 
+        // PANs, as on TripJack's own form: one or more, each covering the
+        // guests chosen for it. An older single "pan_number" post still works
+        // (one PAN for every guest).
+        if (! $request->has('pans') && filled($request->input('pan_number'))) {
+            $everyone = [];
+            foreach ($roomSlots as $ri => $slot) {
+                for ($ti = 0; $ti < $slot['adults'] + ($slot['children'] ?? 0); $ti++) {
+                    $everyone[] = "{$ri}-{$ti}";
+                }
+            }
+            $request->merge(['pans' => [['name' => $request->input('pan_name'), 'number' => $request->input('pan_number'), 'guests' => $everyone]]]);
+        }
+        if (is_array($request->input('pans'))) {
+            $request->merge(['pans' => array_values(array_map(fn ($p) => is_array($p)
+                ? ['number' => strtoupper(trim((string) ($p['number'] ?? '')))] + $p
+                : $p, $request->input('pans')))]);
+        }
+
         $rules = [
             'contact_email' => ['required', 'max:255', new \App\Rules\BookableEmail],
             'contact_phone' => ['required', 'string', 'max:20', $phoneRule],
             'contact_dial_code' => 'nullable|string|max:6',
-            'pan_name' => [$panRequired ? 'required' : 'nullable', 'string', 'max:255', $nameRegex],
-            'pan_number' => [$panRequired ? 'required' : 'nullable', 'string', $panRegex],
+            'pan_type' => 'nullable|in:personal,corporate',
+            'pans' => [$panRequired ? 'required' : 'nullable', 'array', 'max:20'],
+            'pans.*.name' => ['required', 'string', 'max:255', $nameRegex],
+            'pans.*.number' => ['required', 'string', $panRegex],
+            'pans.*.guests' => 'nullable|array',
+            'pans.*.guests.*' => ['string', 'regex:/^\d+-\d+$/'],
             // Optional otherwise (business travel, for our invoice) — but
             // once started, both fields.
             'gst_number' => [$gstRequired ? 'required' : 'nullable', 'required_with:gst_registered_name', 'string', new \App\Rules\Gstin],
@@ -1360,8 +1382,8 @@ class FrontendController extends Controller
         }
         // Plain names in messages ("Room 1, guest 2: first name"), never the
         // raw field key ("rooms.0.travelers.1.first_name").
-        $attributes = ['contact_email' => 'email', 'contact_phone' => 'mobile number', 'pan_name' => 'name as per PAN',
-            'pan_number' => 'PAN', 'gst_number' => 'GSTIN', 'gst_registered_name' => 'registered company name', 'special_requests' => 'special requests'];
+        $attributes = ['contact_email' => 'email', 'contact_phone' => 'mobile number', 'pans' => 'PAN',
+            'pans.*.name' => 'name as per PAN', 'pans.*.number' => 'PAN', 'gst_number' => 'GSTIN', 'gst_registered_name' => 'registered company name', 'special_requests' => 'special requests'];
         foreach ($roomSlots as $ri => $slot) {
             for ($ti = 0; $ti < $slot['adults'] + ($slot['children'] ?? 0); $ti++) {
                 $who = 'Room '.($ri + 1).', guest '.($ti + 1);
@@ -1371,7 +1393,8 @@ class FrontendController extends Controller
             }
         }
         $validated = $request->validate($rules, [
-            'pan_number.regex' => 'Please enter a valid PAN, e.g. ABCPE1234F — the 4th letter is the holder type (P for an individual).',
+            'pans.*.number.regex' => 'Please enter a valid PAN, e.g. ABCPE1234F — the 4th letter is the holder type (P for an individual).',
+            'pans.required' => 'Please add a PAN for this booking.',
             'gst_number.regex' => 'Please enter a valid 15-character GSTIN.',
             'rooms.*.travelers.*.first_name.regex' => ':attribute can only have letters, spaces, dots, apostrophes and hyphens.',
             'rooms.*.travelers.*.last_name.regex' => ':attribute can only have letters, spaces, dots, apostrophes and hyphens.',
@@ -1395,6 +1418,49 @@ class FrontendController extends Controller
             return back()->withInput()->withErrors(['rooms' => 'Each room\'s primary guest must have a different name. Please vary the lead guest name per room.']);
         }
 
+        // Which PAN each guest travels on ("room-guest" => PAN). A company
+        // PAN covers everyone; personal PANs cover the guests chosen for
+        // them, and every room's lead guest needs one.
+        $panFor = [];
+        if ($panRequired) {
+            $pans = array_values($validated['pans'] ?? []);
+            $corporate = ($validated['pan_type'] ?? 'personal') === 'corporate';
+            if ($corporate) {
+                if (($pans[0]['number'][3] ?? '') === 'P') {
+                    return back()->withInput()->withErrors(['pans' => 'A corporate PAN belongs to a company: its 4th letter is not P (e.g. AAACT1234F). For a person\'s PAN choose "Personal PAN".']);
+                }
+                foreach ($roomSlots as $ri => $slot) {
+                    for ($ti = 0; $ti < $slot['adults'] + ($slot['children'] ?? 0); $ti++) {
+                        $panFor["{$ri}-{$ti}"] = $pans[0];
+                    }
+                }
+            } else {
+                $guestCount = collect($roomSlots)->sum(fn ($s) => $s['adults'] + ($s['children'] ?? 0));
+                if (count($pans) > $guestCount) {
+                    return back()->withInput()->withErrors(['pans' => "There are {$guestCount} guests, so add at most {$guestCount} PANs."]);
+                }
+                foreach ($pans as $pan) {
+                    if (empty($pan['guests'])) {
+                        return back()->withInput()->withErrors(['pans' => 'Choose at least one guest for each PAN, or remove the PAN.']);
+                    }
+                    foreach ($pan['guests'] ?? [] as $key) {
+                        if (isset($panFor[$key]) && $panFor[$key]['number'] !== $pan['number']) {
+                            return back()->withInput()->withErrors(['pans' => 'A guest can be on only one PAN. Please choose each guest for one PAN only.']);
+                        }
+                        $panFor[$key] = $pan;
+                    }
+                }
+                foreach ($roomSlots as $ri => $slot) {
+                    if (! isset($panFor["{$ri}-0"])) {
+                        return back()->withInput()->withErrors(['pans' => 'Room '.($ri + 1).': please add a PAN for the lead guest, or choose them on an existing PAN.']);
+                    }
+                }
+            }
+            // The profile and the booking record keep the first PAN.
+            $validated['pan_number'] = $pans[0]['number'];
+            $validated['pan_name'] = $pans[0]['name'];
+        }
+
         $roomTravellerInfo = [];
         foreach ($roomSlots as $ri => $slot) {
             $travellerInfo = [];
@@ -1408,9 +1474,9 @@ class FrontendController extends Controller
                     'fN' => $t['first_name'],
                     'lN' => $t['last_name'],
                 ];
-                if ($panRequired) {
-                    $entry['pan'] = $validated['pan_number'];
-                    $entry['panName'] = $validated['pan_name'];
+                if (isset($panFor["{$ri}-{$ti}"])) {
+                    $entry['pan'] = $panFor["{$ri}-{$ti}"]['number'];
+                    $entry['panName'] = $panFor["{$ri}-{$ti}"]['name'];
                 }
                 if ($passportRequired) {
                     $entry['pNum'] = $t['passport_number'] ?? null;
@@ -1538,8 +1604,8 @@ class FrontendController extends Controller
                     'full_name' => trim($t['first_name'].' '.$t['last_name']),
                     'traveler_type' => $ti < $adultCount ? 'adult' : 'child',
                     'passport_number' => $t['passport_number'] ?? null,
-                    'pan_number' => $panRequired ? $validated['pan_number'] : null,
-                    'pan_name' => $panRequired ? $validated['pan_name'] : null,
+                    'pan_number' => $panFor["{$ri}-{$ti}"]['number'] ?? null,
+                    'pan_name' => $panFor["{$ri}-{$ti}"]['name'] ?? null,
                 ]);
 
                 // "Add this guest to my guest list" — save (or refresh) this

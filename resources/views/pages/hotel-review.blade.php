@@ -204,7 +204,52 @@
   #brCancelTableBody tr:last-child td { border-bottom: none; }
 
   /* ===== PAN Information ===== */
-  .br-pan-verify-note { font-family: 'Jost', sans-serif; font-size: 11.5px; color: var(--white-30); margin: -6px 0 4px; line-height: 1.5; }
+  .br-pan-verify-note { font-family: 'Jost', sans-serif; font-size: 11.5px; color: var(--white-30); margin: 14px 0 4px; line-height: 1.5; }
+  .br-pan-intro { font-family: 'Jost', sans-serif; font-size: 12px; color: var(--white-60); margin: -14px 0 18px; line-height: 1.5; }
+  .br-pan-type { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+  .br-pan-type label { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; font-family: 'Jost', sans-serif; font-size: 13px; color: var(--white-80, #e6e6e6); cursor: pointer; }
+  .br-pan-type label:has(input:checked) { border-color: var(--gold); background: rgba(201,168,76,0.08); color: var(--gold-light); }
+  .br-pan-type input { accent-color: var(--gold); }
+  .br-pan-corp-note { font-family: 'Jost', sans-serif; font-size: 12px; color: var(--gold-light); margin: -4px 0 14px; }
+  .br-pan-error { font-family: 'Jost', sans-serif; font-size: 12.5px; color: #ff8a80; margin: 0 0 14px; }
+  #brPanList { display: flex; flex-direction: column; gap: 12px; }
+  .br-pan-card { border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 14px 14px 10px; background: rgba(255,255,255,0.02); }
+  .br-pan-fields { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) 40px; gap: 12px; align-items: end; }
+  .br-pan-fields .br-field { margin-bottom: 0; }
+  .br-pan-remove { width: 40px; height: 44px; border-radius: 10px; border: 1px solid rgba(255,107,107,0.35); background: transparent; color: #ff8a80; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .br-pan-remove:hover { background: rgba(255,107,107,0.1); }
+  .br-pan-guests { margin-top: 10px; font-family: 'Jost', sans-serif; font-size: 12.5px; }
+  .br-pan-guests summary { cursor: pointer; color: var(--white-60); padding: 6px 0; list-style: none; }
+  .br-pan-guests summary::-webkit-details-marker { display: none; }
+  .br-pan-guests summary::after { content: ' ▾'; color: var(--gold); }
+  .br-pan-guests[open] summary::after { content: ' ▴'; }
+  .br-pan-guests-label { color: var(--gold-light); font-weight: 600; }
+  .br-pan-guests-text { color: #fff; }
+  .br-pan-guests-panel { margin-top: 8px; padding: 10px 12px; border-radius: 10px; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; gap: 4px; }
+  .br-pan-room { margin: 6px 0 2px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gold-light); }
+  .br-pan-room:first-child { margin-top: 0; }
+  .br-pan-guest { display: flex; align-items: center; gap: 10px; min-height: 34px; color: var(--white-80, #e6e6e6); cursor: pointer; }
+  .br-pan-guest input { width: 17px; height: 17px; accent-color: var(--gold); }
+  .br-pan-who { font-weight: 600; color: #fff; }
+  .br-pan-who small { font-weight: 400; color: var(--white-60); font-size: 11.5px; }
+  .br-pan-guest-name { color: var(--white-60); }
+  .br-pan-whose { color: var(--gold); font-weight: 600; text-transform: none; letter-spacing: 0; }
+  .br-pan-holders { list-style: none; margin: 12px 0 0; padding: 0; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; overflow: hidden; font-family: 'Jost', sans-serif; font-size: 13px; }
+  .br-pan-holders li { display: grid; grid-template-columns: 140px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 9px 12px; }
+  .br-pan-holders li + li { border-top: 1px solid rgba(255,255,255,0.06); }
+  .br-pan-holder-who { color: var(--gold-light); font-weight: 600; font-size: 12px; }
+  .br-pan-holder-name { color: #fff; overflow-wrap: anywhere; }
+  .br-pan-holder-pan { color: var(--white-60); font-variant-numeric: tabular-nums; letter-spacing: 0.04em; }
+  @media (max-width: 600px) {
+    .br-pan-holders li { grid-template-columns: minmax(0, 1fr) auto; row-gap: 2px; }
+    .br-pan-holder-who { grid-column: 1 / -1; }
+  }
+  .br-pan-add { margin-top: 12px; padding: 10px 18px; border-radius: 10px; border: 1px dashed rgba(201,168,76,0.6); background: transparent; color: var(--gold-light); font-family: 'Jost', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .br-pan-add:hover { background: rgba(201,168,76,0.08); }
+  @media (max-width: 600px) {
+    .br-pan-fields { grid-template-columns: minmax(0, 1fr) 40px; }
+    .br-pan-fields .br-field:first-child { grid-column: 1 / -1; }
+  }
 
   /* ===== Important information ===== */
   .br-info-block { margin-bottom: 22px; }
@@ -480,23 +525,6 @@
         </div>
       </div>
 
-      @if($panRequired)
-      <div class="br-section">
-        <h2>PAN Information</h2>
-        <div class="br-row">
-          <div class="br-field {{ $errors->has('pan_name') ? 'error' : '' }}">
-            <label>Name as per PAN <span style="color:var(--gold); font-weight:600;">(Lead Guest)</span></label>
-            <input type="text" name="pan_name" value="{{ old('pan_name', $profilePanName) }}" placeholder="e.g. Rahul Sharma" required>
-          </div>
-          <div class="br-field {{ $errors->has('pan_number') ? 'error' : '' }}">
-            <label>PAN Number (required for this rate)</label>
-            <input type="text" name="pan_number" id="brPanInput" value="{{ old('pan_number', $profilePan) }}" placeholder="ABCPE1234F" maxlength="10" pattern="[A-Za-z]{3}[ABCFGHJLPTKEabcfghjlptke][A-Za-z][0-9]{4}[A-Za-z]" title="Enter a valid PAN, e.g. ABCPE1234F — the 4th letter is P for an individual" style="text-transform:uppercase;" required>
-          </div>
-        </div>
-        <p class="br-pan-verify-note">Format checked automatically — this is not a government verification.</p>
-      </div>
-      @endif
-
       {{-- PASSTHROUGH / RESELLER GST rate: TripJack requires gstInfo with
            the booking, and only the guest can supply it. Otherwise optional,
            for business travel: printed on our invoice so the company can
@@ -588,6 +616,53 @@
           @endfor
         @endforeach
       </div>
+
+      @if($panRequired)
+      @php
+        // PAN cards as on TripJack's own form. It starts with ONE PAN that
+        // covers every guest (one PAN for the whole booking is the common
+        // case); "Add PAN" gives other guests their own, up to one PAN per
+        // guest. A corporate PAN always covers everyone.
+        $panGuests = [];
+        foreach ($roomSlots as $ri => $slot) {
+            for ($ti = 0; $ti < $slot['adults'] + ($slot['children'] ?? 0); $ti++) {
+                $panGuests[$ri][] = [
+                    'key' => "{$ri}-{$ti}",
+                    'who' => 'Room '.($ri + 1).' · '.($ti < $slot['adults'] ? 'Adult ' : 'Child ').($ti + 1), // e.g. "Room 2 · Adult 1"
+                    'lead' => $ti === 0,
+                ];
+            }
+        }
+        $panCards = old('pans');
+        if (! is_array($panCards) || $panCards === []) {
+            $panCards = [['name' => (string) $profilePanName, 'number' => (string) $profilePan, 'guests' => collect($panGuests)->flatten(1)->pluck('key')->all()]];
+        }
+        $panType = old('pan_type', 'personal');
+      @endphp
+      <div class="br-section" id="brPanSection" data-guests="{{ collect($panGuests)->flatten(1)->count() }}">
+        <h2>PAN Information</h2>
+        <p class="br-pan-intro">This rate needs a PAN. One PAN can cover every guest; use "Add PAN" only if some guests have their own. Each room's lead guest must be on a PAN.</p>
+
+        <div class="br-pan-type" role="radiogroup" aria-label="PAN type">
+          <label><input type="radio" name="pan_type" value="personal" @checked($panType !== 'corporate')> Personal PAN</label>
+          <label><input type="radio" name="pan_type" value="corporate" @checked($panType === 'corporate')> Corporate PAN</label>
+        </div>
+        <p class="br-pan-corp-note" @if($panType !== 'corporate') hidden @endif>One company PAN covers every guest on this booking.</p>
+
+        @if($errors->has('pans') || $errors->has('pans.*'))
+          <p class="br-pan-error" role="alert">{{ $errors->first('pans') ?: collect($errors->get('pans.*'))->flatten()->first() }}</p>
+        @endif
+
+        <div id="brPanList">
+          @foreach(array_values($panCards) as $k => $pan)
+            @include('partials.hotel-pan-card', ['k' => $k, 'pan' => $pan, 'panGuests' => $panGuests])
+          @endforeach
+        </div>
+        <button type="button" class="br-pan-add" id="brPanAdd" @if($panType === 'corporate') hidden @endif>+ Add PAN</button>
+        <template id="brPanTpl">@include('partials.hotel-pan-card', ['k' => '__K__', 'pan' => ['name' => '', 'number' => '', 'guests' => []], 'panGuests' => $panGuests])</template>
+        <p class="br-pan-verify-note">Format checked automatically — this is not a government verification.</p>
+      </div>
+      @endif
 
       @if($hotel->check_in_time || $hotel->check_out_time || $hotel->know_before_you_go || $hotel->special_instructions || $hotel->mandatory_fees || !empty($hotel->house_rules))
       <div class="br-section">
@@ -767,11 +842,130 @@
       });
     }
 
-    var panInput = document.getElementById('brPanInput');
-    if (panInput) {
-      panInput.addEventListener('input', function () {
-        panInput.value = panInput.value.toUpperCase();
+    // ── PAN cards: add / remove, which guests each PAN covers, Personal vs Corporate.
+    var panSection = document.getElementById('brPanSection');
+    if (panSection) {
+      var panList = document.getElementById('brPanList');
+      var panTpl = document.getElementById('brPanTpl');
+      var panAdd = document.getElementById('brPanAdd');
+      var corpNote = panSection.querySelector('.br-pan-corp-note');
+      var nextK = panList.children.length;
+
+      // A guest's typed name, e.g. "Ankita Kumari", else "Adult 1 (lead guest)".
+      function guestName(key) {
+        var p = key.split('-');
+        var f = document.querySelector('[name="rooms[' + p[0] + '][travelers][' + p[1] + '][first_name]"]');
+        var l = document.querySelector('[name="rooms[' + p[0] + '][travelers][' + p[1] + '][last_name]"]');
+        return ((f ? f.value : '') + ' ' + (l ? l.value : '')).trim();
+      }
+      function isCorporate() {
+        var r = panSection.querySelector('input[name="pan_type"]:checked');
+        return r && r.value === 'corporate';
+      }
+      function refresh() {
+        var corp = isCorporate();
+        var cards = panList.querySelectorAll('.br-pan-card');
+        // "Room 2 · Adult 1", plus the name once it's typed: "Room 2 · Adult 1 (Jyoti Pal)".
+        function who(key) {
+          var el = panSection.querySelector('[data-guest="' + key + '"]');
+          var n = guestName(key);
+          return (el ? el.dataset.who : key) + (n ? ' (' + n + ')' : '');
+        }
+        panSection.querySelectorAll('[data-guest]').forEach(function (s) {
+          var n = guestName(s.dataset.guest);
+          s.textContent = n ? '— ' + n : '';
+        });
+        cards.forEach(function (card, i) {
+          var chosen = Array.prototype.filter.call(card.querySelectorAll('.br-pan-guest input'), function (c) { return c.checked; });
+          card.querySelector('.br-pan-guests-text').textContent = chosen.length
+            ? chosen.length + (chosen.length === 1 ? ' guest' : ' guests') + ' · change'
+            : 'None chosen';
+          // One line per guest: "Room 1 · Adult 1 | Ankita Kumari | ABCPE1234F".
+          var holders = card.querySelector('.br-pan-holders');
+          if (holders) {
+            var panNo = (card.querySelector('input[name$="[number]"]').value || '').toUpperCase();
+            holders.innerHTML = '';
+            chosen.forEach(function (c) {
+              var li = document.createElement('li');
+              var w = document.createElement('span'); w.className = 'br-pan-holder-who';
+              w.textContent = panSection.querySelector('[data-guest="' + c.value + '"]').dataset.who;
+              var n = document.createElement('span'); n.className = 'br-pan-holder-name';
+              n.textContent = guestName(c.value) || 'Name not entered yet';
+              var p = document.createElement('span'); p.className = 'br-pan-holder-pan';
+              p.textContent = panNo || 'PAN —';
+              li.append(w, n, p);
+              holders.appendChild(li);
+            });
+            holders.hidden = corp || chosen.length === 0;
+          }
+          var whose = card.querySelector('.br-pan-whose');
+          if (whose) {
+            var first = chosen.length ? panSection.querySelector('[data-guest="' + chosen[0].value + '"]').dataset.who : '';
+            whose.textContent = first ? '(' + first + (chosen.length > 1 ? ' + ' + (chosen.length - 1) + ' more' : '') + ')' : '';
+          }
+          // Name as per PAN follows the first chosen guest until the guest types it themselves.
+          var nameInput = card.querySelector('.br-pan-name');
+          if (chosen.length && (nameInput.value === '' || nameInput.dataset.auto === '1')) {
+            var n = guestName(chosen[0].value);
+            if (n) { nameInput.value = n; nameInput.dataset.auto = '1'; }
+          }
+          // Corporate: one company PAN for everyone, so only the first card and no guest picker.
+          card.hidden = corp && i > 0;
+          card.querySelectorAll('input').forEach(function (inp) { inp.disabled = corp && i > 0; });
+          card.querySelector('.br-pan-guests').hidden = corp;
+          card.querySelector('.br-pan-remove').hidden = cards.length < 2 || corp;
+        });
+        // Never more PANs than guests.
+        if (panAdd) panAdd.hidden = corp || cards.length >= Number(panSection.dataset.guests || 0);
+        if (corpNote) corpNote.hidden = !corp;
+      }
+
+      panSection.addEventListener('change', function (e) {
+        var t = e.target;
+        // A guest can be on one PAN only: ticking them here unticks them elsewhere.
+        if (t.matches('.br-pan-guest input') && t.checked) {
+          panList.querySelectorAll('.br-pan-guest input[value="' + t.value + '"]').forEach(function (o) { if (o !== t) o.checked = false; });
+        }
+        refresh();
       });
+      panSection.addEventListener('input', function (e) {
+        if (e.target.matches('.br-pan-name')) e.target.dataset.auto = '';
+        if (e.target.matches('input[name$="[number]"]')) { e.target.value = e.target.value.toUpperCase(); refresh(); }
+      });
+      panSection.addEventListener('click', function (e) {
+        var rm = e.target.closest('.br-pan-remove');
+        if (rm && panList.children.length > 1) { rm.closest('.br-pan-card').remove(); refresh(); }
+      });
+      // A personal PAN must cover at least one guest (blocks the submit with a message on that card).
+      var bookForm = document.getElementById('brBookForm');
+      if (bookForm) bookForm.addEventListener('submit', function (e) {
+        if (isCorporate()) return;
+        var empty = Array.prototype.find.call(panList.querySelectorAll('.br-pan-card'), function (c) {
+          return !c.querySelector('.br-pan-guest input:checked');
+        });
+        if (empty) {
+          e.preventDefault(); e.stopImmediatePropagation();
+          var d = empty.querySelector('.br-pan-guests'); d.open = true;
+          empty.querySelector('.br-pan-guests-text').textContent = 'Choose at least one guest for this PAN, or remove it';
+          empty.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, true);
+      if (panAdd) panAdd.addEventListener('click', function () {
+        var wrap = document.createElement('div');
+        wrap.innerHTML = panTpl.innerHTML.replace(/__K__/g, String(nextK++));
+        var card = wrap.firstElementChild;
+        panList.appendChild(card);
+        card.querySelector('.br-pan-guests').open = true;
+        refresh();
+        card.querySelector('.br-pan-name').focus();
+      });
+      // Guest names typed above show up on the PAN cards as they're typed.
+      document.querySelectorAll('[name$="[first_name]"], [name$="[last_name]"]').forEach(function (inp) {
+        inp.addEventListener('input', refresh);
+        inp.addEventListener('change', refresh);
+      });
+      panList.querySelectorAll('.br-pan-name').forEach(function (n) { if (n.value === '') n.dataset.auto = '1'; });
+      refresh();
     }
 
     var form = document.getElementById('brBookForm');
