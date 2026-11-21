@@ -133,6 +133,9 @@
                       'airlineCode' => $first['fD']['aI']['code'] ?? '',
                       'airlineName' => $first['fD']['aI']['name'] ?? '',
                       'flightNo' => $first['fD']['fN'] ?? '',
+                      // Every segment's flight number, e.g. "6E-1414, 6E-1311".
+                      'flightNos' => collect($leg)->map(fn ($s) => trim(($s['fD']['aI']['code'] ?? '').'-'.($s['fD']['fN'] ?? ''), '-'))->filter()->implode(', '),
+                      'arrDate' => isset($last['at']) ? \Carbon\Carbon::parse($last['at'])->format('M j') : '',
                       'fromCity' => $first['da']['city'] ?? null,
                       'toCity' => $last['aa']['city'] ?? null,
                       'fromCountry' => $first['da']['country'] ?? null,
@@ -917,6 +920,34 @@
   .frx-card-leg-label span { display: block; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold-light); }
   .frx-card-leg-label small { display: block; margin-top: 2px; font-size: 10px; color: var(--white-30); }
   .frx-card-leg .frx-card-times { min-width: 0; }
+  /* A card holding several flights (international return / multi-city),
+     laid out like TripJack's own: one row per flight with its own airline,
+     the fares in a column on the right, Book at the far right, and
+     View Details under the flights. */
+  .frx-flight-main--legs { grid-template-columns: minmax(0, 1.7fr) minmax(220px, 1fr) 132px; }
+  .frx-flight-main--legs .frx-col-journey { grid-column: 1; grid-row: 1; }
+  .frx-flight-main--legs .frx-col-fares { grid-column: 2; grid-row: 1 / span 2; }
+  .frx-flight-main--legs .frx-col-actions { grid-column: 3; grid-row: 1; }
+  .frx-flight-main--legs .frx-col-airline { grid-column: 1; grid-row: 2; flex-direction: row; align-items: center; gap: 12px; }
+  .frx-flight-main--legs .frx-card-airline { display: none; } /* each flight row names its own airline */
+  .frx-flight-main--legs .frx-card-legs { gap: 14px; }
+  .frx-flight-main--legs .frx-card-leg { display: grid; grid-template-columns: 150px 64px minmax(70px, 1fr) 64px; gap: 10px; align-items: center; }
+  .frx-leg-airline { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .frx-leg-airline img { width: 26px; height: 26px; border-radius: 6px; background: #fff; object-fit: contain; flex-shrink: 0; }
+  .frx-leg-airline > div { min-width: 0; }
+  .frx-leg-airline-name { font-size: 13px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .frx-leg-flightno { font-size: 11px; color: var(--white-30); overflow-wrap: anywhere; }
+  .frx-leg-time-end { text-align: right; }
+  .frx-flight-main--legs .frx-card-time-val { font-size: 19px; }
+  @media (max-width: 1180px) {
+    .frx-flight-main--legs { grid-template-columns: minmax(0, 1fr); }
+    .frx-flight-main--legs .frx-col-journey, .frx-flight-main--legs .frx-col-fares,
+    .frx-flight-main--legs .frx-col-actions, .frx-flight-main--legs .frx-col-airline { grid-column: 1; grid-row: auto; }
+  }
+  @media (max-width: 600px) {
+    .frx-flight-main--legs .frx-card-leg { grid-template-columns: 56px minmax(60px, 1fr) 56px; row-gap: 6px; }
+    .frx-flight-main--legs .frx-leg-airline { grid-column: 1 / -1; }
+  }
 
   .frx-details-toggle { flex-shrink: 0; background: transparent; border: 1px solid rgba(255,255,255,0.15); color: var(--white-60); font-family: 'Jost', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; padding: 8px 14px; border-radius: 8px; cursor: pointer; transition: all var(--tr); }
   .frx-details-toggle:hover { border-color: rgba(201,168,76,0.4); color: var(--gold-light); }
@@ -1687,7 +1718,7 @@
                       ->map(fn ($w) => in_array($w, ['SME', 'NDC', 'TJ', 'LCC', 'GDS', 'SOTO', 'SOTI'], true) ? $w : ucfirst(strtolower($w)))
                       ->implode(' ');
                 @endphp
-                <div class="frx-flight-main">
+                <div class="frx-flight-main{{ count($flight['legs']) > 1 ? ' frx-flight-main--legs' : '' }}">
                   <div class="frx-col-airline">
                     <div class="frx-card-airline">
                       <img src="https://images.kiwi.com/airlines/64/{{ $flight['airlineCode'] }}.png" loading="lazy" decoding="async" width="34" height="34" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name={{ urlencode($flight['airlineName']) }}&background=1a1a1a&color=C9A84C&size=64'" alt="{{ $flight['airlineName'] }}">
@@ -1708,24 +1739,29 @@
                     {{-- COMBO itinerary: one line per leg (Onward / Return, or each Multi-City flight). --}}
                     <div class="frx-card-legs">
                       @foreach($flight['legs'] as $lIdx => $leg)
-                        <div class="frx-card-leg">
-                          <div class="frx-card-leg-label">
-                            <span>{{ $group['meta']['legLabels'][$lIdx] ?? 'Flight '.($lIdx + 1) }}</span>
-                            <small>{{ $leg['depDate'] }} &middot; {{ $leg['airlineCode'] }} {{ $leg['flightNo'] }}</small>
+                        {{-- One row per flight, each with its own airline (TripJack's own layout). --}}
+                        <div class="frx-card-leg" aria-label="{{ $group['meta']['legLabels'][$lIdx] ?? 'Flight '.($lIdx + 1) }}">
+                          <div class="frx-leg-airline">
+                            <img src="https://images.kiwi.com/airlines/64/{{ $leg['airlineCode'] }}.png" loading="lazy" decoding="async" width="26" height="26" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name={{ urlencode($leg['airlineName'] ?: $leg['airlineCode']) }}&background=1a1a1a&color=C9A84C&size=64'" alt="">
+                            <div>
+                              <div class="frx-leg-airline-name">{{ $leg['airlineName'] ?: $leg['airlineCode'] }}</div>
+                              <div class="frx-leg-flightno">{{ $leg['flightNos'] ?: $leg['airlineCode'].'-'.$leg['flightNo'] }}</div>
+                            </div>
                           </div>
-                          <div class="frx-card-times">
-                            <div class="frx-card-time">
-                              <div class="frx-card-time-val">{{ $leg['depTime'] }}</div>
-                              <div class="frx-card-time-sub">{{ $leg['from'] }}</div>
-                            </div>
-                            <div class="frx-card-path">
-                              <div class="frx-card-path-line"></div>
-                              <div class="frx-card-stops">{{ $leg['stops'] === 0 ? 'Non-stop' : $leg['stops'].' stop(s)'.($leg['via'] ? ' via '.implode(', ', $leg['via']) : '') }}{{ $leg['duration'] ? ' · '.$fmtDuration($leg['duration']) : '' }}</div>
-                            </div>
-                            <div class="frx-card-time">
-                              <div class="frx-card-time-val">{{ $leg['arrTime'] }}@if($leg['nextDay'])<sup class="frx-next-day">+1</sup>@endif</div>
-                              <div class="frx-card-time-sub">{{ $leg['to'] }}</div>
-                            </div>
+                          <div class="frx-leg-time">
+                            <div class="frx-card-time-sub">{{ $leg['from'] }}</div>
+                            <div class="frx-card-time-val">{{ $leg['depTime'] }}</div>
+                            <div class="frx-card-time-date">{{ \Illuminate\Support\Str::after($leg['depDate'], ', ') }}</div>
+                          </div>
+                          <div class="frx-card-path">
+                            <div class="frx-card-stops" @if($leg['via']) title="via {{ implode(', ', $leg['via']) }}" @endif>{{ $leg['stops'] === 0 ? 'Non-Stop' : $leg['stops'].' Stop(s)' }}</div>
+                            <div class="frx-card-path-line"></div>
+                            <div class="frx-card-duration">{{ $leg['duration'] ? $fmtDuration($leg['duration']) : '' }}@if($leg['via'])<span class="frx-card-via"> &middot; via {{ implode(', ', $leg['via']) }}</span>@endif</div>
+                          </div>
+                          <div class="frx-leg-time frx-leg-time-end">
+                            <div class="frx-card-time-sub">{{ $leg['to'] }}</div>
+                            <div class="frx-card-time-val">{{ $leg['arrTime'] }}@if($leg['nextDay'])<sup class="frx-next-day">+1</sup>@endif</div>
+                            <div class="frx-card-time-date">{{ $leg['arrDate'] }}</div>
                           </div>
                         </div>
                       @endforeach
