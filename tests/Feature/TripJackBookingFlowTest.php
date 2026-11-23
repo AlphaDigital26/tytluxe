@@ -32,7 +32,7 @@ class TripJackBookingFlowTest extends TestCase
     public function test_full_review_book_confirmation_flow_with_pan_required(): void
     {
         $destination = Destination::create([
-            'name' => 'Dubai', 'slug' => 'dubai', 'country' => 'UAE',
+            'name' => 'Dubai', 'slug' => 'dubai', 'country' => 'India',
             'type' => 'city', 'for' => ['hotel'], 'is_active' => true,
         ]);
 
@@ -165,7 +165,7 @@ class TripJackBookingFlowTest extends TestCase
     public function test_duplicate_lead_guest_names_across_rooms_are_rejected(): void
     {
         $destination = Destination::create([
-            'name' => 'Dubai', 'slug' => 'dubai-2', 'country' => 'UAE',
+            'name' => 'Dubai', 'slug' => 'dubai-2', 'country' => 'India',
             'type' => 'city', 'for' => ['hotel'], 'is_active' => true,
         ]);
         $hotel = Hotel::create([
@@ -207,7 +207,7 @@ class TripJackBookingFlowTest extends TestCase
     public function test_onhold_disallowed_option_is_still_accepted_since_we_never_hold(): void
     {
         $destination = Destination::create([
-            'name' => 'Dubai', 'slug' => 'dubai-3', 'country' => 'UAE',
+            'name' => 'Dubai', 'slug' => 'dubai-3', 'country' => 'India',
             'type' => 'city', 'for' => ['hotel'], 'is_active' => true,
         ]);
         $hotel = Hotel::create([
@@ -245,7 +245,7 @@ class TripJackBookingFlowTest extends TestCase
     public function test_real_child_ages_are_sent_to_tripjack_not_hardcoded(): void
     {
         $destination = Destination::create([
-            'name' => 'Dubai', 'slug' => 'dubai-4', 'country' => 'UAE',
+            'name' => 'Dubai', 'slug' => 'dubai-4', 'country' => 'India',
             'type' => 'city', 'for' => ['hotel'], 'is_active' => true,
         ]);
         $hotel = Hotel::create([
@@ -277,7 +277,7 @@ class TripJackBookingFlowTest extends TestCase
     public function test_guest_form_trusts_reviewed_roomInfo_counts_over_stale_session_counts(): void
     {
         $destination = Destination::create([
-            'name' => 'Dubai', 'slug' => 'dubai-5', 'country' => 'UAE',
+            'name' => 'Dubai', 'slug' => 'dubai-5', 'country' => 'India',
             'type' => 'city', 'for' => ['hotel'], 'is_active' => true,
         ]);
         $hotel = Hotel::create([

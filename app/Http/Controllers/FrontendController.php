@@ -1218,7 +1218,7 @@ class FrontendController extends Controller
 
         $roomSlots = $this->roomSlotsFromDraft($draft);
         $option = $draft['option'] ?? [];
-        $panRequired = $option['compliance']['panRequired'] ?? $option['ipr'] ?? false;
+        $panRequired = $this->hotelPanRequired($hotel, $draft);
         $passportRequired = $option['compliance']['passportRequired'] ?? $option['ipm'] ?? false;
 
         // Same TripJack-room-id-first, name-fallback match used on the room
@@ -1303,7 +1303,7 @@ class FrontendController extends Controller
         // TripJack's docs are inconsistent about field naming across endpoints
         // (compliance.panRequired in Detail/Review vs. compact ipr/ipm in
         // Booking Details) — accept either so we're not blindsided again.
-        $panRequired = $option['compliance']['panRequired'] ?? $option['ipr'] ?? false;
+        $panRequired = $this->hotelPanRequired($hotel, $draft);
         $passportRequired = $option['compliance']['passportRequired'] ?? $option['ipm'] ?? false;
         // TripJack: for PASSTHROUGH / RESELLER GST rates, Book must carry
         // gstInfo {gstNumber, registeredName}. TripJack never returns those
@@ -1610,6 +1610,24 @@ class FrontendController extends Controller
      * out from routine ones (sold out, expired session) instead of all
      * flattening into the same "warning" bucket.
      */
+    /**
+     * PAN is needed when TripJack's Review says so, and always for an Indian
+     * guest at a hotel outside India: TripJack's Book rejects those with 1163
+     * "Mandatory pan information not available" even when Review returned
+     * panRequired: false (Indian TCS rules on foreign travel need the PAN).
+     */
+    protected function hotelPanRequired(Hotel $hotel, array $draft): bool
+    {
+        $option = $draft['option'] ?? [];
+        if ($option['compliance']['panRequired'] ?? $option['ipr'] ?? false) {
+            return true;
+        }
+        $country = trim((string) $hotel->destination?->country);
+        $indianGuest = (string) ($draft['nationality'] ?? '106') === '106';
+
+        return $indianGuest && $country !== '' && strcasecmp($country, 'India') !== 0;
+    }
+
     protected function logTripjackFailure(string $logLevel, string $event, array $context): void
     {
         $logger = Log::channel('tripjack');

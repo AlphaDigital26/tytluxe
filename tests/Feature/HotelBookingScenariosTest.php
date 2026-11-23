@@ -52,7 +52,7 @@ class HotelBookingScenariosTest extends TestCase
     {
         $destination = Destination::firstOrCreate(
             ['slug' => 'dubai-scn'],
-            ['name' => 'Dubai', 'country' => 'United Arab Emirates', 'type' => 'city', 'for' => ['hotel'], 'is_active' => true],
+            ['name' => 'Dubai', 'country' => 'India', 'type' => 'city', 'for' => ['hotel'], 'is_active' => true],
         );
 
         return Hotel::create(array_merge([
