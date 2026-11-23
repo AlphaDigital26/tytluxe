@@ -47,6 +47,7 @@ class FrontendController extends Controller
         $children = $input['children'];
         $roomCount = $input['roomCount'];
         $nationality = $input['nationality'];
+        $residence = $input['residence'];
         // Accepts a single value (pre-search "More Options" pill), a
         // comma-separated string (the post-search sidebar's multi-select
         // checkboxes sync into one hidden field), or an array — star rating
@@ -149,6 +150,7 @@ class FrontendController extends Controller
                         'children' => $children,
                         'rooms' => $roomCount,
                         'nationality' => $nationality,
+                        'residence' => $residence,
                         'child_ages' => $childAges,
                         'room_config' => $input['roomConfig'],
                         // TripJack's search id can't be renewed: once it's this
@@ -243,7 +245,7 @@ class FrontendController extends Controller
         return view('pages.hotels', compact(
             'hotels', 'hotelsPage', 'liveOptions', 'searchActive', 'hasSearched', 'searchError',
             'destinationQuery', 'checkIn', 'checkOut', 'adults', 'children', 'roomCount', 'childAges', 'roomConfig',
-            'nationality', 'nationalities', 'minRating', 'minRatings', 'destinations',
+            'nationality', 'residence', 'nationalities', 'minRating', 'minRatings', 'destinations',
             'filters', 'starCounts', 'livePriced', 'sort', 'searchDestination'
         ));
     }
@@ -525,6 +527,9 @@ class FrontendController extends Controller
             'roomCount' => $roomCount,
             'childAges' => array_slice($childAges, 0, $children),
             'nationality' => $this->validNationality((string) $param('nationality', '106')),
+            // Kept with the search and the booking, not sent to TripJack: its
+            // Listing/Detail requests take nationality only.
+            'residence' => $this->validNationality((string) $param('residence', '106')),
             'roomConfig' => $roomConfig,
             'error' => $error,
         ];
@@ -851,6 +856,7 @@ class FrontendController extends Controller
         $childAges = $input['childAges'];
         $roomConfig = $input['roomConfig'];
         $nationality = $input['nationality'];
+        $residence = $input['residence'];
 
         $liveOptions = collect();
         $pricingError = null;
@@ -909,6 +915,7 @@ class FrontendController extends Controller
                     'child_ages' => $childAges,
                     'room_config' => $input['roomConfig'],
                     'nationality' => $nationality,
+                    'residence' => $residence,
                     // The price each option was shown at, so Review can tell
                     // the guest if it moved since they picked it.
                     'option_prices' => $liveOptions->mapWithKeys(fn ($o) => [($o['optionId'] ?? '') => $o['pricing']['totalPrice'] ?? null])->filter()->all(),
@@ -933,9 +940,10 @@ class FrontendController extends Controller
         $pricingExpiresAt = $liveOptions->isNotEmpty()
             ? session("tripjack_pricing.{$hotel->tripjack_hotel_id}.fetched_at", now()->timestamp) + self::HOTEL_SESSION_SECONDS
             : null;
+        $nationalities = $this->tripjackNationalities(app(TripJackClient::class));
 
         return view('pages.hotel-details', compact(
-            'hotel', 'liveOptions', 'pricingError', 'checkIn', 'checkOut', 'adults', 'children', 'roomCount', 'childAges', 'roomConfig', 'nationality', 'destinations', 'pricingExpiresAt'
+            'hotel', 'liveOptions', 'pricingError', 'checkIn', 'checkOut', 'adults', 'children', 'roomCount', 'childAges', 'roomConfig', 'nationality', 'residence', 'nationalities', 'destinations', 'pricingExpiresAt'
         ));
     }
 
@@ -1085,6 +1093,7 @@ class FrontendController extends Controller
             'rooms' => $context['rooms'] ?? $request?->input('rooms'),
             'child_ages' => ! empty($context['child_ages']) ? implode(',', $context['child_ages']) : $request?->input('child_ages'),
             'nationality' => $context['nationality'] ?? $request?->input('nationality'),
+            'residence' => $context['residence'] ?? $request?->input('residence'),
             'room_config' => $context['room_config'] ?? $request?->input('room_config'),
         ];
 
@@ -1183,6 +1192,7 @@ class FrontendController extends Controller
             'child_ages' => $pricingContext['child_ages'] ?? [],
             'room_config' => $pricingContext['room_config'] ?? null,
             'nationality' => $pricingContext['nationality'] ?? '106',
+            'residence' => $pricingContext['residence'] ?? '106',
         ]]);
 
         // Post/Redirect/Get: never render this page as a direct POST response —

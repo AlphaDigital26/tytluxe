@@ -1269,13 +1269,13 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
         </button>
       </div>
 
-      @if(empty($hasSearched))
       <div class="htl-more-options">
         <span class="htl-mo-label">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
           More Options:
         </span>
 
+        @if(empty($hasSearched))
         <div class="htl-mo-dropdown-wrap" id="htlRatingDropdownWrap">
           <button type="button" class="htl-mo-pill" id="htlRatingTrigger" aria-haspopup="listbox" aria-expanded="false" title="Filter by Minimum Star Rating">
             <span class="htl-mo-pill-tag">
@@ -1307,11 +1307,14 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
             @endfor
           </div>
         </div>
+        @else
+        <!-- Hidden input to preserve min_rating when doing a new search from the results page -->
+        <input type="hidden" name="min_rating" id="hiddenMinRating" value="{{ $minRating ?? 0 }}">
+        @endif
+
+        @include('partials.hotel-country-pill', ['pillId' => 'htlNationality', 'name' => 'nationality', 'label' => 'Nationality', 'value' => $nationality ?? '106'])
+        @include('partials.hotel-country-pill', ['pillId' => 'htlResidence', 'name' => 'residence', 'label' => 'Country of Residence', 'value' => $residence ?? '106'])
       </div>
-      @else
-      <!-- Hidden input to preserve min_rating when doing a new search from the results page -->
-      <input type="hidden" name="min_rating" id="hiddenMinRating" value="{{ $minRating ?? 0 }}">
-      @endif
     </form>
 
     @if(!empty($searchError))
@@ -1540,6 +1543,8 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
             'rooms' => $roomCount ?? null,
             'child_ages' => !empty($childAges) ? implode(',', $childAges) : null,
             'room_config' => $roomConfig ?? null,
+            'nationality' => $nationality ?? null,
+            'residence' => $residence ?? null,
          ])) }}"
          target="_blank" rel="noopener"
          class="htl-card"
@@ -2155,6 +2160,10 @@ span.flatpickr-weekday { color: var(--white-60) !important; font-family: 'Jost',
       if (childAges && childAges.value) params.set('child_ages', childAges.value);
       const roomConfig = document.getElementById('htlRoomConfig');
       if (roomConfig && roomConfig.value) params.set('room_config', roomConfig.value);
+      const nationality = document.getElementById('htlNationalityInput');
+      if (nationality && nationality.value) params.set('nationality', nationality.value);
+      const residence = document.getElementById('htlResidenceInput');
+      if (residence && residence.value) params.set('residence', residence.value);
       window.location.href = '{{ route('hotels') }}?' + params.toString();
     }
     // Shared with the guest-picker's Apply handler further down the page
