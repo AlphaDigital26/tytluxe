@@ -73,8 +73,20 @@ class FrontendController extends Controller
         $hotels = collect();
         $hotelsPage = null;
 
+        // One property picked from the search bar (or its name typed in the
+        // destination box): its city is searched, but only it is listed.
+        $singleHotel = null;
+
         if ($hasSearched) {
-            if ($destinationQuery !== '') {
+            if ($hotelSlug !== '') {
+                $singleHotel = Hotel::visibleOnWebsite()->where('slug', $hotelSlug)->first();
+                if ($singleHotel) {
+                    $searchDestination = $singleHotel->destination;
+                    $destinationQuery = $singleHotel->title;
+                } else {
+                    $searchError = 'We couldn\'t find that property any more — it may have been removed.';
+                }
+            } elseif ($destinationQuery !== '') {
                 $searchDestination = Destination::active()
                     ->where(function ($q) use ($destinationQuery) {
                         $q->where('slug', Str::slug($destinationQuery))
@@ -82,6 +94,10 @@ class FrontendController extends Controller
                     })
                     ->first();
 
+                if (! $searchDestination) {
+                    $singleHotel = $this->hotelByTypedName($destinationQuery);
+                    $searchDestination = $singleHotel?->destination;
+                }
                 if (! $searchDestination) {
                     $searchError = "We don't have hotels in \"{$destinationQuery}\" yet.";
                 }
@@ -121,7 +137,7 @@ class FrontendController extends Controller
             } elseif ($searchActive) {
                 try {
                     $rooms = $this->roomsForSearch($input);
-                    $result = $this->cityListingSearch($listingSearch, $searchDestination, $checkIn, $checkOut, $rooms, $nationality);
+                    $result = $this->cityListingSearch($listingSearch, $searchDestination, $checkIn, $checkOut, $rooms, $nationality, $singleHotel);
                     $liveOptions = $result['options'];
                     $livePriced = $liveOptions->isNotEmpty();
 
@@ -171,6 +187,7 @@ class FrontendController extends Controller
             $query = Hotel::query()
                 ->visibleOnWebsite()
                 ->where('destination_id', $searchDestination->id)
+                ->when($singleHotel, fn ($q) => $q->whereKey($singleHotel->id))
                 ->when($filters['name'] !== '', fn ($q) => $q->where('title', 'LIKE', '%'.$filters['name'].'%'));
 
             // Price/meal/cancellation only exist on live options, so they narrow
@@ -251,22 +268,39 @@ class FrontendController extends Controller
     }
 
     /**
+     * A hotel whose name was typed in the destination box instead of picked
+     * from the suggestions: an exact title match, else the only partial one.
+     */
+    protected function hotelByTypedName(string $typed): ?Hotel
+    {
+        $exact = Hotel::visibleOnWebsite()->where('title', $typed)->first();
+        if ($exact) {
+            return $exact;
+        }
+        $matches = Hotel::visibleOnWebsite()->where('title', 'LIKE', '%'.$typed.'%')->limit(2)->get();
+
+        return $matches->count() === 1 ? $matches->first() : null;
+    }
+
+    /**
      * Whole-city live pricing, cached per visitor so filtering, paging and
      * infinite scroll reuse one TripJack search. Per visitor, not shared: the
      * cached correlationId carries through that guest's Detail/Review/Book calls.
      *
      * @return array{correlationId: string, options: \Illuminate\Support\Collection<string, array>}
      */
-    private function cityListingSearch(TripJackListingSearch $listingSearch, Destination $destination, string $checkIn, string $checkOut, array $rooms, string $nationality): array
+    private function cityListingSearch(TripJackListingSearch $listingSearch, Destination $destination, string $checkIn, string $checkOut, array $rooms, string $nationality, ?Hotel $only = null): array
     {
-        $cacheKey = 'hotel_city_search:'.session()->getId().':'.md5(json_encode([$destination->id, $checkIn, $checkOut, $rooms, $nationality]));
+        $cacheKey = 'hotel_city_search:'.session()->getId().':'.md5(json_encode([$destination->id, $checkIn, $checkOut, $rooms, $nationality, $only?->id]));
 
         if ($cached = Cache::get($cacheKey)) {
             return ['correlationId' => $cached['correlationId'], 'options' => collect($cached['options'])];
         }
 
+        // One property: price just that hotel, not the whole city.
         $hids = Hotel::visibleOnWebsite()
             ->where('destination_id', $destination->id)
+            ->when($only, fn ($q) => $q->whereKey($only->id))
             ->whereNotNull('tripjack_hotel_id')
             ->pluck('tripjack_hotel_id')
             ->map(fn ($id) => (int) $id)
