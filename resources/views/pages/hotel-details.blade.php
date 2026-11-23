@@ -3473,6 +3473,8 @@ html { scroll-behavior: smooth; }
 
         <div class="htl-guest-popover" id="hdModGuestPopover" onclick="event.stopPropagation()">
           <div id="hdModRoomBlocks"></div>
+          @include('partials.hotel-nationality-select', ['selectId' => 'hdModNationality', 'name' => 'nationality', 'label' => 'Nationality', 'value' => $nationality ?? '106'])
+          @include('partials.hotel-nationality-select', ['selectId' => 'hdModResidence', 'name' => 'residence', 'label' => 'Country of Residence', 'value' => $residence ?? '106'])
           <div class="htl-guest-actions">
             <button type="button" class="htl-guest-add-btn" id="hdModAddRoomBtn">+ Add Room</button>
             <button type="button" class="htl-guest-apply-btn" id="hdModGuestApplyBtn">Apply</button>
@@ -6280,6 +6282,8 @@ html { scroll-behavior: smooth; }
           const ca = document.getElementById('hdModChildAges').value;
           if (ca) searchUrl.searchParams.set('child_ages', ca);
           searchUrl.searchParams.set('room_config', document.getElementById('hdModRoomConfig').value);
+          searchUrl.searchParams.set('nationality', document.getElementById('hdModNationality').value);
+          searchUrl.searchParams.set('residence', document.getElementById('hdModResidence').value);
           window.location.href = searchUrl.toString();
           return;
         }
@@ -6294,6 +6298,8 @@ html { scroll-behavior: smooth; }
         const childAgesVal = document.getElementById('hdModChildAges').value;
         if (childAgesVal) detailUrl.searchParams.set('child_ages', childAgesVal);
         detailUrl.searchParams.set('room_config', document.getElementById('hdModRoomConfig').value);
+        detailUrl.searchParams.set('nationality', document.getElementById('hdModNationality').value);
+        detailUrl.searchParams.set('residence', document.getElementById('hdModResidence').value);
         @if($hotel->source === 'tripjack')
         detailUrl.hash = 'htl-room-section';
         @else
