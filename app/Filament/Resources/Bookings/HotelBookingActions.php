@@ -46,6 +46,8 @@ class HotelBookingActions
                 $meaning = match ($live) {
                     'SUCCESS' => 'The hotel has confirmed this booking.',
                     'PENDING', 'IN_PROGRESS' => 'The hotel is still confirming. Check again in a few minutes.',
+                    // TripJack has taken the money from its wallet but the hotel hasn't confirmed yet.
+                    'PAYMENT_SUCCESS' => 'TripJack has been paid and is waiting for the hotel to confirm. If this lasts over 30 minutes, ask TripJack support to confirm it.',
                     'ON_HOLD' => 'The room is reserved but not yet paid for.',
                     'CANCELLED' => 'The booking is cancelled with the hotel.',
                     'CANCELLATION_PENDING' => 'The hotel is processing the cancellation.',

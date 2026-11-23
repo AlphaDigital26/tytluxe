@@ -1619,7 +1619,9 @@ class FrontendController extends Controller
     protected function hotelPanRequired(Hotel $hotel, array $draft): bool
     {
         $option = $draft['option'] ?? [];
-        if ($option['compliance']['panRequired'] ?? $option['ipr'] ?? false) {
+        // Any of TripJack's spellings saying yes counts (v3 Review sends
+        // compliance.panRequired; the docs and Booking Details use ipr).
+        if (($option['compliance']['panRequired'] ?? false) || ($option['ipr'] ?? false) || ($option['isPanRequired'] ?? false)) {
             return true;
         }
         $country = trim((string) $hotel->destination?->country);
@@ -1746,7 +1748,7 @@ class FrontendController extends Controller
             // that has since resolved offline.
             $this->finalizeCancellation($booking, $details, $razorpay);
             $booking->refresh();
-        } elseif (in_array($liveStatus, ['SUCCESS', 'PENDING', 'IN_PROGRESS'], true)
+        } elseif (in_array($liveStatus, ['SUCCESS', 'PENDING', 'IN_PROGRESS', 'PAYMENT_SUCCESS'], true)
             && in_array($booking->status, ['confirmed', 'pending_confirmation'], true)) {
             // Only map statuses we understand — an unreadable or
             // CANCELLATION_PENDING status must not downgrade a confirmed booking.
