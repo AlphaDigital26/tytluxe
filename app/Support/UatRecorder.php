@@ -94,7 +94,9 @@ class UatRecorder
 
             // The review response carries the cancellation policy TripJack asks to see on its own.
             if ($vertical === 'hotel' && str_contains($path, '/hotel/review') && is_array($decoded)) {
-                $policy = $decoded['hInfo']['ops'][0]['cnp'] ?? $decoded['hotel']['ops'][0]['cnp'] ?? self::findKey($decoded, 'cnp');
+                // v3 Review: option.cancellation; older shapes: hInfo/hotel.ops[0].cnp.
+                $policy = $decoded['option']['cancellation'] ?? $decoded['hInfo']['ops'][0]['cnp']
+                    ?? $decoded['hotel']['ops'][0]['cnp'] ?? self::findKey($decoded, 'cnp') ?? self::findKey($decoded, 'cancellation');
                 file_put_contents("$dir/TJ test Hotel cancellation policy Request.json", $json($requestBody));
                 file_put_contents("$dir/TJ test Hotel cancellation policy Response.json", $json($policy ?? new \stdClass));
             }

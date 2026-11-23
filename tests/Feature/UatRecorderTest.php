@@ -67,6 +67,18 @@ class UatRecorderTest extends TestCase
         $this->assertFileExists("$dir/TJ test Hotel Book Request.json");
     }
 
+    public function test_hotel_v3_review_policy_is_saved_from_option_cancellation(): void
+    {
+        UatRecorder::start('hotel', 'HOTEL API TEST CASES/Test Case 9');
+        $dir = UatRecorder::root().'/HOTEL API TEST CASES/Test Case 9';
+
+        UatRecorder::record('hotel', '/hotel/review', ['optionId' => 'O1'],
+            '{"bookingId":"TJP1","option":{"cancellation":{"isRefundable":true,"penalties":[{"amount":0}]}}}');
+
+        $this->assertSame(['isRefundable' => true, 'penalties' => [['amount' => 0]]],
+            json_decode(File::get("$dir/TJ test Hotel cancellation policy Response.json"), true));
+    }
+
     public function test_nothing_is_recorded_in_production(): void
     {
         UatRecorder::start('flight', 'Tripjack API logs/oneway/X');
