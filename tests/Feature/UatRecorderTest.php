@@ -79,6 +79,26 @@ class UatRecorderTest extends TestCase
             json_decode(File::get("$dir/TJ test Hotel cancellation policy Response.json"), true));
     }
 
+    public function test_case_14_collects_every_cancellation_in_one_cleanup_summary(): void
+    {
+        UatRecorder::start('hotel', 'HOTEL API TEST CASES/Test Case 14');
+        $dir = UatRecorder::root().'/HOTEL API TEST CASES/Test Case 14';
+
+        UatRecorder::record('hotel', '/hotel/cancel-booking/TJP1', [], '{"status":{"success":true,"httpStatus":200}}');
+        UatRecorder::record('hotel', '/hotel/booking-details', ['bookingId' => 'TJP1'], '{"order":{"status":"CANCELLED"}}');
+        UatRecorder::record('hotel', '/hotel/cancel-booking/TJP2', [], '{"status":{"success":true,"httpStatus":200}}');
+
+        $this->assertSame(['cleanup_summary.json'], collect(File::files($dir))->map->getFilename()->all());
+        $this->assertSame([
+            'cancelled' => ['TJP1', 'TJP2'],
+            'count' => 2,
+            'details' => [
+                ['bookingId' => 'TJP1', 'response' => ['status' => ['success' => true, 'httpStatus' => 200]]],
+                ['bookingId' => 'TJP2', 'response' => ['status' => ['success' => true, 'httpStatus' => 200]]],
+            ],
+        ], json_decode(File::get("$dir/cleanup_summary.json"), true));
+    }
+
     public function test_nothing_is_recorded_in_production(): void
     {
         UatRecorder::start('flight', 'Tripjack API logs/oneway/X');
