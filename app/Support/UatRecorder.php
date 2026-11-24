@@ -74,6 +74,12 @@ class UatRecorder
         }
 
         try {
+            if ($vertical === 'hotel' && $case['folder'] === self::HOTEL_ROOT.'/Test Case 14') {
+                self::recordCleanup($path, $rawResponse);
+
+                return;
+            }
+
             $names = $vertical === 'flight' ? self::flightNames($path) : self::hotelNames($path, $case, $requestBody);
             if (! $names) {
                 return; // a call TripJack's samples don't include
@@ -107,6 +113,30 @@ class UatRecorder
         } catch (\Throwable $e) {
             Log::channel('tripjack')->warning('uat_log_write_failed', ['message' => $e->getMessage()]);
         }
+    }
+
+    /**
+     * Hotel Test Case 14 ("cancel all test bookings") is one file in
+     * TripJack's sample, cleanup_summary.json: every booking cancelled while
+     * the case is open, added to the list rather than overwritten. Other
+     * calls (status checks) aren't part of it.
+     */
+    protected static function recordCleanup(string $path, ?string $rawResponse): void
+    {
+        if (! preg_match('#/hotel/cancel-booking/([^/?]+)#', $path, $m)) {
+            return;
+        }
+        $file = self::root().'/'.self::HOTEL_ROOT.'/Test Case 14/cleanup_summary.json';
+        $summary = is_file($file) ? (json_decode((string) file_get_contents($file), true) ?: []) : [];
+        $details = collect($summary['details'] ?? [])->reject(fn ($d) => ($d['bookingId'] ?? null) === $m[1])->values();
+        $decoded = json_decode((string) $rawResponse, true);
+        $details->push(['bookingId' => $m[1], 'response' => $decoded ?? $rawResponse]);
+
+        file_put_contents($file, json_encode([
+            'cancelled' => $details->pluck('bookingId')->all(),
+            'count' => $details->count(),
+            'details' => $details->all(),
+        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
     }
 
     /** @return array{0: string, 1: string}|null */
