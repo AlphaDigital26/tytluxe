@@ -79,6 +79,25 @@ class UatRecorderTest extends TestCase
             json_decode(File::get("$dir/TJ test Hotel cancellation policy Response.json"), true));
     }
 
+    /** TripJack rejected a case whose Search files came from a batch without the priced hotel. */
+    public function test_search_files_are_the_batch_holding_the_priced_hotel(): void
+    {
+        UatRecorder::start('hotel', 'HOTEL API TEST CASES/Test Case 4');
+        $dir = UatRecorder::root().'/HOTEL API TEST CASES/Test Case 4';
+
+        UatRecorder::record('hotel', '/hotel/listing', ['hids' => [100000000055, 100000000150]], '{"hotels":[{"hotelId":"100000000055"}]}');
+        UatRecorder::record('hotel', '/hotel/listing', ['hids' => [100000137195, 100000137200]], '{"hotels":[{"hotelId":"100000137195"}]}');
+        // Before pricing, the first batch with hotels stands in.
+        $this->assertSame([100000000055, 100000000150], json_decode(File::get("$dir/TJ test Hotel Search Request.json"), true)['hids']);
+
+        UatRecorder::record('hotel', '/hotel/pricing', ['hid' => '100000137195'], '{"options":[]}');
+
+        $this->assertSame([100000137195, 100000137200], json_decode(File::get("$dir/TJ test Hotel Search Request.json"), true)['hids']);
+        $this->assertSame('100000137195', json_decode(File::get("$dir/TJ test Hotel Search Response.json"), true)['hotels'][0]['hotelId']);
+        // The kept batches never go into the zip's test-case folders.
+        $this->assertDirectoryDoesNotExist("$dir/.search-batches");
+    }
+
     public function test_case_14_collects_every_cancellation_in_one_cleanup_summary(): void
     {
         UatRecorder::start('hotel', 'HOTEL API TEST CASES/Test Case 14');

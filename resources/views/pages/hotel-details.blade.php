@@ -3951,17 +3951,11 @@ html { scroll-behavior: smooth; }
     </div>
     @if(! empty($pricingExpiresAt))
     <style>
-      .hd-price-timer { display:inline-flex; align-items:center; gap:8px; margin:0 0 14px; padding:7px 14px; border-radius:100px; border:1px solid rgba(201,168,76,0.35); background:rgba(201,168,76,0.08); font-family:'Jost',sans-serif; font-size:12.5px; color:rgba(255,255,255,0.75); }
-      .hd-price-timer strong { color:var(--gold); font-variant-numeric:tabular-nums; }
-      .hd-price-timer.urgent { border-color:rgba(220,120,80,0.6); background:rgba(220,120,80,0.1); }
       .hd-price-expired { display:none; position:fixed; inset:0; z-index:9999; align-items:center; justify-content:center; padding:16px; background:rgba(0,0,0,0.7); }
       .hd-price-expired-box { max-width:420px; width:100%; padding:28px 24px; border-radius:18px; text-align:center; background:#141414; border:1px solid rgba(201,168,76,0.35); font-family:'Jost',sans-serif; color:rgba(255,255,255,0.8); }
       .hd-price-expired-box h3 { font-family:'Cormorant Garamond',serif; font-size:1.6rem; color:#fff; margin:0 0 10px; }
       .hd-price-expired-box p { font-size:14px; line-height:1.6; margin:0 0 20px; }
     </style>
-    <div class="hd-price-timer" id="hdPriceTimer">
-      Prices held for <strong id="hdPriceTimerLeft">12:00</strong> — after that we'll fetch fresh prices.
-    </div>
     <div class="hd-price-expired" id="hdPriceExpired" role="dialog" aria-modal="true" aria-labelledby="hdPriceExpiredTitle">
       <div class="hd-price-expired-box">
         <h3 id="hdPriceExpiredTitle">Prices may have changed</h3>
@@ -5699,30 +5693,23 @@ html { scroll-behavior: smooth; }
       });
     });
 
-    /* ===== PRICE FRESHNESS COUNTDOWN ===== */
-    // TripJack's search/pricing session is valid for ~15 minutes; their best
-    // practice is a visible timer and a prompt to re-search at ~12
-    // ($pricingExpiresAt, set in FrontendController::hotelDetails), so a
-    // guest never picks a rate that expires at Review.
+    /* ===== PRICE FRESHNESS ===== */
+    // TripJack's search/pricing session is valid for ~15 minutes and should
+    // be renewed at ~12 ($pricingExpiresAt, set in
+    // FrontendController::hotelDetails), so a guest never picks a rate that
+    // expires at Review. No visible countdown: when the time is up, the
+    // "Prices may have changed" prompt asks the guest to refresh.
     @if(! empty($pricingExpiresAt))
     (function () {
-      const pill = document.getElementById('hdPriceTimer');
-      const left = document.getElementById('hdPriceTimerLeft');
       const prompt = document.getElementById('hdPriceExpired');
-      if (!pill || !prompt) return;
+      if (!prompt) return;
       // Server-relative: the guest's clock may be off.
       const remaining = {{ (int) $pricingExpiresAt }} - {{ now()->timestamp }};
       const start = Date.now();
-      (function tick() {
-        const secs = Math.max(0, Math.round(remaining - (Date.now() - start) / 1000));
-        if (secs <= 0) {
-          pill.style.display = 'none';
-          prompt.style.display = 'flex';
-          return;
-        }
-        left.textContent = Math.floor(secs / 60) + ':' + ('0' + (secs % 60)).slice(-2);
-        pill.classList.toggle('urgent', secs <= 120);
-        setTimeout(tick, 1000);
+      (function wait() {
+        const secs = remaining - (Date.now() - start) / 1000;
+        if (secs > 0) { setTimeout(wait, Math.min(secs * 1000, 30000)); return; }
+        prompt.style.display = 'flex';
       })();
     })();
     @endif
