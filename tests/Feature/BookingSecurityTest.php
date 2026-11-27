@@ -123,7 +123,7 @@ class BookingSecurityTest extends TestCase
         ];
 
         session(['tripjack_booking_draft' => $draft]);
-        $this->post("/hotels/{$hotel->slug}/book", $guest)->assertSessionHasErrors(['pan_number', 'pan_name']);
+        $this->post("/hotels/{$hotel->slug}/book", $guest)->assertSessionHasErrors(['pans']);
         $this->assertSame(0, Booking::count());
 
         session(['tripjack_booking_draft' => $draft]);
