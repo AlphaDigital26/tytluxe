@@ -230,7 +230,7 @@
     <tbody>
       <tr>
         <td><strong>{{ $booking->flight_route }}</strong></td>
-        <td>{{ ucwords(strtolower(str_replace('_', ' ', $booking->flight_journey_type ?? '—'))) }}</td>
+        <td>{{ ['ONEWAY' => 'One Way', 'RETURN' => 'Round Trip', 'MULTI_CITY' => 'Multi City'][strtoupper((string) $booking->flight_journey_type)] ?? ucwords(strtolower(str_replace('_', ' ', $booking->flight_journey_type ?? '—'))) }}</td>
         <td>{{ ucwords(strtolower(str_replace('_', ' ', $booking->flight_cabin_class ?? '—'))) }}</td>
         <td class="right">{{ collect(['A' => $booking->pax_adults, 'C' => $booking->pax_children, 'I' => $booking->pax_infants])->filter(fn ($n) => (int) $n > 0)->map(fn ($n, $k) => (int) $n.$k)->implode(' ') ?: $guestsCount }}</td>
         <td class="right">{{ $booking->currency }} {{ number_format($booking->total_amount, 2) }}</td>
@@ -244,9 +244,6 @@
       <td><span class="inv-stay-label">Return</span><span class="inv-stay-value">{{ \Illuminate\Support\Carbon::parse($booking->flight_return_date)->format('d M Y') }}</span></td>
       @endif
       <td><span class="inv-stay-label">Booked On</span><span class="inv-stay-value">{{ $booking->created_at->format('d M Y') }}</span></td>
-      @if($booking->tripjack_flight_pnr && count($booking->tripjack_flight_pnr))
-      <td><span class="inv-stay-label">PNR</span><span class="inv-stay-value">{{ implode(', ', $booking->tripjack_flight_pnr) }}</span></td>
-      @endif
     </tr>
   </table>
   @endif
