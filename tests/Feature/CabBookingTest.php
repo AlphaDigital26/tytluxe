@@ -420,5 +420,9 @@ class CabBookingTest extends TestCase
     {
         $this->getJson(route('cabs.places', ['q' => 'igi']))->assertOk()
             ->assertJsonPath('places.0.label', 'IGI Airport Terminal 3, Delhi');
+
+        // Typed again (any case/spacing): answered from the cache, not TripJack.
+        $this->getJson(route('cabs.places', ['q' => ' IGI ']))->assertOk()->assertJsonPath('places.0.id', 'P1');
+        $this->assertCount(1, Http::recorded(fn (Request $r) => str_contains($r->url(), 'google-places')));
     }
 }
