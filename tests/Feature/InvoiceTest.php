@@ -81,6 +81,10 @@ class InvoiceTest extends TestCase
 
         $this->assertStringContainsString('Mr Rahul Probe', $html);
         $this->assertStringContainsString('Master Kabir Probe', $html);
+        $return = view('pdf.invoice', ['booking' => $booking->fresh()->forceFill(['flight_journey_type' => 'RETURN'])->load('travelers')])->render();
+        $this->assertStringContainsString('Round Trip', $return);
+        $this->assertStringNotContainsString('>Return<', $return);
+
         // Passengers as "1A 1I"; no fare break-up, only what was paid.
         $this->assertStringContainsString('1A 1I', $html);
         $this->assertStringContainsString('Net Amount Paid', $html);
