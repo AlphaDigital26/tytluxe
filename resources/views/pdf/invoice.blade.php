@@ -46,6 +46,9 @@
   table.inv-table thead th.right { text-align: right; }
   table.inv-table tbody td { padding: 9px 10px; border: 1px solid #ddd; font-size: 11px; vertical-align: top; }
   table.inv-table tbody td.right { text-align: right; }
+  /* Ten columns on A4 portrait: smaller type, tighter cells. */
+  table.inv-fare-table thead th { font-size: 7.5px; padding: 6px 5px; letter-spacing: 0.2px; }
+  table.inv-fare-table tbody td { font-size: 8.5px; padding: 6px 5px; }
   /* Table, not flex + gap — dompdf doesn't support either, so the old
      flex row rendered with no real spacing between items (everything
      ran together). A table's cells give dompdf real, reliable columns. */
@@ -107,6 +110,10 @@
             'type' => ucfirst(strtolower($t['pt'] ?? 'adult')),
         ])
         : $booking->travelers->map(fn ($t) => ['name' => $t->full_name, 'type' => ucfirst($t->traveler_type)]));
+    // Flight fare per passenger (see Booking::flightFareRows()); older
+    // bookings have no saved fare split and keep the plain name/type list.
+    $fareRows = $isFlight ? $booking->flightFareRows() : [];
+    $money = fn ($v) => number_format((float) $v, 2);
   @endphp
 
   <table class="inv-header">
@@ -225,8 +232,8 @@
         <td><strong>{{ $booking->flight_route }}</strong></td>
         <td>{{ ucwords(strtolower(str_replace('_', ' ', $booking->flight_journey_type ?? '—'))) }}</td>
         <td>{{ ucwords(strtolower(str_replace('_', ' ', $booking->flight_cabin_class ?? '—'))) }}</td>
-        <td class="right">{{ $guestsCount }}</td>
-        <td class="right">{{ $booking->currency }} {{ number_format($booking->base_amount, 2) }}</td>
+        <td class="right">{{ collect(['A' => $booking->pax_adults, 'C' => $booking->pax_children, 'I' => $booking->pax_infants])->filter(fn ($n) => (int) $n > 0)->map(fn ($n, $k) => (int) $n.$k)->implode(' ') ?: $guestsCount }}</td>
+        <td class="right">{{ $booking->currency }} {{ number_format($booking->total_amount, 2) }}</td>
       </tr>
     </tbody>
   </table>
@@ -311,6 +318,49 @@
   </table>
   @endif
 
+  @if($fareRows)
+  <div class="inv-section-title">Passengers &amp; Fare Details</div>
+  <table class="inv-table inv-fare-table" style="margin-bottom:22px;">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Passenger</th>
+        <th>Ticket No.</th>
+        <th>PNR</th>
+        <th>Sectors</th>
+        <th class="right">Base Fare</th>
+        <th class="right">Other Taxes (incl. GST)</th>
+        <th class="right">Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      @foreach($fareRows as $i => $row)
+        <tr>
+          @if(! empty($row['addons']))
+          <td></td>
+          <td colspan="4">{{ $row['name'] }}</td>
+          @else
+          <td>{{ $i + 1 }}</td>
+          <td>{{ $row['name'] }} <span style="color:#999;">({{ substr($row['type'], 0, 1) }})</span></td>
+          <td>{{ collect($row['tickets'])->filter()->unique()->implode(', ') ?: 'NA' }}</td>
+          <td>{{ collect($booking->tripjack_flight_pnr ?? [])->filter()->unique()->implode(', ') ?: '—' }}</td>
+          <td>{{ $booking->flight_route }}</td>
+          @endif
+          <td class="right">{{ $money($row['base']) }}</td>
+          <td class="right">{{ $money($row['other']) }}</td>
+          <td class="right"><strong>{{ $money($row['total']) }}</strong></td>
+        </tr>
+      @endforeach
+      <tr>
+        <td colspan="5" class="right"><strong>Total ({{ $booking->currency }})</strong></td>
+        <td class="right"><strong>{{ $money(array_sum(array_column($fareRows, 'base'))) }}</strong></td>
+        <td class="right"><strong>{{ $money(array_sum(array_column($fareRows, 'other'))) }}</strong></td>
+        <td class="right"><strong>{{ $money(array_sum(array_column($fareRows, 'total'))) }}</strong></td>
+      </tr>
+    </tbody>
+  </table>
+  <div style="font-size:8.5px; color:#999; margin:-16px 0 22px;">A = Adult, C = Child, I = Infant. Base Fare is the airline fare including airline taxes. Other Taxes include our service fee, GST, payment gateway charges and management fee.</div>
+  @else
   <div class="inv-section-title">Guests</div>
   <table class="inv-table" style="margin-bottom:22px;">
     <thead>
@@ -325,6 +375,7 @@
       @endforeach
     </tbody>
   </table>
+  @endif
 
   @if($booking->vertical === 'package')
   {{-- Packages: our own service, GST 5% on the package price; the online
@@ -346,6 +397,21 @@
       @if($balanceDue)
       <tr><td>Balance Due by {{ $booking->package_balance_due_on?->format('d M Y') }} <span style="color:#999; font-weight:normal;">(incl. GST)</span></td><td class="right">{{ $booking->currency }} {{ number_format($balanceDue['base'] + $balanceDue['gst'], 2) }}</td></tr>
       @endif
+    </table>
+  </div>
+  @elseif($isFlight)
+  {{-- Flights: the per-passenger table above breaks the price down, so
+       only what was paid (and any later charges or refunds). --}}
+  <div class="inv-summary-wrap">
+    <table class="inv-price-table">
+      @foreach($totals['extras'] as $label => $amount)
+      <tr><td>{{ $label }}</td><td class="right">{{ $booking->currency }} {{ number_format($amount, 2) }}</td></tr>
+      @endforeach
+      @if($totals['refunded'] > 0)
+      <tr><td>Total Paid</td><td class="right">{{ $booking->currency }} {{ number_format($totals['paid'], 2) }}</td></tr>
+      <tr class="discount"><td>Refunded</td><td class="right">&minus; {{ $booking->currency }} {{ number_format($totals['refunded'], 2) }}</td></tr>
+      @endif
+      <tr class="total"><td>Net Amount Paid</td><td class="right">{{ $booking->currency }} {{ number_format($totals['net'], 2) }}</td></tr>
     </table>
   </div>
   @else

@@ -1393,6 +1393,8 @@ class FlightController extends Controller
                     'resultsUrl' => $draft['resultsUrl'] ?? null,
                     // "HCCB" → "Chicken sandwich" etc., for the admin page.
                     'ssrNames' => \App\Support\FlightAddonNames::fromReview($draft['response'] ?? []),
+                    // Each passenger type's fare split, for the invoice.
+                    'paxFares' => FlightBookingService::paxFares($draft['response'] ?? []),
                 ],
                 'flight_legs' => $flightLegs,
                 // Airline, flight numbers and times from Review, so the admin
