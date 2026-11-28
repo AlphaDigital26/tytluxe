@@ -83,13 +83,16 @@ class HotelCertificationFixesTest extends TestCase
         Http::assertSent(fn ($r) => str_contains($r->url(), '/hotel/pricing') && $r->data()['correlationId'] !== 'old-cid');
     }
 
-    public function test_hotel_page_shows_a_price_countdown_and_a_refresh_prompt(): void
+    /** No visible countdown (founder, 45edd81); when the prices expire, a prompt asks to refresh. */
+    public function test_hotel_page_has_no_price_countdown_but_a_refresh_prompt(): void
     {
         Http::fake(['*/hotel/pricing' => Http::response(['options' => [$this->option('o-1', 'Ocean Suite')], 'reviewHash' => 'h', 'status' => ['success' => true]])]);
 
         $this->get($this->url())
-            ->assertSee('id="hdPriceTimer"', false)
-            ->assertSee('Prices held for')
+            ->assertDontSee('id="hdPriceTimer"', false)
+            ->assertDontSee('Prices held for')
+            ->assertSee('id="hdPriceExpired"', false)
+            ->assertSee('Prices may have changed')
             ->assertSee('Refresh prices');
     }
 

@@ -89,6 +89,13 @@ class UatRecorder
         }
 
         try {
+            // Test Case 14 is one cleanup_summary.json of every cancellation.
+            if ($vertical === 'hotel' && $case['folder'] === self::HOTEL_ROOT.'/Test Case 14') {
+                self::recordCleanup($path, $rawResponse);
+
+                return;
+            }
+
             $names = match ($vertical) {
                 'flight' => self::flightNames($path),
                 'cab' => self::cabNames($path, $requestBody),
@@ -105,12 +112,6 @@ class UatRecorder
                 for ($n = 2; is_file("$dir/$response"); $n++) {
                     [$request, $response] = ["LatLong{$n}Request.json", "LatLong{$n}Response.json"];
                 }
-            }
-
-            // Hotel search runs in parallel batches: keep the first batch that found hotels.
-            if ($vertical === 'hotel' && str_contains($path, '/hotel/listing')
-                && (is_file("$dir/$response") || empty(json_decode((string) $rawResponse, true)['hotels'] ?? []))) {
-                return;
             }
 
             $json = fn ($data) => json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
