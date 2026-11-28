@@ -31,10 +31,10 @@ class BookingSecurityTest extends TestCase
         $this->app->instance(RazorpayService::class, new FakeRazorpayService());
     }
 
-    protected function makeHotel(string $slug, string $tjHotelId): Hotel
+    protected function makeHotel(string $slug, string $tjHotelId, string $country = 'India'): Hotel
     {
         $destination = Destination::create([
-            'name' => 'Dubai', 'slug' => 'dubai-sec-'.$tjHotelId, 'country' => 'UAE',
+            'name' => 'Dubai', 'slug' => 'dubai-sec-'.$tjHotelId, 'country' => $country,
             'type' => 'city', 'for' => ['hotel'], 'is_active' => true,
         ]);
 
@@ -104,6 +104,54 @@ class BookingSecurityTest extends TestCase
 
         $booking = Booking::firstOrFail();
         $this->assertSame($user->id, $booking->user_id);
+    }
+
+    /** TripJack's Book rejects these with 1163 even when Review said panRequired: false. */
+    public function test_indian_guest_at_a_hotel_abroad_must_give_pan_even_if_review_says_not_required(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $hotel = $this->makeHotel('abroad-pan-hotel', '777000020', 'United Arab Emirates');
+        $draft = [
+            'hotel_id' => $hotel->id, 'hid' => '777000020', 'bookingId' => 'TGS-PAN-1',
+            'option' => ['optionId' => 'opt-1', 'compliance' => ['panRequired' => false, 'passportRequired' => false], 'pricing' => ['totalPrice' => 1000, 'currency' => 'INR']],
+            'correlationId' => 'cid-1', 'check_in' => $this->checkIn, 'check_out' => $this->checkOut,
+            'adults' => 1, 'children' => 0, 'rooms' => 1, 'nationality' => '106',
+        ];
+        $guest = [
+            'contact_email' => 'john@gmail.com', 'contact_phone' => '9876543210',
+            'rooms' => [0 => ['travelers' => [0 => ['title' => 'Mr', 'first_name' => 'John', 'last_name' => 'Doe']]]],
+        ];
+
+        session(['tripjack_booking_draft' => $draft]);
+        $this->post("/hotels/{$hotel->slug}/book", $guest)->assertSessionHasErrors(['pans']);
+        $this->assertSame(0, Booking::count());
+
+        session(['tripjack_booking_draft' => $draft]);
+        $this->post("/hotels/{$hotel->slug}/book", $guest + ['pan_name' => 'John Doe', 'pan_number' => 'ABCPE1234F'])->assertSessionHasNoErrors();
+        $traveller = Booking::firstOrFail()->tripjack_room_traveller_payload[0]['travellerInfo'][0];
+        $this->assertSame('ABCPE1234F', $traveller['pan']);
+        $this->assertSame('John Doe', $traveller['panName']);
+    }
+
+    public function test_pan_stays_optional_for_a_foreign_guest_abroad_and_an_indian_guest_in_india(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $guest = [
+            'contact_email' => 'john@gmail.com', 'contact_phone' => '9876543210',
+            'rooms' => [0 => ['travelers' => [0 => ['title' => 'Mr', 'first_name' => 'John', 'last_name' => 'Doe']]]],
+        ];
+        foreach ([['United Arab Emirates', '226', '777000021'], ['India', '106', '777000022']] as [$country, $nationality, $hid]) {
+            $hotel = $this->makeHotel('pan-optional-'.$hid, $hid, $country);
+            session(['tripjack_booking_draft' => [
+                'hotel_id' => $hotel->id, 'hid' => $hid, 'bookingId' => 'TGS-PAN-'.$hid,
+                'option' => ['optionId' => 'opt-1', 'compliance' => ['panRequired' => false, 'passportRequired' => false], 'pricing' => ['totalPrice' => 1000, 'currency' => 'INR']],
+                'correlationId' => 'cid-1', 'check_in' => $this->checkIn, 'check_out' => $this->checkOut,
+                'adults' => 1, 'children' => 0, 'rooms' => 1, 'nationality' => $nationality,
+            ]]);
+
+            $this->post("/hotels/{$hotel->slug}/book", $guest)->assertSessionHasNoErrors();
+        }
+        $this->assertSame(2, Booking::count());
     }
 
     public function test_a_user_cannot_view_another_users_booking_confirmation(): void

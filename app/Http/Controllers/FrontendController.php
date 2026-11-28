@@ -47,6 +47,7 @@ class FrontendController extends Controller
         $children = $input['children'];
         $roomCount = $input['roomCount'];
         $nationality = $input['nationality'];
+        $residence = $input['residence'];
         // Accepts a single value (pre-search "More Options" pill), a
         // comma-separated string (the post-search sidebar's multi-select
         // checkboxes sync into one hidden field), or an array — star rating
@@ -72,8 +73,20 @@ class FrontendController extends Controller
         $hotels = collect();
         $hotelsPage = null;
 
+        // One property picked from the search bar (or its name typed in the
+        // destination box): its city is searched, but only it is listed.
+        $singleHotel = null;
+
         if ($hasSearched) {
-            if ($destinationQuery !== '') {
+            if ($hotelSlug !== '') {
+                $singleHotel = Hotel::visibleOnWebsite()->where('slug', $hotelSlug)->first();
+                if ($singleHotel) {
+                    $searchDestination = $singleHotel->destination;
+                    $destinationQuery = $singleHotel->title;
+                } else {
+                    $searchError = 'We couldn\'t find that property any more — it may have been removed.';
+                }
+            } elseif ($destinationQuery !== '') {
                 $searchDestination = Destination::active()
                     ->where(function ($q) use ($destinationQuery) {
                         $q->where('slug', Str::slug($destinationQuery))
@@ -81,6 +94,10 @@ class FrontendController extends Controller
                     })
                     ->first();
 
+                if (! $searchDestination) {
+                    $singleHotel = $this->hotelByTypedName($destinationQuery);
+                    $searchDestination = $singleHotel?->destination;
+                }
                 if (! $searchDestination) {
                     $searchError = "We don't have hotels in \"{$destinationQuery}\" yet.";
                 }
@@ -120,7 +137,7 @@ class FrontendController extends Controller
             } elseif ($searchActive) {
                 try {
                     $rooms = $this->roomsForSearch($input);
-                    $result = $this->cityListingSearch($listingSearch, $searchDestination, $checkIn, $checkOut, $rooms, $nationality);
+                    $result = $this->cityListingSearch($listingSearch, $searchDestination, $checkIn, $checkOut, $rooms, $nationality, $singleHotel);
                     $liveOptions = $result['options'];
                     $livePriced = $liveOptions->isNotEmpty();
 
@@ -149,6 +166,7 @@ class FrontendController extends Controller
                         'children' => $children,
                         'rooms' => $roomCount,
                         'nationality' => $nationality,
+                        'residence' => $residence,
                         'child_ages' => $childAges,
                         'room_config' => $input['roomConfig'],
                         // TripJack's search id can't be renewed: once it's this
@@ -169,6 +187,7 @@ class FrontendController extends Controller
             $query = Hotel::query()
                 ->visibleOnWebsite()
                 ->where('destination_id', $searchDestination->id)
+                ->when($singleHotel, fn ($q) => $q->whereKey($singleHotel->id))
                 ->when($filters['name'] !== '', fn ($q) => $q->where('title', 'LIKE', '%'.$filters['name'].'%'));
 
             // Price/meal/cancellation only exist on live options, so they narrow
@@ -243,9 +262,24 @@ class FrontendController extends Controller
         return view('pages.hotels', compact(
             'hotels', 'hotelsPage', 'liveOptions', 'searchActive', 'hasSearched', 'searchError',
             'destinationQuery', 'checkIn', 'checkOut', 'adults', 'children', 'roomCount', 'childAges', 'roomConfig',
-            'nationality', 'nationalities', 'minRating', 'minRatings', 'destinations',
+            'nationality', 'residence', 'nationalities', 'minRating', 'minRatings', 'destinations',
             'filters', 'starCounts', 'livePriced', 'sort', 'searchDestination'
         ));
+    }
+
+    /**
+     * A hotel whose name was typed in the destination box instead of picked
+     * from the suggestions: an exact title match, else the only partial one.
+     */
+    protected function hotelByTypedName(string $typed): ?Hotel
+    {
+        $exact = Hotel::visibleOnWebsite()->where('title', $typed)->first();
+        if ($exact) {
+            return $exact;
+        }
+        $matches = Hotel::visibleOnWebsite()->where('title', 'LIKE', '%'.$typed.'%')->limit(2)->get();
+
+        return $matches->count() === 1 ? $matches->first() : null;
     }
 
     /**
@@ -255,16 +289,18 @@ class FrontendController extends Controller
      *
      * @return array{correlationId: string, options: \Illuminate\Support\Collection<string, array>}
      */
-    private function cityListingSearch(TripJackListingSearch $listingSearch, Destination $destination, string $checkIn, string $checkOut, array $rooms, string $nationality): array
+    private function cityListingSearch(TripJackListingSearch $listingSearch, Destination $destination, string $checkIn, string $checkOut, array $rooms, string $nationality, ?Hotel $only = null): array
     {
-        $cacheKey = 'hotel_city_search:'.session()->getId().':'.md5(json_encode([$destination->id, $checkIn, $checkOut, $rooms, $nationality]));
+        $cacheKey = 'hotel_city_search:'.session()->getId().':'.md5(json_encode([$destination->id, $checkIn, $checkOut, $rooms, $nationality, $only?->id]));
 
         if ($cached = Cache::get($cacheKey)) {
             return ['correlationId' => $cached['correlationId'], 'options' => collect($cached['options'])];
         }
 
+        // One property: price just that hotel, not the whole city.
         $hids = Hotel::visibleOnWebsite()
             ->where('destination_id', $destination->id)
+            ->when($only, fn ($q) => $q->whereKey($only->id))
             ->whereNotNull('tripjack_hotel_id')
             ->pluck('tripjack_hotel_id')
             ->map(fn ($id) => (int) $id)
@@ -525,6 +561,9 @@ class FrontendController extends Controller
             'roomCount' => $roomCount,
             'childAges' => array_slice($childAges, 0, $children),
             'nationality' => $this->validNationality((string) $param('nationality', '106')),
+            // Kept with the search and the booking, not sent to TripJack: its
+            // Listing/Detail requests take nationality only.
+            'residence' => $this->validNationality((string) $param('residence', '106')),
             'roomConfig' => $roomConfig,
             'error' => $error,
         ];
@@ -851,6 +890,7 @@ class FrontendController extends Controller
         $childAges = $input['childAges'];
         $roomConfig = $input['roomConfig'];
         $nationality = $input['nationality'];
+        $residence = $input['residence'];
 
         $liveOptions = collect();
         $pricingError = null;
@@ -909,6 +949,7 @@ class FrontendController extends Controller
                     'child_ages' => $childAges,
                     'room_config' => $input['roomConfig'],
                     'nationality' => $nationality,
+                    'residence' => $residence,
                     // The price each option was shown at, so Review can tell
                     // the guest if it moved since they picked it.
                     'option_prices' => $liveOptions->mapWithKeys(fn ($o) => [($o['optionId'] ?? '') => $o['pricing']['totalPrice'] ?? null])->filter()->all(),
@@ -933,9 +974,10 @@ class FrontendController extends Controller
         $pricingExpiresAt = $liveOptions->isNotEmpty()
             ? session("tripjack_pricing.{$hotel->tripjack_hotel_id}.fetched_at", now()->timestamp) + self::HOTEL_SESSION_SECONDS
             : null;
+        $nationalities = $this->tripjackNationalities(app(TripJackClient::class));
 
         return view('pages.hotel-details', compact(
-            'hotel', 'liveOptions', 'pricingError', 'checkIn', 'checkOut', 'adults', 'children', 'roomCount', 'childAges', 'roomConfig', 'nationality', 'destinations', 'pricingExpiresAt'
+            'hotel', 'liveOptions', 'pricingError', 'checkIn', 'checkOut', 'adults', 'children', 'roomCount', 'childAges', 'roomConfig', 'nationality', 'residence', 'nationalities', 'destinations', 'pricingExpiresAt'
         ));
     }
 
@@ -1085,6 +1127,7 @@ class FrontendController extends Controller
             'rooms' => $context['rooms'] ?? $request?->input('rooms'),
             'child_ages' => ! empty($context['child_ages']) ? implode(',', $context['child_ages']) : $request?->input('child_ages'),
             'nationality' => $context['nationality'] ?? $request?->input('nationality'),
+            'residence' => $context['residence'] ?? $request?->input('residence'),
             'room_config' => $context['room_config'] ?? $request?->input('room_config'),
         ];
 
@@ -1183,6 +1226,7 @@ class FrontendController extends Controller
             'child_ages' => $pricingContext['child_ages'] ?? [],
             'room_config' => $pricingContext['room_config'] ?? null,
             'nationality' => $pricingContext['nationality'] ?? '106',
+            'residence' => $pricingContext['residence'] ?? '106',
         ]]);
 
         // Post/Redirect/Get: never render this page as a direct POST response —
@@ -1208,7 +1252,7 @@ class FrontendController extends Controller
 
         $roomSlots = $this->roomSlotsFromDraft($draft);
         $option = $draft['option'] ?? [];
-        $panRequired = $option['compliance']['panRequired'] ?? $option['ipr'] ?? false;
+        $panRequired = $this->hotelPanRequired($hotel, $draft);
         $passportRequired = $option['compliance']['passportRequired'] ?? $option['ipm'] ?? false;
 
         // Same TripJack-room-id-first, name-fallback match used on the room
@@ -1293,7 +1337,7 @@ class FrontendController extends Controller
         // TripJack's docs are inconsistent about field naming across endpoints
         // (compliance.panRequired in Detail/Review vs. compact ipr/ipm in
         // Booking Details) — accept either so we're not blindsided again.
-        $panRequired = $option['compliance']['panRequired'] ?? $option['ipr'] ?? false;
+        $panRequired = $this->hotelPanRequired($hotel, $draft);
         $passportRequired = $option['compliance']['passportRequired'] ?? $option['ipm'] ?? false;
         // TripJack: for PASSTHROUGH / RESELLER GST rates, Book must carry
         // gstInfo {gstNumber, registeredName}. TripJack never returns those
@@ -1666,6 +1710,26 @@ class FrontendController extends Controller
      * out from routine ones (sold out, expired session) instead of all
      * flattening into the same "warning" bucket.
      */
+    /**
+     * PAN is needed when TripJack's Review says so, and always for an Indian
+     * guest at a hotel outside India: TripJack's Book rejects those with 1163
+     * "Mandatory pan information not available" even when Review returned
+     * panRequired: false (Indian TCS rules on foreign travel need the PAN).
+     */
+    protected function hotelPanRequired(Hotel $hotel, array $draft): bool
+    {
+        $option = $draft['option'] ?? [];
+        // Any of TripJack's spellings saying yes counts (v3 Review sends
+        // compliance.panRequired; the docs and Booking Details use ipr).
+        if (($option['compliance']['panRequired'] ?? false) || ($option['ipr'] ?? false) || ($option['isPanRequired'] ?? false)) {
+            return true;
+        }
+        $country = trim((string) $hotel->destination?->country);
+        $indianGuest = (string) ($draft['nationality'] ?? '106') === '106';
+
+        return $indianGuest && $country !== '' && strcasecmp($country, 'India') !== 0;
+    }
+
     protected function logTripjackFailure(string $logLevel, string $event, array $context): void
     {
         $logger = Log::channel('tripjack');
@@ -1784,7 +1848,7 @@ class FrontendController extends Controller
             // that has since resolved offline.
             $this->finalizeCancellation($booking, $details, $razorpay);
             $booking->refresh();
-        } elseif (in_array($liveStatus, ['SUCCESS', 'PENDING', 'IN_PROGRESS'], true)
+        } elseif (in_array($liveStatus, ['SUCCESS', 'PENDING', 'IN_PROGRESS', 'PAYMENT_SUCCESS'], true)
             && in_array($booking->status, ['confirmed', 'pending_confirmation'], true)) {
             // Only map statuses we understand — an unreadable or
             // CANCELLATION_PENDING status must not downgrade a confirmed booking.

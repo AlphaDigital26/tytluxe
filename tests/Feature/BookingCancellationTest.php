@@ -47,7 +47,7 @@ class BookingCancellationTest extends TestCase
     protected function confirmedBooking(string $slug, string $tjHotelId): Booking
     {
         $destination = Destination::create([
-            'name' => 'Dubai', 'slug' => 'dubai-cancel-'.$tjHotelId, 'country' => 'UAE',
+            'name' => 'Dubai', 'slug' => 'dubai-cancel-'.$tjHotelId, 'country' => 'India',
             'type' => 'city', 'for' => ['hotel'], 'is_active' => true,
         ]);
         $hotel = Hotel::create([

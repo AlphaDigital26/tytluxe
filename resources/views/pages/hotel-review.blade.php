@@ -330,6 +330,7 @@
     'rooms'       => $draft['rooms'] ?? null,
     'child_ages'  => ! empty($draft['child_ages']) ? implode(',', $draft['child_ages']) : null,
     'nationality' => $draft['nationality'] ?? null,
+    'residence'   => $draft['residence'] ?? null,
     'room_config' => $draft['room_config'] ?? null,
   ]));
 

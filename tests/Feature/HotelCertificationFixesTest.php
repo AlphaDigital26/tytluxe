@@ -28,7 +28,7 @@ class HotelCertificationFixesTest extends TestCase
         $this->checkOut = now()->addDays(22)->toDateString();
         $this->actingAs(User::factory()->create());
 
-        $destination = Destination::create(['name' => 'Dubai', 'slug' => 'dubai', 'country' => 'UAE', 'type' => 'city', 'for' => ['hotel'], 'is_active' => true]);
+        $destination = Destination::create(['name' => 'Dubai', 'slug' => 'dubai', 'country' => 'India', 'type' => 'city', 'for' => ['hotel'], 'is_active' => true]);
         $this->hotel = Hotel::create([
             'destination_id' => $destination->id, 'title' => 'Cert Hotel', 'slug' => 'cert-hotel-1',
             'description' => 'x', 'category' => 'city_luxury', 'address' => 'Dubai', 'star_rating' => 5,

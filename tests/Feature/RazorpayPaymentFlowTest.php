@@ -39,7 +39,7 @@ class RazorpayPaymentFlowTest extends TestCase
     protected function createPendingBooking(string $slug, string $tjHotelId): Booking
     {
         $destination = Destination::create([
-            'name' => 'Dubai', 'slug' => 'dubai-rzp-'.$tjHotelId, 'country' => 'UAE',
+            'name' => 'Dubai', 'slug' => 'dubai-rzp-'.$tjHotelId, 'country' => 'India',
             'type' => 'city', 'for' => ['hotel'], 'is_active' => true,
         ]);
         $hotel = Hotel::create([
