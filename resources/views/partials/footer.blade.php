@@ -67,6 +67,7 @@
                 <ul role="list">
                     <li><a href="{{ url('/hotels') }}">Hotels</a></li>
                     <li><a href="{{ url('/flights') }}">Flights</a></li>
+                    <li><a href="{{ url('/cabs') }}">Cabs</a></li>
                     <li><a href="{{ url('/cruises') }}">Cruises</a></li>
                     <li><a href="{{ url('/packages') }}">Packages</a></li>
                     @if(\App\Models\Setting::get('offers_page.is_visible', '1') === '1')

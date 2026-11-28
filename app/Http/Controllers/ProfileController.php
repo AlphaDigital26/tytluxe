@@ -227,6 +227,7 @@ class ProfileController extends Controller
                 // What was booked, whatever the type.
                 'booked' => match ($b->vertical) {
                     'flight' => trim('Flight '.str_replace('-', ' → ', (string) $b->flight_route)),
+                    'cab' => trim('Cab '.$b->flight_route),
                     'package' => $b->package?->title.($b->package_option && $b->package_option !== 'Per person' ? ' ('.$b->package_option.')' : ''),
                     default => $b->hotel?->title.($b->room_name ? ' — '.$b->room_name : ''),
                 },

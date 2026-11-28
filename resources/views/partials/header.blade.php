@@ -22,6 +22,7 @@
                     <li><a href="{{ url('/about') }}" class="{{ request()->is('about') ? 'active' : '' }}" {{ request()->is('about') ? 'aria-current=page' : '' }}>About Us</a></li>
                     <li><a href="{{ url('/hotels') }}" class="{{ request()->is('hotels') ? 'active' : '' }}" {{ request()->is('hotels') ? 'aria-current=page' : '' }}>Hotels</a></li>
                     <li><a href="{{ url('/flights') }}" class="{{ request()->is('flights') ? 'active' : '' }}" {{ request()->is('flights') ? 'aria-current=page' : '' }}>Flights</a></li>
+                    <li><a href="{{ url('/cabs') }}" class="{{ request()->is('cabs*') ? 'active' : '' }}" {{ request()->is('cabs*') ? 'aria-current=page' : '' }}>Cabs</a></li>
                     <li><a href="{{ url('/cruises') }}" class="{{ request()->is('cruises') ? 'active' : '' }}" {{ request()->is('cruises') ? 'aria-current=page' : '' }}>Cruises</a></li>
                     <li class="nav-has-dropdown {{ request()->is('packages') ? 'nav-dropdown-active' : '' }}">
                         <a href="{{ url('/packages') }}" class="{{ request()->is('packages') ? 'active' : '' }}" {{ request()->is('packages') ? 'aria-current=page' : '' }} aria-haspopup="true" aria-expanded="false">

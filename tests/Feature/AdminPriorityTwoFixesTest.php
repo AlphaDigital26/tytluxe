@@ -78,7 +78,7 @@ class AdminPriorityTwoFixesTest extends TestCase
         $this->get('/tyt-console')->assertOk()
             ->assertSee('₹35,000')
             ->assertSee('packages ₹25,000')
-            ->assertSee('Your earnings (hotels &amp; flights)', false);
+            ->assertSee('Your earnings (hotels, flights &amp; cabs)', false);
     }
 
     public function test_manual_refund_shows_only_where_a_refund_can_be_owed(): void

@@ -3,6 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
+use App\Http\Controllers\CabController;
 use App\Http\Controllers\FlightAncillaryController;
 use App\Http\Controllers\FlightController;
 use App\Http\Controllers\FlightReissueController;
@@ -26,6 +27,12 @@ Route::get('/flights/fare-rule', [FlightController::class, 'fareRuleAjax'])->nam
 // Date-strip "Fetch Fare" on the results page — each call is a full TripJack
 // search, so it shares the search page's tighter limit.
 Route::get('/flights/fare-calendar', [FlightController::class, 'fareCalendarAjax'])->name('flights.fare-calendar.ajax')->middleware(['flight.enabled:booking', 'throttle:30,1']);
+// Cabs (TripJack Cabs API): search is public like flights; booking needs an
+// account. Payment, confirmation and cancellation reuse the shared
+// /booking/{reference}/* routes (FrontendController hands cab bookings to CabController).
+Route::get('/cabs', [CabController::class, 'index'])->name('cabs');
+Route::get('/cabs/places', [CabController::class, 'places'])->name('cabs.places')->middleware(['cab.enabled', 'throttle:60,1']);
+Route::get('/cabs/search', [CabController::class, 'search'])->name('cabs.search')->middleware(['cab.enabled', 'throttle:20,1']);
 Route::get('/hotels', [FrontendController::class, 'hotels'])->name('hotels');
 Route::get('/hotels/search-suggestions', [FrontendController::class, 'hotelSearchSuggestions'])->name('hotels.search-suggestions')->middleware('throttle:60,1');
 Route::get('/wishlist', [FrontendController::class, 'wishlist'])->name('wishlist');
@@ -63,6 +70,9 @@ Route::middleware('auth')->group(function () {
     // above via Payment.purpose='flight_ssr'; see FlightAncillaryService.
     Route::get('/booking/{reference}/flight/extras', [FlightAncillaryController::class, 'show'])->name('flights.extras.show')->middleware(['flight.enabled:extras', 'throttle:20,1']);
     Route::post('/booking/{reference}/flight/extras', [FlightAncillaryController::class, 'submit'])->name('flights.extras.submit')->middleware(['flight.enabled:extras', 'throttle:10,1']);
+
+    Route::get('/cabs/review', [CabController::class, 'review'])->name('cabs.review')->middleware(['cab.enabled', 'throttle:20,1']);
+    Route::post('/cabs/book', [CabController::class, 'book'])->name('cabs.book')->middleware(['cab.enabled', 'throttle:10,1']);
 
     Route::post('/booking/{reference}/flight/cancel-quote', [FlightController::class, 'cancellationQuote'])->name('flights.cancel.quote')->middleware('throttle:30,1');
 

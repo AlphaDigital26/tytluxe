@@ -35,6 +35,7 @@ class Booking extends Model
         'manual_refund_due_at', 'admin_refund_amount',
         'package_departure_id', 'package_option', 'package_price_per_person', 'package_payment_plan',
         'package_balance_amount', 'package_balance_due_on', 'package_balance_reminded_at',
+        'cab_pickup_at', 'cab_details',
     ];
 
     protected $casts = [
@@ -60,6 +61,8 @@ class Booking extends Model
         'flight_return_date' => 'date',
         'package_balance_due_on' => 'date',
         'package_balance_reminded_at' => 'datetime',
+        'cab_pickup_at' => 'datetime',
+        'cab_details' => 'array',
     ];
 
     public function user() { return $this->belongsTo(User::class); }

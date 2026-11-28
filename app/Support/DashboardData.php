@@ -212,6 +212,18 @@ class DashboardData
                 });
         }
 
+        if (\App\Filament\Resources\CabBookings\CabBookingResource::canViewAny()) {
+            \App\Filament\Resources\CabBookings\CabBookingResource::getEloquentQuery()
+                ->where('status', 'confirmed')->whereNull('cancellation_requested_at')
+                ->whereBetween('cab_pickup_at', [today(), today()->addDays($days)->endOfDay()])
+                ->orderBy('cab_pickup_at')->limit($limit)->get()
+                ->each(function (Booking $b) use (&$trips) {
+                    $trips[] = ['date' => $b->cab_pickup_at, 'icon' => '🚕', 'guest' => (string) $b->lead_guest_name,
+                        'what' => 'Cab · '.$b->flight_route.' · '.$b->cab_pickup_at->format('g:i A'),
+                        'url' => \App\Filament\Resources\CabBookings\CabBookingResource::getUrl('view', ['record' => $b]), 'status' => \App\Support\CabBookingStatus::for($b)];
+                });
+        }
+
         usort($trips, fn ($a, $b) => $a['date'] <=> $b['date']);
 
         return array_slice($trips, 0, $limit);
@@ -224,7 +236,7 @@ class DashboardData
      */
     public static function monthly(int $months = 6): array
     {
-        $out = ['labels' => [], 'hotel' => [], 'flight' => [], 'package' => [], 'earning' => [], 'bookings' => [], 'enquiries' => []];
+        $out = ['labels' => [], 'hotel' => [], 'flight' => [], 'package' => [], 'cab' => [], 'earning' => [], 'bookings' => [], 'enquiries' => []];
 
         for ($i = $months - 1; $i >= 0; $i--) {
             $start = now()->startOfMonth()->subMonths($i);
@@ -232,7 +244,8 @@ class DashboardData
             $month = fn () => self::sales()->whereBetween('created_at', [$start, $end]);
 
             $out['labels'][] = $start->format('M');
-            $out['hotel'][] = round((float) $month()->whereNotIn('vertical', ['flight', 'package'])->sum('total_amount'), 2);
+            $out['hotel'][] = round((float) $month()->whereNotIn('vertical', ['flight', 'package', 'cab'])->sum('total_amount'), 2);
+            $out['cab'][] = round((float) $month()->where('vertical', 'cab')->sum('total_amount'), 2);
             $out['flight'][] = round((float) $month()->where('vertical', 'flight')->sum('total_amount'), 2);
             $out['package'][] = round((float) $month()->where('vertical', 'package')->sum('total_amount'), 2);
             $out['earning'][] = round((float) $month()->sum('margin_amount'), 2);

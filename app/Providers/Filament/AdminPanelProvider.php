@@ -96,6 +96,7 @@ class AdminPanelProvider extends PanelProvider
                 \Filament\Navigation\NavigationGroup::make()->label('Bookings & Leads'),
                 \Filament\Navigation\NavigationGroup::make()->label('Hotels'),
                 \Filament\Navigation\NavigationGroup::make()->label('Flights'),
+                \Filament\Navigation\NavigationGroup::make()->label('Cabs'),
                 \Filament\Navigation\NavigationGroup::make()->label('Packages & Offers'),
                 \Filament\Navigation\NavigationGroup::make()->label('Cruises'),
                 \Filament\Navigation\NavigationGroup::make()->label('Website Content'),

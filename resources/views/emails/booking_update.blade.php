@@ -4,6 +4,8 @@
 
   $isFlight = $booking->vertical === 'flight';
   $isPackage = $booking->vertical === 'package';
+  $isCab = $booking->vertical === 'cab';
+  $cab = $booking->cab_details ?? [];
   $cur = $booking->currency ?: 'INR';
   $money = fn ($v) => $cur.' '.number_format((float) $v, 2);
   $date = fn ($v) => $v ? Carbon::parse($v)->format('D, j M Y') : '—';
@@ -22,9 +24,11 @@
   };
 
   [$headline, $intro] = $packageText ?? match ($kind) {
-      M::CONFIRMED => $isFlight
-          ? ['Your flight is booked', 'Your tickets have been issued by the airline. Your PNR and ticket numbers are below — keep this email handy for check-in.']
-          : ['Your booking is confirmed', 'Your payment was successful and the hotel has confirmed your room. Your booking details are below.'],
+      M::CONFIRMED => match (true) {
+          $isFlight => ['Your flight is booked', 'Your tickets have been issued by the airline. Your PNR and ticket numbers are below — keep this email handy for check-in.'],
+          $isCab => ['Your cab is booked', 'Your payment was successful and your cab is confirmed. Your driver\'s details are shared before pickup, and you can track the driver from your booking page.'],
+          default => ['Your booking is confirmed', 'Your payment was successful and the hotel has confirmed your room. Your booking details are below.'],
+      },
       M::RESCHEDULED => ['Your new flight details', 'Your flight has been rescheduled and the airline has issued your new tickets. Please use the details below — your old PNR is no longer valid.'],
       M::CANCELLED => ['Your booking has been cancelled', $booking->guestCancellationMessage()],
       M::EXTRAS => match ($ssrStatus) {
@@ -34,7 +38,7 @@
               ? ['We couldn\'t add your extras', 'The airline couldn\'t add the seats, meals or baggage you chose. Our team is processing your refund and will contact you if we need anything.']
               : ['We couldn\'t add your extras', 'The airline couldn\'t add the seats, meals or baggage you chose, so we have refunded you in full. It can take 5–7 business days to show in your account.'],
       },
-      M::FAILED_REFUNDED => ['We couldn\'t confirm your booking', 'Unfortunately the '.($isFlight ? 'airline' : 'hotel').' could not confirm this booking after your payment, so we have refunded you in full. It can take 5–7 business days to show in your account. We are sorry for the trouble.'],
+      M::FAILED_REFUNDED => ['We couldn\'t confirm your booking', 'Unfortunately the '.($isFlight ? 'airline' : ($isCab ? 'cab operator' : 'hotel')).' could not confirm this booking after your payment, so we have refunded you in full. It can take 5–7 business days to show in your account. We are sorry for the trouble.'],
       default => ['Update on your booking', ''],
   };
 
@@ -145,6 +149,23 @@
             @endforeach
           </table>
         @endif
+      @elseif($isCab)
+        <div class="section-title">Your cab</div>
+        <table class="rows">
+          <tr><td class="label">Cab</td><td class="value highlight">{{ $cab['option']['label'] ?? 'Cab' }}@if(!empty($cab['option']['similar']))<br><span style="color:#888;">{{ $cab['option']['similar'] }}</span>@endif</td></tr>
+          <tr><td class="label">Pickup</td><td class="value">{{ $cab['from'] ?? '' }}<br><span style="color:#888;">{{ $dateTime($booking->cab_pickup_at) }}</span></td></tr>
+          <tr><td class="label">Drop</td><td class="value">{{ $cab['to'] ?? '' }}</td></tr>
+          @if(!empty($cab['returnAt']))
+          <tr><td class="label">Return</td><td class="value">{{ $dateTime($cab['returnAt']) }}</td></tr>
+          @endif
+          <tr><td class="label">Passengers</td><td class="value">{{ (int) $booking->pax_adults }}</td></tr>
+          @if(!empty($cab['passenger']['flightNumber']))
+          <tr><td class="label">Flight</td><td class="value">{{ strtoupper($cab['passenger']['flightNumber']) }}</td></tr>
+          @endif
+          @if(!empty($cab['live']['helpline']) && $kind === M::CONFIRMED)
+          <tr><td class="label">Operator helpline</td><td class="value">{{ $cab['live']['helpline'] }}</td></tr>
+          @endif
+        </table>
       @elseif($isPackage)
         <div class="section-title">Your trip</div>
         <table class="rows">
