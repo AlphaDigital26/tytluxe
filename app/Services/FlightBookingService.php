@@ -414,6 +414,48 @@ class FlightBookingService
     }
 
     /**
+     * One passenger's fare by type (ADULT/CHILD/INFANT) for the invoice, as
+     * TripJack's own invoice splits it: base fare, YQ (fuel), K3 (airline
+     * GST) and other taxes (the rest, TripJack's MF/MFT included), summed
+     * over every trip of Review's tripInfos[].totalPriceList[0].fd. Booking
+     * Details' travellerInfos[].fd only carries the first trip, so Review it is.
+     *
+     * `markup` is our ₹ markup for one passenger of that type (per flight,
+     * as FlightPricingService::bookingMarkup() counts it), so the invoice
+     * can split our charges per passenger.
+     *
+     * @return array<string, array{base: float, tax: float, k3: float, yq: float, total: float, markup: float}>
+     */
+    public static function paxFares(array $review): array
+    {
+        $fares = [];
+        foreach ($review['tripInfos'] ?? [] as $trip) {
+            $legs = count(\App\Services\TripJack\TripJackFlightClient::itineraryLegs($trip['sI'] ?? []));
+            $tripMarkup = FlightPricingService::markupPerPassenger($trip['sI'] ?? []);
+            foreach (($trip['totalPriceList'][0]['fd'] ?? []) as $type => $fd) {
+                $fc = $fd['fC'] ?? [];
+                $taf = $fd['afC']['TAF'] ?? [];
+                $base = (float) ($fc['BF'] ?? 0);
+                $yq = (float) ($taf['YQ'] ?? 0);
+                $k3 = (float) ($taf['AGST'] ?? 0);
+                $total = (float) ($fc['TF'] ?? 0);
+                $row = $fares[$type] ?? ['base' => 0.0, 'tax' => 0.0, 'k3' => 0.0, 'yq' => 0.0, 'total' => 0.0, 'markup' => 0.0];
+                $markup = $type === 'INFANT' ? $legs * \App\Support\FlightSettings::infantMarkup() : $tripMarkup;
+                $fares[$type] = [
+                    'base' => round($row['base'] + $base, 2),
+                    'tax' => round($row['tax'] + $total - $base - $yq - $k3, 2),
+                    'k3' => round($row['k3'] + $k3, 2),
+                    'yq' => round($row['yq'] + $yq, 2),
+                    'total' => round($row['total'] + $total, 2),
+                    'markup' => round($row['markup'] + $markup, 2),
+                ];
+            }
+        }
+
+        return $fares;
+    }
+
+    /**
      * Segments plus every traveller's ticket numbers, keyed by name, for the
      * admin booking page. Empty when the response has no segments.
      *

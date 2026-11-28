@@ -225,6 +225,68 @@ class Booking extends Model
     }
 
     /**
+     * The flight invoice's per-passenger lines: Base Fare is TripJack's fare
+     * for that passenger, Other Taxes is our share on top: their markup + its
+     * GST, the Razorpay charge (by share of the amount) and the management
+     * fee + GST (split equally). Seats/meals/baggage picked at booking are
+     * one more line. Rounding paise go on the last passenger, so the lines
+     * add up to base_amount, tax_amount and total_amount exactly.
+     * Empty for bookings made before the fare split was saved (paxFares).
+     *
+     * @return array<int, array{name: string, type: string, tickets: array, base: float, other: float, total: float, addons?: bool}>
+     */
+    public function flightFareRows(): array
+    {
+        $fares = $this->flight_segments_payload['paxFares'] ?? [];
+        if ($this->vertical !== 'flight' || ! $fares) {
+            return [];
+        }
+
+        $rows = [];
+        foreach ($this->flightPassengers() as $p) {
+            $fare = $fares[strtoupper($p['type'])] ?? null;
+            if (! $fare) {
+                return [];
+            }
+            $rows[] = $p + ['base' => (float) $fare['total'], 'markup' => (float) ($fare['markup'] ?? 0)];
+        }
+        $addons = round((float) $this->base_amount - array_sum(array_column($rows, 'base')), 2);
+        if ($addons >= 1) {
+            $rows[] = ['name' => 'Seats, meals & baggage', 'type' => '', 'tickets' => [], 'base' => $addons, 'markup' => 0.0, 'addons' => true];
+        }
+
+        $passengers = count($this->flight_segments_payload['travellerInfo'] ?? []) ?: 1;
+        $margin = (float) $this->margin_amount;
+        $markupSum = array_sum(array_column($rows, 'markup'));
+        $gstRate = $margin > 0 ? (float) $this->gst_on_margin / $margin : 0.0;
+        $mgmt = (float) $this->management_fee + (float) $this->management_fee_gst;
+
+        foreach ($rows as &$row) {
+            $isPax = empty($row['addons']);
+            // The booking's saved margin is what was charged; the saved
+            // per-type markup only says how it splits between passengers.
+            $row['markup'] = $markupSum > 0 ? $margin * $row['markup'] / $markupSum : ($isPax ? $margin / $passengers : 0.0);
+            $row['pre'] = $row['base'] + $row['markup'] * (1 + $gstRate);
+        }
+        unset($row);
+        $preSum = array_sum(array_column($rows, 'pre')) ?: 1;
+
+        $result = [];
+        foreach ($rows as $row) {
+            $other = $row['markup'] * (1 + $gstRate)
+                + (float) $this->razorpay_recovery * $row['pre'] / $preSum
+                + (empty($row['addons']) ? $mgmt / $passengers : 0.0);
+            unset($row['markup'], $row['pre']);
+            $result[] = $row + ['other' => round($other, 2)];
+        }
+
+        $lastPax = count($result) - 1 - (empty(end($result)['addons']) ? 0 : 1);
+        $result[$lastPax]['other'] = round($result[$lastPax]['other'] + (float) $this->tax_amount - array_sum(array_column($result, 'other')), 2);
+
+        return array_map(fn ($r) => $r + ['total' => round($r['base'] + $r['other'], 2)], $result);
+    }
+
+    /**
      * What a free cancellation keeps (hotels and flights): our management
      * fee alone — its GST is refunded. Bookings made before the fee existed
      * keep the old ₹100.
