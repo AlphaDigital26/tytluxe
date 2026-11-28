@@ -117,6 +117,7 @@ class AdminPanelProvider extends PanelProvider
                 \App\Filament\Widgets\HotelsOverview::class,
                 \App\Filament\Widgets\FlightsOverview::class,
                 \App\Filament\Widgets\PackagesOverview::class,
+                \App\Filament\Widgets\CabsOverview::class,
                 \App\Filament\Widgets\SalesChart::class,
                 \App\Filament\Widgets\UpcomingTrips::class,
                 \App\Filament\Widgets\EnquiriesByCategoryChart::class,
@@ -144,6 +145,32 @@ class AdminPanelProvider extends PanelProvider
                 PanelsRenderHook::HEAD_END,
                 fn (): string => Blade::render(<<<'HTML'
                     <style>
+                        /* Chart period menu (e.g. "Last 30 days") stays on the right of the title. */
+                        .fi-wi-chart .fi-section-header-content { display: flex; flex-wrap: nowrap; align-items: flex-start; gap: 16px; }
+                        .fi-wi-chart .fi-section-header-text-ctn { flex: 1 1 auto; min-width: 0; }
+                        .fi-wi-chart .fi-section-header-after-ctn { margin-left: auto; flex-shrink: 0; align-self: flex-start; }
+                        @media (max-width: 640px) {
+                            .fi-wi-chart .fi-section-header-content { flex-wrap: wrap; }
+                        }
+                        /* Sales chart period dropdown */
+                        .tyt-pd { position: relative; }
+                        .tyt-pd-btn { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(201,168,76,0.55); background: rgba(201,168,76,0.08); color: #111827; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background .15s, border-color .15s; }
+                        .dark .tyt-pd-btn { color: #fff; }
+                        .tyt-pd-btn:hover, .tyt-pd-btn[aria-expanded="true"] { background: rgba(201,168,76,0.16); border-color: #c9a84c; }
+                        .tyt-pd-btn:focus-visible { outline: 2px solid #c9a84c; outline-offset: 2px; }
+                        .tyt-pd-ico { width: 15px; height: 15px; color: #c9a84c; }
+                        .tyt-pd-chev { width: 16px; height: 16px; color: #c9a84c; transition: transform .2s; }
+                        .tyt-pd-chev.is-open { transform: rotate(180deg); }
+                        .tyt-pd-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; min-width: 190px; padding: 6px; border-radius: 12px; background: #fff; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 16px 40px rgba(0,0,0,0.18); }
+                        .dark .tyt-pd-menu { background: #1f2430; border-color: rgba(201,168,76,0.3); box-shadow: 0 16px 40px rgba(0,0,0,0.55); }
+                        .tyt-pd-opt { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 12px; border-radius: 8px; border: none; background: none; text-align: left; font-size: 13px; color: #374151; cursor: pointer; }
+                        .dark .tyt-pd-opt { color: #d1d5db; }
+                        .tyt-pd-opt:hover, .tyt-pd-opt:focus-visible { background: rgba(201,168,76,0.12); color: #111827; outline: none; }
+                        .dark .tyt-pd-opt:hover, .dark .tyt-pd-opt:focus-visible { color: #fff; }
+                        .tyt-pd-opt.is-on { background: rgba(201,168,76,0.18); color: #8a6d1f; font-weight: 600; }
+                        .dark .tyt-pd-opt.is-on { color: #e8c96b; }
+                        .tyt-pd-opt svg { width: 15px; height: 15px; color: #c9a84c; flex-shrink: 0; }
+                        [x-cloak] { display: none !important; }
                         /* Hide scrollbar from sidebar */
                         aside.fi-sidebar nav, 
                         .fi-sidebar-nav, 

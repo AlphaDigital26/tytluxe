@@ -81,6 +81,31 @@ class AdminPriorityTwoFixesTest extends TestCase
             ->assertSee('Your earnings (hotels, flights &amp; cabs)', false);
     }
 
+    public function test_sales_chart_compares_different_periods(): void
+    {
+        $this->actingAs($this->admin(), 'admin');
+        $today = $this->booking(['total_amount' => 10000]);
+        $old = $this->booking(['vertical' => 'cab', 'total_amount' => 4000]);
+        $old->forceFill(['created_at' => now()->subDays(20)])->save();
+
+        $week = \App\Support\DashboardData::salesSeries('7d');
+        $this->assertCount(7, $week['labels']);
+        $this->assertEquals(10000, $week['total']);
+        $this->assertEquals(10000, end($week['hotel']));
+
+        $month = \App\Support\DashboardData::salesSeries('30d');
+        $this->assertCount(30, $month['labels']);
+        $this->assertEquals(14000, $month['total']);
+        $this->assertEquals(4000, array_sum($month['cab']));
+
+        $this->assertCount(12, \App\Support\DashboardData::salesSeries('12m')['labels']);
+
+        \Livewire\Livewire::test(\App\Filament\Widgets\SalesChart::class)
+            ->assertSee('Sales — last 6 months')
+            ->assertSeeHtml('tyt-pd-opt is-on')->assertSeeInOrder(['Last 7 days', 'Last 30 days', 'Last 3 months', 'Last 6 months', 'Last 12 months', 'This year'])
+            ->set('filter', '7d')->assertSee('Sales — last 7 days')->assertSee('₹10,000 in total, by day');
+    }
+
     public function test_manual_refund_shows_only_where_a_refund_can_be_owed(): void
     {
         $confirmed = $this->booking();

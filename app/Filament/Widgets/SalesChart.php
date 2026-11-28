@@ -16,9 +16,29 @@ class SalesChart extends ChartWidget
     /** No auto-refresh (Filament's default is every 5s). */
     protected ?string $pollingInterval = null;
 
-    protected ?string $heading = 'Sales over the last 6 months';
+    /** Filament's chart, with gold period pills in place of the dropdown. */
+    protected string $view = 'filament.widgets.sales-chart';
 
-    protected ?string $description = 'Money guests paid for bookings that went ahead.';
+    /** The period picked in the chart's top-right menu. */
+    public ?string $filter = '6m';
+
+    protected function getFilters(): ?array
+    {
+        return DashboardData::SALES_PERIODS;
+    }
+
+    public function getHeading(): ?string
+    {
+        return 'Sales — '.strtolower(DashboardData::SALES_PERIODS[$this->filter] ?? 'last 6 months');
+    }
+
+    public function getDescription(): ?string
+    {
+        $s = DashboardData::salesSeries($this->filter ?? '6m');
+
+        return 'Money guests paid for bookings that went ahead: ₹'.number_format($s['total']).' in total'
+            .(in_array($this->filter, ['7d', '30d'], true) ? ', by day.' : ($this->filter === '3m' ? ', by week.' : ', by month.'));
+    }
 
     protected ?string $maxHeight = '260px';
 
@@ -29,7 +49,7 @@ class SalesChart extends ChartWidget
 
     protected function getData(): array
     {
-        $m = DashboardData::monthly(6);
+        $m = DashboardData::salesSeries($this->filter ?? '6m');
 
         return [
             'datasets' => [

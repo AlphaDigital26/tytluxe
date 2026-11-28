@@ -341,6 +341,8 @@ class CabBookingTest extends TestCase
         $this->get("/tyt-console/cab-bookings/{$booking->id}")->assertOk()
             ->assertSee('Standard Sedan')->assertSee('Your earning')->assertSee('Check status with TripJack');
         $this->get('/tyt-console/cab-settings')->assertOk()->assertSee('Your earning per cab trip');
+        \Livewire\Livewire::test(\App\Filament\Widgets\CabsOverview::class)
+            ->assertSee('Cab sales this month')->assertSee('Pickups today')->assertSee('₹200');
         // Cab bookings stay out of the hotel bookings list.
         $this->get('/tyt-console/bookings')->assertOk()->assertDontSee($booking->reference);
 

@@ -72,6 +72,13 @@ class DashboardData
                 'url' => PackageBookingResource::getUrl('index').'?tab=attention', 'button' => 'See bookings'];
         }
 
+        if (\App\Filament\Resources\CabBookings\CabBookingResource::canViewAny() && ($n = CabBookingStatus::applyNeedsAttention(\App\Filament\Resources\CabBookings\CabBookingResource::getEloquentQuery())->count())) {
+            $items[] = ['icon' => '🚕', 'tone' => 'danger', 'count' => $n,
+                'title' => $n === 1 ? 'Cab booking needs a look' : 'Cab bookings need a look',
+                'text' => 'A cab could not be confirmed, a cancellation is pending, or a refund needs action.',
+                'url' => \App\Filament\Resources\CabBookings\CabBookingResource::getUrl('index').'?tab=attention', 'button' => 'See bookings'];
+        }
+
         $balance = self::walletBalance();
         $lastCheck = $balance && $balance['checked_at'] ? Carbon::parse($balance['checked_at']) : null;
         if (FlightSettingsPage::canAccess() && (! $lastCheck || $lastCheck->lt(now()->subMinutes(self::WALLET_STALE_MINUTES)))) {
@@ -86,7 +93,7 @@ class DashboardData
         if ($balance !== null && $balance['low']) {
             $items[] = ['icon' => '💳', 'tone' => 'danger', 'count' => null,
                 'title' => 'TripJack wallet is running low',
-                'text' => 'Only ₹'.number_format($balance['amount'], 0).' left. Top it up, or new hotel and flight bookings will fail.',
+                'text' => 'Only ₹'.number_format($balance['amount'], 0).' left. Top it up, or new hotel, flight and cab bookings will fail.',
                 'url' => FlightSettingsPage::canAccess() ? FlightSettingsPage::getUrl() : '#', 'button' => 'Details'];
         }
 
@@ -109,6 +116,19 @@ class DashboardData
                 'title' => 'Online flight booking is switched OFF',
                 'text' => 'Guests cannot search or book flights right now.',
                 'url' => FlightSettingsPage::getUrl(), 'button' => 'Flight settings'];
+        }
+
+        $cabSettings = \App\Filament\Pages\CabSettings::canAccess();
+        if ($cabSettings && ! \App\Services\CabBookingService::configured()) {
+            $items[] = ['icon' => '🛠️', 'tone' => 'warning', 'count' => null,
+                'title' => 'Cab booking is not set up yet',
+                'text' => 'Guests can search cabs but not book them until your developer adds your TripJack user ID (TRIPJACK_CAB_AGENT_ID).',
+                'url' => \App\Filament\Pages\CabSettings::getUrl(), 'button' => 'Cab settings'];
+        } elseif ($cabSettings && ! CabSettings::bookingEnabled()) {
+            $items[] = ['icon' => '⏸️', 'tone' => 'warning', 'count' => null,
+                'title' => 'Online cab booking is switched OFF',
+                'text' => 'Guests cannot search or book cabs right now.',
+                'url' => \App\Filament\Pages\CabSettings::getUrl(), 'button' => 'Cab settings'];
         }
 
         if ($n = (int) auth('admin')->user()?->unreadNotifications()->count()) {
@@ -252,6 +272,75 @@ class DashboardData
             $out['bookings'][] = $month()->count();
             $out['enquiries'][] = Enquiry::whereBetween('created_at', [$start, $end])->count();
         }
+
+        return $out;
+    }
+
+    /** Periods offered on the sales chart, key => label. */
+    public const SALES_PERIODS = [
+        '7d' => 'Last 7 days',
+        '30d' => 'Last 30 days',
+        '3m' => 'Last 3 months',
+        '6m' => 'Last 6 months',
+        '12m' => 'Last 12 months',
+        'ytd' => 'This year',
+    ];
+    /**
+     * Sales per type for the chart, by day (7/30 days), week (3 months) or
+     * month — one query for the whole period, split into bars here.
+     *
+     * @return array{labels: array<int, string>, hotel: array<int, float>, flight: array<int, float>, package: array<int, float>, cab: array<int, float>, total: float}
+     */
+    public static function salesSeries(string $period): array
+    {
+        $buckets = [];
+        $add = function (Carbon $start, Carbon $end, string $label) use (&$buckets) {
+            $buckets[] = ['start' => $start, 'end' => $end, 'label' => $label];
+        };
+
+        switch ($period) {
+            case '7d':
+            case '30d':
+                $days = $period === '7d' ? 7 : 30;
+                for ($i = $days - 1; $i >= 0; $i--) {
+                    $d = today()->subDays($i);
+                    $add($d->copy(), $d->copy()->endOfDay(), $d->format($days === 7 ? 'D j' : 'j M'));
+                }
+                break;
+            case '3m':
+                $start = today()->subWeeks(12)->startOfWeek();
+                while ($start->lte(today())) {
+                    $add($start->copy(), $start->copy()->endOfWeek(), $start->format('j M'));
+                    $start->addWeek();
+                }
+                break;
+            default:
+                $months = match ($period) { '12m' => 12, 'ytd' => now()->month, default => 6 };
+                for ($i = $months - 1; $i >= 0; $i--) {
+                    $m = now()->startOfMonth()->subMonths($i);
+                    $add($m->copy(), $m->copy()->endOfMonth(), $m->format($months > 6 ? 'M y' : 'M'));
+                }
+        }
+
+        $rows = self::sales()
+            ->whereBetween('created_at', [$buckets[0]['start'], end($buckets)['end']])
+            ->get(['created_at', 'vertical', 'total_amount']);
+
+        $out = ['labels' => array_column($buckets, 'label'), 'total' => 0.0];
+        foreach (['hotel', 'flight', 'package', 'cab'] as $type) {
+            $out[$type] = array_fill(0, count($buckets), 0.0);
+        }
+        foreach ($rows as $row) {
+            $type = in_array($row->vertical, ['flight', 'package', 'cab'], true) ? $row->vertical : 'hotel';
+            foreach ($buckets as $i => $b) {
+                if ($row->created_at->between($b['start'], $b['end'])) {
+                    $out[$type][$i] = round($out[$type][$i] + (float) $row->total_amount, 2);
+                    $out['total'] += (float) $row->total_amount;
+                    break;
+                }
+            }
+        }
+        $out['total'] = round($out['total'], 2);
 
         return $out;
     }
