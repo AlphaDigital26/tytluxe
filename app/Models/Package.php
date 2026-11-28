@@ -4,11 +4,36 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Package extends Model
 {
     /** @use HasFactory<\Database\Factories\PackageFactory> */
     use HasFactory;
+
+    /**
+     * Deleting moves a package to the admin's Bin (deleted_at): hidden from
+     * the website and lists, restorable for BIN_DAYS days, then erased by
+     * packages:empty-bin. A package with bookings is never erased.
+     */
+    use SoftDeletes;
+
+    /** Days a deleted package stays restorable in the Bin. */
+    public const BIN_DAYS = 30;
+
+    public function bookings() { return $this->hasMany(Booking::class); }
+
+    /** Erasing it would blank the package name on guests' bookings and invoices. */
+    public function canBeErased(): bool
+    {
+        return ! $this->bookings()->exists();
+    }
+
+    /** When the Bin erases this package (null when it isn't in the Bin). */
+    public function erasesOn(): ?\Illuminate\Support\Carbon
+    {
+        return $this->deleted_at?->copy()->addDays(self::BIN_DAYS);
+    }
 
     protected $guarded = [];
 

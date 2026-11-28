@@ -63,6 +63,21 @@ Schedule::command('tripjack:refresh-hotel-bookings --cancellations')->dailyAt('0
 // is still unpaid on the departure day (booking amount forfeited).
 Schedule::command('packages:balance-check')->hourly()->withoutOverlapping();
 
+// Packages Bin: erase packages deleted more than Package::BIN_DAYS days ago.
+// Packages with bookings are kept (their bookings and invoices need the name).
+Artisan::command('packages:empty-bin', function () {
+    $erased = 0;
+    \App\Models\Package::onlyTrashed()
+        ->where('deleted_at', '<=', now()->subDays(\App\Models\Package::BIN_DAYS))
+        ->whereDoesntHave('bookings')
+        ->each(function (\App\Models\Package $package) use (&$erased) {
+            $package->forceDelete();
+            $erased++;
+        });
+    $this->info("{$erased} package(s) deleted for good from the Bin.");
+})->purpose('Permanently delete packages that have been in the Bin for over 30 days');
+Schedule::command('packages:empty-bin')->dailyAt('03:30')->withoutOverlapping();
+
 // ── TripJack UAT certification logs (see App\Support\UatRecorder) ──────────
 // php artisan uat:start flight oneway DEL-BOM-1A-DIRECT   → Tripjack API logs/oneway/DEL-BOM-1A-DIRECT/
 // php artisan uat:start hotel 2                           → HOTEL API TEST CASES/Test Case 2/

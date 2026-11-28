@@ -49,7 +49,8 @@ class PackageForm
                                 ->label('Web address')
                                 ->helperText(fn (string $operation) => $operation === 'create' ? 'Auto-generated from the title. You can edit it, but use hyphens instead of spaces.' : 'This is the web address of the page. Changing it breaks links people already have (Google, WhatsApp shares) — only change it if you must.')
                                 ->required()
-                                ->unique(ignoreRecord: true),
+                                ->unique(ignoreRecord: true)
+                                ->validationMessages(['unique' => 'Another package already uses this web address — it may be in the Bin. Restore that one, or choose a different address.']),
 
                             TextInput::make('hero_eyebrow')
                                 ->label('Location Tag')
