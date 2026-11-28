@@ -157,6 +157,9 @@ select.cab-sb-input option{background:#1a1a1a}
 .cab-sb-ac button{display:block;width:100%;text-align:left;background:none;border:none;padding:10px 14px;color:#eee;font-family:'Poppins',sans-serif;font-size:13px;cursor:pointer;line-height:1.4}
 .cab-sb-ac button:hover,.cab-sb-ac button.hover{background:rgba(201,168,76,0.1)}
 .cab-sb-ac-empty{padding:12px 14px;font-size:12px;color:#888}
+.cab-sb-ac-loading{display:flex;align-items:center;gap:10px;color:#bbb}
+.cab-sb-ac-spin{width:14px;height:14px;border:2px solid rgba(201,168,76,0.25);border-top-color:#C9A84C;border-radius:50%;animation:cabSpin .7s linear infinite;flex-shrink:0}
+@keyframes cabSpin{to{transform:rotate(360deg)}}
 @media(max-width:980px){
   .cab-sb-row{flex-wrap:wrap;gap:6px}
   .cab-sb-field{flex:1 1 100%}
@@ -340,6 +343,7 @@ select.cab-sb-input option{background:#1a1a1a}
   });
 
   // Place suggestions (TripJack Location Search API) — a place counts only once picked from the list.
+  var placeCache = {}; // shared by the pickup and drop boxes for this visit
   form.querySelectorAll('.cab-sb-place').forEach(function (field) {
     var input = field.querySelector('.cab-sb-input');
     var hidden = field.querySelector('input[type="hidden"]');
@@ -364,18 +368,39 @@ select.cab-sb-input option{background:#1a1a1a}
     }
     function pick(p) { input.value = p.label; hidden.value = p.id; close(); }
 
+    var controller = null;
+    function status(text) {
+      list.innerHTML = '<div class="cab-sb-ac-empty cab-sb-ac-loading"><span class="cab-sb-ac-spin" aria-hidden="true"></span>' + text + '</div>';
+      list.classList.add('open');
+    }
+
     input.addEventListener('input', function () {
       hidden.value = '';
       var q = input.value.trim();
+      var key = q.toLowerCase().replace(/\s+/g, ' ');
       clearTimeout(timer);
       if (q.length < 3) { close(); return; }
+      lastQuery = key;
+
+      // Already looked up during this visit: show at once.
+      if (placeCache[key]) { render(placeCache[key]); return; }
+
+      // Show that something is happening straight away, not a blank box.
+      status('Searching places…');
       timer = setTimeout(function () {
-        lastQuery = q;
-        fetch(placesUrl + '?q=' + encodeURIComponent(q), { headers: { 'Accept': 'application/json' } })
+        if (controller) controller.abort(); // a reply to older letters is no longer needed
+        controller = window.AbortController ? new AbortController() : null;
+        fetch(placesUrl + '?q=' + encodeURIComponent(q), { headers: { 'Accept': 'application/json' }, signal: controller ? controller.signal : undefined })
           .then(function (r) { return r.json(); })
-          .then(function (d) { if (q === lastQuery) render(d.places || []); })
-          .catch(function () { close(); });
-      }, 300);
+          .then(function (d) {
+            var places = d.places || [];
+            if (places.length) placeCache[key] = places;
+            if (key !== lastQuery) return;
+            if (!places.length && d.message) { status(d.message); return; }
+            render(places);
+          })
+          .catch(function (err) { if (!err || err.name !== 'AbortError') { if (key === lastQuery) status('Couldn\'t load places. Please type again.'); } });
+      }, 200);
     });
     input.addEventListener('keydown', function (e) {
       var items = list.querySelectorAll('button');

@@ -95,16 +95,25 @@ class CabController extends Controller
             return response()->json(['places' => []]);
         }
 
-        try {
-            $places = collect($client->places(mb_substr($q, 0, 80)))
-                ->map(fn ($p) => ['id' => (string) ($p['id'] ?? $p['value'] ?? ''), 'label' => (string) ($p['displayLabel'] ?? $p['name'] ?? '')])
-                ->filter(fn ($p) => $p['id'] !== '' && $p['label'] !== '')
-                ->take(8)->values();
-        } catch (TripJackException $e) {
-            return response()->json(['places' => [], 'message' => 'Place search is not available right now.'], 502);
+        // Same words typed again (by anyone) come back instantly: places don't change.
+        $key = 'cab_places:'.md5(mb_strtolower(preg_replace('/\s+/', ' ', mb_substr($q, 0, 80))));
+        $places = \Illuminate\Support\Facades\Cache::get($key);
+
+        if ($places === null) {
+            try {
+                $places = collect($client->places(mb_substr($q, 0, 80)))
+                    ->map(fn ($p) => ['id' => (string) ($p['id'] ?? $p['value'] ?? ''), 'label' => (string) ($p['displayLabel'] ?? $p['name'] ?? '')])
+                    ->filter(fn ($p) => $p['id'] !== '' && $p['label'] !== '')
+                    ->take(8)->values()->all();
+            } catch (TripJackException $e) {
+                return response()->json(['places' => [], 'message' => 'Place search is not available right now.'], 502);
+            }
+            if ($places) {
+                \Illuminate\Support\Facades\Cache::put($key, $places, now()->addDay());
+            }
         }
 
-        return response()->json(['places' => $places]);
+        return response()->json(['places' => $places])->header('Cache-Control', 'private, max-age=3600');
     }
 
     public function search(Request $request)

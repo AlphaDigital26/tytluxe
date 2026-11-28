@@ -44,7 +44,8 @@ class TripJackCabClient
     /** Place suggestions as the guest types ("igi" → IGI Airport T3…). */
     public function places(string $input): array
     {
-        return $this->request('POST', '/cabs/v1/google-places', ['input' => $input])['data']['places'] ?? [];
+        // Typed live: a quick answer or none (no retries, short wait).
+        return $this->request('POST', '/cabs/v1/google-places', ['input' => $input], retry: false, timeout: 6)['data']['places'] ?? [];
     }
 
     /** A chosen place's coordinates and address (city, country, PIN). */
@@ -100,7 +101,7 @@ class TripJackCabClient
         ], retry: false)['data'] ?? [];
     }
 
-    protected function request(string $method, string $path, array $payload = [], bool $retry = true): array
+    protected function request(string $method, string $path, array $payload = [], bool $retry = true, ?int $timeout = null): array
     {
         $url = $this->baseUrl.$path;
         $startedAt = microtime(true);
@@ -114,7 +115,7 @@ class TripJackCabClient
                 'x-api-key' => $this->apiKey,
                 'apikey' => $this->apiKey,
             ])
-                ->timeout($this->timeout)
+                ->timeout($timeout ?? $this->timeout)
                 ->connectTimeout($this->connectTimeout)
                 ->retry($retry ? $this->retryTimes : 1, fn (int $attempt) => 1000 * (2 ** ($attempt - 1)), function ($exception) {
                     return $exception instanceof ConnectionException
