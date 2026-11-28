@@ -38,17 +38,17 @@ class BusinessSnapshot extends BaseWidget
     {
         $m = DashboardData::monthly(6);
         // Same three as the sales chart below, so the two always agree.
-        $sales = array_map(fn ($h, $f, $p) => $h + $f + $p, $m['hotel'], $m['flight'], $m['package']);
+        $sales = array_map(fn ($h, $f, $p, $c) => $h + $f + $p + $c, $m['hotel'], $m['flight'], $m['package'], $m['cab']);
 
         $wallet = DashboardData::walletStatus();
         $bookingOn = HotelSettings::bookingEnabled() && FlightSettings::bookingEnabled();
 
         return [
             $this->stat('Sales', $sales, money: true)
-                ->description($this->change($sales, true).' · hotels ₹'.number_format(end($m['hotel']), 0).', flights ₹'.number_format(end($m['flight']), 0).', packages ₹'.number_format(end($m['package']), 0)),
+                ->description($this->change($sales, true).' · hotels ₹'.number_format(end($m['hotel']), 0).', flights ₹'.number_format(end($m['flight']), 0).', packages ₹'.number_format(end($m['package']), 0).', cabs ₹'.number_format(end($m['cab']), 0)),
             // Packages are your own trips: what they cost you isn't recorded
             // here, so there is no mark-up to count — only hotels and flights.
-            $this->stat('Your earnings (hotels & flights)', $m['earning'], money: true),
+            $this->stat('Your earnings (hotels, flights & cabs)', $m['earning'], money: true),
             $this->stat('Bookings', $m['bookings']),
             $this->stat('Enquiries received', $m['enquiries']),
             Stat::make('TripJack wallet', $wallet['value'])

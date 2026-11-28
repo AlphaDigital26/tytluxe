@@ -66,7 +66,8 @@ Schedule::command('packages:balance-check')->hourly()->withoutOverlapping();
 // ── TripJack UAT certification logs (see App\Support\UatRecorder) ──────────
 // php artisan uat:start flight oneway DEL-BOM-1A-DIRECT   → Tripjack API logs/oneway/DEL-BOM-1A-DIRECT/
 // php artisan uat:start hotel 2                           → HOTEL API TEST CASES/Test Case 2/
-Artisan::command('uat:start {vertical : flight or hotel} {group : oneway, roundtrip, multicity, or the hotel test case number} {name? : flight case name, e.g. DEL-BOM-1A-DIRECT}', function (string $vertical, string $group, ?string $name = null) {
+// php artisan uat:start cab airport-oneway                → CAB API TEST CASES/Airport Transfer - One Way/
+Artisan::command('uat:start {vertical : flight, hotel or cab} {group : oneway, roundtrip, multicity; the hotel test case number; or for cabs airport|outstation|local|embedded-oneway|roundtrip} {name? : flight case name, e.g. DEL-BOM-1A-DIRECT}', function (string $vertical, string $group, ?string $name = null) {
     if (config('services.tripjack.env') === 'production') {
         return $this->error('UAT logs are only for the TripJack test (UAT) system, not production.');
     }
@@ -77,8 +78,13 @@ Artisan::command('uat:start {vertical : flight or hotel} {group : oneway, roundt
         $folder = \App\Support\UatRecorder::FLIGHT_ROOT.'/'.$group.'/'.strtoupper($name);
     } elseif ($vertical === 'hotel' && ctype_digit($group)) {
         $folder = \App\Support\UatRecorder::HOTEL_ROOT.'/Test Case '.$group;
+    } elseif ($vertical === 'cab' && preg_match('/^(airport|outstation|local|embedded)-(oneway|roundtrip)$/', $group)) {
+        // TripJack cab doc 4.1–4.4, e.g. "airport-oneway" → CAB API TEST CASES/Airport Transfer - One Way
+        [$type, $way] = explode('-', $group);
+        $folder = \App\Support\UatRecorder::CAB_ROOT.'/'.['airport' => 'Airport Transfer', 'outstation' => 'Outstation', 'local' => 'Local', 'embedded' => 'Embedded'][$type]
+            .' - '.($way === 'oneway' ? 'One Way' : 'Round Trip');
     } else {
-        return $this->error('Use: php artisan uat:start hotel 2   (the hotel test case number)');
+        return $this->error('Use: php artisan uat:start hotel 2   or   php artisan uat:start cab airport-oneway   (airport|outstation|local|embedded - oneway|roundtrip)');
     }
     $dir = \App\Support\UatRecorder::start($vertical, $folder);
     $this->info("Recording {$vertical} test case: {$folder}");
@@ -108,7 +114,7 @@ Artisan::command('uat:zip', function () {
     $zip = new ZipArchive;
     $zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
     $count = 0;
-    foreach ([\App\Support\UatRecorder::FLIGHT_ROOT, \App\Support\UatRecorder::HOTEL_ROOT] as $top) {
+    foreach ([\App\Support\UatRecorder::FLIGHT_ROOT, \App\Support\UatRecorder::HOTEL_ROOT, \App\Support\UatRecorder::CAB_ROOT] as $top) {
         if (! is_dir("$root/$top")) {
             continue;
         }

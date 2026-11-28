@@ -21,6 +21,8 @@ class UatRecorder
 
     public const HOTEL_ROOT = 'HOTEL API TEST CASES';
 
+    public const CAB_ROOT = 'CAB API TEST CASES';
+
     public static function root(): string
     {
         return config('services.tripjack.uat_path') ?: storage_path('uat');
@@ -87,18 +89,29 @@ class UatRecorder
         }
 
         try {
-            if ($vertical === 'hotel' && $case['folder'] === self::HOTEL_ROOT.'/Test Case 14') {
-                self::recordCleanup($path, $rawResponse);
-
-                return;
-            }
-
-            $names = $vertical === 'flight' ? self::flightNames($path) : self::hotelNames($path, $case, $requestBody);
+            $names = match ($vertical) {
+                'flight' => self::flightNames($path),
+                'cab' => self::cabNames($path, $requestBody),
+                default => self::hotelNames($path, $case, $requestBody),
+            };
             if (! $names) {
                 return; // a call TripJack's samples don't include
             }
             [$request, $response] = $names;
             $dir = self::root().'/'.$case['folder'];
+
+            // Cabs look up two places (pickup, then drop): keep both, numbered.
+            if ($vertical === 'cab' && str_contains($path, '/get-lat-long')) {
+                for ($n = 2; is_file("$dir/$response"); $n++) {
+                    [$request, $response] = ["LatLong{$n}Request.json", "LatLong{$n}Response.json"];
+                }
+            }
+
+            // Hotel search runs in parallel batches: keep the first batch that found hotels.
+            if ($vertical === 'hotel' && str_contains($path, '/hotel/listing')
+                && (is_file("$dir/$response") || empty(json_decode((string) $rawResponse, true)['hotels'] ?? []))) {
+                return;
+            }
 
             $json = fn ($data) => json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
@@ -130,9 +143,8 @@ class UatRecorder
 
             // The review response carries the cancellation policy TripJack asks to see on its own.
             if ($vertical === 'hotel' && str_contains($path, '/hotel/review') && is_array($decoded)) {
-                // v3 Review: option.cancellation; older shapes: hInfo/hotel.ops[0].cnp.
-                $policy = $decoded['option']['cancellation'] ?? $decoded['hInfo']['ops'][0]['cnp']
-                    ?? $decoded['hotel']['ops'][0]['cnp'] ?? self::findKey($decoded, 'cnp') ?? self::findKey($decoded, 'cancellation');
+                // v3: option.cancellation {isRefundable, penalties}; older shapes used "cnp".
+                $policy = $decoded['option']['cancellation'] ?? self::findKey($decoded, 'cancellation') ?? self::findKey($decoded, 'cnp');
                 file_put_contents("$dir/TJ test Hotel cancellation policy Request.json", $json($requestBody));
                 file_put_contents("$dir/TJ test Hotel cancellation policy Response.json", $json($policy ?? new \stdClass));
             }
@@ -224,6 +236,30 @@ class UatRecorder
         };
 
         return $base ? [$base.' Request.json', $base.' Response.json'] : null;
+    }
+
+    /**
+     * Cab calls, one request and one response file each. The amendment
+     * endpoint is the same path for the charges check (GET, "type") and the
+     * cancellation itself (POST, "amendmentType").
+     *
+     * @return array{0: string, 1: string}|null
+     */
+    protected static function cabNames(string $path, array $requestBody): ?array
+    {
+        $base = match (true) {
+            str_contains($path, '/google-places') => 'LocationSearch',
+            str_contains($path, '/get-lat-long') => 'LatLong',
+            str_contains($path, '/embedded/booking') => 'EmbeddedBooking',
+            str_contains($path, '/quotes') => 'Quotes',
+            str_contains($path, '/payment/create') => 'Payment',
+            str_contains($path, '/booking/details') => 'BookingDetails',
+            str_ends_with($path, '/booking') => 'Booking',
+            str_contains($path, '/amendment') => isset($requestBody['amendmentType']) ? 'Cancellation' : 'CancellationCharges',
+            default => null,
+        };
+
+        return $base ? [$base.'Request.json', $base.'Response.json'] : null;
     }
 
     /** A book call sent without payment details is TripJack's "hold". */
