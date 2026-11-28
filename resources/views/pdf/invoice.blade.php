@@ -98,12 +98,15 @@
     $totals = $booking->invoiceTotals();
     // Flights keep their travellers on the booking (Book's travellerInfo),
     // not as booking_travelers rows.
-    $invoiceGuests = $isFlight
+    $isCab = $booking->vertical === 'cab';
+    $invoiceGuests = $isCab
+        ? collect([['name' => $booking->lead_guest_name, 'type' => 'Lead passenger ('.(int) $booking->pax_adults.' travelling)']])
+        : ($isFlight
         ? collect($booking->flight_segments_payload['travellerInfo'] ?? [])->map(fn ($t) => [
             'name' => trim(preg_replace('/\s+/', ' ', ($t['ti'] ?? '').' '.($t['fN'] ?? '').' '.($t['lN'] ?? ''))),
             'type' => ucfirst(strtolower($t['pt'] ?? 'adult')),
         ])
-        : $booking->travelers->map(fn ($t) => ['name' => $t->full_name, 'type' => ucfirst($t->traveler_type)]);
+        : $booking->travelers->map(fn ($t) => ['name' => $t->full_name, 'type' => ucfirst($t->traveler_type)]));
   @endphp
 
   <table class="inv-header">
@@ -241,6 +244,40 @@
   </table>
   @endif
 
+  @if($isCab)
+  @php $cab = $booking->cab_details ?? []; @endphp
+  <div class="inv-section-title">Booking Details</div>
+  <table class="inv-table">
+    <thead>
+      <tr>
+        <th>Cab</th>
+        <th>Pickup</th>
+        <th>Drop</th>
+        <th class="right">Passengers</th>
+        <th class="right">Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>{{ $cab['option']['label'] ?? 'Cab' }}</strong><br><span style="color:#999;">{{ \App\Services\CabBookingService::JOURNEY_TYPES[$cab['journeyType'] ?? ''] ?? '' }} · {{ !empty($cab['roundTrip']) ? 'Round trip' : 'One way' }}</span></td>
+        <td>{{ $cab['from'] ?? '—' }}</td>
+        <td>{{ $cab['to'] ?? '—' }}</td>
+        <td class="right">{{ (int) $booking->pax_adults }}</td>
+        <td class="right">{{ $booking->currency }} {{ number_format($booking->base_amount, 2) }}</td>
+      </tr>
+    </tbody>
+  </table>
+  <table class="inv-stay-strip">
+    <tr>
+      <td><span class="inv-stay-label">Pickup</span><span class="inv-stay-value">{{ $booking->cab_pickup_at?->format('d M Y, g:i A') ?? '—' }}</span></td>
+      @if(!empty($cab['returnAt']))
+      <td><span class="inv-stay-label">Return</span><span class="inv-stay-value">{{ \Illuminate\Support\Carbon::parse($cab['returnAt'])->format('d M Y, g:i A') }}</span></td>
+      @endif
+      <td><span class="inv-stay-label">Booked On</span><span class="inv-stay-value">{{ $booking->created_at->format('d M Y') }}</span></td>
+    </tr>
+  </table>
+  @endif
+
   @if($booking->vertical === 'package' && $booking->package)
   <div class="inv-section-title">Booking Details</div>
   <table class="inv-table">
@@ -315,12 +352,12 @@
   <div class="inv-summary-wrap">
     <table class="inv-price-table">
       <tr>
-        <td>{{ $isFlight ? 'Air Fare (incl. airline taxes)' : 'Room Charges' }}</td>
+        <td>{{ $isFlight ? 'Air Fare (incl. airline taxes)' : ($isCab ? 'Cab Fare (incl. operator taxes)' : 'Room Charges') }}</td>
         <td class="right">{{ $booking->currency }} {{ number_format($booking->base_amount, 2) }}</td>
       </tr>
       @if($booking->tax_amount > 0)
       <tr>
-        <td>{{ $isFlight ? 'Service & Convenience Fee' : 'Taxes & Fees' }}</td>
+        <td>{{ $isFlight ? 'Service & Convenience Fee' : ($isCab ? 'GST & Online Payment Charges' : 'Taxes & Fees') }}</td>
         <td class="right">{{ $booking->currency }} {{ number_format($booking->tax_amount, 2) }}</td>
       </tr>
       @endif
@@ -386,6 +423,9 @@
     @if($booking->vertical === 'package')
     <li>The balance must be paid {{ \App\Services\PackageBookingService::BALANCE_DUE_DAYS_BEFORE }} days before departure. If it is not paid before departure, the booking is cancelled and the booking amount is not refundable.</li>
     <li>Cancellations can be requested up to {{ \App\Services\PackageBookingService::CANCEL_DAYS_BEFORE }} days before departure; refunds are confirmed by TYT Luxe under its cancellation policy.</li>
+    @elseif($isCab)
+    <li>This cab is provided through TYT Luxe's ground transport partners and is governed by the operator's waiting time, luggage and cancellation policies shown at booking.</li>
+    <li>Extra stops, route changes, extra waiting or excess luggage may be charged separately by the operator.</li>
     @elseif($isFlight)
     <li>This booking is fulfilled through TYT Luxe's airline supply partners and is governed by the operating airline's fare rules, including its cancellation, change and baggage policies.</li>
     <li>TYT Luxe acts as a booking facilitator; the airline remains the carrier responsible for the flight, check-in and boarding.</li>

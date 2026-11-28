@@ -1812,6 +1812,9 @@ class FrontendController extends Controller
         if ($verticalCheck === 'package') {
             return app(PackageBookingController::class)->confirmation($this->ownPackageBooking($reference));
         }
+        if ($verticalCheck === 'cab') {
+            return app(CabController::class)->confirmation($this->ownPackageBooking($reference));
+        }
         if ($verticalCheck === 'flight') {
             $booking = Booking::where('reference', $reference)->firstOrFail();
             if ($booking->user_id !== auth()->id()) {
@@ -1928,6 +1931,9 @@ class FrontendController extends Controller
         $verticalCheck = Booking::where('reference', $reference)->value('vertical');
         if ($verticalCheck === 'package') {
             return app(PackageBookingController::class)->payment($this->ownPackageBooking($reference));
+        }
+        if ($verticalCheck === 'cab') {
+            return app(CabController::class)->payment($this->ownPackageBooking($reference));
         }
         if ($verticalCheck === 'flight') {
             $booking = Booking::where('reference', $reference)->firstOrFail();
@@ -2183,6 +2189,13 @@ class FrontendController extends Controller
         // Packages have no supplier to book with — paying confirms the seats.
         if ($payment->booking?->vertical === 'package') {
             app(\App\Services\PackageBookingService::class)->confirmAfterPayment($payment);
+
+            return;
+        }
+
+        // Cabs: book with TripJack, then pay TripJack from the wallet.
+        if ($payment->booking?->vertical === 'cab') {
+            app(\App\Services\CabBookingService::class)->confirmAfterPayment($payment);
 
             return;
         }
@@ -2463,6 +2476,9 @@ class FrontendController extends Controller
         if ($verticalCheck === 'package') {
             return app(PackageBookingController::class)->showCancellation($this->ownPackageBooking($reference));
         }
+        if ($verticalCheck === 'cab') {
+            return app(CabController::class)->showCancellation($this->ownPackageBooking($reference));
+        }
         if ($verticalCheck === 'flight') {
             $booking = Booking::where('reference', $reference)->firstOrFail();
             if ($booking->user_id !== auth()->id()) {
@@ -2532,6 +2548,9 @@ class FrontendController extends Controller
         $verticalCheck = Booking::where('reference', $reference)->value('vertical');
         if ($verticalCheck === 'package') {
             return app(PackageBookingController::class)->submitCancellation($this->ownPackageBooking($reference), $request);
+        }
+        if ($verticalCheck === 'cab') {
+            return app(CabController::class)->submitCancellation($this->ownPackageBooking($reference), $request);
         }
         if ($verticalCheck === 'flight') {
             $booking = Booking::where('reference', $reference)->firstOrFail();

@@ -29,6 +29,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'throttle' => \App\Http\Middleware\ThrottlePerRoute::class,
             'flight.enabled' => \App\Http\Middleware\EnsureFlightFeatureEnabled::class,
             'hotel.enabled' => \App\Http\Middleware\EnsureHotelBookingEnabled::class,
+            'cab.enabled' => \App\Http\Middleware\EnsureCabBookingEnabled::class,
         ]);
 
         $middleware->web(prepend: [

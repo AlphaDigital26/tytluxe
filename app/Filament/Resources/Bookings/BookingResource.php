@@ -37,7 +37,7 @@ class BookingResource extends Resource
     /** Flights and packages have their own screens under Bookings & Leads. */
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->where(fn ($q) => $q->whereNotIn('vertical', ['flight', 'package'])->orWhereNull('vertical'));
+        return parent::getEloquentQuery()->where(fn ($q) => $q->whereNotIn('vertical', ['flight', 'package', 'cab'])->orWhereNull('vertical'));
     }
 
     public static function getGlobalSearchEloquentQuery(): Builder

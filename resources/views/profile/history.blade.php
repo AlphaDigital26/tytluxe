@@ -29,6 +29,7 @@
                         'all' => ['All', 'fa-layer-group'],
                         'hotel' => ['Hotels', 'fa-hotel'],
                         'flight' => ['Flights', 'fa-plane'],
+                        'cab' => ['Cabs', 'fa-taxi'],
                         'package' => ['Packages', 'fa-mountain-sun'],
                         'cruise' => ['Cruises', 'fa-ship'],
                     ];
@@ -76,6 +77,8 @@
                             $imageUrl = $booking->package->hero_image_url;
                         } elseif ($booking->vertical === 'flight') {
                             $title = 'Flight: ' . $booking->flight_route;
+                        } elseif ($booking->vertical === 'cab') {
+                            $title = 'Cab: ' . $booking->flight_route;
                         }
 
                         $guestsLabel = $booking->pax_adults . ' Adult' . ($booking->pax_adults > 1 ? 's' : '');
@@ -113,10 +116,10 @@
                         // cancel page would actually let the guest through.
                         $canCancel = $booking->vertical === 'package'
                             ? \App\Services\PackageBookingService::guestCanCancel($booking)
-                            : $booking->status === 'confirmed'
+                            : ($booking->vertical === 'cab' ? \App\Services\CabBookingService::guestCanCancel($booking) : $booking->status === 'confirmed'
                                 && filled($booking->tripjack_booking_id)
                                 && $booking->cancellation_requested_at === null
-                                && ($booking->vertical === 'flight' ? \App\Support\FlightSettings::allowGuestCancel() && $booking->flightSupportsOnline('cancel') : \App\Support\HotelSettings::allowGuestCancel());
+                                && ($booking->vertical === 'flight' ? \App\Support\FlightSettings::allowGuestCancel() && $booking->flightSupportsOnline('cancel') : \App\Support\HotelSettings::allowGuestCancel()));
                     @endphp
                     <img src="{{ $imageUrl }}" alt="{{ $title }}" class="journey-img">
                     <div class="journey-content">
@@ -141,7 +144,7 @@
                             @endif
                         </div>
                         <div class="journey-actions">
-                            @if($booking->vertical === 'package')
+                            @if(in_array($booking->vertical, ['package', 'cab'], true))
                                 <a href="{{ route('hotel.booking.confirmation', $booking->reference) }}" class="btn btn-primary journey-btn">View Details</a>
                                 @if($booking->packageBalanceDue())
                                     <a href="{{ route('package.balance', $booking->reference) }}" class="btn btn-primary journey-btn">Pay Balance</a>
@@ -209,6 +212,8 @@
                                 $imageUrl = $booking->package->hero_image_url;
                             } elseif ($booking->vertical === 'flight') {
                                 $title = 'Flight: ' . $booking->flight_route;
+                            } elseif ($booking->vertical === 'cab') {
+                                $title = 'Cab: ' . $booking->flight_route;
                             }
 
                             $guestsLabel = $booking->pax_adults . ' Adult' . ($booking->pax_adults > 1 ? 's' : '');

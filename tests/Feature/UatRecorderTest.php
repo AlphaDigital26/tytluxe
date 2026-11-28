@@ -42,6 +42,29 @@ class UatRecorderTest extends TestCase
         $this->assertSame(['searchQuery' => ['cabinClass' => 'ECONOMY']], json_decode(File::get("$dir/SearchRequest.json"), true));
     }
 
+    public function test_cab_calls_are_saved_one_file_per_request_and_response(): void
+    {
+        UatRecorder::start('cab', 'CAB API TEST CASES/Airport Transfer - One Way');
+        $dir = UatRecorder::root().'/CAB API TEST CASES/Airport Transfer - One Way';
+
+        UatRecorder::record('cab', '/cabs/v1/get-lat-long', ['placeId' => 'PICKUP'], '{"success":true}');
+        UatRecorder::record('cab', '/cabs/v1/get-lat-long', ['placeId' => 'DROP'], '{"success":true}');
+        UatRecorder::record('cab', '/cabs/v2/quotes', ['passengers' => 3], '{"success":true}');
+        UatRecorder::record('cab', '/cabs/v2/booking', ['consent' => 'yes'], '{"success":true}');
+        UatRecorder::record('cab', '/cabs/v1/payment/create', ['opType' => 'DEBIT'], '{"success":true}');
+        UatRecorder::record('cab', '/cabs/v1/booking/details', ['bookingIds' => 'TJS1'], '{"success":true}');
+        UatRecorder::record('cab', '/cabs/v1/amendment', ['bookingId' => 'TJS1', 'type' => 'CANCELLATION'], '{"success":true}');
+        UatRecorder::record('cab', '/cabs/v1/amendment', ['bookingId' => 'TJS1', 'amendmentType' => 'CANCELLATION'], '{"success":true}');
+
+        $this->assertSame([
+            'BookingDetailsRequest.json', 'BookingDetailsResponse.json', 'BookingRequest.json', 'BookingResponse.json',
+            'CancellationChargesRequest.json', 'CancellationChargesResponse.json', 'CancellationRequest.json', 'CancellationResponse.json',
+            'LatLong2Request.json', 'LatLong2Response.json', 'LatLongRequest.json', 'LatLongResponse.json',
+            'PaymentRequest.json', 'PaymentResponse.json', 'QuotesRequest.json', 'QuotesResponse.json',
+        ], collect(File::files($dir))->map->getFilename()->sort()->values()->all());
+        $this->assertSame(['placeId' => 'DROP'], json_decode(File::get("$dir/LatLong2Request.json"), true));
+    }
+
     public function test_hotel_hold_book_cancel_and_detail_after_cancel(): void
     {
         UatRecorder::start('hotel', 'HOTEL API TEST CASES/Test Case 6');
@@ -50,7 +73,7 @@ class UatRecorderTest extends TestCase
         UatRecorder::record('hotel', '/hotel/listing', ['hids' => [1]], '{"hotels":[]}'); // empty batch: skipped
         UatRecorder::record('hotel', '/hotel/listing', ['hids' => [2]], '{"hotels":[{"id":2}]}');
         UatRecorder::record('hotel', '/hotel/listing', ['hids' => [3]], '{"hotels":[{"id":3}]}'); // first one kept
-        UatRecorder::record('hotel', '/hotel/review', ['optionId' => 'O1'], '{"hInfo":{"ops":[{"cnp":{"isRefundable":true}}]}}');
+        UatRecorder::record('hotel', '/hotel/review', ['optionId' => 'O1'], '{"option":{"cancellation":{"isRefundable":true}}}');
         UatRecorder::record('hotel', '/hotel/book', ['bookingId' => 'H1'], '{"bookingId":"H1"}'); // no paymentInfos = hold
         UatRecorder::record('hotel', '/hotel/booking-details', ['bookingId' => 'H1'], '{"order":{"status":"ON_HOLD"}}');
         UatRecorder::record('hotel', '/hotel/cancel-booking/H1', [], '{"status":{"success":true}}');

@@ -90,6 +90,21 @@ return [
             'cert_logs' => (bool) env('TRIPJACK_CERT_LOGS', false),
             'cert_log_path' => env('TRIPJACK_CERT_LOG_PATH', storage_path('logs/tripjack-cert')),
         ],
+
+        // Cabs API v2 (TripJack Cabs API documentation v2.0). Same API key and
+        // TRIPJACK_ENV switch. The doc lists the live domain as tripjack.com;
+        // TRIPJACK_CAB_BASE_URL overrides it once TripJack confirms the live host.
+        'cab' => [
+            'base_url' => env('TRIPJACK_CAB_BASE_URL', env('TRIPJACK_ENV', 'test') === 'production'
+                ? 'https://tripjack.com'
+                : 'https://apitest-cabs.tripjack.com'),
+            // Our TripJack agent details, sent on every cab booking
+            // (agentId / agentEmail / agentPhone in the Booking API) and the
+            // user whose TripJack wallet pays for it (Payment API payUserId).
+            'agent_id' => env('TRIPJACK_CAB_AGENT_ID'),
+            'agent_email' => env('TRIPJACK_CAB_AGENT_EMAIL'),
+            'agent_phone' => env('TRIPJACK_CAB_AGENT_PHONE'),
+        ],
     ],
 
     'razorpay' => [

@@ -13,6 +13,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->scoped(\App\Support\FlightSettings::class);
         $this->app->scoped(\App\Support\HotelSettings::class);
+        $this->app->scoped(\App\Support\CabSettings::class);
     }
 
     /**
