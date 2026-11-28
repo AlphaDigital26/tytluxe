@@ -2,8 +2,9 @@
 
 namespace App\Filament\Resources\Packages\Tables;
 
+use App\Filament\Resources\Packages\PackageBinActions;
+use App\Models\Package;
 use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\IconColumn;
@@ -56,6 +57,18 @@ class PackagesTable
                     ->dateTime('j M Y, g:i A')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+                // Bin only: when it was deleted and when it is erased.
+                TextColumn::make('deleted_at')
+                    ->label('Moved to Bin')
+                    ->dateTime('j M Y, g:i A')
+                    ->sortable()
+                    ->visible(fn ($livewire) => ($livewire->activeTab ?? null) === 'bin'),
+                TextColumn::make('erases_on')
+                    ->label('Deleted forever on')
+                    ->state(fn (Package $record) => $record->canBeErased() ? $record->erasesOn()?->format('j M Y') : 'Never — has bookings')
+                    ->description(fn (Package $record) => $record->canBeErased() && $record->erasesOn() ? max(0, (int) ceil(now()->diffInDays($record->erasesOn(), false))).' days left' : null)
+                    ->color(fn (Package $record) => $record->canBeErased() ? 'danger' : 'gray')
+                    ->visible(fn ($livewire) => ($livewire->activeTab ?? null) === 'bin'),
             ])
             ->filters([
                 SelectFilter::make('region_type')
@@ -66,12 +79,19 @@ class PackagesTable
                     ->options(['group' => 'Group', 'custom' => 'Custom']),
             ])
             ->recordActions([
-                EditAction::make(),
+                EditAction::make()->hidden(fn (Package $record) => $record->trashed()),
+                PackageBinActions::moveToBin(),
+                PackageBinActions::restore(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    PackageBinActions::moveToBinBulk(),
+                    PackageBinActions::restoreBulk(),
                 ]),
-            ]);
+            ])
+            ->emptyStateHeading(fn ($livewire) => ($livewire->activeTab ?? null) === 'bin' ? 'The Bin is empty' : 'No packages yet')
+            ->emptyStateDescription(fn ($livewire) => ($livewire->activeTab ?? null) === 'bin'
+                ? 'Deleted packages appear here for '.Package::BIN_DAYS.' days, so you can restore them.'
+                : null);
     }
 }

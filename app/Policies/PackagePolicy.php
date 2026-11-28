@@ -65,6 +65,6 @@ class PackagePolicy
      */
     public function forceDelete(Admin $user, Package $model): bool
     {
-        return false; // Never permanently delete from CMS
+        return false; // Never by hand: only packages:empty-bin erases Bin packages after 30 days
     }
 }

@@ -69,7 +69,7 @@ class Booking extends Model
     public function agent() { return $this->belongsTo(User::class, 'agent_id'); }
     public function travelers() { return $this->hasMany(BookingTraveler::class); }
     public function payments() { return $this->hasMany(Payment::class); }
-    public function package() { return $this->belongsTo(Package::class); }
+    public function package() { return $this->belongsTo(Package::class)->withTrashed(); } // still named on bookings after it is deleted
     public function packageDeparture() { return $this->belongsTo(PackageDeparture::class); }
 
     /** "2 travellers + 1 infant (free)" — package travellers as guests read them. */

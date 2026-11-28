@@ -37,6 +37,12 @@ class PackageResource extends Resource
         return PackagesTable::configure($table);
     }
 
+    /** A package in the Bin can still be opened (to restore it). */
+    public static function getRecordRouteBindingEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        return parent::getRecordRouteBindingEloquentQuery()->withoutGlobalScopes([\Illuminate\Database\Eloquent\SoftDeletingScope::class]);
+    }
+
     public static function getRelations(): array
     {
         // All relations (Highlights, Itinerary Days, Inclusions, Exclusions, Images)
